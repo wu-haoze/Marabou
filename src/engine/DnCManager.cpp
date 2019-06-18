@@ -104,12 +104,12 @@ void DnCManager::solve()
     // Create objects shared across workers
     std::atomic_uint numUnsolvedSubqueries( subQueries.size() );
     std::atomic_bool shouldQuitSolving( false );
-    WorkerQueue *workload = new WorkerQueue( 0 );
+    _workload = new WorkerQueue( 0 );
     bool pushed = false;
     (void)pushed;
     for ( auto &subQuery : subQueries )
     {
-        pushed = workload->push( subQuery );
+        pushed = _workload->push( subQuery );
         ASSERT( pushed );
     }
 
@@ -117,7 +117,7 @@ void DnCManager::solve()
     std::list<std::thread> threads; // TODO: change this to List (compliation error)
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
     {
-        threads.push_back( std::thread( dncSolve, workload,
+        threads.push_back( std::thread( dncSolve, _workload,
                                         _engines[ threadId ],
                                         std::ref( numUnsolvedSubqueries ),
                                         std::ref( shouldQuitSolving ),
@@ -207,6 +207,29 @@ void DnCManager::printResult()
         ASSERT( false );
     }
 }
+
+String DnCManager::getResultString()
+{
+    switch ( _exitCode )
+    {
+    case DnCManager::SAT:
+        return "SAT";
+    case DnCManager::UNSAT:
+        return "UNSAT";
+    case DnCManager::ERROR:
+        return "ERROR";
+    case DnCManager::NOT_DONE:
+        return "NOT_DONE";
+    case DnCManager::QUIT_REQUESTED:
+        return "QUIT_REQUESTED";
+    case DnCManager::TIMEOUT:
+        return "TIMEOUT";
+    default:
+        ASSERT( false );
+        return "";
+    }
+}
+
 
 bool DnCManager::createEngines()
 {
