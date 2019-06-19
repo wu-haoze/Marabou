@@ -34,18 +34,21 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_uint &numUnsolvedSubQueries,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy )
+                      float timeoutFactor, DivideStrategy divideStrategy,
+                      PiecewiseLinearCaseSplit *postCondition )
 {
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy );
+    worker.setPostCondition( postCondition );
     worker.run();
 }
 
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
-                        String networkFilePath, String propertyFilePath )
+                        String networkFilePath, String preConditionFilePath,
+                        String postConditionFilePath )
     : _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
@@ -53,7 +56,8 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
     , _timeoutFactor( timeoutFactor )
     , _divideStrategy( divideStrategy )
     , _networkFilePath( networkFilePath )
-    , _propertyFilePath( propertyFilePath )
+    , _preConditionFilePath( preConditionFilePath )
+    , _postConditionFilePath( postConditionFilePath )
     , _exitCode( DnCManager::NOT_DONE )
     , _workload( NULL )
 {
@@ -82,7 +86,8 @@ void DnCManager::freeMemoryIfNeeded()
 
 void DnCManager::solve()
 {
-    if ( !createEngines() )
+    Vector<PiecewiseLinearCaseSplit *> postConditions;
+    if ( !createEngines( postConditions ) )
     {
         _exitCode = DnCManager::UNSAT;
         printResult();
@@ -122,7 +127,8 @@ void DnCManager::solve()
                                         std::ref( numUnsolvedSubqueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy ) );
+                                        _timeoutFactor, _divideStrategy,
+                                        postConditions[ threadId ] ) );
     }
 
     // Wait until either all subqueries are solved or a satisfying assignment is
@@ -230,8 +236,8 @@ String DnCManager::getResultString()
     }
 }
 
-
-bool DnCManager::createEngines()
+bool DnCManager::createEngines( Vector<PiecewiseLinearCaseSplit *>&
+                               postConditions )
 {
     // Create the base engine
     _baseEngine = std::make_shared<Engine>();
@@ -240,9 +246,8 @@ bool DnCManager::createEngines()
     AcasParser acasParser( _networkFilePath );
     acasParser.generateQuery( *baseInputQuery );
 
-    if ( _propertyFilePath != "" )
-        PropertyParser( ).parse( _propertyFilePath, *baseInputQuery );
-
+    if ( _preConditionFilePath != "" )
+        PropertyParser( ).parse( _preConditionFilePath, *baseInputQuery );
     if ( !_baseEngine->processInputQuery( *baseInputQuery ) )
         // Solved by preprocessing, we are done!
         return false;
@@ -256,7 +261,23 @@ bool DnCManager::createEngines()
         engine->processInputQuery( *inputQuery );
         _engines.append( engine );
     }
+
+    if ( _postConditionFilePath != "" )
+        getPostCondition( postConditions, *baseInputQuery );
     return true;
+}
+
+void DnCManager::getPostCondition( Vector<PiecewiseLinearCaseSplit *>&
+                                   postConditions, const InputQuery &inputQuery )
+{
+    // Read postCondition
+    if ( _postConditionFilePath != "" )
+    {
+        PiecewiseLinearCaseSplit *postCondition =
+            PropertyParser( ).parsePost( _postConditionFilePath, inputQuery );
+        postConditions.append( postCondition );
+    }
+    return;
 }
 
 void DnCManager::initialDivide( SubQueries &subQueries )

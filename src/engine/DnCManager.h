@@ -41,7 +41,7 @@ public:
     DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, String networkFilePath,
-                String propertyFilePath );
+                String preConditionFilePath, String postConditionFilePath="" );
 
     ~DnCManager();
 
@@ -67,7 +67,13 @@ private:
       Create the base engine from the network and property files,
       and if necessary, create engines for workers
     */
-    bool createEngines();
+    bool createEngines( Vector<PiecewiseLinearCaseSplit *>& postConditions );
+
+    /*
+      Create caseSplits representing the postCondition for each worker
+    */
+    void getPostCondition( Vector<PiecewiseLinearCaseSplit *>&
+                           postConditions, const InputQuery &inputQuery );
 
     /*
       Divide up the input region and store them in subqueries
@@ -134,7 +140,8 @@ private:
       Path to the network and property files
     */
     String _networkFilePath;
-    String _propertyFilePath;
+    String _preConditionFilePath;
+    String _postConditionFilePath;
 
     /*
       The exit code of the DnCManager.

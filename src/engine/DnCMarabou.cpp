@@ -59,13 +59,23 @@ void DnCMarabou::run( Options* options )
     }
   printf( "Network: %s\n", propertyFilePath.ascii() );
 
+  String postConditionFilePath = options->getString( Options::POST_CONDITION_FILE_PATH );
+  if ( postConditionFilePath != "" && !File::exists( postConditionFilePath ) )
+    {
+      printf( "Error: the specified property file (%s) doesn't exist!\n",
+              postConditionFilePath.ascii() );
+      throw ReluplexError( ReluplexError::FILE_DOESNT_EXIST,
+                           postConditionFilePath.ascii() );
+    }
+  printf( "Network: %s\n", postConditionFilePath.ascii() );
+
 
   _dncManager = std::unique_ptr<DnCManager>(
                new DnCManager ( num_workers, initial_divides, initial_timeout,
                                 online_divides, timeout_factor,
                                 DivideStrategy::LargestInterval, networkFilePath,
-                                propertyFilePath )
-                                           );
+                                propertyFilePath, postConditionFilePath )
+                                            );
 
   struct timespec start = TimeUtils::sampleMicro();
 

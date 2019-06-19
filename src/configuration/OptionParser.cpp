@@ -49,6 +49,9 @@ void OptionParser::initialize()
         ( "property",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::PROPERTY_FILE_PATH]) ),
           "Property file" )
+        ( "post",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::POST_CONDITION_FILE_PATH]) ),
+          "Post-condition file" )
         ( "summary-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SUMMARY_FILE]) ),
           "Summary file" )

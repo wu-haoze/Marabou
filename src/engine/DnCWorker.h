@@ -38,6 +38,11 @@ public:
     */
     void run();
 
+    /*
+      Set the postCondition of the worker
+    */
+    void setPostCondition( PiecewiseLinearCaseSplit *postCondition );
+
 private:
     /*
       Initiate the query-divider object
@@ -95,6 +100,11 @@ private:
       A list of invariants to be checked.
     */
     List<Invariant> _invariants;
+
+    /*
+      Post condition.
+    */
+    PiecewiseLinearCaseSplit* _postCondition;
 };
 
 #endif // __DnCWorker_h__

@@ -64,6 +64,7 @@ void Options::initializeDefaultValues()
     */
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
+    _stringOptions[POST_CONDITION_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";
 }
 

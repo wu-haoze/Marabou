@@ -41,6 +41,7 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
     , _invariants ( )
+    , _postCondition ( NULL )
 {
     setQueryDivider( divideStrategy );
 
@@ -86,6 +87,10 @@ void DnCWorker::run()
                 // TODO: each worker is going to keep a map from *CaseSplit to an
                 // object of class DnCStatistics, which contains some basic
                 // statistics. The maps are owned by the DnCManager.
+
+                // Apply the post condition if possible
+                if ( _postCondition != NULL )
+                    _engine->applySplit( *_postCondition );
                 _engine->solve( timeoutInSeconds );
                 result = _engine->getExitCode();
             } else
@@ -199,6 +204,11 @@ bool DnCWorker::checkInvariant( Invariant& invariant )
             return false;
     }
     return true;
+}
+
+void DnCWorker::setPostCondition( PiecewiseLinearCaseSplit *postCondition )
+{
+    _postCondition = postCondition;
 }
 
 String DnCWorker::exitCodeToString( Engine::ExitCode result )
