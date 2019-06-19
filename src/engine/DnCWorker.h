@@ -18,6 +18,7 @@
 
 #include "DivideStrategy.h"
 #include "Engine.h"
+#include "Invariant.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "QueryDivider.h"
 
@@ -54,6 +55,16 @@ private:
     void printProgress( String queryId, Engine::ExitCode result ) const;
 
     /*
+      Check each of the invariants in the invariant
+    */
+    bool checkInvariants();
+
+    /*
+      Check whether an invariant holds
+    */
+    bool checkInvariant( Invariant& invariant );
+
+    /*
       The queue of subqueries (shared across threads)
     */
     WorkerQueue *_workload;
@@ -79,6 +90,11 @@ private:
     unsigned _threadId;
     unsigned _onlineDivides;
     float _timeoutFactor;
+
+    /*
+      A list of invariants to be checked.
+    */
+    List<Invariant> _invariants;
 };
 
 #endif // __DnCWorker_h__

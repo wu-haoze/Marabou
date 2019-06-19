@@ -40,6 +40,7 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     , _threadId( threadId )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
+    , _invariants ( )
 {
     setQueryDivider( divideStrategy );
 
@@ -74,18 +75,23 @@ void DnCWorker::run()
             PiecewiseLinearCaseSplit split = *( subQuery->_split );
             unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
 
-            // Create a new statistics object for each subQuery
-            Statistics *statistics = new Statistics();
-            _engine->resetStatistics( *statistics );
-            // TODO: each worker is going to keep a map from *CaseSplit to an
-            // object of class DnCStatistics, which contains some basic
-            // statistics. The maps are owned by the DnCManager.
-
             // Apply the split and solve
             _engine->applySplit( split );
-            _engine->solve( timeoutInSeconds );
-
-            Engine::ExitCode result = _engine->getExitCode();
+            Engine::ExitCode result;
+            if ( !checkInvariants() )
+            {
+                // Create a new statistics object for each subQuery
+                Statistics *statistics = new Statistics();
+                _engine->resetStatistics( *statistics );
+                // TODO: each worker is going to keep a map from *CaseSplit to an
+                // object of class DnCStatistics, which contains some basic
+                // statistics. The maps are owned by the DnCManager.
+                _engine->solve( timeoutInSeconds );
+                result = _engine->getExitCode();
+            } else
+            {
+                result = Engine::UNSAT;
+            }
             printProgress( queryId, result );
             // Switch on the result
             if ( result == Engine::UNSAT )
@@ -162,6 +168,37 @@ void DnCWorker::printProgress( String queryId, Engine::ExitCode result ) const
     printf( "Worker %d: Query %s %s, %d tasks remaining\n", _threadId,
             queryId.ascii(), exitCodeToString( result ).ascii(),
             _numUnsolvedSubQueries->load() );
+}
+
+bool DnCWorker::checkInvariants()
+{
+    for ( auto &invariant : _invariants )
+        if ( checkInvariant( invariant ) )
+            return true;
+    return false;
+}
+
+bool DnCWorker::checkInvariant( Invariant& invariant )
+{
+    List<PiecewiseLinearCaseSplit> activationPatterns =
+        invariant.getActivationPatterns();
+    for ( auto& activation : activationPatterns )
+    {
+        Statistics *statistics = new Statistics();
+        _engine->resetStatistics( *statistics );
+        _engine->applySplit( activation );
+        _engine->solve( );
+        std::cout << "Checked a pattern" << std::endl;
+        Engine::ExitCode result = _engine->getExitCode();
+        _engine->restoreState( *_initialState );
+        _engine->clearViolatedPLConstraints();
+        _engine->resetSmtCore();
+        _engine->resetExitCode();
+        _engine->resetBoundTighteners();
+        if ( result != Engine::UNSAT )
+            return false;
+    }
+    return true;
 }
 
 String DnCWorker::exitCodeToString( Engine::ExitCode result )
