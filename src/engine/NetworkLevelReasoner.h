@@ -45,6 +45,8 @@ public:
     void setWeight( unsigned sourceLayer, unsigned sourceNeuron, unsigned targetNeuron, double weight );
     void setBias( unsigned layer, unsigned neuron, double bias );
 
+    void getLayerPatternFromPreviousOutput( double *prevOutput, double *output, unsigned targetLayer) const;
+
     /*
       Interface methods for performing operations on the network.
     */

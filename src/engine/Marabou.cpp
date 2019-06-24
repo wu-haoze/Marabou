@@ -87,7 +87,17 @@ void Marabou::prepareInputQuery()
 void Marabou::solveQuery()
 {
     if ( _engine.processInputQuery( _inputQuery ) )
-        _engine.solve();
+        {
+            double fourthLayer[50] = { 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.2411876,0.0,3.650841,0.0,1.040137,0.0,
+                                       1.0558571,0.0,0.0,0.0,0.0,1.1394303,0.0,0.0,3.5750618,0.0,0.0,0.0,0.0,0.0,0.0,
+                                       0.0,3.1531541,6.9274445,5.2406535,0.0,0.0,0.0,0.0,0.0,0.0,0.0681587,0.0,0.12139891,
+                                       0.5621837,0.53771937,2.6538048,0.0,0.0,1.682233,0.0 };
+            double patternIndices[20] =
+            double fifthLayerOutput[50];
+            _engine._networkLevelReasoner->getLayerPatternFromPreviousOutput( fourthLayer, fifthLayerOutput, 4 );
+            for ( unsigned i = 0;
+            _engine.solve();
+        }
 
     if ( _engine.getExitCode() == Engine::SAT )
         _engine.extractSolution( _inputQuery );
