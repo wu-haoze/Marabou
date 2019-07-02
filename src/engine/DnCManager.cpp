@@ -287,7 +287,7 @@ void DnCManager::initialDivide( SubQueries &subQueries )
     if ( _divideStrategy == DivideStrategy::LargestInterval )
     {
         queryDivider = std::unique_ptr<QueryDivider>
-            ( new LargestIntervalDivider( inputVariables, _timeoutFactor ) );
+            ( new LargestIntervalDivider( inputVariables ) );
     }
     else
     {
@@ -295,7 +295,7 @@ void DnCManager::initialDivide( SubQueries &subQueries )
         NetworkLevelReasoner *networkLevelReasoner =
             _baseEngine->getInputQuery()->getNetworkLevelReasoner();
         queryDivider = std::unique_ptr<ActivationPatternDivider>
-            ( new ActivationPatternDivider( inputVariables, _timeoutFactor,
+            ( new ActivationPatternDivider( inputVariables,
                                             networkLevelReasoner,
                                             _numberOfSegments,
                                             _pointsPerSegment ) );

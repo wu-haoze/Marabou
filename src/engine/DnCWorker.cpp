@@ -47,14 +47,14 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     {
         const List<unsigned> &inputVariables = _engine->getInputVariables();
         _queryDivider = std::unique_ptr<LargestIntervalDivider>
-            ( new LargestIntervalDivider( inputVariables, _timeoutFactor ) );
+            ( new LargestIntervalDivider( inputVariables ) );
     } else if (divideStrategy == DivideStrategy::ActivationVariance )
     {
         const List<unsigned> &inputVariables = _engine->getInputVariables();
         NetworkLevelReasoner *networkLevelReasoner = _engine->getInputQuery()->
             getNetworkLevelReasoner();
         _queryDivider = std::unique_ptr<ActivationPatternDivider>
-            ( new ActivationPatternDivider( inputVariables, _timeoutFactor,
+            ( new ActivationPatternDivider( inputVariables,
                                             networkLevelReasoner,
                                             numberOfSegments,
                                             pointsPerSegment ) );
@@ -112,7 +112,8 @@ void DnCWorker::run()
                 SubQueries subQueries;
                 _queryDivider->createSubQueries( pow( 2, _onlineDivides ),
                                                  queryId, *split,
-                                                 timeoutInSeconds, subQueries );
+                                                 (unsigned) timeoutInSeconds *
+                                                 _timeoutFactor, subQueries );
                 bool pushed = true;
                 for ( auto &newSubQuery : subQueries )
                 {

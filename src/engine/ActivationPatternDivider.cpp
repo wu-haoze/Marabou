@@ -21,14 +21,12 @@
 #include <random>
 
 ActivationPatternDivider::ActivationPatternDivider( const List<unsigned>
-                                                     &inputVariables, double
-                                                     timeoutFactor,
+                                                     &inputVariables,
                                                      NetworkLevelReasoner
                                                      *networkLevelReasoner,
                                                      unsigned numberOfSegments,
                                                      unsigned pointsPerSegment )
     : _inputVariables( inputVariables )
-    , _timeoutFactor( timeoutFactor )
     , _networkLevelReasoner( networkLevelReasoner )
     , _numberOfSegments( numberOfSegments )
     , _pointsPerSegment( pointsPerSegment )
@@ -141,8 +139,7 @@ void ActivationPatternDivider::createSubQueries( unsigned numNewSubqueries,
         SubQuery *subQuery = new SubQuery;
         subQuery->_queryId = queryId;
         subQuery->_split = std::move(split);
-        subQuery->_timeoutInSeconds = (unsigned)( timeoutInSeconds *
-                                                  _timeoutFactor );
+        subQuery->_timeoutInSeconds = timeoutInSeconds;
         subQueries.append( subQuery );
     }
 }

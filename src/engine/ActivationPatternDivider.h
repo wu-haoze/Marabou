@@ -26,8 +26,8 @@ class ActivationPatternDivider : public QueryDivider
 {
 public:
     ActivationPatternDivider( const List<unsigned> &inputVariables,
-                              double timeoutFactor, NetworkLevelReasoner
-                              *networkLevelReasoner, unsigned numberOfSegments,
+                              NetworkLevelReasoner *networkLevelReasoner,
+                              unsigned numberOfSegments,
                               unsigned pointsPerSegment );
 
     ~ActivationPatternDivider();
@@ -89,9 +89,6 @@ private:
 
     // All input variables of the network
     const List<unsigned> _inputVariables;
-
-    // Multiply the previous timeout with this factor
-    double _timeoutFactor;
 
     // NetworkLevelReasoner for get the Relu pattern
     NetworkLevelReasoner *_networkLevelReasoner;
