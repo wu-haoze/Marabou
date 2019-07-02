@@ -13,6 +13,7 @@
 
  **/
 
+#include "ActivationPatternDivider.h"
 #include "AcasParser.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
@@ -282,11 +283,14 @@ void DnCManager::initialDivide( SubQueries &subQueries )
         queryDivider = std::unique_ptr<QueryDivider>
             ( new LargestIntervalDivider( inputVariables, _timeoutFactor ) );
     }
-    else
+    else if ( _divideStrategy == DivideStrategy::ActivationVariance )
     {
-        // Default
-        queryDivider = std::unique_ptr<QueryDivider>
-            ( new LargestIntervalDivider( inputVariables, _timeoutFactor ) );
+        const List<unsigned> &inputVariables = _baseEngine->getInputVariables();
+        NetworkLevelReasoner *networkLevelReasoner =
+            _baseEngine->getInputQuery()->getNetworkLevelReasoner();
+        queryDivider = std::unique_ptr<ActivationPatternDivider>
+            ( new ActivationPatternDivider( inputVariables, _timeoutFactor,
+                                            networkLevelReasoner, 4, 100 ) );
     }
 
     String queryId = "";

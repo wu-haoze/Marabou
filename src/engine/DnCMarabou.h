@@ -38,6 +38,11 @@ private:
     void displayResults( unsigned long long microSecondsElapsed,
                          String summaryFilePath ) const;
 
+    /*
+      Set the divide strategy according to the command line argument
+    */
+    DivideStrategy setDivideStrategyFromOptions( const String strategy );
+
 };
 
 #endif // __DnCMarabou_h__

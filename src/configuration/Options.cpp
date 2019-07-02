@@ -62,6 +62,7 @@ void Options::initializeDefaultValues()
     /*
       String options
     */
+    _stringOptions[DIVIDE_STRATEGY] = "activation-variance";
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";

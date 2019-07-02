@@ -60,12 +60,13 @@ void DnCMarabou::run( Options *options )
     }
     printf( "Network: %s\n", propertyFilePath.ascii() );
 
+    DivideStrategy divideStrategy = setDivideStrategyFromOptions
+      ( options->getString( Options::DIVIDE_STRATEGY ) );
 
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager ( num_workers, initial_divides, initial_timeout,
-                         online_divides, timeout_factor,
-                         DivideStrategy::LargestInterval, networkFilePath,
-                         propertyFilePath, verbosity ) );
+                         online_divides, timeout_factor, divideStrategy,
+                         networkFilePath, propertyFilePath, verbosity ) );
 
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -103,4 +104,17 @@ void DnCMarabou::displayResults( unsigned long long microSecondsElapsed,
 
         summaryFile.write( "\n" );
     }
+}
+
+DivideStrategy DnCMarabou::setDivideStrategyFromOptions( const String strategy )
+{
+  if ( strategy == "activation-variance" )
+      return DivideStrategy::ActivationVariance;
+  else if ( strategy == "largest-interval" )
+      return DivideStrategy::LargestInterval;
+  else
+  {
+      printf ("Unknown divide strategy, using default (activation variance)");
+      return DivideStrategy::ActivationVariance;
+  }
 }

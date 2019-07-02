@@ -13,6 +13,7 @@
 
  **/
 
+#include "ActivationPatternDivider.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
 #include "DnCWorker.h"
@@ -57,6 +58,14 @@ void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
         const List<unsigned> &inputVariables = _engine->getInputVariables();
         _queryDivider = std::unique_ptr<LargestIntervalDivider>
             ( new LargestIntervalDivider( inputVariables, _timeoutFactor ) );
+    } else if (divideStrategy == DivideStrategy::ActivationVariance )
+    {
+        const List<unsigned> &inputVariables = _engine->getInputVariables();
+        NetworkLevelReasoner *networkLevelReasoner = _engine->getInputQuery()->
+            getNetworkLevelReasoner();
+        _queryDivider = std::unique_ptr<ActivationPatternDivider>
+            ( new ActivationPatternDivider( inputVariables, _timeoutFactor,
+                                            networkLevelReasoner, 4, 100 ) );
     }
 }
 
