@@ -54,6 +54,8 @@ void Options::initializeDefaultValues()
     _intOptions[INITIAL_TIMEOUT] = 5;
     _intOptions[VERBOSITY] = 2;
     _intOptions[TIMEOUT] = 0;
+    _intOptions[POINTS_PER_SEGMENT] = 100;
+    _intOptions[NUMBER_OF_SEGMENTS] = 4;
     /*
       Float options
     */

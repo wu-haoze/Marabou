@@ -74,6 +74,12 @@ void OptionParser::initialize()
           boost::program_options::value<int>( &((*_intOptions)[Options::VERBOSITY]) ),
           "Verbosity of engine::solve(). 0: does not print anything (for DnC), 1: print"
           "out statistics in the beginning and end, 2: print out statistics during solving." )
+        ( "num-segments",
+          boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_SEGMENTS]) ),
+          "Number of segments for activation variance strategy" )
+        ( "points-per-segment",
+          boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
+          "Number of points per segment for activation variance strategy" )
         ( "timeout-factor",
           boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
           "The timeout factor" )

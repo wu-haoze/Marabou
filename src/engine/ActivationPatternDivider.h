@@ -77,6 +77,16 @@ private:
     unsigned manhattanDistance( ActivationPattern &pattern1,
                                 ActivationPattern &pattern2 );
 
+    /*
+      Print the sampled points
+    */
+    void dumpSampledPoints();
+
+    /*
+      Print the activation pattern
+    */
+    void dumpActivationPatterns();
+
     // All input variables of the network
     const List<unsigned> _inputVariables;
 
@@ -88,6 +98,7 @@ private:
 
     unsigned _numberOfSegments;
     unsigned _pointsPerSegment;
+    unsigned _numberOfPoints;
 
     double** _samplePoints;
     ActivationPattern** _patterns;

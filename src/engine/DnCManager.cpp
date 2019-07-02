@@ -36,11 +36,13 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_uint &numUnsolvedSubQueries,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy )
+                      float timeoutFactor, DivideStrategy divideStrategy,
+                      unsigned pointsPerSegment, unsigned numberOfSegments )
 {
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
-                      timeoutFactor, divideStrategy );
+                      timeoutFactor, divideStrategy, pointsPerSegment,
+                      numberOfSegments );
     worker.run();
 }
 
@@ -48,13 +50,16 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
                         String networkFilePath, String propertyFilePath,
-                        unsigned verbosity )
+                        unsigned verbosity, unsigned pointsPerSegment,
+                        unsigned numberOfSegments )
     : _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
     , _divideStrategy( divideStrategy )
+    , _pointsPerSegment( pointsPerSegment )
+    , _numberOfSegments( numberOfSegments )
     , _networkFilePath( networkFilePath )
     , _propertyFilePath( propertyFilePath )
     , _exitCode( DnCManager::NOT_DONE )
@@ -132,7 +137,8 @@ void DnCManager::solve( unsigned timeoutInSeconds )
                                         std::ref( _numUnsolvedSubqueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy ) );
+                                        _timeoutFactor, _divideStrategy,
+                                        _pointsPerSegment, _numberOfSegments) );
     }
 
     // Wait until either all subqueries are solved or a satisfying assignment is
@@ -290,7 +296,9 @@ void DnCManager::initialDivide( SubQueries &subQueries )
             _baseEngine->getInputQuery()->getNetworkLevelReasoner();
         queryDivider = std::unique_ptr<ActivationPatternDivider>
             ( new ActivationPatternDivider( inputVariables, _timeoutFactor,
-                                            networkLevelReasoner, 4, 100 ) );
+                                            networkLevelReasoner,
+                                            _numberOfSegments,
+                                            _pointsPerSegment ) );
     }
 
     String queryId = "";

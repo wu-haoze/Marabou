@@ -217,7 +217,6 @@ void NetworkLevelReasoner::getActivationPattern( double *input,
                 }
             }
         }
-
         memcpy( _work1, _work2, sizeof(double) * targetLayerSize );
     }
 }

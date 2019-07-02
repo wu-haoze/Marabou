@@ -33,7 +33,8 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_uint &numUnsolvedSubQueries,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy )
+                      float timeoutFactor, DivideStrategy divideStrategy,
+                      unsigned pointsPerSegment, unsigned numberOfSegments )
     : _workload( workload )
     , _engine( engine )
     , _numUnsolvedSubQueries( &numUnsolvedSubQueries )
@@ -42,17 +43,6 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
 {
-    setQueryDivider( divideStrategy );
-
-    // Obtain the current state of the engine
-    _initialState = std::make_shared<EngineState>();
-    _engine->storeState( *_initialState, true );
-}
-
-void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
-{
-    // For now, there is only one strategy
-    ASSERT( divideStrategy == DivideStrategy::LargestInterval );
     if ( divideStrategy == DivideStrategy::LargestInterval )
     {
         const List<unsigned> &inputVariables = _engine->getInputVariables();
@@ -65,8 +55,14 @@ void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
             getNetworkLevelReasoner();
         _queryDivider = std::unique_ptr<ActivationPatternDivider>
             ( new ActivationPatternDivider( inputVariables, _timeoutFactor,
-                                            networkLevelReasoner, 4, 100 ) );
+                                            networkLevelReasoner,
+                                            numberOfSegments,
+                                            pointsPerSegment ) );
     }
+
+    // Obtain the current state of the engine
+    _initialState = std::make_shared<EngineState>();
+    _engine->storeState( *_initialState, true );
 }
 
 void DnCWorker::run()

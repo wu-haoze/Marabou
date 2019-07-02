@@ -39,6 +39,8 @@ public:
         INITIAL_TIMEOUT,
         VERBOSITY,
         TIMEOUT,
+        POINTS_PER_SEGMENT,
+        NUMBER_OF_SEGMENTS,
     };
 
     enum FloatOptions{

@@ -63,10 +63,14 @@ void DnCMarabou::run( Options *options )
     DivideStrategy divideStrategy = setDivideStrategyFromOptions
       ( options->getString( Options::DIVIDE_STRATEGY ) );
 
+    unsigned pointsPerSegment = options->getInt( Options::POINTS_PER_SEGMENT );
+    unsigned numberOfSegments = options->getInt( Options::NUMBER_OF_SEGMENTS );
+
     _dncManager = std::unique_ptr<DnCManager>
-      ( new DnCManager ( numWorkers, initialDivides, initialTimeout,
-                         onlineDivides, timeoutFactor, divideStrategy,
-                         networkFilePath, propertyFilePath, verbosity ) );
+      ( new DnCManager( numWorkers, initialDivides, initialTimeout,
+                        onlineDivides, timeoutFactor, divideStrategy,
+                        networkFilePath, propertyFilePath, verbosity,
+                        pointsPerSegment, numberOfSegments ) );
 
     struct timespec start = TimeUtils::sampleMicro();
 
