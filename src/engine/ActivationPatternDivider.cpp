@@ -107,6 +107,7 @@ void ActivationPatternDivider::createSubQueries( unsigned numNewSubqueries,
         for ( const auto &inputRegion : inputRegions )
         {
             unsigned dimensionToSplit = getLargestVariance( inputRegion );
+            printf ( "%d\n", dimensionToSplit );
             bisectInputRegion( inputRegion, dimensionToSplit, newInputRegions );
         }
         inputRegions = newInputRegions;

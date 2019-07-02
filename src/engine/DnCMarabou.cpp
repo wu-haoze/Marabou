@@ -31,13 +31,13 @@ DnCMarabou::DnCMarabou()
 void DnCMarabou::run( Options *options )
 {
     // Get options
-    unsigned initial_divides = options->getInt( Options::NUM_INITIAL_DIVIDES );
-    unsigned initial_timeout = options->getInt( Options::INITIAL_TIMEOUT );
-    unsigned num_workers = options->getInt( Options::NUM_WORKERS );
-    unsigned online_divides = options->getInt( Options::NUM_ONLINE_DIVIDES );
+    unsigned initialDivides = options->getInt( Options::NUM_INITIAL_DIVIDES );
+    unsigned initialTimeout = options->getInt( Options::INITIAL_TIMEOUT );
+    unsigned numWorkers = options->getInt( Options::NUM_WORKERS );
+    unsigned onlineDivides = options->getInt( Options::NUM_ONLINE_DIVIDES );
     unsigned verbosity = options->getInt( Options::VERBOSITY );
     unsigned timeoutInSeconds = options->getInt( Options::TIMEOUT );
-    float timeout_factor = options->getFloat( Options::TIMEOUT_FACTOR );
+    float timeoutFactor = options->getFloat( Options::TIMEOUT_FACTOR );
     String summaryFilePath = options->getString( Options::SUMMARY_FILE );
 
     String networkFilePath = options->getString( Options::INPUT_FILE_PATH );
@@ -64,8 +64,8 @@ void DnCMarabou::run( Options *options )
       ( options->getString( Options::DIVIDE_STRATEGY ) );
 
     _dncManager = std::unique_ptr<DnCManager>
-      ( new DnCManager ( num_workers, initial_divides, initial_timeout,
-                         online_divides, timeout_factor, divideStrategy,
+      ( new DnCManager ( numWorkers, initialDivides, initialTimeout,
+                         onlineDivides, timeoutFactor, divideStrategy,
                          networkFilePath, propertyFilePath, verbosity ) );
 
     struct timespec start = TimeUtils::sampleMicro();
