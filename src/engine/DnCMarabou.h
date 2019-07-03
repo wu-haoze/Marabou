@@ -27,7 +27,7 @@ public:
     /*
       Entry point of this class
     */
-    void run( Options *options );
+    void run();
 
 private:
     std::unique_ptr<DnCManager> _dncManager;
@@ -35,8 +35,7 @@ private:
     /*
       Display the results
     */
-    void displayResults( unsigned long long microSecondsElapsed,
-                         String summaryFilePath ) const;
+    void displayResults( unsigned long long microSecondsElapsed ) const;
 
     /*
       Set the divide strategy according to the command line argument
@@ -46,3 +45,11 @@ private:
 };
 
 #endif // __DnCMarabou_h__
+
+//
+// Local Variables:
+// compile-command: "make -C ../.. "
+// tags-file-name: "../../TAGS"
+// c-basic-offset: 4
+// End:
+//

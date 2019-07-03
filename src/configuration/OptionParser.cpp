@@ -23,8 +23,10 @@ OptionParser::OptionParser()
     ASSERT( false );
 }
 
-OptionParser::OptionParser( Map<unsigned, bool> *boolOptions, Map<unsigned, int> *intOptions,
-                            Map<unsigned, float> *floatOptions, Map<unsigned, std::string> *stringOptions )
+OptionParser::OptionParser( Map<unsigned, bool> *boolOptions,
+                            Map<unsigned, int> *intOptions,
+                            Map<unsigned, float> *floatOptions,
+                            Map<unsigned, std::string> *stringOptions )
     : _optionDescription( "Supported options" )
     , _boolOptions( boolOptions )
     , _intOptions( intOptions )
@@ -52,24 +54,21 @@ void OptionParser::initialize()
         ( "summary-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SUMMARY_FILE]) ),
           "Summary file" )
-        ( "divide-strategy",
-          boost::program_options::value<std::string>( &((*_stringOptions)[Options::DIVIDE_STRATEGY]) ),
-          "The heuristics to divide the query (activation-pattern/largest-interval)" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
-          "Number of workers" )
+          "(DNC) Number of workers" )
         ( "initial-divides",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_INITIAL_DIVIDES]) ),
-          "Number times to initially bisect the input region" )
+          "(DNC) Number of times to initially bisect the input region" )
         ( "initial-timeout",
           boost::program_options::value<int>( &((*_intOptions)[Options::INITIAL_TIMEOUT]) ),
-          "The initial timeout" )
+          "(DNC) The initial timeout" )
         ( "num-online-divides",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_ONLINE_DIVIDES]) ),
-          "Number of times to further bisect a sub-region when a timeout occurs" )
+          "(DNC) Number of times to further bisect a sub-region when a timeout occurs" )
         ( "timeout",
           boost::program_options::value<int>( &((*_intOptions)[Options::TIMEOUT]) ),
-          "Timeout" )
+          "Global timeout" )
         ( "verbosity",
           boost::program_options::value<int>( &((*_intOptions)[Options::VERBOSITY]) ),
           "Verbosity of engine::solve(). 0: does not print anything (for DnC), 1: print"
@@ -82,7 +81,7 @@ void OptionParser::initialize()
           "Number of points per segment for activation variance strategy" )
         ( "timeout-factor",
           boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
-          "The timeout factor" )
+          "(DNC) The timeout factor" )
 
         ;
 

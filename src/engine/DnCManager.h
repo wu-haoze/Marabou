@@ -87,10 +87,10 @@ private:
     void printResult();
 
     /*
-      Set _timeoutReached to true if timeout has reached
+      Set _timeoutReached to true if timeout has been reached
     */
-    void updateTimeoutReached( timespec startTime, unsigned long long
-                               timeoutInMicroSeconds );
+    void updateTimeoutReached( timespec startTime,
+                               unsigned long long timeoutInMicroSeconds );
 
     /*
       The base engine that is used to perform the initial divides
@@ -160,8 +160,14 @@ private:
     */
     bool _timeoutReached;
 
-    std::atomic_uint _numUnsolvedSubqueries;
+    /*
+      The number of currently unsolved sub queries
+    */
+    std::atomic_uint _numUnsolvedSubQueries;
 
+    /*
+      The level of verbosity
+    */
     unsigned _verbosity;
 };
 
