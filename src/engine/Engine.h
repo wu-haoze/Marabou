@@ -31,6 +31,7 @@
 #include "Preprocessor.h"
 #include "SignalHandler.h"
 #include "SmtCore.h"
+#include "SmtState.h"
 #include "Statistics.h"
 
 #include <atomic>
@@ -131,6 +132,16 @@ public:
     void resetExitCode();
 
     void resetBoundTighteners();
+
+    /*
+      Apply the stack to the newly created SmtCore
+    */
+    void restoreSmtState( SmtState &smtState );
+
+    /*
+      Store the stack of the timed-out query
+    */
+    void storeSmtState( SmtState &smtState );
 
 private:
     enum BasisRestorationRequired {

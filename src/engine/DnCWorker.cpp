@@ -72,17 +72,32 @@ void DnCWorker::run()
         {
             String queryId = subQuery->_queryId;
             auto split = std::move( subQuery->_split );
+            std::unique_ptr<SmtState> smtState = nullptr;
+            if ( subQuery->_smtState )
+                smtState = std::move( subQuery->_smtState );
+            std::unique_ptr<EngineState> engineState = nullptr;
+            if ( subQuery->_engineState )
+                engineState = std::move( subQuery->_engineState );
             unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
 
             // Create a new statistics object for each subQuery
             Statistics *statistics = new Statistics();
             _engine->resetStatistics( *statistics );
+
             // Reset the engine state
-            _engine->restoreState( *_initialState );
             _engine->clearViolatedPLConstraints();
-            _engine->resetSmtCore();
             _engine->resetBoundTighteners();
             _engine->resetExitCode();
+            if ( !engineState )
+                _engine->restoreState( *_initialState );
+            else
+                _engine->restoreState( *engineState );
+            //_engine->restoreState( *_initialState );
+
+            // Restore the smtCore to where the parent query left
+            _engine->resetSmtCore();
+            if ( smtState )
+                _engine->restoreSmtState( *smtState );
             // TODO: each worker is going to keep a map from *CaseSplit to an
             // object of class DnCStatistics, which contains some basic
             // statistics. The maps are owned by the DnCManager.
@@ -111,6 +126,18 @@ void DnCWorker::run()
                                                  _timeoutFactor, subQueries );
                 for ( auto &newSubQuery : subQueries )
                 {
+                    // Store the SmtCore state
+                    auto newSmtState = std::unique_ptr<SmtState>
+                        ( new SmtState() );
+                    _engine->storeSmtState( *newSmtState );
+
+                    // Store the Engine state
+                    newSubQuery->_smtState = std::move( newSmtState );
+                    auto newEngineState = std::unique_ptr<EngineState>
+                        ( new EngineState() );
+                    _engine->storeState( *newEngineState, true );
+
+                    newSubQuery->_engineState = std::move( newEngineState );
                     if ( !_workload->push( std::move( newSubQuery ) ) )
                     {
                         ASSERT( false );

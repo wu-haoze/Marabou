@@ -40,7 +40,6 @@ public:
     bool _needToSplit;
 
     PiecewiseLinearConstraint *_constraintForSplitting;
-    PiecewiseLinearConstraint *_duplicatedConstraintForSplitting;
 
     Map<PiecewiseLinearConstraint *, unsigned> _constraintToViolationCount;
 };

@@ -389,6 +389,25 @@ PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<Piec
     return candidate;
 }
 
+/*
+  Apply the stack to the newly created SmtCore
+*/
+void SmtCore::restoreSmtState( SmtState &smtState )
+{
+    _impliedValidSplitsAtRoot = smtState._impliedValidSplitsAtRoot;
+    _stack = smtState._stack;
+    _needToSplit = smtState._needToSplit;
+    _constraintForSplitting = smtState._constraintForSplitting;
+}
+
+/*
+  Store the stack of the timed-out query
+*/
+void SmtCore::storeSmtState( SmtState &smtState )
+{
+    std::cout << smtState._needToSplit << std::endl;;
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

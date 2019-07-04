@@ -1833,6 +1833,22 @@ void Engine::resetBoundTighteners()
     _rowBoundTightener->resetBounds();
 }
 
+/*
+  Apply the stack to the newly created SmtCore
+*/
+void Engine::restoreSmtState( SmtState &smtState )
+{
+    _smtCore.restoreSmtState( smtState );
+}
+
+/*
+  Store the stack of the timed-out query
+*/
+void Engine::storeSmtState( SmtState &smtState )
+{
+    _smtCore.storeSmtState( smtState );
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "
