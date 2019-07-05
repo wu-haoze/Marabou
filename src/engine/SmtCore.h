@@ -117,6 +117,11 @@ public:
 
 private:
     /*
+      duplicate StackEntry
+    */
+    StackEntry *duplicateStackEntry( const StackEntry &stackEntry );
+
+    /*
       Valid splits that were implied by level 0 of the stack.
     */
     List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;

@@ -41,7 +41,6 @@ public:
 
     PiecewiseLinearConstraint *_constraintForSplitting;
 
-    Map<PiecewiseLinearConstraint *, unsigned> _constraintToViolationCount;
 };
 
 #endif // __SmtState_h__

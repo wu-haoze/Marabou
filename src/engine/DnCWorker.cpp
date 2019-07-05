@@ -130,13 +130,12 @@ void DnCWorker::run()
                     auto newSmtState = std::unique_ptr<SmtState>
                         ( new SmtState() );
                     _engine->storeSmtState( *newSmtState );
+                    newSubQuery->_smtState = std::move( newSmtState );
 
                     // Store the Engine state
-                    newSubQuery->_smtState = std::move( newSmtState );
                     auto newEngineState = std::unique_ptr<EngineState>
                         ( new EngineState() );
                     _engine->storeState( *newEngineState, true );
-
                     newSubQuery->_engineState = std::move( newEngineState );
                     if ( !_workload->push( std::move( newSubQuery ) ) )
                     {

@@ -113,6 +113,7 @@ void SmtCore::performSplit()
     _engine->storeState( *stateBeforeSplits, true );
 
     StackEntry *stackEntry = new StackEntry;
+
     // Perform the first split: add bounds and equations
     List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
     _engine->applySplit( *split );
@@ -405,7 +406,39 @@ void SmtCore::restoreSmtState( SmtState &smtState )
 */
 void SmtCore::storeSmtState( SmtState &smtState )
 {
-    std::cout << smtState._needToSplit << std::endl;;
+    for ( auto &split : _impliedValidSplitsAtRoot )
+        smtState._impliedValidSplitsAtRoot.append( split );
+
+    EngineState currentEngineState;
+    _engine->storeState( currentEngineState, true );
+
+    for ( auto &stackEntry : _stack )
+        smtState._stack.append( duplicateStackEntry( *stackEntry ) );
+    _engine->restoreState( currentEngineState );
+
+    smtState._needToSplit = _needToSplit;
+    smtState._constraintForSplitting = _constraintForSplitting->duplicateConstraint();
+
+}
+
+StackEntry *SmtCore::duplicateStackEntry( const StackEntry &stackEntry )
+{
+    StackEntry *copy = new StackEntry();
+
+    copy->_activeSplit = stackEntry._activeSplit;
+
+    for ( const auto& split : stackEntry._impliedValidSplits )
+        copy->_impliedValidSplits.append( split );
+
+    for (const auto & split : stackEntry._alternativeSplits )
+        copy->_alternativeSplits.append( split );
+
+    EngineState *engineState = new EngineState();
+    _engine->restoreState( *( stackEntry._engineState ) );
+    _engine->storeState( *engineState, true );
+    copy->_engineState = engineState;
+
+    return copy;
 }
 
 //
