@@ -141,7 +141,7 @@ public:
     /*
       Store the stack of the timed-out query
     */
-    void storeSmtState( SmtState &smtState );
+    void storeSmtState( SmtState &smtState, PiecewiseLinearCaseSplit &split );
 
 private:
     enum BasisRestorationRequired {

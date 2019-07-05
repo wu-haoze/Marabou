@@ -113,13 +113,15 @@ public:
     /*
       Store the stack of the timed-out query
     */
-    void storeSmtState( SmtState &smtState );
+    void storeSmtState( SmtState &smtState, PiecewiseLinearCaseSplit &split );
 
 private:
     /*
       duplicate StackEntry
     */
-    StackEntry *duplicateStackEntry( const StackEntry &stackEntry );
+    StackEntry *duplicateStackEntry( const StackEntry &stackEntry,
+                                     EngineState &currentEngineState,
+                                     const PiecewiseLinearCaseSplit &split );
 
     /*
       Valid splits that were implied by level 0 of the stack.

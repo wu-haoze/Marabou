@@ -397,45 +397,53 @@ void SmtCore::restoreSmtState( SmtState &smtState )
 {
     _impliedValidSplitsAtRoot = smtState._impliedValidSplitsAtRoot;
     _stack = smtState._stack;
-    _needToSplit = smtState._needToSplit;
-    _constraintForSplitting = smtState._constraintForSplitting;
+    //_needToSplit = smtState._needToSplit;
+    //_constraintForSplitting = smtState._constraintForSplitting;
 }
 
 /*
   Store the stack of the timed-out query
 */
-void SmtCore::storeSmtState( SmtState &smtState )
+void SmtCore::storeSmtState( SmtState &smtState,
+                             PiecewiseLinearCaseSplit &split )
 {
-    for ( auto &split : _impliedValidSplitsAtRoot )
-        smtState._impliedValidSplitsAtRoot.append( split );
+    for ( auto &impliedSplit : _impliedValidSplitsAtRoot )
+        smtState._impliedValidSplitsAtRoot.append( impliedSplit );
 
     EngineState currentEngineState;
     _engine->storeState( currentEngineState, true );
 
     for ( auto &stackEntry : _stack )
-        smtState._stack.append( duplicateStackEntry( *stackEntry ) );
-    _engine->restoreState( currentEngineState );
+        smtState._stack.append( duplicateStackEntry( *stackEntry,
+                                                     currentEngineState,
+                                                     split ) );
 
-    smtState._needToSplit = _needToSplit;
-    smtState._constraintForSplitting = _constraintForSplitting->duplicateConstraint();
+    //smtState._needToSplit = _needToSplit;
+    //smtState._constraintForSplitting = _constraintForSplitting->
+    //    duplicateConstraint();
 
 }
 
-StackEntry *SmtCore::duplicateStackEntry( const StackEntry &stackEntry )
+StackEntry *SmtCore::duplicateStackEntry( const StackEntry &stackEntry,
+                                          EngineState &currentEngineState,
+                                          const PiecewiseLinearCaseSplit &split )
 {
     StackEntry *copy = new StackEntry();
 
     copy->_activeSplit = stackEntry._activeSplit;
 
-    for ( const auto& split : stackEntry._impliedValidSplits )
-        copy->_impliedValidSplits.append( split );
+    for ( const auto& impliedSplit : stackEntry._impliedValidSplits )
+        copy->_impliedValidSplits.append( impliedSplit );
 
-    for (const auto & split : stackEntry._alternativeSplits )
-        copy->_alternativeSplits.append( split );
+    for (const auto & alternativeSplit : stackEntry._alternativeSplits )
+        copy->_alternativeSplits.append( alternativeSplit );
 
     EngineState *engineState = new EngineState();
     _engine->restoreState( *( stackEntry._engineState ) );
+    _engine->applySplit( split );
     _engine->storeState( *engineState, true );
+    _engine->restoreState( currentEngineState );
+
     copy->_engineState = engineState;
 
     return copy;

@@ -1844,9 +1844,9 @@ void Engine::restoreSmtState( SmtState &smtState )
 /*
   Store the stack of the timed-out query
 */
-void Engine::storeSmtState( SmtState &smtState )
+void Engine::storeSmtState( SmtState &smtState, PiecewiseLinearCaseSplit &split )
 {
-    _smtCore.storeSmtState( smtState );
+    _smtCore.storeSmtState( smtState, split );
 }
 
 //

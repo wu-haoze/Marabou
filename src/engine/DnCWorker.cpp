@@ -129,7 +129,7 @@ void DnCWorker::run()
                     // Store the SmtCore state
                     auto newSmtState = std::unique_ptr<SmtState>
                         ( new SmtState() );
-                    _engine->storeSmtState( *newSmtState );
+                    _engine->storeSmtState( *newSmtState, *( newSubQuery->_split ) );
                     newSubQuery->_smtState = std::move( newSmtState );
 
                     // Store the Engine state
