@@ -36,8 +36,6 @@ public:
     };
 
     enum IntOptions {
-        // DNC options
-        DNC_MODE ,
         NUM_WORKERS = 0,
         NUM_INITIAL_DIVIDES,
         NUM_ONLINE_DIVIDES,

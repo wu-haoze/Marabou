@@ -74,10 +74,10 @@ void DnCMarabou::run()
     float timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
 
     DivideStrategy divideStrategy = setDivideStrategyFromOptions
-      ( options->getString( Options::DIVIDE_STRATEGY ) );
+        ( Options::get()->getString( Options::DIVIDE_STRATEGY ) );
 
-    unsigned pointsPerSegment = options->getInt( Options::POINTS_PER_SEGMENT );
-    unsigned numberOfSegments = options->getInt( Options::NUMBER_OF_SEGMENTS );
+    unsigned pointsPerSegment = Options::get()->getInt( Options::POINTS_PER_SEGMENT );
+    unsigned numberOfSegments = Options::get()->getInt( Options::NUMBER_OF_SEGMENTS );
 
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
