@@ -17,6 +17,10 @@
 #define __NetworkLevelReasoner_h__
 
 #include "Map.h"
+#include "List.h"
+#include "Vector.h"
+
+typedef Vector<unsigned> ActivationPattern;
 
 /*
   A class for performing operations that require knowledge of network
@@ -49,6 +53,11 @@ public:
       Interface methods for performing operations on the network.
     */
     void evaluate( double *input, double *output ) const;
+
+    /*
+      Get the Activation Pattern of the network given the inputs.
+    */
+    void getActivationPattern( double *input, ActivationPattern *pattern );
 
     /*
       Duplicate the reasoner

@@ -162,6 +162,67 @@ void NetworkLevelReasoner::evaluate( double *input, double *output ) const
     memcpy( output, _work1, sizeof(double) * _layerSizes[_numberOfLayers - 1] );
 }
 
+/*
+  Get the Activation Pattern of the network given the inputs.
+*/
+void NetworkLevelReasoner::getActivationPattern( double *input,
+                                                 ActivationPattern *pattern )
+{
+    pattern->clear();
+
+    memcpy( _work1, input, sizeof(double) * _layerSizes[0] );
+
+    for ( unsigned targetLayer = 1; targetLayer < _numberOfLayers;
+          ++targetLayer )
+    {
+        unsigned sourceLayer = targetLayer - 1;
+        unsigned sourceLayerSize = _layerSizes[sourceLayer];
+        unsigned targetLayerSize = _layerSizes[targetLayer];
+
+        for ( unsigned targetNeuron = 0; targetNeuron < targetLayerSize;
+              ++targetNeuron )
+        {
+            Index index( targetLayer, targetNeuron );
+            _work2[targetNeuron] = _bias.exists( index ) ? _bias[index] : 0;
+
+            for ( unsigned sourceNeuron = 0; sourceNeuron < sourceLayerSize;
+                  ++sourceNeuron )
+            {
+                double weight = _weights[sourceLayer][sourceNeuron *
+                                                      targetLayerSize +
+                                                      targetNeuron];
+                _work2[targetNeuron] += _work1[sourceNeuron] * weight;
+            }
+
+            // Apply activation function
+            if ( _neuronToActivationFunction.exists( index ) )
+            {
+                switch ( _neuronToActivationFunction[index] )
+                {
+                case ReLU:
+                    if ( _work2[targetNeuron] < 0 )
+                    {
+                        _work2[targetNeuron] = 0;
+                        pattern->append( 0 );
+                    }
+                    else
+                    {
+                        pattern->append( 1 );
+                    }
+                    break;
+
+                default:
+                    ASSERT( false );
+                    break;
+                }
+            }
+        }
+        memcpy( _work1, _work2, sizeof(double) * targetLayerSize );
+    }
+}
+
+
+
 void NetworkLevelReasoner::storeIntoOther( NetworkLevelReasoner &other ) const
 {
     other.freeMemoryIfNeeded();

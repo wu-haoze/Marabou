@@ -1,4 +1,5 @@
 SOURCES += \
+	ActivationPatternDivider.cpp \
 	BlandsRule.cpp \
 	ConstraintBoundTightener.cpp \
 	ConstraintMatrixAnalyzer.cpp \
