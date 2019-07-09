@@ -37,6 +37,7 @@ public:
 
     enum IntOptions {
         // DNC options
+        DNC_MODE ,
         NUM_WORKERS = 0,
         NUM_INITIAL_DIVIDES,
         NUM_ONLINE_DIVIDES,
@@ -47,10 +48,13 @@ public:
 
         // Global timeout
         TIMEOUT,
+
+        POINTS_PER_SEGMENT,
+        NUMBER_OF_SEGMENTS,
+
     };
 
     enum FloatOptions{
-        // DNC options
         TIMEOUT_FACTOR,
     };
 
@@ -58,6 +62,7 @@ public:
         INPUT_FILE_PATH = 0,
         PROPERTY_FILE_PATH,
         SUMMARY_FILE,
+        DIVIDE_STRATEGY,
     };
 
     /*

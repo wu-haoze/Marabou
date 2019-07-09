@@ -76,6 +76,12 @@ void OptionParser::initialize()
         ( "timeout-factor",
           boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
           "(DNC) The timeout factor" )
+        ( "num-segments",
+          boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_SEGMENTS]) ),
+          "(DNC) Number of segments for activation variance strategy" )
+        ( "points-per-segment",
+          boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
+          "(DNC) Number of points per segment for activation variance strategy" )
 
         ;
 
