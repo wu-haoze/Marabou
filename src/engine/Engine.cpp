@@ -1833,6 +1833,18 @@ void Engine::resetBoundTighteners()
     _rowBoundTightener->resetBounds();
 }
 
+unsigned Engine::numberOfFixedConstraints()
+{
+    return 0;
+}
+
+void Engine::propagateSplit()
+{
+    do
+        performSymbolicBoundTightening();
+    while ( applyAllValidConstraintCaseSplits() );
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

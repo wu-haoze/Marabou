@@ -132,6 +132,13 @@ public:
 
     void resetBoundTighteners();
 
+    /*
+      get the number of fixed constraints
+    */
+    unsigned numberOfFixedConstraints();
+
+    void propagateSplit();
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,

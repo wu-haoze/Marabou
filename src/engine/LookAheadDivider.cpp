@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file SODDivider.h
+/*! \file LookAheadDivider.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Haoze Wu
@@ -79,15 +79,52 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
 PiecewiseLinearConstraint *LookAheadDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
-    unsigned numFixed = engine.getNumberOfFixedRelus();
-    engine.applySplit(split);
-    do
-        performSymbolicBoundTightening();
-    while ( applyAllValidConstraintCaseSplits() );
-    unsigned newlyFixed = engine.getNumberOfFixedRelus() - numFixed;
-    return NULL;
+
+    EngineState *engineState = new EngineState();
+    _engine->storeState( *engineState, true );
+
+    _engine->applySplit( split );
+    _engine->propagateSplit();
+
+    unsigned numFixed = _engine->numberOfFixedConstraints();
+    std::cout << "Num fixed: " << numFixed << std::endl;
+
+    EngineState *engineStateAfterSplit = new EngineState();
+    _engine->storeState( *engineStateAfterSplit, true );
+
+    PiecewiseLinearConstraint *constraintToSplit = NULL;
+    unsigned maxNumFixedConstraints = 0;
+
+    for ( const auto &constraint : _candidatePLConstraints )
+    {
+        unsigned numFixedConstraints = 0;
+        auto caseSplits = constraint->getCaseSplits();
+        for ( const auto& caseSplit : caseSplits )
+        {
+            _engine->applySplit( caseSplit );
+            _engine->propagateSplit();
+
+            numFixedConstraints += ( _engine->numberOfFixedConstraints()
+                                     - numFixed );
+            _engine->restoreState( *engineStateAfterSplit );
+        }
+        if ( numFixedConstraints > maxNumFixedConstraints )
+        {
+            maxNumFixedConstraints = numFixedConstraints;
+            constraintToSplit = constraint;
+        }
+    }
+    _engine->restoreState( *engineState );
+    assert( constraintToSplit != NULL);
+    return constraintToSplit;
 }
 
+void LookAheadDivider::setCandidatePLConstraints( List
+                                                  <PiecewiseLinearConstraint *>
+                                                  candidatePLConstraints )
+{
+    _candidatePLConstraints = candidatePLConstraints;
+}
 
 //
 // Local Variables:

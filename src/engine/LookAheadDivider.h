@@ -51,7 +51,10 @@ private:
     /*
       Piecewiselinear Constraints to be considered
     */
-    List<PiecewiseLinearCaseSplit *> _caseSplits;
+    List<PiecewiseLinearConstraint *> _candidatePLConstraints;
+
+    void setCandidatePLConstraints( List<PiecewiseLinearConstraint *>
+                                    candidatePLConstraints );
 
 };
 
