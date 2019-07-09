@@ -13,7 +13,7 @@ SOURCES += \
 	Equation.cpp \
 	InputQuery.cpp \
 	LargestIntervalDivider.cpp \
-	LookaheadDivider.cpp \
+	LookAheadDivider.cpp \
 	MaxConstraint.cpp \
 	NetworkLevelReasoner.cpp \
 	PiecewiseLinearCaseSplit.cpp \

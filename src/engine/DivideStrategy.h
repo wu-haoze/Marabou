@@ -19,6 +19,7 @@
 enum DivideStrategy
 {
     LargestInterval,
+    LookAhead,
 };
 
 #endif // __DivideStrategy_h__

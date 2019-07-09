@@ -14,16 +14,16 @@
 **/
 
 #include "Debug.h"
-#include "LookaheadDivider.h"
+#include "LookAheadDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 
-LookaheadDivider::LookaheadDivider( std::shared_ptr<Engine> engine )
+LookAheadDivider::LookAheadDivider( std::shared_ptr<Engine> engine )
     : _engine( std::move( engine ) )
 {
 }
 
-void LookaheadDivider::createSubQueries( unsigned numNewSubqueries, const String
+void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
                                          queryIdPrefix, const
                                          PiecewiseLinearCaseSplit &previousSplit,
                                          const unsigned timeoutInSeconds,
@@ -76,10 +76,15 @@ void LookaheadDivider::createSubQueries( unsigned numNewSubqueries, const String
     }
 }
 
-PiecewiseLinearConstraint *LookaheadDivider::getPLConstraintToSplit
+PiecewiseLinearConstraint *LookAheadDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
-    std::cout << &split << std::endl;
+    unsigned numFixed = engine.getNumberOfFixedRelus();
+    engine.applySplit(split);
+    do
+        performSymbolicBoundTightening();
+    while ( applyAllValidConstraintCaseSplits() );
+    unsigned newlyFixed = engine.getNumberOfFixedRelus() - numFixed;
     return NULL;
 }
 

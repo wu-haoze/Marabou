@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file LookaheadDivider.h
+/*! \file LookAheadDivider.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Haoze Wu
@@ -13,8 +13,8 @@
 
 **/
 
-#ifndef __LookaheadDivider_h__
-#define __LookaheadDivider_h__
+#ifndef __LookAheadDivider_h__
+#define __LookAheadDivider_h__
 
 #include "Engine.h"
 #include "List.h"
@@ -23,10 +23,10 @@
 
 #include <math.h>
 
-class LookaheadDivider : public QueryDivider
+class LookAheadDivider : public QueryDivider
 {
 public:
-    LookaheadDivider( std::shared_ptr<Engine> engine );
+    LookAheadDivider( std::shared_ptr<Engine> engine );
 
     void createSubQueries( unsigned numNewSubQueries,
                            const String queryIdPrefix,
@@ -48,9 +48,14 @@ private:
     */
     std::shared_ptr<Engine> _engine;
 
+    /*
+      Piecewiselinear Constraints to be considered
+    */
+    List<PiecewiseLinearCaseSplit *> _caseSplits;
+
 };
 
-#endif // __LookaheadDivider_h__
+#endif // __LookAheadDivider_h__
 
 //
 // Local Variables:
