@@ -171,6 +171,168 @@ void PropertyParser::processSingleLine( const String &line, InputQuery &inputQue
     }
 }
 
+PiecewiseLinearCaseSplit *PropertyParser::parsePost( const String &propertyFilePath,
+                                                     const InputQuery &inputQuery )
+{
+    if ( !File::exists( propertyFilePath ) )
+        {
+            printf( "Error: the specified property file (%s) doesn't exist!\n", propertyFilePath.ascii() );
+            throw InputParserError( InputParserError::FILE_DOESNT_EXIST, propertyFilePath.ascii() );
+        }
+
+    PiecewiseLinearCaseSplit *postCondition = new PiecewiseLinearCaseSplit();
+
+    File propertyFile( propertyFilePath );
+    propertyFile.open( File::MODE_READ );
+
+    try
+        {
+            while ( true )
+                {
+                    String line = propertyFile.readLine().trim();
+                    processSingleLinePost( line, inputQuery, postCondition );
+                }
+        }
+    catch ( const CommonError &e )
+        {
+            // A "READ_FAILED" is how we know we're out of lines
+            if ( e.getCode() != CommonError::READ_FAILED )
+                throw e;
+        }
+    return postCondition;
+}
+
+void PropertyParser::processSingleLinePost( const String &line, const InputQuery &inputQuery,
+                                            PiecewiseLinearCaseSplit *postCondition )
+{
+    List<String> tokens = line.tokenize( " " );
+
+    if ( tokens.size() < 3 )
+        throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
+
+    auto it = tokens.rbegin();
+    double scalar = extractScalar( *it );
+    ++it;
+    Equation::EquationType type = extractSign( *it );
+    ++it;
+
+    // Now extract the addends. In the special case where we only have
+    // one addend, we add this equation as a bound. Otherwise, we add
+    // as an equation.
+    if ( tokens.size() == 3 )
+    {
+        // Special case: add as a bound
+        String token = (*it).trim();
+
+        bool inputVariable = token.contains( "x" );
+        bool outputVariable = token.contains( "y" );
+
+        if ( !( inputVariable xor outputVariable ) )
+            throw InputParserError( InputParserError::UNEXPECTED_INPUT, token.ascii() );
+
+        List<String> subTokens;
+        if ( inputVariable )
+            subTokens = token.tokenize( "x" );
+        else
+            subTokens = token.tokenize( "y" );
+
+        if ( subTokens.size() != 1 )
+            throw InputParserError( InputParserError::UNEXPECTED_INPUT, token.ascii() );
+
+        unsigned justIndex = atoi( subTokens.rbegin()->ascii() );
+        unsigned variable;
+
+        if ( inputVariable )
+        {
+            ASSERT( justIndex < inputQuery.getNumInputVariables() );
+            variable = inputQuery.inputVariableByIndex( justIndex );
+        }
+        else
+        {
+            ASSERT( justIndex < inputQuery.getNumOutputVariables() );
+            variable = inputQuery.outputVariableByIndex( justIndex );
+        }
+
+        if ( type == Equation::GE )
+        {
+            if ( inputQuery.getLowerBound( variable ) < scalar )
+                postCondition->storeBoundTightening( Tightening( variable, scalar,
+                                                                 Tightening::LB ) );
+        }
+        else if ( type == Equation::LE )
+        {
+            if ( inputQuery.getUpperBound( variable ) > scalar )
+                postCondition->storeBoundTightening( Tightening( variable, scalar,
+                                                                 Tightening::UB ) );
+        }
+        else
+        {
+            ASSERT( type == Equation::EQ );
+
+            if ( inputQuery.getLowerBound( variable ) < scalar )
+                postCondition->storeBoundTightening( Tightening( variable, scalar,
+                                                                 Tightening::LB ) );
+            if ( inputQuery.getUpperBound( variable ) > scalar )
+                postCondition->storeBoundTightening( Tightening( variable, scalar,
+                                                                 Tightening::UB ) );
+        }
+    }
+    else
+    {
+        // Normal case: add as an equation
+        Equation equation( type );
+        equation.setScalar( scalar );
+
+        while ( it != tokens.rend() )
+        {
+            String token = (*it).trim();
+
+            bool inputVariable = token.contains( "x" );
+            bool outputVariable = token.contains( "y" );
+
+            if ( !( inputVariable xor outputVariable ) )
+                throw InputParserError( InputParserError::UNEXPECTED_INPUT, token.ascii() );
+
+            List<String> subTokens;
+            if ( inputVariable )
+                subTokens = token.tokenize( "x" );
+            else
+                subTokens = token.tokenize( "y" );
+
+            if ( subTokens.size() != 2 )
+                throw InputParserError( InputParserError::UNEXPECTED_INPUT, token.ascii() );
+
+            unsigned justIndex = atoi( subTokens.rbegin()->ascii() );
+            unsigned variable;
+
+            if ( inputVariable )
+            {
+                ASSERT( justIndex < inputQuery.getNumInputVariables() );
+                variable = inputQuery.inputVariableByIndex( justIndex );
+            }
+            else
+            {
+                ASSERT( justIndex < inputQuery.getNumOutputVariables() );
+                variable = inputQuery.outputVariableByIndex( justIndex );
+            }
+
+            String coefficientString = *subTokens.begin();
+            double coefficient;
+            if ( coefficientString == "+" )
+                coefficient = 1;
+            else if ( coefficientString == "-" )
+                coefficient = -1;
+            else
+                coefficient = atof( coefficientString.ascii() );
+
+            equation.addAddend( coefficient, variable );
+            ++it;
+        }
+
+        postCondition->addEquation( equation );
+    }
+}
+
 Equation::EquationType PropertyParser::extractSign( const String &token )
 {
     if ( token == ">=" )
