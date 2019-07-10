@@ -20,6 +20,7 @@
 #include "DnCManager.h"
 #include "DnCWorker.h"
 #include "LargestIntervalDivider.h"
+#include "LookAheadDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PropertyParser.h"
@@ -298,7 +299,7 @@ void DnCManager::initialDivide( SubQueries &subQueries )
         queryDivider = std::unique_ptr<QueryDivider>
             ( new LargestIntervalDivider( inputVariables ) );
     }
-    else
+    else if ( _divideStrategy == DivideStrategy::ActivationVariance )
     {
         const List<unsigned> &inputVariables = _baseEngine->getInputVariables();
         NetworkLevelReasoner *networkLevelReasoner =
@@ -309,6 +310,12 @@ void DnCManager::initialDivide( SubQueries &subQueries )
                                             _numberOfSegments,
                                             _pointsPerSegment ) );
     }
+    else// if ( _divideStrategy == DivideStrategy::LookAhead )
+    {
+        queryDivider = std::unique_ptr<LookAheadDivider>
+            ( new LookAheadDivider( _baseEngine ) );
+    }
+
 
     String queryId = "";
     // Create a new case split

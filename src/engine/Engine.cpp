@@ -1835,7 +1835,13 @@ void Engine::resetBoundTighteners()
 
 unsigned Engine::numberOfFixedConstraints()
 {
-    return 0;
+    unsigned numFixedConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+    {
+        if ( constraint->phaseFixed() )
+            ++numFixedConstraints;
+    }
+    return numFixedConstraints;
 }
 
 void Engine::propagateSplit()
@@ -1843,6 +1849,11 @@ void Engine::propagateSplit()
     do
         performSymbolicBoundTightening();
     while ( applyAllValidConstraintCaseSplits() );
+}
+
+List<PiecewiseLinearConstraint *> Engine::getPLConstraints()
+{
+    return _plConstraints;
 }
 
 //

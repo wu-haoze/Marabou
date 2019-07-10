@@ -37,7 +37,7 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
     splits.append( split );
 
     // Repeatedly bisect the dimension with the largest interval
-    for ( unsigned i = 0; i < numBisects - 1; ++i )
+    for ( unsigned i = 0; i < numBisects; ++i )
     {
         List<PiecewiseLinearCaseSplit *> newSplits;
         for ( const auto &split : splits )
@@ -49,6 +49,13 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
             {
                 auto newSplit = new PiecewiseLinearCaseSplit();
                 *newSplit = caseSplit;
+
+                for ( const auto &tightening : split->getBoundTightenings() )
+                    newSplit->storeBoundTightening( tightening );
+
+                for ( const auto &equation : split->getEquations() )
+                    newSplit->addEquation( equation );
+
                 newSplits.append( newSplit );
             }
             delete split;
@@ -87,7 +94,6 @@ PiecewiseLinearConstraint *LookAheadDivider::getPLConstraintToSplit
     _engine->propagateSplit();
 
     unsigned numFixed = _engine->numberOfFixedConstraints();
-    std::cout << "Num fixed: " << numFixed << std::endl;
 
     EngineState *engineStateAfterSplit = new EngineState();
     _engine->storeState( *engineStateAfterSplit, true );
@@ -95,27 +101,47 @@ PiecewiseLinearConstraint *LookAheadDivider::getPLConstraintToSplit
     PiecewiseLinearConstraint *constraintToSplit = NULL;
     unsigned maxNumFixedConstraints = 0;
 
-    for ( const auto &constraint : _candidatePLConstraints )
-    {
-        unsigned numFixedConstraints = 0;
-        auto caseSplits = constraint->getCaseSplits();
-        for ( const auto& caseSplit : caseSplits )
-        {
-            _engine->applySplit( caseSplit );
-            _engine->propagateSplit();
+    List<PiecewiseLinearConstraint *> plConstraints =
+        _engine->getPLConstraints();
 
-            numFixedConstraints += ( _engine->numberOfFixedConstraints()
-                                     - numFixed );
-            _engine->restoreState( *engineStateAfterSplit );
-        }
-        if ( numFixedConstraints > maxNumFixedConstraints )
+    unsigned upperlimit = 50;
+    unsigned limit = 0;
+    for ( const auto &constraint : plConstraints )
+    {
+        if ( limit > upperlimit || limit > plConstraints.size() )
         {
-            maxNumFixedConstraints = numFixedConstraints;
-            constraintToSplit = constraint;
+            if ( constraintToSplit != NULL )
+                break;
+            else
+                upperlimit += 50;
+        }
+        if ( !( constraint->phaseFixed() ) )
+        {
+            unsigned numFixedConstraints = 0;
+            auto caseSplits = constraint->getCaseSplits();
+            for ( const auto& caseSplit : caseSplits )
+            {
+                _engine->applySplit( caseSplit );
+                _engine->propagateSplit();
+                numFixedConstraints += ( _engine->numberOfFixedConstraints()
+                                         - numFixed );
+                _engine->restoreState( *engineStateAfterSplit );
+            }
+            if ( numFixedConstraints > maxNumFixedConstraints )
+            {
+                maxNumFixedConstraints = numFixedConstraints;
+                constraintToSplit = constraint;
+            }
+            ++limit;
         }
     }
+
     _engine->restoreState( *engineState );
-    assert( constraintToSplit != NULL);
+    assert( constraintToSplit != NULL );
+
+    delete engineState;
+    delete engineStateAfterSplit;
+
     return constraintToSplit;
 }
 

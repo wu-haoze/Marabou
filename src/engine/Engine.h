@@ -139,6 +139,8 @@ public:
 
     void propagateSplit();
 
+    List<PiecewiseLinearConstraint *> getPLConstraints();
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,

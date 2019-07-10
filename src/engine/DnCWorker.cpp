@@ -20,6 +20,7 @@
 #include "Engine.h"
 #include "EngineState.h"
 #include "LargestIntervalDivider.h"
+#include "LookAheadDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "SubQuery.h"
@@ -59,6 +60,12 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                                             numberOfSegments,
                                             pointsPerSegment ) );
     }
+    else// if ( _divideStrategy == DivideStrategy::LookAhead )
+    {
+        _queryDivider = std::unique_ptr<LookAheadDivider>
+            ( new LookAheadDivider( _engine ) );
+    }
+
 
     // Obtain the current state of the engine
     _initialState = std::make_shared<EngineState>();
