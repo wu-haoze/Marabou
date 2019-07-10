@@ -31,7 +31,8 @@ public:
                std::atomic_uint &numUnsolvedSubqueries,
                std::atomic_bool &shouldQuitSolving, unsigned threadId,
                unsigned onlineDivides, float timeoutFactor,
-               DivideStrategy divideStrategy );
+               DivideStrategy divideStrategy, unsigned pointsPerSegment,
+               unsigned numberOfSegments );
 
     /*
       Repeatedly handling subQueries from the input worker queue
@@ -44,11 +45,6 @@ public:
     void setPostCondition( PiecewiseLinearCaseSplit *postCondition );
 
 private:
-    /*
-      Initiate the query-divider object
-    */
-    void setQueryDivider( DivideStrategy divideStrategy );
-
     /*
       Convert the exitCode to string
     */
