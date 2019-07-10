@@ -835,6 +835,11 @@ const Map<SymbolicBoundTightener::NodeIndex, unsigned> &SymbolicBoundTightener::
     return _nodeIndexToFVariable;
 }
 
+const Map<SymbolicBoundTightener::NodeIndex, unsigned> &SymbolicBoundTightener::getNodeIndexToBMapping() const
+{
+    return _nodeIndexToBVariable;
+}
+
 void SymbolicBoundTightener::storeIntoOther( SymbolicBoundTightener &other ) const
 {
     other.freeMemoryIfNeeded();

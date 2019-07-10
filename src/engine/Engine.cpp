@@ -29,8 +29,9 @@
 #include "TimeUtils.h"
 
 Engine::Engine( unsigned verbosity )
-    : _rowBoundTightener( *_tableau )
-    , _symbolicBoundTightener( NULL )
+
+    : _symbolicBoundTightener( NULL )
+    , _rowBoundTightener( *_tableau )
     , _smtCore( this )
     , _numPlConstraintsDisabledByValidSplits( 0 )
     , _preprocessingEnabled( false )

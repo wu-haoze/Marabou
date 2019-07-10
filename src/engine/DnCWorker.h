@@ -44,6 +44,8 @@ public:
     */
     void setPostCondition( PiecewiseLinearCaseSplit *postCondition );
 
+    void addInvariant( Invariant &invariant );
+
 private:
     /*
       Convert the exitCode to string

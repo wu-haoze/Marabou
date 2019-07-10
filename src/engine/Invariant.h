@@ -18,45 +18,25 @@
 
 #include "Tightening.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "SymbolicBoundTightener.h"
+#include "Map.h"
 
 class Invariant
 {
 public:
-    Invariant( List<Tightening> &tightenings );
+    Invariant();
 
-    List<Tightening> getBoundTightenings() const;
+    List<PiecewiseLinearCaseSplit> getActivationPatterns( SymbolicBoundTightener *sbt );
 
-    List<PiecewiseLinearCaseSplit> getActivationPatterns() const;
+    void addActivationPattern( SymbolicBoundTightener::NodeIndex index, bool active );
 
     /*
       Dump the invariant - for debugging purposes.
     */
     void dump() const;
 
-    /*
-      Equality operator.
-    */
-    bool operator==( const Invariant &other ) const;
-
 private:
-    /*
-      Store information regarding a bound tightening.
-    */
-    void storeBoundTightening( const Tightening &tightening );
-
-
-    /*
-      Bound tightening information.
-    */
-    List<Tightening> _bounds;
-
-    /*
-      To check whether the invariant holds given the current
-      constraints A. We need to check A /\ caseSplit, for each
-      caseSplit in _activationPatterns.
-    */
-    List<PiecewiseLinearCaseSplit> _activationPatterns;
-
+    Map<SymbolicBoundTightener::NodeIndex, bool> _patterns;
 };
 
 #endif // __Invariant_h__

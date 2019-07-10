@@ -96,36 +96,9 @@ void DnCWorker::run()
 
             // Apply the split and solve
             _engine->applySplit( *split );
-            Engine::ExitCode result;
             if ( !checkInvariants() )
             {
-                // Create a new statistics object for each subQuery
-                Statistics *statistics = new Statistics();
-                _engine->resetStatistics( *statistics );
-                // TODO: each worker is going to keep a map from *CaseSplit to an
-                // object of class DnCStatistics, which contains some basic
-                // statistics. The maps are owned by the DnCManager.
-
-                // Apply the post condition if possible
-                if ( _postCondition != NULL )
-                    _engine->applySplit( *_postCondition );
-                _engine->solve( timeoutInSeconds );
-                result = _engine->getExitCode();
-            } else
-            {
-                result = Engine::UNSAT;
-            }
-            printProgress( queryId, result );
-            // Switch on the result
-            if ( result == Engine::UNSAT )
-            {
-                // If UNSAT, continue to solve
-                *_numUnsolvedSubQueries -= 1;
-                delete subQuery;
-            }
-            else if ( result == Engine::TIMEOUT )
-            {
-                // If TIMEOUT, split the current input region and add the
+                // Split the current input region and add the
                 // new subQueries to the current queue
                 SubQueries subQueries;
                 _queryDivider->createSubQueries( pow( 2, _onlineDivides ),
@@ -133,53 +106,27 @@ void DnCWorker::run()
                                                  (unsigned) timeoutInSeconds *
                                                  _timeoutFactor, subQueries );
                 for ( auto &newSubQuery : subQueries )
-                {
-                    if ( !_workload->push( std::move( newSubQuery ) ) )
                     {
-                        ASSERT( false );
-                    }
+                        if ( !_workload->push( std::move( newSubQuery ) ) )
+                            {
+                                ASSERT( false );
+                            }
 
-                    *_numUnsolvedSubQueries += 1;
-                }
+                        *_numUnsolvedSubQueries += 1;
+                    }
                 *_numUnsolvedSubQueries -= 1;
+                std::cout << "pre-condition might not hold" << std::endl;
+                split->dump();
                 delete subQuery;
-            }
-            else if ( result == Engine::SAT )
+            } else
             {
-                // If SAT, set the shouldQuitSolving flag to true, so that the
-                // DnCManager will kill all the DnCWorkers
-                *_shouldQuitSolving = true;
+                // pre-condition holds
+                std::cout << "pre-condition holds" << std::endl;
+                split->dump();
                 *_numUnsolvedSubQueries -= 1;
-                delete subQuery;
-                return;
             }
-            else if ( result == Engine::QUIT_REQUESTED )
-            {
-                // If engine was asked to quit, quit
-                std::cout << "Quit requested by manager!" << std::endl;
-                *_numUnsolvedSubQueries -= 1;
-                delete subQuery;
+            if ( _engine->getExitCode() == Engine::QUIT_REQUESTED )
                 return;
-            }
-            else if ( result == Engine::ERROR )
-            {
-                // If ERROR, set the shouldQuitSolving flag to true and quit
-                std::cout << "Error!" << std::endl;
-                *_shouldQuitSolving = true;
-                *_numUnsolvedSubQueries -= 1;
-                delete subQuery;
-                return;
-            }
-            else if ( result == Engine::NOT_DONE )
-            {
-                // If NOT_DONE, set the shouldQuitSolving flag to true and quit
-                ASSERT( false );
-                std::cout << "Not done! This should not happen." << std::endl;
-                *_shouldQuitSolving = true;
-                *_numUnsolvedSubQueries -= 1;
-                delete subQuery;
-                return;
-            }
         }
         else
         {
@@ -206,21 +153,24 @@ bool DnCWorker::checkInvariants()
 
 bool DnCWorker::checkInvariant( Invariant& invariant )
 {
+    EngineState *engineState = new EngineState();
+    _engine->storeState( *engineState, true );
     List<PiecewiseLinearCaseSplit> activationPatterns =
-        invariant.getActivationPatterns();
+        invariant.getActivationPatterns( _engine->_symbolicBoundTightener );
     for ( auto& activation : activationPatterns )
     {
         Statistics *statistics = new Statistics();
         _engine->resetStatistics( *statistics );
-        _engine->applySplit( activation );
-        _engine->solve( );
-        std::cout << "Checked a pattern" << std::endl;
-        Engine::ExitCode result = _engine->getExitCode();
-        _engine->restoreState( *_initialState );
         _engine->clearViolatedPLConstraints();
         _engine->resetSmtCore();
         _engine->resetExitCode();
         _engine->resetBoundTighteners();
+        _engine->restoreState( *engineState );
+
+        _engine->applySplit( activation );
+        _engine->solve( );
+        std::cout << "Checked a pattern" << std::endl;
+        Engine::ExitCode result = _engine->getExitCode();
         if ( result != Engine::UNSAT )
             return false;
     }
@@ -231,6 +181,12 @@ void DnCWorker::setPostCondition( PiecewiseLinearCaseSplit *postCondition )
 {
     _postCondition = postCondition;
 }
+
+void DnCWorker::addInvariant( Invariant &invariant )
+{
+    _invariants.append( invariant );
+}
+
 
 String DnCWorker::exitCodeToString( Engine::ExitCode result )
 {

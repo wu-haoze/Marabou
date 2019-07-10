@@ -32,6 +32,30 @@
 #include <cmath>
 #include <thread>
 
+static void updateInvariant( Invariant &invariant )
+{
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 41), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 21), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 2), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 40), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 43), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 9), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 33), true );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 22), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 26), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 27), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 34), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 3), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 8), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 42), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 4), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 15), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 20), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 23), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 37), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 45), false );
+}
+
 static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_uint &numUnsolvedSubQueries,
                       std::atomic_bool &shouldQuitSolving,
@@ -43,6 +67,9 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, pointsPerSegment,
                       numberOfSegments );
+    Invariant invariant = Invariant();
+    updateInvariant( invariant );
+    worker.addInvariant( invariant );
     worker.run();
 }
 
@@ -164,6 +191,17 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     for ( auto &thread : threads )
         thread.join();
+
+    SubQuery *subQuery;
+    while ( !_workload->empty() )
+    {
+        _workload->pop( subQuery );
+        auto split = std::move( subQuery->_split );
+        std::cout << "pre-condition might not hold" << std::endl;
+        split->dump();
+        delete subQuery;
+    }
+
 
     updateDnCExitCode();
     printResult();

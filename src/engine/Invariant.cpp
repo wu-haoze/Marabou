@@ -16,55 +16,57 @@
 #include "Invariant.h"
 #include <cstdio>
 
-Invariant::Invariant( List<Tightening> &tightenings )
+Invariant::Invariant()
 {
-    for ( auto &tightening : tightenings )
-        storeBoundTightening( tightening );
 }
 
-void Invariant::storeBoundTightening( const Tightening &tightening )
+void Invariant::addActivationPattern( SymbolicBoundTightener::NodeIndex index,
+                                      bool active )
 {
-    _bounds.append( tightening );
+    _patterns[index] = active;
+}
 
-    // store the negation of the activation pattern
-    PiecewiseLinearCaseSplit split;
-    if ( tightening._type == Tightening::LB )
+List<PiecewiseLinearCaseSplit> Invariant::getActivationPatterns( SymbolicBoundTightener *sbt )
+{
+    sbt->run();
+    List<PiecewiseLinearCaseSplit> splits;
+    auto nodeIndexToFMapping = sbt->getNodeIndexToFMapping();
+    auto nodeIndexToBMapping = sbt->getNodeIndexToBMapping();
+    for ( const auto &pattern : _patterns )
     {
-        split.storeBoundTightening( Tightening( tightening._variable,
-                                                tightening._value,
-                                                Tightening::UB ) );
-    } else {
-        split.storeBoundTightening( Tightening( tightening._variable,
-                                                tightening._value,
-                                                 Tightening::LB ) );
+        SymbolicBoundTightener::NodeIndex index = pattern.first;
+        unsigned b = nodeIndexToBMapping[index];
+        unsigned f = nodeIndexToFMapping[index];
+        bool active = pattern.second;
+        PiecewiseLinearCaseSplit split;
+        if ( active )
+        {
+            // If active, check inactive
+            split.storeBoundTightening( Tightening( b, 0.0, Tightening::UB ) );
+            split.storeBoundTightening( Tightening( f, 0.0, Tightening::UB ) );
+        } else
+        {
+            split.storeBoundTightening( Tightening( b, 0.0, Tightening::LB ) );
+            Equation activeEquation( Equation::EQ );
+            activeEquation.addAddend( 1, b );
+            activeEquation.addAddend( -1, f );
+            activeEquation.setScalar( 0 );
+            split.addEquation( activeEquation );
+        }
+        splits.append( split );
     }
-    _activationPatterns.append( split );
-}
-
-List<Tightening> Invariant::getBoundTightenings() const
-{
-    return _bounds;
-}
-
-List<PiecewiseLinearCaseSplit> Invariant::getActivationPatterns() const
-{
-    return _activationPatterns;
+    return splits;
 }
 
 void Invariant::dump() const
 {
     printf( "\nDumping invariant\n" );
     printf( "\tActivation Pattern is:\n" );
-    for ( const auto &bound : _bounds )
+    for ( const auto &pattern : _patterns )
     {
-        printf( "\t\tVariable: %u. New bound: %.2lf. Bound type: %s\n",
-                bound._variable, bound._value, bound._type == Tightening::LB ? "lower" : "upper" );
+        printf( "\t\tNode: %u %u: %s\n",
+                pattern.first._layer, pattern.first._neuron, pattern.second ? "Active" : "Inactive" );
     }
-}
-
-bool Invariant::operator==( const Invariant &other ) const
-{
-    return ( _bounds == other._bounds );
 }
 
 //

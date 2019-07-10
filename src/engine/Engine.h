@@ -132,6 +132,11 @@ public:
 
     void resetBoundTighteners();
 
+    /*
+      Symbolic bound tightnere.
+    */
+    SymbolicBoundTightener *_symbolicBoundTightener;
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
@@ -194,11 +199,6 @@ private:
       Bound tightener.
     */
     AutoRowBoundTightener _rowBoundTightener;
-
-    /*
-      Symbolic bound tightnere.
-    */
-    SymbolicBoundTightener *_symbolicBoundTightener;
 
     /*
       The SMT engine is in charge of case splitting.
