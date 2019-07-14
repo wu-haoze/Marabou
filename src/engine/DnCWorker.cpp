@@ -91,15 +91,25 @@ void DnCWorker::run()
             _engine->resetSmtCore();
             // Apply the split and solve
             _engine->applySplit( *split );
+
+            bool fullSolveNeeded = true;
             if ( smtState )
-                _engine->restoreSmtState( *smtState );
+                fullSolveNeeded = _engine->restoreSmtState( *smtState );
             // TODO: each worker is going to keep a map from *CaseSplit to an
             // object of class DnCStatistics, which contains some basic
             // statistics. The maps are owned by the DnCManager.
 
-            _engine->solve( timeoutInSeconds );
+            Engine::ExitCode result;
+            if ( fullSolveNeeded )
+            {
+                _engine->solve( timeoutInSeconds );
+                result = _engine->getExitCode();
+            } else
+            {
+                // UNSAT is found when replaying stack-entries
+                result = Engine::UNSAT;
+            }
 
-            Engine::ExitCode result = _engine->getExitCode();
             printProgress( queryId, result );
             // Switch on the result
             if ( result == Engine::UNSAT )

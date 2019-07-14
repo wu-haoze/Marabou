@@ -1833,33 +1833,17 @@ void Engine::resetBoundTighteners()
     _rowBoundTightener->resetBounds();
 }
 
-/*
-  Apply the stack to the newly created SmtCore
-*/
-void Engine::restoreSmtState( SmtState &smtState )
+bool Engine::restoreSmtState( SmtState &smtState )
 {
-
-    // Step 1: all implied valid splits at root
-    for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
+    try
     {
-        applySplit( validSplit );
-        _smtCore.recordImpliedValidSplit( validSplit );
-    }
+        // Step 1: all implied valid splits at root
+        for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
+        {
+            applySplit( validSplit );
+            _smtCore.recordImpliedValidSplit( validSplit );
+        }
 
-    tightenBoundsOnConstraintMatrix();
-    applyAllBoundTightenings();
-    // For debugging purposes
-    checkBoundCompliancyWithDebugSolution();
-    do
-        performSymbolicBoundTightening();
-    while ( applyAllValidConstraintCaseSplits() );
-
-    // Step 2: replay the stack
-    for ( auto &stackEntry : smtState._stack )
-    {
-        _smtCore.replayStackEntry( stackEntry );
-        // Do all the bound propagation, and set ReLU constraints to inactive (at
-        // least the one corresponding to the _activeSplit applied above.
         tightenBoundsOnConstraintMatrix();
         applyAllBoundTightenings();
         // For debugging purposes
@@ -1867,7 +1851,38 @@ void Engine::restoreSmtState( SmtState &smtState )
         do
             performSymbolicBoundTightening();
         while ( applyAllValidConstraintCaseSplits() );
+
+        // Step 2: replay the stack
+        for ( auto &stackEntry : smtState._stack )
+        {
+            _smtCore.replayStackEntry( stackEntry );
+            // Do all the bound propagation, and set ReLU constraints to inactive (at
+            // least the one corresponding to the _activeSplit applied above.
+            tightenBoundsOnConstraintMatrix();
+            applyAllBoundTightenings();
+            // For debugging purposes
+            checkBoundCompliancyWithDebugSolution();
+            do
+                performSymbolicBoundTightening();
+            while ( applyAllValidConstraintCaseSplits() );
+        }
     }
+    catch ( const InfeasibleQueryException & )
+    {
+        // The current query is unsat, and we need to pop.
+        // If we're at level 0, the whole query is unsat.
+        if ( !_smtCore.popSplit() )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\nEngine::solve: UNSAT query\n" );
+                _statistics.print();
+            }
+            _exitCode = Engine::UNSAT;
+            return false;
+        }
+    }
+    return true;
 }
 
 /*

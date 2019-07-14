@@ -134,9 +134,10 @@ public:
     void resetBoundTighteners();
 
     /*
-      Apply the stack to the newly created SmtCore
+      Apply the stack to the newly created SmtCore, returns false if UNSAT is
+      found in this process.
     */
-    void restoreSmtState( SmtState &smtState );
+    bool restoreSmtState( SmtState &smtState );
 
     /*
       Store the stack of the timed-out query
