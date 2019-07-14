@@ -41,6 +41,8 @@ public:
 
     PiecewiseLinearConstraint *_constraintForSplitting;
 
+    _violatedPlConstraints
+
 };
 
 #endif // __SmtState_h__

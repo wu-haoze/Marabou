@@ -431,12 +431,8 @@ StackEntry *SmtCore::duplicateStackEntry( const StackEntry &stackEntry,
     StackEntry *copy = new StackEntry();
 
     copy->_activeSplit = stackEntry._activeSplit;
-
-    for ( const auto& impliedSplit : stackEntry._impliedValidSplits )
-        copy->_impliedValidSplits.append( impliedSplit );
-
-    for (const auto & alternativeSplit : stackEntry._alternativeSplits )
-        copy->_alternativeSplits.append( alternativeSplit );
+    copy->_impliedValidSplits = stackEntry._impliedValidSplits;
+    copy->_alternativeSplits = stackEntry._alternativeSplits;
 
     EngineState *engineState = new EngineState();
     _engine->restoreState( *( stackEntry._engineState ) );
