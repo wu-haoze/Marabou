@@ -75,9 +75,6 @@ void DnCWorker::run()
             std::unique_ptr<SmtState> smtState = nullptr;
             if ( subQuery->_smtState )
                 smtState = std::move( subQuery->_smtState );
-            std::unique_ptr<EngineState> engineState = nullptr;
-            if ( subQuery->_engineState )
-                engineState = std::move( subQuery->_engineState );
             unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
 
             // Create a new statistics object for each subQuery
@@ -88,22 +85,18 @@ void DnCWorker::run()
             _engine->clearViolatedPLConstraints();
             _engine->resetBoundTighteners();
             _engine->resetExitCode();
-            if ( !engineState )
-                _engine->restoreState( *_initialState );
-            else
-                _engine->restoreState( *engineState );
-            //_engine->restoreState( *_initialState );
+            _engine->restoreState( *_initialState );
 
             // Restore the smtCore to where the parent query left
             _engine->resetSmtCore();
+            // Apply the split and solve
+            _engine->applySplit( *split );
             if ( smtState )
                 _engine->restoreSmtState( *smtState );
             // TODO: each worker is going to keep a map from *CaseSplit to an
             // object of class DnCStatistics, which contains some basic
             // statistics. The maps are owned by the DnCManager.
 
-            // Apply the split and solve
-            _engine->applySplit( *split );
             _engine->solve( timeoutInSeconds );
 
             Engine::ExitCode result = _engine->getExitCode();
@@ -129,7 +122,7 @@ void DnCWorker::run()
                     // Store the SmtCore state
                     auto newSmtState = std::unique_ptr<SmtState>
                         ( new SmtState() );
-                    _engine->storeSmtState( *newSmtState, *( newSubQuery->_split ) );
+                    _engine->storeSmtState( *newSmtState );
                     newSubQuery->_smtState = std::move( newSmtState );
 
                     // Store the Engine state

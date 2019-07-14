@@ -106,22 +106,20 @@ public:
     bool splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, String &error ) const;
 
     /*
-      Apply the stack to the newly created SmtCore
+      Replay a stackEntry
     */
-    void restoreSmtState( SmtState &smtState );
+    void replayStackEntry( StackEntry *stackEntry );
 
     /*
       Store the stack of the timed-out query
     */
-    void storeSmtState( SmtState &smtState, PiecewiseLinearCaseSplit &split );
+    void storeSmtState( SmtState &smtState );
 
 private:
     /*
       duplicate StackEntry
     */
-    StackEntry *duplicateStackEntry( const StackEntry &stackEntry,
-                                     EngineState &currentEngineState,
-                                     const PiecewiseLinearCaseSplit &split );
+    StackEntry *duplicateStackEntry( const StackEntry &stackEntry );
 
     /*
       Valid splits that were implied by level 0 of the stack.

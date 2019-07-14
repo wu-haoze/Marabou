@@ -1838,15 +1838,44 @@ void Engine::resetBoundTighteners()
 */
 void Engine::restoreSmtState( SmtState &smtState )
 {
-    _smtCore.restoreSmtState( smtState );
+
+    // Step 1: all implied valid splits at root
+    for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
+    {
+        applySplit( validSplit );
+        _smtCore.recordImpliedValidSplit( validSplit );
+    }
+
+    tightenBoundsOnConstraintMatrix();
+    applyAllBoundTightenings();
+    // For debugging purposes
+    checkBoundCompliancyWithDebugSolution();
+    do
+        performSymbolicBoundTightening();
+    while ( applyAllValidConstraintCaseSplits() );
+
+    // Step 2: replay the stack
+    for ( auto &stackEntry : smtState._stack )
+    {
+        _smtCore.replayStackEntry( stackEntry );
+        // Do all the bound propagation, and set ReLU constraints to inactive (at
+        // least the one corresponding to the _activeSplit applied above.
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        // For debugging purposes
+        checkBoundCompliancyWithDebugSolution();
+        do
+            performSymbolicBoundTightening();
+        while ( applyAllValidConstraintCaseSplits() );
+    }
 }
 
 /*
   Store the stack of the timed-out query
 */
-void Engine::storeSmtState( SmtState &smtState, PiecewiseLinearCaseSplit &split )
+void Engine::storeSmtState( SmtState &smtState )
 {
-    _smtCore.storeSmtState( smtState, split );
+    _smtCore.storeSmtState( smtState );
 }
 
 //

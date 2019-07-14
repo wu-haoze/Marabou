@@ -36,6 +36,13 @@ public:
     virtual void storeState( EngineState &state, bool storeAlsoTableauState ) const = 0;
     virtual void restoreState( const EngineState &state ) = 0;
     virtual void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints ) = 0;
+
+
+    virtual void tightenBoundsOnConstraintMatrix();
+    virtual void applyAllBoundTightenings();
+    virtual void checkBoundCompliancyWithDebugSolution();
+    virtual bool applyAllValidConstraintCaseSplits();
+    virtual void performSymbolicBoundTightening();
 };
 
 #endif // __IEngine_h__

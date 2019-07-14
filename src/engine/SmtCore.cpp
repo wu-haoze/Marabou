@@ -390,57 +390,58 @@ PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<Piec
     return candidate;
 }
 
-/*
-  Apply the stack to the newly created SmtCore
-*/
-void SmtCore::restoreSmtState( SmtState &smtState )
+void SmtCore::replayStackEntry( StackEntry *stackEntry )
 {
-    _impliedValidSplitsAtRoot = smtState._impliedValidSplitsAtRoot;
-    _stack = smtState._stack;
-    //_needToSplit = smtState._needToSplit;
-    //_constraintForSplitting = smtState._constraintForSplitting;
+    struct timespec start = TimeUtils::sampleMicro();
+
+    if ( _statistics )
+    {
+        _statistics->incNumSplits();
+        _statistics->incNumVisitedTreeStates();
+    }
+
+    // Obtain the current state of the engine
+    EngineState *stateBeforeSplits = new EngineState;
+    stateBeforeSplits->_stateId = _stateId;
+    ++_stateId;
+    _engine->storeState( *stateBeforeSplits, true );
+    stackEntry->_engineState = stateBeforeSplits;
+
+    // Apply all the splits
+    _engine->applySplit( stackEntry->_activeSplit );
+    for ( const auto &impliedSplit : stackEntry->_impliedValidSplits )
+        _engine->applySplit( impliedSplit );
+
+    _stack.append( stackEntry );
+
+    if ( _statistics )
+    {
+        _statistics->setCurrentStackDepth( getStackDepth() );
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics->addTimeSmtCore( TimeUtils::timePassed( start, end ) );
+    }
 }
 
 /*
   Store the stack of the timed-out query
 */
-void SmtCore::storeSmtState( SmtState &smtState,
-                             PiecewiseLinearCaseSplit &split )
+void SmtCore::storeSmtState( SmtState &smtState )
 {
-    for ( auto &impliedSplit : _impliedValidSplitsAtRoot )
-        smtState._impliedValidSplitsAtRoot.append( impliedSplit );
-
-    EngineState currentEngineState;
-    _engine->storeState( currentEngineState, true );
+    smtState._impliedValidSplitsAtRoot = _impliedValidSplitsAtRoot;
 
     for ( auto &stackEntry : _stack )
-        smtState._stack.append( duplicateStackEntry( *stackEntry,
-                                                     currentEngineState,
-                                                     split ) );
-
-    //smtState._needToSplit = _needToSplit;
-    //smtState._constraintForSplitting = _constraintForSplitting->
-    //    duplicateConstraint();
+        smtState._stack.append( duplicateStackEntry( *stackEntry ) );
 
 }
 
-StackEntry *SmtCore::duplicateStackEntry( const StackEntry &stackEntry,
-                                          EngineState &currentEngineState,
-                                          const PiecewiseLinearCaseSplit &split )
+StackEntry *SmtCore::duplicateStackEntry( const StackEntry &stackEntry )
 {
     StackEntry *copy = new StackEntry();
 
     copy->_activeSplit = stackEntry._activeSplit;
     copy->_impliedValidSplits = stackEntry._impliedValidSplits;
     copy->_alternativeSplits = stackEntry._alternativeSplits;
-
-    EngineState *engineState = new EngineState();
-    _engine->restoreState( *( stackEntry._engineState ) );
-    _engine->applySplit( split );
-    _engine->storeState( *engineState, true );
-    _engine->restoreState( currentEngineState );
-
-    copy->_engineState = engineState;
+    copy->_engineState = NULL;
 
     return copy;
 }

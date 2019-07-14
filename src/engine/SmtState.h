@@ -34,15 +34,6 @@ public:
     */
     List< StackEntry *> _stack;
 
-    /*
-      Do we need to perform a split and on which constraint.
-    */
-    bool _needToSplit;
-
-    PiecewiseLinearConstraint *_constraintForSplitting;
-
-    _violatedPlConstraints
-
 };
 
 #endif // __SmtState_h__
