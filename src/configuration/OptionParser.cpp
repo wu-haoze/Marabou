@@ -69,6 +69,9 @@ void OptionParser::initialize()
         ( "timeout",
           boost::program_options::value<int>( &((*_intOptions)[Options::TIMEOUT]) ),
           "Global timeout" )
+        ( "divide-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::DIVIDE_STRATEGY]) ),
+          "The heuristics to divide the query (activation-pattern/largest-interval)" )
         ( "verbosity",
           boost::program_options::value<int>( &((*_intOptions)[Options::VERBOSITY]) ),
           "Verbosity of engine::solve(). 0: does not print anything (for DnC), 1: print"
@@ -76,6 +79,15 @@ void OptionParser::initialize()
         ( "timeout-factor",
           boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
           "(DNC) The timeout factor" )
+        ( "num-segments",
+          boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_SEGMENTS]) ),
+          "Number of segments for activation variance strategy" )
+        ( "points-per-segment",
+          boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
+          "Number of points per segment for activation variance strategy" )
+        ( "timeout-factor",
+          boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
+          "The timeout factor" )
 
         ;
 

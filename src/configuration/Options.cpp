@@ -44,6 +44,23 @@ void Options::initializeDefaultValues()
     _boolOptions[DNC_MODE] = false;
     _boolOptions[PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS] = false;
 
+
+    /*
+      Int options
+    */
+    _intOptions[NUM_WORKERS] = 4;
+    _intOptions[NUM_INITIAL_DIVIDES] = 0;
+    _intOptions[NUM_ONLINE_DIVIDES] = 2;
+    _intOptions[INITIAL_TIMEOUT] = 5;
+    _intOptions[VERBOSITY] = 2;
+    _intOptions[TIMEOUT] = 0;
+    _intOptions[POINTS_PER_SEGMENT] = 100;
+    _intOptions[NUMBER_OF_SEGMENTS] = 4;
+    /*
+      Float options
+    */
+    _floatOptions[TIMEOUT_FACTOR] = 1.5;
+
     /*
       Int options
     */
@@ -62,6 +79,7 @@ void Options::initializeDefaultValues()
     /*
       String options
     */
+    _stringOptions[DIVIDE_STRATEGY] = "activation-variance";
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";
