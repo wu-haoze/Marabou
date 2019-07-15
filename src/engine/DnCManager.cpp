@@ -37,13 +37,14 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
                       float timeoutFactor, DivideStrategy divideStrategy,
-                      unsigned pointsPerSegment, unsigned numberOfSegments )
+                      unsigned pointsPerSegment, unsigned numberOfSegments,
+                      bool performTreeStateRecovery )
 {
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, pointsPerSegment,
                       numberOfSegments );
-    worker.run();
+    worker.run( performTreeStateRecovery );
 }
 
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
@@ -91,7 +92,7 @@ void DnCManager::freeMemoryIfNeeded()
     }
 }
 
-void DnCManager::solve( unsigned timeoutInSeconds )
+void DnCManager::solve( unsigned timeoutInSeconds, bool performTreeStateRecovery )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -145,7 +146,8 @@ void DnCManager::solve( unsigned timeoutInSeconds )
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
                                         _timeoutFactor, _divideStrategy,
-                                        _pointsPerSegment, _numberOfSegments) );
+                                        _pointsPerSegment, _numberOfSegments,
+                                        performTreeStateRecovery) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is

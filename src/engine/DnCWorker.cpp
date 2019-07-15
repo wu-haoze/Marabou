@@ -65,7 +65,7 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     _engine->storeState( *_initialState, true );
 }
 
-void DnCWorker::run()
+void DnCWorker::run( bool performTreeStateRecovery )
 {
     while ( _numUnsolvedSubQueries->load() > 0 )
     {
@@ -78,7 +78,7 @@ void DnCWorker::run()
             String queryId = subQuery->_queryId;
             auto split = std::move( subQuery->_split );
             std::unique_ptr<SmtState> smtState = nullptr;
-            if ( subQuery->_smtState )
+            if ( performTreeStateRecovery && subQuery->_smtState )
                 smtState = std::move( subQuery->_smtState );
             unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
 
@@ -98,7 +98,7 @@ void DnCWorker::run()
             _engine->applySplit( *split );
 
             bool fullSolveNeeded = true;
-            if ( smtState )
+            if ( performTreeStateRecovery && smtState )
                 fullSolveNeeded = _engine->restoreSmtState( *smtState );
             // TODO: each worker is going to keep a map from *CaseSplit to an
             // object of class DnCStatistics, which contains some basic
@@ -135,16 +135,13 @@ void DnCWorker::run()
                 for ( auto &newSubQuery : subQueries )
                 {
                     // Store the SmtCore state
-                    auto newSmtState = std::unique_ptr<SmtState>
-                        ( new SmtState() );
-                    _engine->storeSmtState( *newSmtState );
-                    newSubQuery->_smtState = std::move( newSmtState );
-
-                    // Store the Engine state
-                    auto newEngineState = std::unique_ptr<EngineState>
-                        ( new EngineState() );
-                    _engine->storeState( *newEngineState, true );
-                    newSubQuery->_engineState = std::move( newEngineState );
+                    if ( performTreeStateRecovery )
+                    {
+                        auto newSmtState = std::unique_ptr<SmtState>
+                            ( new SmtState() );
+                        _engine->storeSmtState( *newSmtState );
+                        newSubQuery->_smtState = std::move( newSmtState );
+                    }
                     if ( !_workload->push( std::move( newSubQuery ) ) )
                     {
                         ASSERT( false );

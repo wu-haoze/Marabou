@@ -36,7 +36,7 @@ public:
     /*
       Repeatedly handling subQueries from the input worker queue
     */
-    void run();
+    void run( bool performTreeStateRecovery );
 
 private:
     /*

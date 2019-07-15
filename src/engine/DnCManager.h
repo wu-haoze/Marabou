@@ -51,7 +51,7 @@ public:
     /*
       Perform the Divide-and-conquer solving
     */
-    void solve( unsigned timeoutInSeconds );
+    void solve( unsigned timeoutInSeconds, bool performTreeStateRecovery );
 
     /*
       Return the DnCExitCode of the DnCManager

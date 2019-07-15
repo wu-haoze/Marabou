@@ -43,7 +43,6 @@ struct SubQuery
     String _queryId;
     std::unique_ptr<PiecewiseLinearCaseSplit> _split;
     std::unique_ptr<SmtState> _smtState;
-    std::unique_ptr<EngineState> _engineState;
     unsigned _timeoutInSeconds;
 };
 

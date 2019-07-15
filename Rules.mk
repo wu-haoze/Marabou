@@ -4,10 +4,10 @@
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-	COMPILER = g++
+	COMPILER = g++ -pg
 endif
 ifeq ($(UNAME_S),Darwin)
-	COMPILER = clang++
+	COMPILER = clang++ -pg
 endif
 
 COMPILE = $(COMPILER)
