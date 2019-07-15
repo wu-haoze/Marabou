@@ -85,10 +85,6 @@ void OptionParser::initialize()
         ( "points-per-segment",
           boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
           "Number of points per segment for activation variance strategy" )
-        ( "timeout-factor",
-          boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
-          "The timeout factor" )
-
         ;
 
     // Positional options, for the mandatory options
