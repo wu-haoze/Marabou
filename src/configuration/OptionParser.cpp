@@ -46,8 +46,8 @@ void OptionParser::initialize()
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
         ( "no-tree-recovery",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::TREE_STATE_RECOVERY]) ),
-          "Recover the tree state" )
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_TREE_STATE_RECOVERY]) ),
+          "Do not recover the tree state" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

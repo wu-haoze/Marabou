@@ -42,7 +42,7 @@ void Options::initializeDefaultValues()
       Bool options
     */
     _boolOptions[DNC_MODE] = false;
-    _boolOptions[TREE_STATE_RECOVERY] = true;
+    _boolOptions[NO_TREE_STATE_RECOVERY] = false;
     _boolOptions[PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS] = false;
 
 

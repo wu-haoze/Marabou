@@ -35,7 +35,7 @@ public:
         DNC_MODE,
 
         // Recover tree state
-        TREE_STATE_RECOVERY,
+        NO_TREE_STATE_RECOVERY,
     };
 
     enum IntOptions {

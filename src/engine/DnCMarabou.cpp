@@ -82,7 +82,19 @@ void DnCMarabou::run()
     unsigned pointsPerSegment = Options::get()->getInt( Options::POINTS_PER_SEGMENT );
     unsigned numberOfSegments = Options::get()->getInt( Options::NUMBER_OF_SEGMENTS );
 
-    bool performTreeStateRecovery = Options::get()->getBool( Options::TREE_STATE_RECOVERY );
+    bool performTreeStateRecovery = !( Options::get()->getBool( Options::NO_TREE_STATE_RECOVERY ) );
+
+
+    std::cout << "Initial Bisections: " << initialDivides << std::endl;
+    std::cout << "Online Bisections: " << onlineDivides << std::endl;
+    std::cout << "Initial Timeout: " << initialTimeout << std::endl;
+    std::cout << "Timeout Factor: " << timeoutFactor << std::endl;
+    std::cout << "Initial Stack Length: " << initialStackLength << std::endl;
+    std::cout << "Tree Depth Increment: " << treeDepthInc << std::endl;
+    std::cout << "Tree State Recovery: " << ( performTreeStateRecovery ? "On" : "Off" ) << std::endl;
+    std::cout << "Number of Workers: " << numWorkers << std::endl;
+
+
 
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
