@@ -144,6 +144,15 @@ public:
     */
     void storeSmtState( SmtState &smtState );
 
+    /*
+      get the number of fixed constraints
+    */
+    unsigned numberOfFixedConstraints();
+
+    void propagateSplit();
+
+    List<PiecewiseLinearConstraint *> getPLConstraints();
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,

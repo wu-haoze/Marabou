@@ -84,10 +84,10 @@ void OptionParser::initialize()
           "(DNC) The timeout factor" )
         ( "num-segments",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_SEGMENTS]) ),
-          "Number of segments for activation variance strategy" )
+          "(DNC) Number of segments for activation variance strategy" )
         ( "points-per-segment",
           boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
-          "Number of points per segment for activation variance strategy" )
+          "(DNC) Number of points per segment for activation variance strategy" )
         ;
 
     // Positional options, for the mandatory options

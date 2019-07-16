@@ -1893,6 +1893,29 @@ void Engine::storeSmtState( SmtState &smtState )
     _smtCore.storeSmtState( smtState );
 }
 
+unsigned Engine::numberOfFixedConstraints()
+{
+    unsigned numFixedConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+    {
+        if ( constraint->phaseFixed() )
+            ++numFixedConstraints;
+    }
+    return numFixedConstraints;
+}
+
+void Engine::propagateSplit()
+{
+    do
+        performSymbolicBoundTightening();
+    while ( applyAllValidConstraintCaseSplits() );
+}
+
+List<PiecewiseLinearConstraint *> Engine::getPLConstraints()
+{
+    return _plConstraints;
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "
