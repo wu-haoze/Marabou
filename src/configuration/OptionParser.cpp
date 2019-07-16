@@ -45,7 +45,7 @@ void OptionParser::initialize()
         ( "dnc",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
-        ( "recover-stack",
+        ( "no-tree-recovery",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::TREE_STATE_RECOVERY]) ),
           "Recover the tree state" )
         ( "input",
