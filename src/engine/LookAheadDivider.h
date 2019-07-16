@@ -38,24 +38,15 @@ public:
     /*
       Returns the variable with the largest range
     */
-    PiecewiseLinearConstraint *getPLConstraintToSplit( const
-                                                       PiecewiseLinearCaseSplit
-                                                       &split );
+    unsigned getDimensionToBisect( const PiecewiseLinearCaseSplit &inputRanges,
+                                   List<PiecewiseLinearCaseSplit *> newSplits,
+                                   EngineState *engineState );
 
 private:
     /*
       The engine
     */
     std::shared_ptr<Engine> _engine;
-
-    /*
-      Piecewiselinear Constraints to be considered
-    */
-    List<PiecewiseLinearConstraint *> _candidatePLConstraints;
-
-    void setCandidatePLConstraints( List<PiecewiseLinearConstraint *>
-                                    candidatePLConstraints );
-
 };
 
 #endif // __LookAheadDivider_h__

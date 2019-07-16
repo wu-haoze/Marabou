@@ -1906,6 +1906,10 @@ unsigned Engine::numberOfFixedConstraints()
 
 void Engine::propagateSplit()
 {
+    tightenBoundsOnConstraintMatrix();
+    applyAllBoundTightenings();
+    // For debugging purposes
+    checkBoundCompliancyWithDebugSolution();
     do
         performSymbolicBoundTightening();
     while ( applyAllValidConstraintCaseSplits() );
