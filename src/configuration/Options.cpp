@@ -52,6 +52,8 @@ void Options::initializeDefaultValues()
     _intOptions[NUM_WORKERS] = 4;
     _intOptions[NUM_INITIAL_DIVIDES] = 0;
     _intOptions[NUM_ONLINE_DIVIDES] = 2;
+    _intOptions[INITIAL_TREE_DEPTH] = 5;
+    _intOptions[TREE_DEPTH_INC] = 2;
     _intOptions[INITIAL_TIMEOUT] = 5;
     _intOptions[VERBOSITY] = 2;
     _intOptions[TIMEOUT] = 0;

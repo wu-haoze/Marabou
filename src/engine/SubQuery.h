@@ -44,6 +44,7 @@ struct SubQuery
     std::unique_ptr<PiecewiseLinearCaseSplit> _split;
     std::unique_ptr<SmtState> _smtState;
     unsigned _timeoutInSeconds;
+    unsigned _stackLength;
 };
 
 // Synchronized Queue containing the Sub-Queries shared by workers

@@ -31,7 +31,7 @@ public:
                std::atomic_bool &shouldQuitSolving, unsigned threadId,
                unsigned onlineDivides, float timeoutFactor,
                DivideStrategy divideStrategy, unsigned pointsPerSegment,
-               unsigned numberOfSegments );
+               unsigned numberOfSegments, unsigned treeDepthInc );
 
     /*
       Repeatedly handling subQueries from the input worker queue
@@ -75,6 +75,7 @@ private:
     unsigned _threadId;
     unsigned _onlineDivides;
     float _timeoutFactor;
+    unsigned _treeDepthInc;
 };
 
 #endif // __DnCWorker_h__

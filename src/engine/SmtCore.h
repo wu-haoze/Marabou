@@ -63,7 +63,7 @@ public:
       Perform the split according to the constraint marked for
       splitting. Update bounds, add equations and update the stack.
     */
-    void performSplit();
+    bool performSplit( unsigned stackLength = 0 );
 
     /*
       Pop an old split from the stack, and perform a new split as

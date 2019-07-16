@@ -39,12 +39,12 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       unsigned threadId, unsigned onlineDivides,
                       float timeoutFactor, DivideStrategy divideStrategy,
                       unsigned pointsPerSegment, unsigned numberOfSegments,
-                      bool performTreeStateRecovery )
+                      bool performTreeStateRecovery, unsigned treeDepthInc )
 {
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, pointsPerSegment,
-                      numberOfSegments );
+                      numberOfSegments, treeDepthInc );
     worker.run( performTreeStateRecovery );
 }
 
@@ -53,7 +53,8 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
                         String networkFilePath, String propertyFilePath,
                         unsigned verbosity, unsigned pointsPerSegment,
-                        unsigned numberOfSegments )
+                        unsigned numberOfSegments, unsigned initialStackLength,
+                        unsigned treeDepthInc )
     : _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
@@ -69,6 +70,8 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
     , _timeoutReached( false )
     , _numUnsolvedSubQueries( 0 )
     , _verbosity( verbosity )
+    , _initialStackLength( initialStackLength )
+    , _treeDepthInc( treeDepthInc )
 {
 }
 
@@ -130,6 +133,7 @@ void DnCManager::solve( unsigned timeoutInSeconds, bool performTreeStateRecovery
     WorkerQueue *workload = new WorkerQueue( 0 );
     for ( auto &subQuery : subQueries )
     {
+        subQuery->_stackLength = _initialStackLength;
         if ( !workload->push( subQuery ) )
         {
             // This should never happen
@@ -148,7 +152,8 @@ void DnCManager::solve( unsigned timeoutInSeconds, bool performTreeStateRecovery
                                         threadId, _onlineDivides,
                                         _timeoutFactor, _divideStrategy,
                                         _pointsPerSegment, _numberOfSegments,
-                                        performTreeStateRecovery) );
+                                        performTreeStateRecovery,
+                                        _treeDepthInc ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is

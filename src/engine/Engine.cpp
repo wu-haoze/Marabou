@@ -92,7 +92,7 @@ void Engine::adjustWorkMemorySize()
         throw ReluplexError( ReluplexError::ALLOCATION_FAILED, "Engine::work" );
 }
 
-bool Engine::solve( unsigned timeoutInSeconds )
+bool Engine::solve( unsigned timeoutInSeconds, unsigned stackLength )
 {
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
@@ -182,7 +182,20 @@ bool Engine::solve( unsigned timeoutInSeconds )
             // Perform any SmtCore-initiated case splits
             if ( _smtCore.needToSplit() )
             {
-                _smtCore.performSplit();
+                if ( _smtCore.performSplit( stackLength ) )
+                {
+                    if ( _verbosity > 0 )
+                    {
+                        printf( "\n\nEngine: quitting due to timeout...\n\n" );
+                        printf( "Final statistics:\n" );
+                        _statistics.print();
+                    }
+
+                    _exitCode = Engine::REACH_DEPTH_THRESHOLD;
+                    _statistics.timeout();
+                    return false;
+
+                }
 
                 do
                 {

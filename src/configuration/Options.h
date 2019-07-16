@@ -44,6 +44,8 @@ public:
         NUM_INITIAL_DIVIDES,
         NUM_ONLINE_DIVIDES,
         INITIAL_TIMEOUT,
+        INITIAL_TREE_DEPTH,
+        TREE_DEPTH_INC,
 
         // Engine verbosity
         VERBOSITY,

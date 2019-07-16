@@ -88,6 +88,12 @@ void OptionParser::initialize()
         ( "points-per-segment",
           boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
           "(DNC) Number of points per segment for activation variance strategy" )
+        ( "init-tree-depth",
+          boost::program_options::value<int>( &((*_intOptions)[Options::INITIAL_TREE_DEPTH]) ),
+          "(DNC) Threshold for tree depth" )
+        ( "tree-depth-inc",
+          boost::program_options::value<int>( &((*_intOptions)[Options::TREE_DEPTH_INC]) ),
+          "(DNC) Increment to the tree depth after each split" )
         ;
 
     // Positional options, for the mandatory options

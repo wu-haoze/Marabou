@@ -67,6 +67,9 @@ void DnCMarabou::run()
     */
     unsigned initialDivides = Options::get()->getInt( Options::NUM_INITIAL_DIVIDES );
     unsigned initialTimeout = Options::get()->getInt( Options::INITIAL_TIMEOUT );
+    unsigned initialStackLength = Options::get()->getInt( Options::INITIAL_TREE_DEPTH );
+    unsigned treeDepthInc = Options::get()->getInt( Options::TREE_DEPTH_INC );
+
     unsigned numWorkers = Options::get()->getInt( Options::NUM_WORKERS );
     unsigned onlineDivides = Options::get()->getInt( Options::NUM_ONLINE_DIVIDES );
     unsigned verbosity = Options::get()->getInt( Options::VERBOSITY );
@@ -85,7 +88,8 @@ void DnCMarabou::run()
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
                         onlineDivides, timeoutFactor, divideStrategy,
                         networkFilePath, propertyFilePath, verbosity,
-                        pointsPerSegment, numberOfSegments ) );
+                        pointsPerSegment, numberOfSegments, initialStackLength,
+                        treeDepthInc ) );
 
     struct timespec start = TimeUtils::sampleMicro();
 

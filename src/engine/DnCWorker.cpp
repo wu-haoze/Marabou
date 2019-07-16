@@ -35,7 +35,8 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
                       float timeoutFactor, DivideStrategy divideStrategy,
-                      unsigned pointsPerSegment, unsigned numberOfSegments )
+                      unsigned pointsPerSegment, unsigned numberOfSegments,
+                      unsigned treeDepthInc )
     : _workload( workload )
     , _engine( engine )
     , _numUnsolvedSubQueries( &numUnsolvedSubQueries )
@@ -43,6 +44,7 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     , _threadId( threadId )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
+    , _treeDepthInc( treeDepthInc )
 {
     if ( divideStrategy == DivideStrategy::LargestInterval )
     {
@@ -88,6 +90,7 @@ void DnCWorker::run( bool performTreeStateRecovery )
             if ( performTreeStateRecovery && subQuery->_smtState )
                 smtState = std::move( subQuery->_smtState );
             unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
+            unsigned stackLength = subQuery->_stackLength;
 
             // Create a new statistics object for each subQuery
             Statistics *statistics = new Statistics();
@@ -114,7 +117,7 @@ void DnCWorker::run( bool performTreeStateRecovery )
             Engine::ExitCode result;
             if ( fullSolveNeeded )
             {
-                _engine->solve( timeoutInSeconds );
+                _engine->solve( timeoutInSeconds, stackLength );
                 result = _engine->getExitCode();
             } else
             {
@@ -130,7 +133,7 @@ void DnCWorker::run( bool performTreeStateRecovery )
                 *_numUnsolvedSubQueries -= 1;
                 delete subQuery;
             }
-            else if ( result == Engine::TIMEOUT )
+            else if ( result == Engine::TIMEOUT || result == Engine::REACH_DEPTH_THRESHOLD )
             {
                 // If TIMEOUT, split the current input region and add the
                 // new subQueries to the current queue
@@ -149,6 +152,7 @@ void DnCWorker::run( bool performTreeStateRecovery )
                         _engine->storeSmtState( *newSmtState );
                         newSubQuery->_smtState = std::move( newSmtState );
                     }
+                    newSubQuery->_stackLength = ( stackLength + _treeDepthInc );
                     if ( !_workload->push( std::move( newSubQuery ) ) )
                     {
                         ASSERT( false );
@@ -225,6 +229,8 @@ String DnCWorker::exitCodeToString( Engine::ExitCode result )
         return "TIMEOUT";
     case Engine::QUIT_REQUESTED:
         return "QUIT_REQUESTED";
+    case Engine::REACH_DEPTH_THRESHOLD:
+        return "REACH_DEPTH_THRESHOLD";
     default:
         ASSERT( false );
         return "UNKNOWN (this should never happen)";

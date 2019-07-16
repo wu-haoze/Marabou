@@ -74,7 +74,7 @@ bool SmtCore::needToSplit() const
     return _needToSplit;
 }
 
-void SmtCore::performSplit()
+bool SmtCore::performSplit( unsigned stackLength )
 {
     ASSERT( _needToSplit );
 
@@ -84,7 +84,7 @@ void SmtCore::performSplit()
         _needToSplit = false;
         _constraintToViolationCount[_constraintForSplitting] = 0;
         _constraintForSplitting = NULL;
-        return;
+        return false;
     }
 
     struct timespec start = TimeUtils::sampleMicro();
@@ -135,6 +135,8 @@ void SmtCore::performSplit()
         struct timespec end = TimeUtils::sampleMicro();
         _statistics->addTimeSmtCore( TimeUtils::timePassed( start, end ) );
     }
+
+    return stackLength != 0 && _stack.size() > stackLength;
 }
 
 unsigned SmtCore::getStackDepth() const

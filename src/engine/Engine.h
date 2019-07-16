@@ -53,6 +53,7 @@ public:
         ERROR = 2,
         TIMEOUT = 3,
         QUIT_REQUESTED = 4,
+        REACH_DEPTH_THRESHOLD = 5,
 
         NOT_DONE = 999,
     };
@@ -61,7 +62,7 @@ public:
       Attempt to find a feasible solution for the input within a time limit
       (a timeout of 0 means no time limit). Returns true if found, false if infeasible.
     */
-    bool solve( unsigned timeoutInSeconds = 0 );
+    bool solve( unsigned timeoutInSeconds = 0, unsigned stackLength = 0 );
 
     /*
       Process the input query and pass the needed information to the

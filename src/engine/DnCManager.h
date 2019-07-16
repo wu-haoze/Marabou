@@ -42,7 +42,8 @@ public:
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, String networkFilePath,
                 String propertyFilePath, unsigned verbosity,
-                unsigned pointsPerSegment, unsigned numberOfSegments );
+                unsigned pointsPerSegment, unsigned numberOfSegments,
+                unsigned initStackLength, unsigned treeDepthInc );
 
     ~DnCManager();
 
@@ -169,6 +170,13 @@ private:
       The level of verbosity
     */
     unsigned _verbosity;
+
+    /*
+      initial stack length
+    */
+    unsigned _initialStackLength;
+    unsigned _treeDepthInc;
+
 };
 
 #endif // __DnCManager_h__

@@ -31,11 +31,7 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
 {
     unsigned numBisects = (unsigned)log2( numNewSubqueries );
 
-
-    EngineState *engineState = new EngineState();
-    _engine->storeState( *engineState, true );
-
-    List<PiecewiseLinearCaseSplit> splits;
+    List<PiecewiseLinearCaseSplit *> splits;
     auto split = new PiecewiseLinearCaseSplit();
     *split = previousSplit;
     splits.append( split );
@@ -46,8 +42,22 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
         List<PiecewiseLinearCaseSplit *> newSplits;
         for ( const auto &split : splits )
         {
-            // Get the dimension with the largest variance in activation patterns
-            getDimensionToBisect( split, newSplits, engineState );
+            PiecewiseLinearConstraint *pLConstraintToSplit =
+                getPLConstraintToSplit( *split );
+            auto caseSplits = pLConstraintToSplit->getCaseSplits();
+            for ( const auto &caseSplit : caseSplits )
+            {
+                auto newSplit = new PiecewiseLinearCaseSplit();
+                *newSplit = caseSplit;
+
+                for ( const auto &tightening : split->getBoundTightenings() )
+                    newSplit->storeBoundTightening( tightening );
+
+                for ( const auto &equation : split->getEquations() )
+                    newSplit->addEquation( equation );
+
+                newSplits.append( newSplit );
+            }
             delete split;
         }
         splits = newSplits;
@@ -67,17 +77,19 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
         // Construct the new subquery and add it to subqueries
         SubQuery *subQuery = new SubQuery;
         subQuery->_queryId = queryId;
-        subQuery->_split.reset( split );
+        subQuery->_split.reset(split);
         subQuery->_timeoutInSeconds = timeoutInSeconds;
         subQueries.append( subQuery );
     }
 }
 
-unsigned LookAheadDivider::getDimensionToBisect( const PiecewiseLinearCaseSplit
-                                                 &inputRanges,  List<PiecewiseLinearCaseSplit *>
-                                                 newSplits, EngineState
-                                                 *engineState )
+PiecewiseLinearConstraint *LookAheadDivider::getPLConstraintToSplit
+( const PiecewiseLinearCaseSplit &split )
 {
+
+    EngineState *engineState = new EngineState();
+    _engine->storeState( *engineState, true );
+
     _engine->applySplit( split );
     _engine->propagateSplit();
 
@@ -86,10 +98,10 @@ unsigned LookAheadDivider::getDimensionToBisect( const PiecewiseLinearCaseSplit
     EngineState *engineStateAfterSplit = new EngineState();
     _engine->storeState( *engineStateAfterSplit, true );
 
-    unsigned *dimensionToBisect = NULL;
+    PiecewiseLinearConstraint *constraintToSplit = NULL;
     unsigned maxNumFixedConstraints = 0;
 
-    List<PiecewiseLinearCaseSplit *> plConstraints =
+    List<PiecewiseLinearConstraint *> plConstraints =
         _engine->getPLConstraints();
 
     unsigned upperlimit = 50;
@@ -131,6 +143,13 @@ unsigned LookAheadDivider::getDimensionToBisect( const PiecewiseLinearCaseSplit
     delete engineStateAfterSplit;
 
     return constraintToSplit;
+}
+
+void LookAheadDivider::setCandidatePLConstraints( List
+                                                  <PiecewiseLinearConstraint *>
+                                                  candidatePLConstraints )
+{
+    _candidatePLConstraints = candidatePLConstraints;
 }
 
 //
