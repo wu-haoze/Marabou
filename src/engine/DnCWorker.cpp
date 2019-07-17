@@ -152,7 +152,12 @@ void DnCWorker::run( bool performTreeStateRecovery )
                         _engine->storeSmtState( *newSmtState );
                         newSubQuery->_smtState = std::move( newSmtState );
                     }
-                    newSubQuery->_stackLength = ( stackLength + _treeDepthInc );
+                    if ( result == Engine::TIMEOUT )
+                        newSubQuery->_stackLength = ( stackLength );
+                    else
+                        newSubQuery->_stackLength = ( stackLength + _treeDepthInc );
+
+                    // newSubQuery->_stackLength = ( stackLength + _treeDepthInc );
                     if ( !_workload->push( std::move( newSubQuery ) ) )
                     {
                         ASSERT( false );
