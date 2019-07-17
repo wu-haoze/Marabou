@@ -26,7 +26,9 @@
 class LookAheadDivider : public QueryDivider
 {
 public:
-    LookAheadDivider( std::shared_ptr<Engine> engine );
+    LookAheadDivider( const List<unsigned>
+                      &inputVariables,
+                      std::shared_ptr<Engine> engine );
 
     void createSubQueries( unsigned numNewSubQueries,
                            const String queryIdPrefix,
@@ -35,14 +37,23 @@ public:
                            const unsigned timeoutInSeconds,
                            SubQueries &subQueries );
 
+private:
+
+    void bisectBound( const PiecewiseLinearCaseSplit &split, unsigned variable,
+                      List<PiecewiseLinearCaseSplit> &newSplits );
+
     /*
       Returns the variable with the largest range
     */
-    unsigned getDimensionToBisect( const PiecewiseLinearCaseSplit &inputRanges,
-                                   List<PiecewiseLinearCaseSplit *> newSplits,
-                                   EngineState *engineState );
+    void getDimensionToBisect( const PiecewiseLinearCaseSplit &inputRanges,
+                               List<PiecewiseLinearCaseSplit> &newSplits,
+                               const EngineState &engineState );
 
-private:
+    /*
+      All input variables of the network
+    */
+    const List<unsigned> _inputVariables;
+
     /*
       The engine
     */

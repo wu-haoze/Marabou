@@ -46,12 +46,12 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
 {
     if ( divideStrategy == DivideStrategy::LargestInterval )
     {
-        const List<unsigned> &inputVariables = _engine->getInputVariables();
+        const List<unsigned> inputVariables = _engine->getInputVariables();
         _queryDivider = std::unique_ptr<LargestIntervalDivider>
             ( new LargestIntervalDivider( inputVariables ) );
     } else if (divideStrategy == DivideStrategy::ActivationVariance )
     {
-        const List<unsigned> &inputVariables = _engine->getInputVariables();
+        const List<unsigned> inputVariables = _engine->getInputVariables();
         NetworkLevelReasoner *networkLevelReasoner = _engine->getInputQuery()->
             getNetworkLevelReasoner();
         _queryDivider = std::unique_ptr<ActivationPatternDivider>
@@ -62,8 +62,9 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     }
     else// if ( _divideStrategy == DivideStrategy::LookAhead )
     {
+        const List<unsigned> inputVariables = _engine->getInputVariables();
         _queryDivider = std::unique_ptr<LookAheadDivider>
-            ( new LookAheadDivider( _engine ) );
+            ( new LookAheadDivider( inputVariables, _engine ) );
     }
 
 
@@ -135,6 +136,15 @@ void DnCWorker::run( bool performTreeStateRecovery )
                 // If TIMEOUT, split the current input region and add the
                 // new subQueries to the current queue
                 SubQueries subQueries;
+                _engine->restoreState( *_initialState );
+                if ( performTreeStateRecovery && subQuery->_smtState )
+                {
+                    // Step 1: all implied valid splits at root
+                    for ( auto &validSplit : smtState->_impliedValidSplitsAtRoot )
+                        _engine->applySplit( validSplit );
+                    _engine->propagate();
+                }
+
                 _queryDivider->createSubQueries( pow( 2, _onlineDivides ),
                                                  queryId, *split,
                                                  (unsigned) timeoutInSeconds *

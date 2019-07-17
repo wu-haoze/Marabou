@@ -18,8 +18,13 @@
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 
-LookAheadDivider::LookAheadDivider( std::shared_ptr<Engine> engine )
-    : _engine( std::move( engine ) )
+#include <cmath>
+
+LookAheadDivider::LookAheadDivider( const List<unsigned>
+                                    &inputVariables,
+                                    std::shared_ptr<Engine> engine )
+    : _inputVariables( inputVariables )
+    , _engine( std::move( engine ) )
 {
 }
 
@@ -31,25 +36,20 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
 {
     unsigned numBisects = (unsigned)log2( numNewSubqueries );
 
-
-    EngineState *engineState = new EngineState();
+    // Store the current engine state
+    auto engineState = std::unique_ptr<EngineState>( new EngineState() );
     _engine->storeState( *engineState, true );
 
     List<PiecewiseLinearCaseSplit> splits;
-    auto split = new PiecewiseLinearCaseSplit();
-    *split = previousSplit;
-    splits.append( split );
+    splits.append( previousSplit );
 
     // Repeatedly bisect the dimension with the largest interval
     for ( unsigned i = 0; i < numBisects; ++i )
     {
-        List<PiecewiseLinearCaseSplit *> newSplits;
+        List<PiecewiseLinearCaseSplit> newSplits;
         for ( const auto &split : splits )
-        {
             // Get the dimension with the largest variance in activation patterns
-            getDimensionToBisect( split, newSplits, engineState );
-            delete split;
-        }
+            getDimensionToBisect( split, newSplits, *engineState );
         splits = newSplits;
     }
 
@@ -67,70 +67,129 @@ void LookAheadDivider::createSubQueries( unsigned numNewSubqueries, const String
         // Construct the new subquery and add it to subqueries
         SubQuery *subQuery = new SubQuery;
         subQuery->_queryId = queryId;
-        subQuery->_split.reset( split );
+        subQuery->_split = std::unique_ptr<PiecewiseLinearCaseSplit>
+            ( new PiecewiseLinearCaseSplit() );
+        * (subQuery->_split) = split;
         subQuery->_timeoutInSeconds = timeoutInSeconds;
         subQueries.append( subQuery );
     }
 }
 
-unsigned LookAheadDivider::getDimensionToBisect( const PiecewiseLinearCaseSplit
-                                                 &inputRanges,  List<PiecewiseLinearCaseSplit *>
-                                                 newSplits, EngineState
-                                                 *engineState )
+static unsigned computeImpact( const List<unsigned> &numsFixedConstraints )
 {
-    _engine->applySplit( split );
-    _engine->propagateSplit();
+    //unsigned max = 0;
+    //for ( const auto &num : numsFixedConstraints )
+    //    if ( num > max )
+    //        max = num;
 
-    unsigned numFixed = _engine->numberOfFixedConstraints();
+    //unsigned min = max;
+    //for ( const auto &num : numsFixedConstraints )
+    //    if ( num < min )
+    //        min = num;
+    //return min;
+    unsigned multiple = 1;
+    for ( const auto &num : numsFixedConstraints )
+        multiple *= num;
+    return multiple;
+}
 
-    EngineState *engineStateAfterSplit = new EngineState();
-    _engine->storeState( *engineStateAfterSplit, true );
+static unsigned computeTieBreaker( const List<unsigned> &numsFixedConstraints )
+{
+    unsigned sum = 0;
+    for ( const auto &num : numsFixedConstraints )
+        sum += num;
+    return sum;
+}
 
-    unsigned *dimensionToBisect = NULL;
-    unsigned maxNumFixedConstraints = 0;
+void LookAheadDivider::getDimensionToBisect( const PiecewiseLinearCaseSplit
+                                             &inputRegion,
+                                             List<PiecewiseLinearCaseSplit>
+                                             &newInputRegions,
+                                             const EngineState &engineState )
+{
+    List<PiecewiseLinearCaseSplit> candidateInputRegions;
+    //unsigned var = 0;
+    int maxImpact = -1;
+    int maxTieBreaker = -1;
 
-    List<PiecewiseLinearCaseSplit *> plConstraints =
-        _engine->getPLConstraints();
-
-    unsigned upperlimit = 50;
-    unsigned limit = 0;
-    for ( const auto &constraint : plConstraints )
+    for ( const auto &variable : _inputVariables )
     {
-        if ( limit > upperlimit || limit > plConstraints.size() )
+        List<PiecewiseLinearCaseSplit> newInputRegions;
+        bisectBound( inputRegion, variable, newInputRegions );
+
+        List<unsigned> numsFixedConstraints;
+        List<PiecewiseLinearCaseSplit> unsolvedInputRegions;
+        for ( const auto &newInputRegion : newInputRegions )
         {
-            if ( constraintToSplit != NULL )
-                break;
+            _engine->applySplit( newInputRegion );
+            if ( !( _engine->propagate() ) )
+                numsFixedConstraints.append( _engine->numberOfPLConstraints() );
             else
-                upperlimit += 50;
+            {
+                numsFixedConstraints.append( _engine->numberOfFixedConstraints() );
+                unsolvedInputRegions.append( newInputRegion );
+            }
+            _engine->restoreState( engineState );
         }
-        if ( !( constraint->phaseFixed() ) )
+        //std::cout << "var: " << variable << std::endl;
+        //for ( auto &num : numsFixedConstraints )
+        //    std::cout << num << " ";
+        //std::cout << std::endl;
+        int impact = computeImpact( numsFixedConstraints );
+        int tieBreaker = computeTieBreaker( numsFixedConstraints );
+        if ( impact > maxImpact ||
+             ( impact == maxImpact &&
+               tieBreaker > maxTieBreaker ) )
         {
-            unsigned numFixedConstraints = 0;
-            auto caseSplits = constraint->getCaseSplits();
-            for ( const auto& caseSplit : caseSplits )
-            {
-                _engine->applySplit( caseSplit );
-                _engine->propagateSplit();
-                numFixedConstraints += ( _engine->numberOfFixedConstraints()
-                                         - numFixed );
-                _engine->restoreState( *engineStateAfterSplit );
-            }
-            if ( numFixedConstraints > maxNumFixedConstraints )
-            {
-                maxNumFixedConstraints = numFixedConstraints;
-                constraintToSplit = constraint;
-            }
-            ++limit;
+            maxImpact = impact;
+            maxTieBreaker = tieBreaker;
+            candidateInputRegions = unsolvedInputRegions;
+            //var = variable;
+            if ( unsolvedInputRegions.size() == 0 )
+                break;
         }
     }
+    //std::cout << "Var to split: " << var << std::endl;
+    for ( const auto &candidateInputRegion : candidateInputRegions )
+        newInputRegions.append( candidateInputRegion );
+}
 
-    _engine->restoreState( *engineState );
-    assert( constraintToSplit != NULL );
+void LookAheadDivider::bisectBound( const PiecewiseLinearCaseSplit &split,
+                                    unsigned variable,
+                                    List<PiecewiseLinearCaseSplit>
+                                    &newInputRegions )
+{
+    PiecewiseLinearCaseSplit split1;
+    PiecewiseLinearCaseSplit split2;
 
-    delete engineState;
-    delete engineStateAfterSplit;
+    unsigned mid = 0;
+    for ( const auto &bound : split.getBoundTightenings() )
+    {
+        if ( bound._variable != variable )
+        {
+            split1.storeBoundTightening( bound );
+            split2.storeBoundTightening( bound );
+        }
+        else
+        {
+            mid += bound._value;
+            if ( bound._type == Tightening::LB )
+            {
+                split1.storeBoundTightening( bound );
+            }
+            else
+            {
+                ASSERT( bound._type == Tightening::UB );
+                split2.storeBoundTightening( bound );
+            }
+        }
+    }
+    mid = mid / 2;
+    split1.storeBoundTightening( Tightening( variable, mid, Tightening::UB ) );
+    split2.storeBoundTightening( Tightening( variable, mid, Tightening::LB ) );
 
-    return constraintToSplit;
+    newInputRegions.append( split1 );
+    newInputRegions.append( split2 );
 }
 
 //

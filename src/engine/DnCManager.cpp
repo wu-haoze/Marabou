@@ -303,7 +303,6 @@ void DnCManager::initialDivide( SubQueries &subQueries )
     }
     else if ( _divideStrategy == DivideStrategy::ActivationVariance )
     {
-        const List<unsigned> &inputVariables = _baseEngine->getInputVariables();
         NetworkLevelReasoner *networkLevelReasoner =
             _baseEngine->getInputQuery()->getNetworkLevelReasoner();
         queryDivider = std::unique_ptr<ActivationPatternDivider>
@@ -315,7 +314,7 @@ void DnCManager::initialDivide( SubQueries &subQueries )
     else// if ( _divideStrategy == DivideStrategy::LookAhead )
     {
         queryDivider = std::unique_ptr<LookAheadDivider>
-            ( new LookAheadDivider( _baseEngine ) );
+            ( new LookAheadDivider( inputVariables, _baseEngine ) );
     }
 
 

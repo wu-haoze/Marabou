@@ -1893,6 +1893,11 @@ void Engine::storeSmtState( SmtState &smtState )
     _smtCore.storeSmtState( smtState );
 }
 
+unsigned Engine::numberOfPLConstraints()
+{
+    return _plConstraints.size();
+}
+
 unsigned Engine::numberOfFixedConstraints()
 {
     unsigned numFixedConstraints = 0;
@@ -1904,15 +1909,23 @@ unsigned Engine::numberOfFixedConstraints()
     return numFixedConstraints;
 }
 
-void Engine::propagateSplit()
+bool Engine::propagate()
 {
-    tightenBoundsOnConstraintMatrix();
-    applyAllBoundTightenings();
-    // For debugging purposes
-    checkBoundCompliancyWithDebugSolution();
-    do
-        performSymbolicBoundTightening();
-    while ( applyAllValidConstraintCaseSplits() );
+    try
+    {
+        //tightenBoundsOnConstraintMatrix();
+        //applyAllBoundTightenings();
+        // For debugging purposes
+        //checkBoundCompliancyWithDebugSolution();
+        do
+            performSymbolicBoundTightening();
+        while ( applyAllValidConstraintCaseSplits() );
+    }
+    catch ( const InfeasibleQueryException & )
+    {
+        return false;
+    }
+    return true;
 }
 
 List<PiecewiseLinearConstraint *> Engine::getPLConstraints()

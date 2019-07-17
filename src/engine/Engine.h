@@ -149,9 +149,11 @@ public:
     */
     unsigned numberOfFixedConstraints();
 
-    void propagateSplit();
+    bool propagate();
 
     List<PiecewiseLinearConstraint *> getPLConstraints();
+
+    unsigned numberOfPLConstraints();
 
 private:
     enum BasisRestorationRequired {
