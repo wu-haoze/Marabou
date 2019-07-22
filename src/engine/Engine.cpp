@@ -1917,9 +1917,9 @@ bool Engine::propagate()
         //applyAllBoundTightenings();
         // For debugging purposes
         //checkBoundCompliancyWithDebugSolution();
-        do
-            performSymbolicBoundTightening();
-        while ( applyAllValidConstraintCaseSplits() );
+        //do
+        performSymbolicBoundTightening();
+        //while ( applyAllValidConstraintCaseSplits() );
     }
     catch ( const InfeasibleQueryException & )
     {

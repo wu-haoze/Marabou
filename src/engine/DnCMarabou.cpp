@@ -133,6 +133,8 @@ DivideStrategy DnCMarabou::setDivideStrategyFromOptions( const String strategy )
         return DivideStrategy::LargestInterval;
     else if (strategy == "look-ahead" )
         return DivideStrategy::LookAhead;
+    else if (strategy == "relu-look-ahead" )
+        return DivideStrategy::ReluLookAhead;
     else
         {
             printf ("Unknown divide strategy, using default (activation variance)");

@@ -23,6 +23,7 @@
 #include "LookAheadDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "ReluLookAheadDivider.h"
 #include "SubQuery.h"
 
 #include <atomic>
@@ -60,13 +61,17 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                                             numberOfSegments,
                                             pointsPerSegment ) );
     }
-    else// if ( _divideStrategy == DivideStrategy::LookAhead )
+    else if ( divideStrategy == DivideStrategy::LookAhead )
     {
         const List<unsigned> inputVariables = _engine->getInputVariables();
         _queryDivider = std::unique_ptr<LookAheadDivider>
             ( new LookAheadDivider( inputVariables, _engine ) );
     }
-
+    else// if ( _divideStrategy == DivideStrategy::ReluLookAhead )
+    {
+        _queryDivider = std::unique_ptr<ReluLookAheadDivider>
+            ( new ReluLookAheadDivider( _engine ) );
+    }
 
     // Obtain the current state of the engine
     _initialState = std::make_shared<EngineState>();
@@ -98,7 +103,6 @@ void DnCWorker::run( bool performTreeStateRecovery )
             _engine->clearViolatedPLConstraints();
             _engine->resetBoundTighteners();
             _engine->resetExitCode();
-            _engine->restoreState( *_initialState );
 
             // Restore the smtCore to where the parent query left
             _engine->resetSmtCore();
@@ -122,6 +126,7 @@ void DnCWorker::run( bool performTreeStateRecovery )
                 // UNSAT is found when replaying stack-entries
                 result = Engine::UNSAT;
             }
+            _engine->restoreState( *_initialState );
 
             printProgress( queryId, result );
             // Switch on the result
