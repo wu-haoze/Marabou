@@ -36,6 +36,11 @@ public:
 
         // Recover tree state
         TREE_STATE_RECOVERY,
+        // Help flag
+        HELP,
+
+        // Version flag
+        VERSION,
     };
 
     enum IntOptions {

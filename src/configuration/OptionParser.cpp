@@ -88,6 +88,13 @@ void OptionParser::initialize()
         ( "points-per-segment",
           boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
           "(DNC) Number of points per segment for activation variance strategy" )
+        ( "help",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::HELP]) ),
+          "Prints the help message")
+        ( "version",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::VERSION]) ),
+          "Prints the version number")
+
         ;
 
     // Positional options, for the mandatory options

@@ -15,6 +15,7 @@
 
 #include "Debug.h"
 #include "ActivationPatternDivider.h"
+#include "MarabouError.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 
@@ -58,15 +59,26 @@ void ActivationPatternDivider::allocateMemory()
 {
     unsigned numberOfInputVariables = _inputVariables.size();
     _samplePoints = new double*[_numberOfPoints];
+    if ( !_samplePoints )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "ActivationPatternDivider::_samplePoints" );
     for ( unsigned i = 0; i < _numberOfPoints; ++i )
         {
             _samplePoints[i] = new double[numberOfInputVariables];
+            if ( !_samplePoints[i] )
+                throw MarabouError( MarabouError::ALLOCATION_FAILED, "ActivationPatternDivider::_samplePoints[i]" );
             std::fill_n( _samplePoints[i], numberOfInputVariables, 0 );
         }
 
     _patterns = new ActivationPattern *[_numberOfPoints];
+    if ( !_patterns )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "ActivationPatternDivider::_patterns" );
+
     for ( unsigned i = 0; i < _numberOfPoints; ++i )
+    {
         _patterns[i] = new ActivationPattern;
+        if ( !_patterns[i] )
+            throw MarabouError( MarabouError::ALLOCATION_FAILED, "ActivationPatternDivider::_patterns[i]" );
+    }
 }
 
 void ActivationPatternDivider::createSubQueries( unsigned numNewSubqueries,
@@ -245,11 +257,10 @@ void ActivationPatternDivider::getActivationPatterns()
 
 unsigned ActivationPatternDivider::getPatternVariance()
 {
-    unsigned numberOfInputVariables = _inputVariables.size();
     unsigned variance = 0;
     for ( unsigned i = 0; i < _pointsPerSegment; ++i )
     {
-        unsigned start_index = i * numberOfInputVariables;
+        unsigned start_index = i * ( _numberOfSegments + 1 );
         for ( unsigned j = 0; j < _numberOfSegments; ++j )
             variance += manhattanDistance( *_patterns[start_index + j],
                                            *_patterns[start_index + j + 1] );
