@@ -23,6 +23,7 @@
 #include "LookAheadDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "ReluLookAheadDivider.h"
 #include "SubQuery.h"
 
 #include <atomic>

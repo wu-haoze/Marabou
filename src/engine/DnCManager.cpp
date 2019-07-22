@@ -26,6 +26,7 @@
 #include "PropertyParser.h"
 #include "QueryDivider.h"
 #include "ReluplexError.h"
+#include "ReluLookAheadDivider.h"
 #include "TimeUtils.h"
 
 #include <atomic>
@@ -310,12 +311,16 @@ void DnCManager::initialDivide( SubQueries &subQueries )
                                             _numberOfSegments,
                                             _pointsPerSegment ) );
     }
-    else// if ( _divideStrategy == DivideStrategy::LookAhead )
+    else if ( _divideStrategy == DivideStrategy::LookAhead )
     {
         queryDivider = std::unique_ptr<LookAheadDivider>
             ( new LookAheadDivider( _baseEngine ) );
     }
-
+    else if ( _divideStrategy == DivideStrategy::LookAhead )
+    {
+        queryDivider = std::unique_ptr<LookAheadDivider>
+            ( new ReluLookAheadDivider( _baseEngine ) );
+    }
 
     String queryId = "";
     // Create a new case split

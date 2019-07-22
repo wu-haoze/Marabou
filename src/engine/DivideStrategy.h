@@ -21,6 +21,7 @@ enum DivideStrategy
     ActivationVariance,
     LargestInterval,
     LookAhead,
+    ReluLookAhead,
 };
 
 #endif // __DivideStrategy_h__

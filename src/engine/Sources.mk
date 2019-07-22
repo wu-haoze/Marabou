@@ -24,6 +24,7 @@ SOURCES += \
 	ProjectedSteepestEdge.cpp \
 	QueryDivider.cpp \
 	ReluConstraint.cpp \
+	ReluLookAheadDivider.cpp \
 	RowBoundTightener.cpp \
 	Simulator.cpp \
 	SmtCore.cpp \
