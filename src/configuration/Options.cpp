@@ -53,9 +53,9 @@ void Options::initializeDefaultValues()
     _intOptions[NUM_INITIAL_DIVIDES] = 0;
     _intOptions[NUM_ONLINE_DIVIDES] = 2;
     _intOptions[INITIAL_TIMEOUT] = 5;
-    _intOptions[VERBOSITY] = 2;
+    _intOptions[VERBOSITY] = 0;
     _intOptions[TIMEOUT] = 0;
-    _intOptions[POINTS_PER_SEGMENT] = 100;
+    _intOptions[POINTS_PER_SEGMENT] = 50;
     _intOptions[NUMBER_OF_SEGMENTS] = 4;
     /*
       Float options
