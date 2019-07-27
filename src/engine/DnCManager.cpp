@@ -155,6 +155,10 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     WorkerQueue *workload = new WorkerQueue( 0 );
     for ( auto &subQuery : subQueries )
     {
+        auto activations = std::unique_ptr<std::vector<bool>>( new std::vector<bool>() );
+        for ( unsigned i = 0; i < 20; i++ )
+            activations->push_back( false );
+        subQuery->_activations = std::move( activations );
         if ( !workload->push( subQuery ) )
         {
             // This should never happen

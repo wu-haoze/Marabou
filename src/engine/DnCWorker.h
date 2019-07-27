@@ -60,12 +60,13 @@ private:
     /*
       Check each of the invariants in the invariant
     */
-    bool checkInvariants();
+    bool checkInvariants( unsigned  timeoutInSeconds, std::vector<bool> &activation );
 
     /*
       Check whether an invariant holds
     */
-    bool checkInvariant( Invariant& invariant );
+    bool checkInvariant( Invariant& invariant, unsigned timeoutInSeconds,
+                         std::vector<bool> &activation );
 
     /*
       The queue of subqueries (shared across threads)
