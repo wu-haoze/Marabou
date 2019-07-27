@@ -13,6 +13,7 @@
 
  **/
 
+#include "ActivationPatternDivider.h"
 #include "AcasParser.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
@@ -31,15 +32,44 @@
 #include <cmath>
 #include <thread>
 
+static void updateInvariant( Invariant &invariant )
+{
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 41), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 21), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 2), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 40), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 43), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 9), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 33), true );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 22), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 26), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 27), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 34), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 3), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 8), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 42), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 4), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 15), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 20), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 23), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 37), false );
+    invariant.addActivationPattern(SymbolicBoundTightener::NodeIndex(5, 45), false );
+}
+
 static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_uint &numUnsolvedSubQueries,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy )
+                      float timeoutFactor, DivideStrategy divideStrategy,
+                      unsigned pointsPerSegment, unsigned numberOfSegments )
 {
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
-                      timeoutFactor, divideStrategy );
+                      timeoutFactor, divideStrategy, pointsPerSegment,
+                      numberOfSegments );
+    Invariant invariant = Invariant();
+    updateInvariant( invariant );
+    worker.addInvariant( invariant );
     worker.run();
 }
 
@@ -47,13 +77,16 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
                         String networkFilePath, String propertyFilePath,
-                        unsigned verbosity )
+                        unsigned verbosity, unsigned pointsPerSegment,
+                        unsigned numberOfSegments )
     : _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
     , _divideStrategy( divideStrategy )
+    , _pointsPerSegment( pointsPerSegment )
+    , _numberOfSegments( numberOfSegments )
     , _networkFilePath( networkFilePath )
     , _propertyFilePath( propertyFilePath )
     , _exitCode( DnCManager::NOT_DONE )
@@ -122,6 +155,10 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     WorkerQueue *workload = new WorkerQueue( 0 );
     for ( auto &subQuery : subQueries )
     {
+        auto activations = std::unique_ptr<std::vector<bool>>( new std::vector<bool>() );
+        for ( unsigned i = 0; i < 20; i++ )
+            activations->push_back( false );
+        subQuery->_activations = std::move( activations );
         if ( !workload->push( subQuery ) )
         {
             // This should never happen
@@ -138,7 +175,8 @@ void DnCManager::solve( unsigned timeoutInSeconds )
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy ) );
+                                        _timeoutFactor, _divideStrategy,
+                                        _pointsPerSegment, _numberOfSegments) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is
@@ -157,6 +195,17 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     for ( auto &thread : threads )
         thread.join();
+
+    SubQuery *subQuery;
+    while ( !_workload->empty() )
+    {
+        _workload->pop( subQuery );
+        auto split = std::move( subQuery->_split );
+        std::cout << "pre-condition might not hold" << std::endl;
+        split->dump();
+        delete subQuery;
+    }
+
 
     updateDnCExitCode();
     printResult();
@@ -320,9 +369,14 @@ void DnCManager::initialDivide( SubQueries &subQueries )
     }
     else
     {
-        // Default
-        queryDivider = std::unique_ptr<QueryDivider>
-            ( new LargestIntervalDivider( inputVariables ) );
+        const List<unsigned> &inputVariables = _baseEngine->getInputVariables();
+        NetworkLevelReasoner *networkLevelReasoner =
+            _baseEngine->getInputQuery()->getNetworkLevelReasoner();
+        queryDivider = std::unique_ptr<ActivationPatternDivider>
+            ( new ActivationPatternDivider( inputVariables,
+                                            networkLevelReasoner,
+                                            _numberOfSegments,
+                                            _pointsPerSegment ) );
     }
 
     String queryId = "";

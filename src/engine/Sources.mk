@@ -1,4 +1,5 @@
 SOURCES += \
+	ActivationPatternDivider.cpp \
 	BlandsRule.cpp \
 	ConstraintBoundTightener.cpp \
 	ConstraintMatrixAnalyzer.cpp \
@@ -12,6 +13,7 @@ SOURCES += \
 	EntrySelectionStrategy.cpp \
 	Equation.cpp \
 	InputQuery.cpp \
+	Invariant.cpp \
 	LargestIntervalDivider.cpp \
 	MaxConstraint.cpp \
 	NetworkLevelReasoner.cpp \

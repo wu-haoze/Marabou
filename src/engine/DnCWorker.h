@@ -18,6 +18,7 @@
 
 #include "DivideStrategy.h"
 #include "Engine.h"
+#include "Invariant.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "QueryDivider.h"
 
@@ -30,19 +31,22 @@ public:
                std::atomic_uint &numUnsolvedSubqueries,
                std::atomic_bool &shouldQuitSolving, unsigned threadId,
                unsigned onlineDivides, float timeoutFactor,
-               DivideStrategy divideStrategy );
+               DivideStrategy divideStrategy, unsigned pointsPerSegment,
+               unsigned numberOfSegments );
 
     /*
       Repeatedly handling subQueries from the input worker queue
     */
     void run();
 
-private:
     /*
-      Initiate the query-divider object
+      Set the postCondition of the worker
     */
-    void setQueryDivider( DivideStrategy divideStrategy );
+    void setPostCondition( PiecewiseLinearCaseSplit *postCondition );
 
+    void addInvariant( Invariant &invariant );
+
+private:
     /*
       Convert the exitCode to string
     */
@@ -52,6 +56,17 @@ private:
       Print the current progress
     */
     void printProgress( String queryId, Engine::ExitCode result ) const;
+
+    /*
+      Check each of the invariants in the invariant
+    */
+    bool checkInvariants( unsigned  timeoutInSeconds, std::vector<bool> &activation );
+
+    /*
+      Check whether an invariant holds
+    */
+    bool checkInvariant( Invariant& invariant, unsigned timeoutInSeconds,
+                         std::vector<bool> &activation );
 
     /*
       The queue of subqueries (shared across threads)
@@ -79,6 +94,16 @@ private:
     unsigned _threadId;
     unsigned _onlineDivides;
     float _timeoutFactor;
+
+    /*
+      A list of invariants to be checked.
+    */
+    List<Invariant> _invariants;
+
+    /*
+      Post condition.
+    */
+    PiecewiseLinearCaseSplit* _postCondition;
 };
 
 #endif // __DnCWorker_h__

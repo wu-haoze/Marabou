@@ -1,8 +1,8 @@
 /*********************                                                        */
-/*! \file DnCMarabou.h
+/*! \file Invariant.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Wu
+ **   Haoze Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -11,40 +11,35 @@
  **
  ** [[ Add lengthier description here ]]
 
- **/
+**/
 
-#ifndef __DnCMarabou_h__
-#define __DnCMarabou_h__
+#ifndef __Invariant_h__
+#define __Invariant_h__
 
-#include "DnCManager.h"
-#include "Options.h"
+#include "Tightening.h"
+#include "PiecewiseLinearCaseSplit.h"
+#include "SymbolicBoundTightener.h"
+#include "Map.h"
 
-class DnCMarabou
+class Invariant
 {
 public:
-    DnCMarabou();
+    Invariant();
+
+    List<PiecewiseLinearCaseSplit> getActivationPatterns( SymbolicBoundTightener *sbt );
+
+    void addActivationPattern( SymbolicBoundTightener::NodeIndex index, bool active );
 
     /*
-      Entry point of this class
+      Dump the invariant - for debugging purposes.
     */
-    void run();
+    void dump() const;
 
 private:
-    std::unique_ptr<DnCManager> _dncManager;
-
-    /*
-      Display the results
-    */
-    void displayResults( unsigned long long microSecondsElapsed ) const;
-
-    /*
-      Set the divide strategy according to the command line argument
-    */
-    DivideStrategy setDivideStrategyFromOptions( const String strategy );
-
+    Map<SymbolicBoundTightener::NodeIndex, bool> _patterns;
 };
 
-#endif // __DnCMarabou_h__
+#endif // __Invariant_h__
 
 //
 // Local Variables:

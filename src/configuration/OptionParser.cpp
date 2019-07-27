@@ -54,6 +54,9 @@ void OptionParser::initialize()
         ( "summary-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SUMMARY_FILE]) ),
           "Summary file" )
+        ( "divide-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::DIVIDE_STRATEGY]) ),
+          "divide strategy" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )
@@ -82,6 +85,12 @@ void OptionParser::initialize()
         ( "version",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::VERSION]) ),
           "Prints the version number")
+        ( "num-segments",
+          boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_SEGMENTS]) ),
+          "(DNC) Number of segments for activation variance strategy" )
+        ( "points-per-segment",
+          boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
+          "(DNC) Number of points per segment for activation variance strategy" )
 
         ;
 

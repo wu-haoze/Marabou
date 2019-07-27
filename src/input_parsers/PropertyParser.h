@@ -18,6 +18,7 @@
 
 #include "Equation.h"
 #include "InputQuery.h"
+#include "PiecewiseLinearCaseSplit.h"
 #include "MString.h"
 
 /*
@@ -30,9 +31,13 @@ class PropertyParser
 {
 public:
     void parse( const String &propertyFilePath, InputQuery &inputQuery );
+    PiecewiseLinearCaseSplit *parsePost( const String &propertyFilePath,
+                                         const InputQuery &inputQuery );
 
 private:
     void processSingleLine( const String &line, InputQuery &inputQuery );
+    void processSingleLinePost( const String &line, const InputQuery &inputQuery,
+                                PiecewiseLinearCaseSplit *postCondition);
     Equation::EquationType extractSign( const String &token );
     double extractScalar( const String &token );
 };

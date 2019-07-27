@@ -97,6 +97,8 @@ public:
     NodeIndex nodeIndexFromB( unsigned b ) const;
     const Map<NodeIndex, unsigned> &getNodeIndexToFMapping() const;
 
+    const Map<NodeIndex, unsigned> &getNodeIndexToBMapping() const;
+
     void updateVariableIndices( const Map<unsigned, unsigned> &oldIndexToNewIndex,
                                 const Map<unsigned, unsigned> &mergedVariables,
                                 const Map<unsigned, double> &fixedVariableValues );

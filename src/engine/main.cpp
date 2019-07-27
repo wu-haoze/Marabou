@@ -67,8 +67,6 @@ int main( int argc, char **argv )
             return 0;
         };
 
-
-
         if ( options->getBool( Options::DNC_MODE ) )
             DnCMarabou().run();
         else
