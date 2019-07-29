@@ -191,16 +191,16 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
         _engine->resetBoundTighteners();
         _engine->restoreState( *engineState );
 
-        split.dump();
-        newSplit.dump();
+        //split.dump();
+        //newSplit.dump();
 
-        std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
-        std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
+        //std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
+        //std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
 
         _engine->applySplit( newSplit );
 
-        std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
-        std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
+        //std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
+        //std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
 
         //std::cout << "Checking a bound\n";
 
