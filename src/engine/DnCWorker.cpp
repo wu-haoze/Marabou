@@ -194,13 +194,7 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
         split.dump();
         newSplit.dump();
 
-        std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
-        std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
-
         _engine->applySplit( newSplit );
-
-        std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
-        std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
 
         //std::cout << "Checking a bound\n";
 
@@ -209,7 +203,7 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
 
         if ( result != Engine::UNSAT )
         {
-            if ( _engine->getExitCode() == Engine::SAT && false )
+            if ( _engine->getExitCode() == Engine::SAT )
             {
                 double inputs[_engine->getInputQuery()->getNumInputVariables()];
                 double outputs[_engine->getInputQuery()->getNumOutputVariables()];

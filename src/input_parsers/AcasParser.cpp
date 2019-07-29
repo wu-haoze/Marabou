@@ -165,7 +165,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     unsigned x1 = _nodeToF[NodeIndex( 0, 1 )];
     unsigned x2 = _nodeToF[NodeIndex( 0, 2 )];
     unsigned x3 = _nodeToF[NodeIndex( 0, 3 )];
-    unsigned y0 = _nodeToB[NodeIndex( numberOfLayers - 1, 0 )];
+    double force = -10;
 
     // x0_next - x0 - 0.02 x1 = 0
     // x1_next - x1 - (0.02 * 0.98) x2 - 0.02 y0 = 0
@@ -183,8 +183,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     equation2.addAddend( 1.0, x1_next );
     equation2.addAddend( -1.0, x1 );
     equation2.addAddend( -step_size * 0.98, x2 );
-    equation2.addAddend( -step_size, y0 );
-    equation2.setScalar( 0 );
+    equation2.setScalar( step_size * force );
     inputQuery.addEquation( equation2 );
 
     Equation equation3;
@@ -198,8 +197,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     equation4.addAddend( 1.0, x3_next );
     equation4.addAddend( -1.0, x3 );
     equation4.addAddend( -step_size * 10.78, x2 );
-    equation4.addAddend( -step_size, y0 );
-    equation4.setScalar( 0 );
+    equation4.setScalar( step_size * force );
     inputQuery.addEquation( equation4 );
 
 
