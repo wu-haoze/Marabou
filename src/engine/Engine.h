@@ -137,6 +137,9 @@ public:
     */
     SymbolicBoundTightener *_symbolicBoundTightener;
 
+    double getLowerBound( unsigned var );
+    double getUpperBound( unsigned var );
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,

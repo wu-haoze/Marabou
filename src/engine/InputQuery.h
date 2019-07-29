@@ -66,7 +66,7 @@ public:
     unsigned getNumOutputVariables() const;
     unsigned getNumNextStateVariables() const;
     List<unsigned> getInputVariables() const;
-    List<unsigned> getNextStateVariables() const;
+    Vector<unsigned> getNextStateVariables();
 
     /*
       Methods for setting and getting the solution.

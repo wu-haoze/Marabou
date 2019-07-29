@@ -1110,6 +1110,7 @@ void Engine::extractSolution( InputQuery &inputQuery )
             if ( _preprocessor.variableIsFixed( variable ) )
             {
                 inputQuery.setSolutionValue( i, _preprocessor.getFixedValue( variable ) );
+                std::cout << i << " " << _preprocessor.getFixedValue( variable ) << std::endl;
                 continue;
             }
 
@@ -1119,12 +1120,15 @@ void Engine::extractSolution( InputQuery &inputQuery )
 
             // Finally, set the assigned value
             inputQuery.setSolutionValue( i, _tableau->getValue( variable ) );
+
+            std::cout << i << " " <<  _tableau->getValue( variable ) << std::endl;
         }
         else
         {
             inputQuery.setSolutionValue( i, _tableau->getValue( i ) );
         }
     }
+
 }
 
 bool Engine::allVarsWithinBounds() const
@@ -1832,6 +1836,16 @@ void Engine::resetBoundTighteners()
 {
     _constraintBoundTightener->resetBounds();
     _rowBoundTightener->resetBounds();
+}
+
+double Engine::getUpperBound( unsigned var )
+{
+    return _tableau->getUpperBound( var );
+}
+
+double Engine::getLowerBound( unsigned var )
+{
+    return _tableau->getLowerBound( var );
 }
 
 //

@@ -46,12 +46,12 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
 {
     if ( divideStrategy == DivideStrategy::LargestInterval )
     {
-        const List<unsigned> &inputVariables = _engine->getInputVariables();
+        const List<unsigned> inputVariables = _engine->getInputVariables();
         _queryDivider = std::unique_ptr<LargestIntervalDivider>
             ( new LargestIntervalDivider( inputVariables ) );
     } else if (divideStrategy == DivideStrategy::ActivationVariance )
     {
-        const List<unsigned> &inputVariables = _engine->getInputVariables();
+        const List<unsigned> inputVariables = _engine->getInputVariables();
         NetworkLevelReasoner *networkLevelReasoner = _engine->getInputQuery()->
             getNetworkLevelReasoner();
         _queryDivider = std::unique_ptr<ActivationPatternDivider>
@@ -137,7 +137,7 @@ void DnCWorker::run()
                 }
                 *_numUnsolvedSubQueries -= 1;
                 std::cout << "pre-condition might not hold" << std::endl;
-                dump( queryId, *split, false );
+                //dump( queryId, *split, false );
                 delete subQuery;
             } else
             {
@@ -169,23 +169,74 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
     EngineState *engineState = new EngineState();
     _engine->storeState( *engineState, true );
 
-    Statistics *statistics = new Statistics();
-    _engine->resetStatistics( *statistics );
-    _engine->clearViolatedPLConstraints();
-    _engine->resetSmtCore();
-    _engine->resetExitCode();
-    _engine->resetBoundTighteners();
-    _engine->restoreState( *engineState );
+    Vector<unsigned> nextStateVariables = _engine->getInputQuery()->getNextStateVariables();
 
-    _engine->applySplit( split );
-    std::cout << "Checking a pattern\n";
-    _engine->solve( timeoutInSeconds );
-    Engine::ExitCode result = _engine->getExitCode();
-    if ( result != Engine::UNSAT )
-        return false;
+    List<Tightening> bounds = split.getBoundTightenings();
+    for ( auto const &bound : bounds )
+    {
+        unsigned var = bound._variable;
+        double value = bound._value;
+        auto type = bound._type;
 
+        //std::cout << "bound: " << var << std::endl;
+        PiecewiseLinearCaseSplit newSplit;
+        unsigned nextVar = nextStateVariables[var];
+        newSplit.storeBoundTightening( Tightening( nextVar, value + ( type==Tightening::LB ? -0.1 : 0.1), type==Tightening::LB ? Tightening::UB : Tightening::LB ) );
 
+        Statistics *statistics = new Statistics();
+        _engine->resetStatistics( *statistics );
+        _engine->clearViolatedPLConstraints();
+        _engine->resetSmtCore();
+        _engine->resetExitCode();
+        _engine->resetBoundTighteners();
+        _engine->restoreState( *engineState );
 
+        split.dump();
+        newSplit.dump();
+
+        std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
+        std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
+
+        _engine->applySplit( newSplit );
+
+        std::cout << "Tableau lowerbound: " << nextVar << " " << _engine->getLowerBound( nextVar ) << std::endl;
+        std::cout << "Tableau upperbound: " << nextVar << " " << _engine->getUpperBound( nextVar ) << std::endl;
+
+        //std::cout << "Checking a bound\n";
+
+        _engine->solve( timeoutInSeconds );
+        Engine::ExitCode result = _engine->getExitCode();
+
+        if ( result != Engine::UNSAT )
+        {
+            if ( _engine->getExitCode() == Engine::SAT && false )
+            {
+                double inputs[_engine->getInputQuery()->getNumInputVariables()];
+                double outputs[_engine->getInputQuery()->getNumOutputVariables()];
+
+                _engine->extractSolution( *(_engine->getInputQuery()) );
+                printf( "Input assignment:\n" );
+                for ( unsigned i = 0; i < _engine->getInputQuery()->getNumInputVariables(); ++i )
+                {
+                    printf( "\tx%u = %lf\n", i, _engine->getInputQuery()->getSolutionValue( _engine->getInputQuery()->inputVariableByIndex( i ) ) );
+                    inputs[i] = _engine->getInputQuery()->getSolutionValue( _engine->getInputQuery()->inputVariableByIndex( i ) );
+                }
+
+                _engine->getInputQuery()->getNetworkLevelReasoner()->evaluate( inputs, outputs );
+
+                printf( "\n" );
+                printf( "Output:\n" );
+                for ( unsigned i = 0; i < _engine->getInputQuery()->getNumOutputVariables(); ++i )
+                    printf( "\ty%u = %lf\n", i, outputs[i] );
+
+                printf( "Next state assignment:\n" );
+                for ( unsigned i = 0; i < _engine->getInputQuery()->getNumNextStateVariables(); ++i )
+                    printf( "\tx_next%u = %lf\n", i, _engine->getInputQuery()->getSolutionValue( _engine->getInputQuery()->nextStateVariableByIndex( i ) ) );
+
+            }
+            return false;
+        }
+    }
     return true;
 }
 

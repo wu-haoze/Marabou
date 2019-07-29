@@ -213,6 +213,9 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
     _inputIndexToVariable = other._inputIndexToVariable;
     _variableToOutputIndex = other._variableToOutputIndex;
     _outputIndexToVariable = other._outputIndexToVariable;
+    _variableToNextStateIndex = other._variableToNextStateIndex;
+    _nextStateIndexToVariable = other._nextStateIndexToVariable;
+
 
     freeConstraintsIfNeeded();
     for ( const auto &constraint : other._plConstraints )
@@ -398,9 +401,9 @@ List<unsigned> InputQuery::getInputVariables() const
     return result;
 }
 
-List<unsigned> InputQuery::getNextStateVariables() const
+Vector<unsigned> InputQuery::getNextStateVariables()
 {
-    List<unsigned> result;
+    Vector<unsigned> result;
     for ( const auto &pair : _variableToNextStateIndex )
         result.append( pair.first );
 

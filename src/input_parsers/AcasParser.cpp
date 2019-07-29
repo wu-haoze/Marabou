@@ -224,6 +224,9 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     for ( unsigned i = 0; i < outputLayerSize; ++i )
         inputQuery.markOutputVariable( _nodeToB[NodeIndex( numberOfLayers - 1, i )], i );
 
+    for ( unsigned i = 0; i < inputLayerSize; ++i )
+        inputQuery.markNextStateVariable( _nodeToB[NodeIndex( numberOfLayers, i )], i );
+
     // Populate the Network-Level Reasoner
     NetworkLevelReasoner *nlr = new NetworkLevelReasoner;
 
