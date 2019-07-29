@@ -43,8 +43,6 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     , _threadId( threadId )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
-    , _invariants ( )
-    , _postCondition ( NULL )
 {
     if ( divideStrategy == DivideStrategy::LargestInterval )
     {
@@ -68,7 +66,7 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     _engine->storeState( *_initialState, true );
 }
 
-static void dump( String queryId, PiecewiseLinearCaseSplit &split, const std::vector<bool> isActive, bool holds )
+static void dump( String queryId, PiecewiseLinearCaseSplit &split, bool holds )
 {
     String dumpFilePath;
     if ( holds )
@@ -77,15 +75,6 @@ static void dump( String queryId, PiecewiseLinearCaseSplit &split, const std::ve
         dumpFilePath = Stringf( "/home/haozewu/Projects/NASA/InductiveReasoning/dump/") + queryId + Stringf(".nothold");
     File summaryFile( dumpFilePath );
     summaryFile.open( File::MODE_WRITE_TRUNCATE );
-
-    for ( const auto &b : isActive )
-    {
-        if ( b )
-            summaryFile.write( "1" );
-        else
-            summaryFile.write( "0" );
-    }
-    summaryFile.write( "\n" );
 
     if ( holds )
         summaryFile.write( "Hold\n" );
@@ -112,7 +101,6 @@ void DnCWorker::run()
             String queryId = subQuery->_queryId;
             auto split = std::move( subQuery->_split );
             unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
-            auto activations = std::move( subQuery->_activations );
 
             // Create a new statistics object for each subQuery
             Statistics *statistics = new Statistics();
@@ -129,7 +117,7 @@ void DnCWorker::run()
 
             // Apply the split and solve
             _engine->applySplit( *split );
-            if ( !checkInvariants( timeoutInSeconds, *activations  ) )
+            if ( !checkInvariant( *split, timeoutInSeconds ) )
             {
                 // Split the current input region and add the
                 // new subQueries to the current queue
@@ -140,10 +128,6 @@ void DnCWorker::run()
                                                  _timeoutFactor, subQueries );
                 for ( auto &newSubQuery : subQueries )
                 {
-                    auto newActivations = std::unique_ptr<std::vector<bool>>( new std::vector<bool>() );
-                    for ( const auto &b : *activations )
-                        newActivations->push_back( b );
-                    newSubQuery->_activations = std::move( newActivations );
                     if ( !_workload->push( std::move( newSubQuery ) ) )
                     {
                         ASSERT( false );
@@ -153,13 +137,13 @@ void DnCWorker::run()
                 }
                 *_numUnsolvedSubQueries -= 1;
                 std::cout << "pre-condition might not hold" << std::endl;
-                dump( queryId, *split, *activations, false );
+                dump( queryId, *split, false );
                 delete subQuery;
             } else
             {
                 // pre-condition holds
                 std::cout << "pre-condition holds" << std::endl;
-                dump( queryId, *split, *activations, true );
+                dump( queryId, *split, true );
                 *_numUnsolvedSubQueries -= 1;
             }
             if ( _engine->getExitCode() == Engine::QUIT_REQUESTED )
@@ -180,61 +164,30 @@ void DnCWorker::printProgress( String queryId, Engine::ExitCode result ) const
             _numUnsolvedSubQueries->load() );
 }
 
-bool DnCWorker::checkInvariants( unsigned timeoutInSeconds,
-                                 std::vector<bool> &activations )
-{
-    for ( auto &invariant : _invariants )
-        if ( checkInvariant( invariant, timeoutInSeconds, activations ) )
-            return true;
-    return false;
-}
-
-bool DnCWorker::checkInvariant( Invariant& invariant, unsigned timeoutInSeconds,
-                                std::vector<bool> &isActive )
+bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned timeoutInSeconds )
 {
     EngineState *engineState = new EngineState();
     _engine->storeState( *engineState, true );
-    List<PiecewiseLinearCaseSplit> activationPatterns =
-        invariant.getActivationPatterns( _engine->_symbolicBoundTightener );
-    unsigned i = 0;
-    for ( auto& activation : activationPatterns )
-    {
-        if ( !(isActive[i]) )
-        {
-            Statistics *statistics = new Statistics();
-            _engine->resetStatistics( *statistics );
-            _engine->clearViolatedPLConstraints();
-            _engine->resetSmtCore();
-            _engine->resetExitCode();
-            _engine->resetBoundTighteners();
-            _engine->restoreState( *engineState );
 
-            _engine->applySplit( activation );
-            std::cout << "Checking a pattern\n";
-            _engine->solve( timeoutInSeconds );
-            Engine::ExitCode result = _engine->getExitCode();
-            if ( result != Engine::UNSAT )
-                return false;
-            else {
-                std::cout << "Fixed a relu!\n";
-                isActive[i] = true;
-            }
-        }
-        ++i;
-    }
+    Statistics *statistics = new Statistics();
+    _engine->resetStatistics( *statistics );
+    _engine->clearViolatedPLConstraints();
+    _engine->resetSmtCore();
+    _engine->resetExitCode();
+    _engine->resetBoundTighteners();
+    _engine->restoreState( *engineState );
+
+    _engine->applySplit( split );
+    std::cout << "Checking a pattern\n";
+    _engine->solve( timeoutInSeconds );
+    Engine::ExitCode result = _engine->getExitCode();
+    if ( result != Engine::UNSAT )
+        return false;
+
+
+
     return true;
 }
-
-void DnCWorker::setPostCondition( PiecewiseLinearCaseSplit *postCondition )
-{
-    _postCondition = postCondition;
-}
-
-void DnCWorker::addInvariant( Invariant &invariant )
-{
-    _invariants.append( invariant );
-}
-
 
 String DnCWorker::exitCodeToString( Engine::ExitCode result )
 {

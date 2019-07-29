@@ -42,7 +42,6 @@ struct SubQuery
     String _queryId;
     std::unique_ptr<PiecewiseLinearCaseSplit> _split;
     unsigned _timeoutInSeconds;
-    std::unique_ptr<std::vector<bool>> _activations;
 };
 
 // Synchronized Queue containing the Sub-Queries shared by workers

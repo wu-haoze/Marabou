@@ -13,7 +13,6 @@ SOURCES += \
 	EntrySelectionStrategy.cpp \
 	Equation.cpp \
 	InputQuery.cpp \
-	Invariant.cpp \
 	LargestIntervalDivider.cpp \
 	MaxConstraint.cpp \
 	NetworkLevelReasoner.cpp \

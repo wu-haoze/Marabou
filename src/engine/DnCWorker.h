@@ -18,7 +18,6 @@
 
 #include "DivideStrategy.h"
 #include "Engine.h"
-#include "Invariant.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "QueryDivider.h"
 
@@ -39,13 +38,6 @@ public:
     */
     void run();
 
-    /*
-      Set the postCondition of the worker
-    */
-    void setPostCondition( PiecewiseLinearCaseSplit *postCondition );
-
-    void addInvariant( Invariant &invariant );
-
 private:
     /*
       Convert the exitCode to string
@@ -58,15 +50,9 @@ private:
     void printProgress( String queryId, Engine::ExitCode result ) const;
 
     /*
-      Check each of the invariants in the invariant
-    */
-    bool checkInvariants( unsigned  timeoutInSeconds, std::vector<bool> &activation );
-
-    /*
       Check whether an invariant holds
     */
-    bool checkInvariant( Invariant& invariant, unsigned timeoutInSeconds,
-                         std::vector<bool> &activation );
+    bool checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned timeoutInSeconds );
 
     /*
       The queue of subqueries (shared across threads)
@@ -94,16 +80,6 @@ private:
     unsigned _threadId;
     unsigned _onlineDivides;
     float _timeoutFactor;
-
-    /*
-      A list of invariants to be checked.
-    */
-    List<Invariant> _invariants;
-
-    /*
-      Post condition.
-    */
-    PiecewiseLinearCaseSplit* _postCondition;
 };
 
 #endif // __DnCWorker_h__

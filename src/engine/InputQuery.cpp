@@ -350,6 +350,12 @@ void InputQuery::markOutputVariable( unsigned variable, unsigned outputIndex )
     _outputIndexToVariable[outputIndex] = variable;
 }
 
+void InputQuery::markNextStateVariable( unsigned variable, unsigned nextStateIndex )
+{
+    _variableToNextStateIndex[variable] = nextStateIndex;
+    _nextStateIndexToVariable[nextStateIndex] = variable;
+}
+
 unsigned InputQuery::inputVariableByIndex( unsigned index ) const
 {
     ASSERT( _inputIndexToVariable.exists( index ) );
@@ -362,6 +368,12 @@ unsigned InputQuery::outputVariableByIndex( unsigned index ) const
     return _outputIndexToVariable.get( index );
 }
 
+unsigned InputQuery::nextStateVariableByIndex( unsigned index ) const
+{
+    ASSERT( _nextStateIndexToVariable.exists( index ) );
+    return _nextStateIndexToVariable.get( index );
+}
+
 unsigned InputQuery::getNumInputVariables() const
 {
     return _inputIndexToVariable.size();
@@ -372,10 +384,24 @@ unsigned InputQuery::getNumOutputVariables() const
     return _outputIndexToVariable.size();
 }
 
+unsigned InputQuery::getNumNextStateVariables() const
+{
+    return _nextStateIndexToVariable.size();
+}
+
 List<unsigned> InputQuery::getInputVariables() const
 {
     List<unsigned> result;
     for ( const auto &pair : _variableToInputIndex )
+        result.append( pair.first );
+
+    return result;
+}
+
+List<unsigned> InputQuery::getNextStateVariables() const
+{
+    List<unsigned> result;
+    for ( const auto &pair : _variableToNextStateIndex )
         result.append( pair.first );
 
     return result;

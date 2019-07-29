@@ -59,7 +59,9 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     //   1. Each input node appears once
     //   2. Each internal node has a B variable and an F variable
     //   3. Each output node appears once
-    unsigned numberOfVariables = inputLayerSize + ( 2 * numberOfInternalNodes ) + outputLayerSize;
+
+    // We need the next state step
+    unsigned numberOfVariables = ( 2 * inputLayerSize ) + ( 2 * numberOfInternalNodes ) + outputLayerSize;
     printf( "Total number of variables: %u\n", numberOfVariables );
 
     inputQuery.setNumberOfVariables( numberOfVariables );
@@ -86,6 +88,13 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
             _nodeToB[NodeIndex( i, j )] = currentIndex;
             ++currentIndex;
         }
+    }
+
+    // We add the next state as an additional final layer
+    for ( unsigned i = 0; i < inputLayerSize; ++i )
+    {
+        _nodeToB[NodeIndex( numberOfLayers, i )] = currentIndex;
+        ++currentIndex;
     }
 
     // Now we set the variable bounds. Input bounds are
@@ -144,6 +153,55 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
             inputQuery.addEquation( equation );
         }
     }
+
+    // Encode the system dynamic
+    float step_size = 0.02;
+
+    unsigned x0_next = _nodeToB[NodeIndex( numberOfLayers, 0 )];
+    unsigned x1_next = _nodeToB[NodeIndex( numberOfLayers, 1 )];
+    unsigned x2_next = _nodeToB[NodeIndex( numberOfLayers, 2 )];
+    unsigned x3_next = _nodeToB[NodeIndex( numberOfLayers, 3 )];
+    unsigned x0 = _nodeToF[NodeIndex( 0, 0 )];
+    unsigned x1 = _nodeToF[NodeIndex( 0, 1 )];
+    unsigned x2 = _nodeToF[NodeIndex( 0, 2 )];
+    unsigned x3 = _nodeToF[NodeIndex( 0, 3 )];
+    unsigned y0 = _nodeToB[NodeIndex( numberOfLayers - 1, 0 )];
+
+    // x0_next - x0 - 0.02 x1 = 0
+    // x1_next - x1 - (0.02 * 0.98) x2 - 0.02 y0 = 0
+    // x2_next - x2 - 0.02 x3 = 0
+    // x3_next - x3 - (0.02 * 10.78) x2 - 0.02 y0 = 0
+
+    Equation equation1;
+    equation1.addAddend( 1.0, x0_next );
+    equation1.addAddend( -1.0, x0 );
+    equation1.addAddend( -step_size, x1 );
+    equation1.setScalar( 0 );
+    inputQuery.addEquation( equation1 );
+
+    Equation equation2;
+    equation2.addAddend( 1.0, x1_next );
+    equation2.addAddend( -1.0, x1 );
+    equation2.addAddend( -step_size * 0.98, x2 );
+    equation2.addAddend( -step_size, y0 );
+    equation2.setScalar( 0 );
+    inputQuery.addEquation( equation2 );
+
+    Equation equation3;
+    equation3.addAddend( 1.0, x2_next );
+    equation3.addAddend( -1.0, x2 );
+    equation3.addAddend( -step_size, x3 );
+    equation3.setScalar( 0 );
+    inputQuery.addEquation( equation3 );
+
+    Equation equation4;
+    equation4.addAddend( 1.0, x3_next );
+    equation4.addAddend( -1.0, x3 );
+    equation4.addAddend( -step_size * 10.78, x2 );
+    equation4.addAddend( -step_size, y0 );
+    equation4.setScalar( 0 );
+    inputQuery.addEquation( equation4 );
+
 
     // Add the ReLU constraints
     for ( unsigned i = 1; i < numberOfLayers - 1; ++i )

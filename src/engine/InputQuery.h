@@ -58,11 +58,15 @@ public:
     */
     void markInputVariable( unsigned variable, unsigned inputIndex );
     void markOutputVariable( unsigned variable, unsigned inputIndex );
+    void markNextStateVariable( unsigned variable, unsigned nextStateIndex );
     unsigned inputVariableByIndex( unsigned index ) const;
     unsigned outputVariableByIndex( unsigned index ) const;
+    unsigned nextStateVariableByIndex( unsigned index ) const;
     unsigned getNumInputVariables() const;
     unsigned getNumOutputVariables() const;
+    unsigned getNumNextStateVariables() const;
     List<unsigned> getInputVariables() const;
+    List<unsigned> getNextStateVariables() const;
 
     /*
       Methods for setting and getting the solution.
@@ -160,6 +164,8 @@ public:
     Map<unsigned, unsigned> _inputIndexToVariable;
     Map<unsigned, unsigned> _variableToOutputIndex;
     Map<unsigned, unsigned> _outputIndexToVariable;
+    Map<unsigned, unsigned> _variableToNextStateIndex;
+    Map<unsigned, unsigned> _nextStateIndexToVariable;
 
     SymbolicBoundTightener *_sbt;
 };
