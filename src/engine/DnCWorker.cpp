@@ -72,9 +72,9 @@ static void dump( String queryId, PiecewiseLinearCaseSplit &split, const std::ve
 {
     String dumpFilePath;
     if ( holds )
-        dumpFilePath = Stringf( "/home/haozewu/Projects/Invariant/dump/") + queryId + Stringf(".hold");
+        dumpFilePath = Stringf( "/home/haozewu/Projects/NASA/InductiveReasoning/dump/") + queryId + Stringf(".hold");
     else
-        dumpFilePath = Stringf( "/home/haozewu/Projects/Invariant/dump/") + queryId + Stringf(".nothold");
+        dumpFilePath = Stringf( "/home/haozewu/Projects/NASA/InductiveReasoning/dump/") + queryId + Stringf(".nothold");
     File summaryFile( dumpFilePath );
     summaryFile.open( File::MODE_WRITE_TRUNCATE );
 
