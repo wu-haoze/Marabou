@@ -181,7 +181,7 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
         //std::cout << "bound: " << var << std::endl;
         PiecewiseLinearCaseSplit newSplit;
         unsigned nextVar = nextStateVariables[var];
-        newSplit.storeBoundTightening( Tightening( nextVar, value + ( type==Tightening::LB ? -0.1 : 0.1), type==Tightening::LB ? Tightening::UB : Tightening::LB ) );
+        newSplit.storeBoundTightening( Tightening( nextVar, value + ( type==Tightening::LB ? -0.003 : 0.003), type==Tightening::LB ? Tightening::UB : Tightening::LB ) );
 
         Statistics *statistics = new Statistics();
         _engine->resetStatistics( *statistics );

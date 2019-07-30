@@ -155,7 +155,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     }
 
     // Encode the system dynamic
-    float step_size = 0.02;
+    float step_size = 0.001;
 
     unsigned x0_next = _nodeToB[NodeIndex( numberOfLayers, 0 )];
     unsigned x1_next = _nodeToB[NodeIndex( numberOfLayers, 1 )];
