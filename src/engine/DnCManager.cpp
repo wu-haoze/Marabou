@@ -37,12 +37,15 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
                       float timeoutFactor, DivideStrategy divideStrategy,
-                      unsigned pointsPerSegment, unsigned numberOfSegments )
+                      unsigned pointsPerSegment, unsigned numberOfSegments,
+                      Vector<PiecewiseLinearCaseSplit> transitionSystems )
 {
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, pointsPerSegment,
                       numberOfSegments );
+    for ( auto &transitionSystem : transitionSystems )
+        worker._transitionSystems.append( transitionSystem );
     worker.run();
 }
 
@@ -135,6 +138,12 @@ void DnCManager::solve( unsigned timeoutInSeconds )
         }
     }
 
+    InputQuery *baseInputQuery = new InputQuery();
+    AcasParser acasParser( _networkFilePath );
+    acasParser.generateQuery( *baseInputQuery );
+
+    auto transitionSystems = acasParser._transitionSystems;
+
     // Spawn threads and start solving
     std::list<std::thread> threads;
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
@@ -145,7 +154,8 @@ void DnCManager::solve( unsigned timeoutInSeconds )
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
                                         _timeoutFactor, _divideStrategy,
-                                        _pointsPerSegment, _numberOfSegments) );
+                                        _pointsPerSegment, _numberOfSegments,
+                                        transitionSystems ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is

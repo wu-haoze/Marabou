@@ -19,6 +19,9 @@
 #include "AcasNeuralNetwork.h"
 #include "Map.h"
 
+#include "PiecewiseLinearCaseSplit.h"
+#include "Vector.h"
+
 class InputQuery;
 class String;
 
@@ -50,6 +53,9 @@ public:
     unsigned getFVariable( unsigned layer, unsigned index ) const;
 
     void evaluate( const Vector<double> &inputs, Vector<double> &outputs ) const;
+
+    void addTransitionSystem( float step_size, unsigned numberOfLayers );
+    Vector<PiecewiseLinearCaseSplit> _transitionSystems;
 
 private:
     AcasNeuralNetwork _acasNeuralNetwork;

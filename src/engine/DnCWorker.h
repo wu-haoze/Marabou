@@ -20,6 +20,7 @@
 #include "Engine.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "QueryDivider.h"
+#include "Vector.h"
 
 #include <atomic>
 
@@ -36,7 +37,9 @@ public:
     /*
       Repeatedly handling subQueries from the input worker queue
     */
-    void run();
+    void run( unsigned depth=4 );
+
+    Vector<PiecewiseLinearCaseSplit> _transitionSystems;
 
 private:
     /*

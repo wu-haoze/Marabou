@@ -125,6 +125,19 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
         inputQuery.setUpperBound( fNode.second, FloatUtils::infinity() );
     }
 
+    unsigned x0_next = _nodeToB[NodeIndex( numberOfLayers, 0 )];
+    inputQuery.setLowerBound( x0_next, -100 );
+    inputQuery.setUpperBound( x0_next, 100 );
+    unsigned x1_next = _nodeToB[NodeIndex( numberOfLayers, 1 )];
+    inputQuery.setLowerBound( x1_next, -100 );
+    inputQuery.setUpperBound( x1_next, 100 );
+    unsigned x2_next = _nodeToB[NodeIndex( numberOfLayers, 2 )];
+    inputQuery.setLowerBound( x2_next, -100 );
+    inputQuery.setUpperBound( x2_next, 100 );
+    unsigned x3_next = _nodeToB[NodeIndex( numberOfLayers, 3 )];
+    inputQuery.setLowerBound( x3_next, -100 );
+    inputQuery.setUpperBound( x3_next, 100 );
+
     // Next come the actual equations
     for ( unsigned layer = 0; layer < numberOfLayers - 1; ++layer )
     {
@@ -153,53 +166,6 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
             inputQuery.addEquation( equation );
         }
     }
-
-    // Encode the system dynamic
-    float step_size = 0.02;
-
-    unsigned x0_next = _nodeToB[NodeIndex( numberOfLayers, 0 )];
-    unsigned x1_next = _nodeToB[NodeIndex( numberOfLayers, 1 )];
-    unsigned x2_next = _nodeToB[NodeIndex( numberOfLayers, 2 )];
-    unsigned x3_next = _nodeToB[NodeIndex( numberOfLayers, 3 )];
-    unsigned x0 = _nodeToF[NodeIndex( 0, 0 )];
-    unsigned x1 = _nodeToF[NodeIndex( 0, 1 )];
-    unsigned x2 = _nodeToF[NodeIndex( 0, 2 )];
-    unsigned x3 = _nodeToF[NodeIndex( 0, 3 )];
-    double force = -10;
-
-    // x0_next - x0 - 0.02 x1 = 0
-    // x1_next - x1 - (0.02 * 0.98) x2 - 0.02 y0 = 0
-    // x2_next - x2 - 0.02 x3 = 0
-    // x3_next - x3 - (0.02 * 10.78) x2 - 0.02 y0 = 0
-
-    Equation equation1;
-    equation1.addAddend( 1.0, x0_next );
-    equation1.addAddend( -1.0, x0 );
-    equation1.addAddend( -step_size, x1 );
-    equation1.setScalar( 0 );
-    inputQuery.addEquation( equation1 );
-
-    Equation equation2;
-    equation2.addAddend( 1.0, x1_next );
-    equation2.addAddend( -1.0, x1 );
-    equation2.addAddend( -step_size * 0.98, x2 );
-    equation2.setScalar( step_size * force );
-    inputQuery.addEquation( equation2 );
-
-    Equation equation3;
-    equation3.addAddend( 1.0, x2_next );
-    equation3.addAddend( -1.0, x2 );
-    equation3.addAddend( -step_size, x3 );
-    equation3.setScalar( 0 );
-    inputQuery.addEquation( equation3 );
-
-    Equation equation4;
-    equation4.addAddend( 1.0, x3_next );
-    equation4.addAddend( -1.0, x3 );
-    equation4.addAddend( -step_size * 10.78, x2 );
-    equation4.setScalar( step_size * force );
-    inputQuery.addEquation( equation4 );
-
 
     // Add the ReLU constraints
     for ( unsigned i = 1; i < numberOfLayers - 1; ++i )
@@ -325,6 +291,113 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
 
         inputQuery.setSymbolicBoundTightener(sbt);
     }
+
+    addTransitionSystem( 0.05, numberOfLayers );
+}
+
+void AcasParser::addTransitionSystem( float step_size, unsigned numberOfLayers )
+{
+    // Encode the system dynamic
+    PiecewiseLinearCaseSplit t1;
+
+    unsigned x0 = _nodeToF[NodeIndex( 0, 0 )];
+    unsigned x1 = _nodeToF[NodeIndex( 0, 1 )];
+    unsigned x2 = _nodeToF[NodeIndex( 0, 2 )];
+    unsigned x3 = _nodeToF[NodeIndex( 0, 3 )];
+    unsigned x0_next = _nodeToB[NodeIndex( numberOfLayers, 0 )];
+    unsigned x1_next = _nodeToB[NodeIndex( numberOfLayers, 1 )];
+    unsigned x2_next = _nodeToB[NodeIndex( numberOfLayers, 2 )];
+    unsigned x3_next = _nodeToB[NodeIndex( numberOfLayers, 3 )];
+    unsigned y0 = _nodeToB[NodeIndex( numberOfLayers - 1, 0 )];
+    unsigned y1 = _nodeToB[NodeIndex( numberOfLayers - 1, 1 )];
+
+    double force = 10;
+
+    // x0_next - x0 - 0.02 x1 = 0
+    // x1_next - x1 - (0.02 * 0.98) x2 - 0.02 y0 = 0
+    // x2_next - x2 - 0.02 x3 = 0
+    // x3_next - x3 - (0.02 * 10.78) x2 - 0.02 y0 = 0
+
+    Equation equation0( Equation::LE );
+    equation0.addAddend( 1.0, y0 );
+    equation0.addAddend( -1.0, y1 );
+    equation0.setScalar( 0 );
+    t1.addEquation( equation0 );
+
+    Equation equation1;
+    equation1.addAddend( 1.0, x0_next );
+    equation1.addAddend( -1.0, x0 );
+    equation1.addAddend( -step_size, x1 );
+    equation1.setScalar( 0 );
+    t1.addEquation( equation1 );
+
+    Equation equation2;
+    equation2.addAddend( 1.0, x1_next );
+    equation2.addAddend( -1.0, x1 );
+    equation2.addAddend( -step_size * 0.98, x2 );
+    equation2.setScalar( step_size * force );
+    t1.addEquation( equation2 );
+
+    Equation equation3;
+    equation3.addAddend( 1.0, x2_next );
+    equation3.addAddend( -1.0, x2 );
+    equation3.addAddend( -step_size, x3 );
+    equation3.setScalar( 0 );
+    t1.addEquation( equation3 );
+
+    Equation equation4;
+    equation4.addAddend( 1.0, x3_next );
+    equation4.addAddend( -1.0, x3 );
+    equation4.addAddend( -step_size * 10.78, x2 );
+    equation4.setScalar( step_size * force );
+    t1.addEquation( equation4 );
+
+    // Encode the system dynamic
+    PiecewiseLinearCaseSplit t2;
+
+    force = -10;
+
+    // x0_next - x0 - 0.02 x1 = 0
+    // x1_next - x1 - (0.02 * 0.98) x2 - 0.02 y0 = 0
+    // x2_next - x2 - 0.02 x3 = 0
+    // x3_next - x3 - (0.02 * 10.78) x2 - 0.02 y0 = 0
+
+    Equation equation0_1( Equation::GE );
+    equation0_1.addAddend( 1.0, y0 );
+    equation0_1.addAddend( -1.0, y1 );
+    equation0_1.setScalar( 0 );
+    t2.addEquation( equation0_1 );
+
+    Equation equation1_1;
+    equation1_1.addAddend( 1.0, x0_next );
+    equation1_1.addAddend( -1.0, x0 );
+    equation1_1.addAddend( -step_size, x1 );
+    equation1_1.setScalar( 0 );
+    t2.addEquation( equation1_1 );
+
+    Equation equation2_1;
+    equation2_1.addAddend( 1.0, x1_next );
+    equation2_1.addAddend( -1.0, x1 );
+    equation2_1.addAddend( -step_size * 0.98, x2 );
+    equation2_1.setScalar( step_size * force );
+    t2.addEquation( equation2_1 );
+
+    Equation equation3_1;
+    equation3_1.addAddend( 1.0, x2_next );
+    equation3_1.addAddend( -1.0, x2 );
+    equation3_1.addAddend( -step_size, x3 );
+    equation3_1.setScalar( 0 );
+    t2.addEquation( equation3_1 );
+
+    Equation equation4_1;
+    equation4_1.addAddend( 1.0, x3_next );
+    equation4_1.addAddend( -1.0, x3 );
+    equation4_1.addAddend( -step_size * 10.78, x2 );
+    equation4_1.setScalar( step_size * force );
+    t2.addEquation( equation4_1 );
+
+    _transitionSystems.append(t1);
+    _transitionSystems.append(t2);
 }
 
 unsigned AcasParser::getNumInputVaribales() const
