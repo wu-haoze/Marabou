@@ -76,15 +76,10 @@ static void dump( String queryId, PiecewiseLinearCaseSplit &split, bool holds )
     File summaryFile( dumpFilePath );
     summaryFile.open( File::MODE_WRITE_TRUNCATE );
 
-    if ( holds )
-        summaryFile.write( "Hold\n" );
-    else
-        summaryFile.write( "Not Hold\n" );
-    summaryFile.write( "\tBounds are:\n" );
     for ( const auto &bound : split.getBoundTightenings() )
     {
-        summaryFile.write( Stringf( "\t\tVariable: %u. New bound: %.2lf. Bound type: %s\n",
-                                    bound._variable, bound._value, bound._type == Tightening::LB ? "lower" : "upper" ) );
+        summaryFile.write( Stringf( "x%u %s %f\n",
+                                    bound._variable, bound._type == Tightening::LB ? ">=" : "<=", bound._value ) );
     }
 }
 
@@ -151,13 +146,15 @@ void DnCWorker::run( unsigned depth )
                 }
                 *_numUnsolvedSubQueries -= 1;
                 std::cout << queryId.ascii()<< " "<< "pre-condition might not hold" << std::endl;
-                dump( queryId, *split, false );
+                if (false)
+                    dump( queryId, *split, false );
                 delete subQuery;
             } else
             {
                 // pre-condition holds
-                std::cout << "pre-condition holds" << std::endl;
-                dump( queryId, *split, true );
+                std::cout << queryId.ascii()<< " "<< "pre-condition holds" << std::endl;
+                if (false)
+                    dump( queryId, *split, true );
                 *_numUnsolvedSubQueries -= 1;
             }
             if ( _engine->getExitCode() == Engine::QUIT_REQUESTED )
@@ -188,6 +185,8 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
     List<Tightening> bounds = split.getBoundTightenings();
     for ( auto const &bound : bounds )
     {
+        std::cout << "\n\ninput variable range:" << std::endl;
+        split.dump();
         unsigned var = bound._variable;
         double value = bound._value;
         auto type = bound._type;
@@ -207,6 +206,7 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
             _engine->resetBoundTighteners();
             _engine->restoreState( *engineState );
 
+            std::cout << "Next state variable and transition system:" << std::endl;
             newSplit.dump();
 
             _engine->applySplit( newSplit );
@@ -218,8 +218,36 @@ bool DnCWorker::checkInvariant( const PiecewiseLinearCaseSplit &split, unsigned 
 
             if ( result != Engine::UNSAT )
             {
+                if ( _engine->getExitCode() == Engine::SAT )
+                    {
+                double inputs[_engine->getInputQuery()->getNumInputVariables()];
+                double outputs[_engine->getInputQuery()->getNumOutputVariables()];
+
+                _engine->extractSolution( *(_engine->getInputQuery()) );
+                printf( "Input assignment:\n" );
+                for ( unsigned i = 0; i < _engine->getInputQuery()->getNumInputVariables(); ++i )
+                {
+                    printf( "\tx%u = %lf\n", i, _engine->getInputQuery()->getSolutionValue( _engine->getInputQuery()->inputVariableByIndex( i ) ) );
+                    inputs[i] = _engine->getInputQuery()->getSolutionValue( _engine->getInputQuery()->inputVariableByIndex( i ) );
+                }
+
+                _engine->getInputQuery()->getNetworkLevelReasoner()->evaluate( inputs, outputs );
+
+                printf( "\n" );
+                printf( "Output:\n" );
+                for ( unsigned i = 0; i < _engine->getInputQuery()->getNumOutputVariables(); ++i )
+                    printf( "\ty%u = %lf\n", i, outputs[i] );
+
+                printf( "Next state assignment:\n" );
+                for ( unsigned i = 0; i < _engine->getInputQuery()->getNumNextStateVariables(); ++i )
+                    printf( "\tx_next%u = %lf\n", i, _engine->getInputQuery()->getSolutionValue( _engine->getInputQuery()->nextStateVariableByIndex( i ) ) );
+
+            }
 
                 return false;
+            }
+            else{
+                printf("UNSAT\n");
             }
         }
     }

@@ -48,14 +48,15 @@ void Options::initializeDefaultValues()
     /*
       Int options
     */
-    _intOptions[NUM_WORKERS] = 4;
+    _intOptions[NUM_WORKERS] = 1;
     _intOptions[NUM_INITIAL_DIVIDES] = 0;
     _intOptions[NUM_ONLINE_DIVIDES] = 2;
     _intOptions[INITIAL_TIMEOUT] = 5;
-    _intOptions[VERBOSITY] = 2;
+    _intOptions[VERBOSITY] = 0;
     _intOptions[TIMEOUT] = 0;
     _intOptions[POINTS_PER_SEGMENT] = 100;
     _intOptions[NUMBER_OF_SEGMENTS] = 4;
+    _intOptions[TREE_DEPTH] = 4;
     /*
       Float options
     */
@@ -64,7 +65,7 @@ void Options::initializeDefaultValues()
     /*
       String options
     */
-    _stringOptions[DIVIDE_STRATEGY] = "activation-variance";
+    _stringOptions[DIVIDE_STRATEGY] = "largest-interval";
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";

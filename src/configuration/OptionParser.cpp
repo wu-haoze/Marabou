@@ -91,6 +91,9 @@ void OptionParser::initialize()
         ( "points-per-segment",
           boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
           "(DNC) Number of points per segment for activation variance strategy" )
+        ( "tree-depth",
+          boost::program_options::value<int>( &((*_intOptions)[Options::TREE_DEPTH]) ),
+          "DEPTH of the robustness check" )
 
         ;
 

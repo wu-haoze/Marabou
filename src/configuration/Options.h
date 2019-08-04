@@ -57,6 +57,7 @@ public:
         POINTS_PER_SEGMENT,
         NUMBER_OF_SEGMENTS,
 
+        TREE_DEPTH,
     };
 
     enum FloatOptions{

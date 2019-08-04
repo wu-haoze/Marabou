@@ -37,7 +37,7 @@ public:
     /*
       Repeatedly handling subQueries from the input worker queue
     */
-    void run( unsigned depth=4 );
+    void run( unsigned depth );
 
     Vector<PiecewiseLinearCaseSplit> _transitionSystems;
 

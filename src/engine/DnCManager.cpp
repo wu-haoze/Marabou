@@ -38,7 +38,8 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       unsigned threadId, unsigned onlineDivides,
                       float timeoutFactor, DivideStrategy divideStrategy,
                       unsigned pointsPerSegment, unsigned numberOfSegments,
-                      Vector<PiecewiseLinearCaseSplit> transitionSystems )
+                      unsigned treeDepth, Vector<PiecewiseLinearCaseSplit>
+                      transitionSystems )
 {
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
@@ -46,7 +47,7 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       numberOfSegments );
     for ( auto &transitionSystem : transitionSystems )
         worker._transitionSystems.append( transitionSystem );
-    worker.run();
+    worker.run( treeDepth );
 }
 
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
@@ -94,7 +95,7 @@ void DnCManager::freeMemoryIfNeeded()
     }
 }
 
-void DnCManager::solve( unsigned timeoutInSeconds )
+void DnCManager::solve( unsigned timeoutInSeconds, unsigned treeDepth )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -155,7 +156,7 @@ void DnCManager::solve( unsigned timeoutInSeconds )
                                         threadId, _onlineDivides,
                                         _timeoutFactor, _divideStrategy,
                                         _pointsPerSegment, _numberOfSegments,
-                                        transitionSystems ) );
+                                        treeDepth, transitionSystems ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is

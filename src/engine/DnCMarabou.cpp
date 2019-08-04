@@ -79,6 +79,8 @@ void DnCMarabou::run()
     unsigned pointsPerSegment = Options::get()->getInt( Options::POINTS_PER_SEGMENT );
     unsigned numberOfSegments = Options::get()->getInt( Options::NUMBER_OF_SEGMENTS );
 
+    unsigned treeDepth = Options::get()->getInt( Options::TREE_DEPTH );
+
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
                         onlineDivides, timeoutFactor, divideStrategy,
@@ -87,7 +89,7 @@ void DnCMarabou::run()
 
     struct timespec start = TimeUtils::sampleMicro();
 
-    _dncManager->solve( timeoutInSeconds );
+    _dncManager->solve( timeoutInSeconds, treeDepth );
 
     struct timespec end = TimeUtils::sampleMicro();
 
