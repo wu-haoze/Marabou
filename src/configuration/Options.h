@@ -30,6 +30,7 @@ public:
     enum BoolOptions {
         // Should the PL constraints add aux equations during preprocessing?
         PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS = 0,
+
         // Should DNC mode be on or off
         DNC_MODE,
 
