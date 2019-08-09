@@ -131,7 +131,9 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     }
 
     // Spawn threads and start solving
-    std::list<std::thread> threads;
+    std::vector<std::thread> threads;
+    unsigned ncpus = std::thread::hardware_concurrency();
+    log( Stringf( "%u cpus detected", ncpus ) );
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
     {
         threads.push_back( std::thread( dncSolve, workload,
@@ -140,6 +142,14 @@ void DnCManager::solve( unsigned timeoutInSeconds )
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
                                         _timeoutFactor, _divideStrategy ) );
+        cpu_set_t cpuset;
+        CPU_ZERO( &cpuset );
+        CPU_SET( threadId % ncpus, &cpuset );
+        int rc = pthread_setaffinity_np( threads[threadId].native_handle(),
+                                         sizeof(cpu_set_t), &cpuset );
+        if (rc != 0)
+            throw MarabouError( MarabouError::MULTITHREAD_ERROR,
+                                "DnCManager::threads" );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is
