@@ -24,7 +24,7 @@
 #include "PiecewiseLinearCaseSplit.h"
 #include "PropertyParser.h"
 #include "QueryDivider.h"
-#include "ReluplexError.h"
+#include "MarabouError.h"
 #include "TimeUtils.h"
 
 #include <atomic>
@@ -32,13 +32,14 @@
 #include <cmath>
 #include <thread>
 
-static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
-                      std::atomic_uint &numUnsolvedSubQueries,
-                      std::atomic_bool &shouldQuitSolving,
-                      unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy,
-                      unsigned pointsPerSegment, unsigned numberOfSegments )
+void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+                           std::atomic_uint &numUnsolvedSubQueries,
+                           std::atomic_bool &shouldQuitSolving,
+                           unsigned threadId, unsigned onlineDivides,
+                           float timeoutFactor, DivideStrategy divideStrategy,
+                           unsigned pointsPerSegment, unsigned numberOfSegments )
 {
+    log( Stringf( "Thread #%u on CPU %u", threadId, sched_getcpu() ) );
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, pointsPerSegment,
@@ -117,7 +118,7 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     // queries in the queue
     _workload = new WorkerQueue( 0 );
     if ( !_workload )
-        throw ReluplexError( ReluplexError::ALLOCATION_FAILED, "DnCManager::workload" );
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DnCManager::workload" );
 
     SubQueries subQueries;
     initialDivide( subQueries );
@@ -185,6 +186,7 @@ void DnCManager::updateDnCExitCode()
         Engine::ExitCode result = engine->getExitCode();
         if ( result == Engine::SAT )
         {
+            _engineWithSATAssignment = engine;
             hasSat = true;
             break;
         }
@@ -237,8 +239,34 @@ void DnCManager::printResult()
     switch ( _exitCode )
     {
     case DnCManager::SAT:
+    {
         std::cout << "DnCManager::solve SAT query" << std::endl;
+
+        ASSERT( _engineWithSATAssignment != nullptr );
+
+        InputQuery *inputQuery = _engineWithSATAssignment->getInputQuery();
+        _engineWithSATAssignment->extractSolution( *( inputQuery ) );
+
+
+        double inputs[inputQuery->getNumInputVariables()];
+        double outputs[inputQuery->getNumOutputVariables()];
+        printf( "Input assignment:\n" );
+        for ( unsigned i = 0; i < inputQuery->getNumInputVariables(); ++i )
+        {
+            printf( "\tx%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) ) );
+            inputs[i] = inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) );
+        }
+
+        _engineWithSATAssignment->getInputQuery()->getNetworkLevelReasoner()
+            ->evaluate( inputs, outputs );
+
+        printf( "\n" );
+        printf( "Output:\n" );
+        for ( unsigned i = 0; i < inputQuery->getNumOutputVariables(); ++i )
+            printf( "\ty%u = %lf\n", i, outputs[i] );
+        printf( "\n" );
         break;
+    }
     case DnCManager::UNSAT:
         std::cout << "DnCManager::solve UNSAT query" << std::endl;
         break;
@@ -348,6 +376,12 @@ void DnCManager::updateTimeoutReached( timespec startTime, unsigned long long
     struct timespec now = TimeUtils::sampleMicro();
     _timeoutReached = TimeUtils::timePassed( startTime, now ) >=
         timeoutInMicroSeconds;
+}
+
+void DnCManager::log( const String &message )
+{
+    if ( GlobalConfiguration::DNC_MANAGER_LOGGING )
+        printf( "DnCManager: %s\n", message.ascii() );
 }
 
 //
