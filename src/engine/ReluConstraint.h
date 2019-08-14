@@ -81,6 +81,8 @@ public:
     */
     List<PiecewiseLinearConstraint::Fix> getSmartFixes( ITableau *tableau ) const;
 
+    void setDirection( int direction );
+
     /*
       Returns the list of case splits that this piecewise linear
       constraint breaks into. These splits need to complementary,
@@ -172,6 +174,8 @@ private:
     PiecewiseLinearCaseSplit getActiveSplit() const;
 
     bool _haveEliminatedVariables;
+
+    int _direction;
 
     /*
       Set the phase status.

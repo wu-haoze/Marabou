@@ -51,6 +51,9 @@ void OptionParser::initialize()
         ( "property",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::PROPERTY_FILE_PATH]) ),
           "Property file" )
+        ( "invariant",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::INVARIANT_FILE_PATH]) ),
+          "Invariant file" )
         ( "summary-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SUMMARY_FILE]) ),
           "Summary file" )

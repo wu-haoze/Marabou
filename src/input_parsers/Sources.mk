@@ -6,6 +6,7 @@ SOURCES += \
 	BerkeleyParser.cpp \
 	MpsParser.cpp \
 	PropertyParser.cpp \
+	InvariantParser.cpp \
 
 #
 # Local Variables:

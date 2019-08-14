@@ -29,6 +29,7 @@ ReluConstraint::ReluConstraint( unsigned b, unsigned f )
     , _f( f )
     , _auxVarInUse( false )
     , _haveEliminatedVariables( false )
+    , _direction( 0 )
 {
     setPhaseStatus( PhaseStatus::PHASE_NOT_FIXED );
 }
@@ -404,12 +405,28 @@ List<PiecewiseLinearConstraint::Fix> ReluConstraint::getSmartFixes( ITableau *ta
     return fixes;
 }
 
+void ReluConstraint::setDirection( int direction )
+{
+    _direction = direction;
+}
+
 List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
 {
     if ( _phaseStatus != PhaseStatus::PHASE_NOT_FIXED )
         throw MarabouError( MarabouError::REQUESTED_CASE_SPLITS_FROM_FIXED_CONSTRAINT );
 
     List<PiecewiseLinearCaseSplit> splits;
+
+    if ( _direction == -1 )
+    {
+        splits.append( getInactiveSplit() );
+        splits.append( getActiveSplit() );
+    }
+    else if ( _direction == 1 )
+    {
+        splits.append( getActiveSplit() );
+        splits.append( getInactiveSplit() );
+    }
 
     // If we have existing knowledge about the assignment, use it to
     // influence the order of splits
