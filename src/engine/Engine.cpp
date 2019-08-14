@@ -94,7 +94,6 @@ void Engine::adjustWorkMemorySize()
 
 bool Engine::performSplitsPreemptively( const Invariant &invariant )
 {
-    invariant.dump();
     auto patterns = invariant.getActivationPatterns();
     for ( const auto &entry : patterns )
     {

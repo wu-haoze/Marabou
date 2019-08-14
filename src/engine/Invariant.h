@@ -27,7 +27,7 @@ public:
 
     void addActivationPattern( unsigned layerIndex, unsigned nodeIndex, int direction );
 
-    Map<InputQuery::NodeIndex, int> getActivationPatterns() const;
+    const Map<InputQuery::NodeIndex, int> getActivationPatterns() const;
 
     /*
       Dump the invariant - for debugging purposes.

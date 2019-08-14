@@ -26,7 +26,7 @@ void Invariant::addActivationPattern( unsigned layerIndex, unsigned nodeIndex,
     _patterns[InputQuery::NodeIndex( layerIndex, nodeIndex )] = direction;
 }
 
-Map<InputQuery::NodeIndex, int> Invariant::getActivationPatterns() const
+const Map<InputQuery::NodeIndex, int> Invariant::getActivationPatterns() const
 {
     return _patterns;
 }

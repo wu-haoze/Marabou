@@ -233,6 +233,8 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
     _variableToOutputIndex = other._variableToOutputIndex;
     _outputIndexToVariable = other._outputIndexToVariable;
 
+    _nodeIndexToRelu = other._nodeIndexToRelu;
+
     freeConstraintsIfNeeded();
     for ( const auto &constraint : other._plConstraints )
         _plConstraints.append( constraint->duplicateConstraint() );
