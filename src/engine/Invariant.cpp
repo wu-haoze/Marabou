@@ -23,8 +23,14 @@ void Invariant::addActivationPattern( unsigned layerIndex, unsigned nodeIndex,
                                       int direction )
 {
 
-    _patterns[SymbolicBoundTightener::NodeIndex( layerIndex, nodeIndex )] = direction;
+    _patterns[InputQuery::NodeIndex( layerIndex, nodeIndex )] = direction;
 }
+
+Map<InputQuery::NodeIndex, int> Invariant::getActivationPatterns() const
+{
+    return _patterns;
+}
+
 
 void Invariant::dump() const
 {
@@ -33,7 +39,7 @@ void Invariant::dump() const
     for ( const auto &pattern : _patterns )
     {
         printf( "\t\tNode: %u %u: %s\n",
-                pattern.first._layer, pattern.first._neuron, pattern.second ? "Active" : "Inactive" );
+                pattern.first._layer, pattern.first._node, pattern.second ? "Active" : "Inactive" );
     }
 }
 

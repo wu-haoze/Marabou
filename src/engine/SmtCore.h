@@ -52,6 +52,10 @@ public:
     */
     void resetReportedViolations();
 
+    void setConstraintForSplitting( PiecewiseLinearConstraint *constraint );
+
+    void setNeedToSplit( bool needToSplit );
+
     /*
       Returns true iff the SMT core wants to perform a case split.
     */
@@ -61,7 +65,7 @@ public:
       Perform the split according to the constraint marked for
       splitting. Update bounds, add equations and update the stack.
     */
-    void performSplit();
+    void performSplit( int direction = -1 );
 
     /*
       Pop an old split from the stack, and perform a new split as

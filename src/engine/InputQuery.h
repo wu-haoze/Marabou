@@ -30,6 +30,20 @@ public:
     InputQuery();
     ~InputQuery();
 
+    struct NodeIndex
+    {
+    public:
+        NodeIndex( unsigned layer, unsigned node );
+        bool operator<( const NodeIndex &other ) const;
+        bool operator==( const NodeIndex &other ) const
+        {
+            return _layer == other._layer && _node == other._node;
+        }
+
+        unsigned _layer;
+        unsigned _node;
+    };
+
     /*
       Methods for setting and getting the input part of the query
     */
@@ -48,6 +62,8 @@ public:
     const List<Equation> &getEquations() const;
     List<Equation> &getEquations();
     void removeEquationsByIndex( const Set<unsigned> indices );
+
+    void addNodeIndexToReluMapping( unsigned i, unsigned j, PiecewiseLinearConstraint *relu );
 
     void addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint );
     const List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints() const;
@@ -160,6 +176,8 @@ public:
     Map<unsigned, unsigned> _inputIndexToVariable;
     Map<unsigned, unsigned> _variableToOutputIndex;
     Map<unsigned, unsigned> _outputIndexToVariable;
+
+    Map<NodeIndex, PiecewiseLinearConstraint *> _nodeIndexToRelu;
 
     SymbolicBoundTightener *_sbt;
 };

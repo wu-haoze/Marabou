@@ -124,6 +124,8 @@ public:
     */
     virtual List<PiecewiseLinearConstraint::Fix> getSmartFixes( ITableau *tableau ) const = 0;
 
+    virtual void setDirection( int direction ) = 0;
+
     /*
       Returns the list of case splits that this piecewise linear
       constraint breaks into. These splits need to complementary,

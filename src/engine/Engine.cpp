@@ -92,6 +92,20 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
+bool Engine::performSplitsPreemptively( const Invariant &invariant )
+{
+    invariant.dump();
+    auto patterns = invariant.getActivationPatterns();
+    for ( const auto &entry : patterns )
+    {
+        auto relu = _preprocessedQuery._nodeIndexToRelu[entry.first];
+        _smtCore.setNeedToSplit( true );
+        _smtCore.setConstraintForSplitting( relu );
+        _smtCore.performSplit( entry.second );
+    }
+    return false;
+}
+
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();

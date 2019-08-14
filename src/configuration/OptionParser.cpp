@@ -91,6 +91,8 @@ void OptionParser::initialize()
     // Positional options, for the mandatory options
     _positionalOptions.add( "input", 1 );
     _positionalOptions.add( "property", 2 );
+    _positionalOptions.add( "invariant", 2 );
+
 }
 
 void OptionParser::parse( int argc, char **argv )

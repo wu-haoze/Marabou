@@ -72,6 +72,8 @@ class MaxConstraint : public PiecewiseLinearConstraint
     */
     List<PiecewiseLinearConstraint::Fix> getPossibleFixes() const;
 
+    void setDirection( int direction );
+
     /*
       Returns the list of case splits that this piecewise linear
       constraint breaks into. These splits need to complementary,

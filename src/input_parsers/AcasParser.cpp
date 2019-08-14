@@ -156,6 +156,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
             unsigned f = _nodeToF[NodeIndex(i, j)];
             PiecewiseLinearConstraint *relu = new ReluConstraint( b, f );
             inputQuery.addPiecewiseLinearConstraint( relu );
+            inputQuery.addNodeIndexToReluMapping( i, j, relu );
         }
     }
 

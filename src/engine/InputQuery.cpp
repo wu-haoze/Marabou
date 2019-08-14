@@ -20,6 +20,20 @@
 #include "MStringf.h"
 #include "MarabouError.h"
 
+InputQuery::NodeIndex::NodeIndex( unsigned layer, unsigned node )
+    : _layer( layer )
+    , _node( node )
+{
+}
+
+bool InputQuery::NodeIndex::operator<( const NodeIndex &other ) const
+{
+    if ( _layer != other._layer )
+        return _layer < other._layer;
+
+    return _node < other._node;
+}
+
 InputQuery::InputQuery()
     : _networkLevelReasoner( NULL )
     , _sbt( NULL )
@@ -136,6 +150,11 @@ double InputQuery::getSolutionValue( unsigned variable ) const
                              Stringf( "Variable: %u", variable ).ascii() );
 
     return _solution.get( variable );
+}
+
+void InputQuery::addNodeIndexToReluMapping( unsigned i, unsigned j, PiecewiseLinearConstraint *relu )
+{
+    _nodeIndexToRelu[NodeIndex( i, j )] = relu;
 }
 
 void InputQuery::addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint )

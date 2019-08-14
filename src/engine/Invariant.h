@@ -17,7 +17,7 @@
 
 #include "Tightening.h"
 #include "PiecewiseLinearCaseSplit.h"
-#include "SymbolicBoundTightener.h"
+#include "InputQuery.h"
 #include "Map.h"
 
 class Invariant
@@ -25,9 +25,9 @@ class Invariant
 public:
     Invariant();
 
-    List<PiecewiseLinearCaseSplit> getActivationPatterns( SymbolicBoundTightener *sbt );
-
     void addActivationPattern( unsigned layerIndex, unsigned nodeIndex, int direction );
+
+    Map<InputQuery::NodeIndex, int> getActivationPatterns() const;
 
     /*
       Dump the invariant - for debugging purposes.
@@ -35,7 +35,7 @@ public:
     void dump() const;
 
 private:
-    Map<SymbolicBoundTightener::NodeIndex, int> _patterns;
+    Map<InputQuery::NodeIndex, int> _patterns;
 };
 
 #endif // __Invariant_h__

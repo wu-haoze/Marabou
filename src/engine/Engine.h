@@ -26,6 +26,7 @@
 #include "DegradationChecker.h"
 #include "IEngine.h"
 #include "InputQuery.h"
+#include "Invariant.h"
 #include "Map.h"
 #include "PrecisionRestorer.h"
 #include "Preprocessor.h"
@@ -55,6 +56,8 @@ public:
 
         NOT_DONE = 999,
     };
+
+    bool performSplitsPreemptively( const Invariant &invariant );
 
     /*
       Attempt to find a feasible solution for the input within a time limit

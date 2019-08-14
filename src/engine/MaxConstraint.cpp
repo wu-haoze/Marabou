@@ -329,6 +329,11 @@ List<PiecewiseLinearConstraint::Fix> MaxConstraint::getSmartFixes( ITableau * ) 
     return getPossibleFixes();
 }
 
+void MaxConstraint::setDirection( int direction )
+{
+    printf( "Setting direction to %d current not supported", direction );
+}
+
 List<PiecewiseLinearCaseSplit> MaxConstraint::getCaseSplits() const
 {
     if ( phaseFixed() )

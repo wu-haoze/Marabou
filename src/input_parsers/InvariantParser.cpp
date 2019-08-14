@@ -68,8 +68,6 @@ void InvariantParser::processSingleLine( const String &line, Invariant &invarian
 
     unsigned direction = atoi( tokens[1].ascii() );
 
-    std::cout << layerIndex << " " << nodeIndex << " " << direction << std::endl;
-
     invariant.addActivationPattern( layerIndex, nodeIndex, direction );
 }
 

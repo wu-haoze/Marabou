@@ -111,6 +111,12 @@ public:
             return true;
         }
 
+        void setDirection( int direction )
+        {
+            printf("Setting direction to %d", direction);
+            return;
+        }
+
         PiecewiseLinearCaseSplit getValidCaseSplit() const
         {
             PiecewiseLinearCaseSplit dontCare;

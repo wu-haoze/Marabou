@@ -29,7 +29,7 @@ ReluConstraint::ReluConstraint( unsigned b, unsigned f )
     , _f( f )
     , _auxVarInUse( false )
     , _haveEliminatedVariables( false )
-    , _direction( 0 )
+    , _direction( -1 )
 {
     setPhaseStatus( PhaseStatus::PHASE_NOT_FIXED );
 }
@@ -417,7 +417,7 @@ List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
 
     List<PiecewiseLinearCaseSplit> splits;
 
-    if ( _direction == -1 )
+    if ( _direction == 0 )
     {
         splits.append( getInactiveSplit() );
         splits.append( getActiveSplit() );
