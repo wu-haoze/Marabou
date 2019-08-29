@@ -44,6 +44,9 @@ class String;
 class Engine : public IEngine, public SignalHandler::Signalable
 {
 public:
+
+    Invariant _invariant;
+
     Engine( unsigned verbosity = 2 );
     ~Engine();
 

@@ -112,6 +112,18 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     storeInitialEngineState();
 
+    performSplitsPreemptively( _invariant );
+
+    if (_symbolicBoundTightener){
+        for ( unsigned i = 0; i < 10; ++i )
+            {
+                unsigned var = _symbolicBoundTightener->getNodeIndexToBMapping()[SymbolicBoundTightener::NodeIndex(1, i)];
+                double currentLb = _tableau->getLowerBound( var );
+                double currentUb = _tableau->getUpperBound( var );
+
+                std::cout << "ws" << 1 << "_" << i << ": " << currentLb << ", " << currentUb << std::endl;
+            }
+    }
     if ( _verbosity > 0 )
     {
         printf( "\nEngine::solve: Initial statistics\n" );

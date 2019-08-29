@@ -830,6 +830,11 @@ void SymbolicBoundTightener::updateVariableIndices( const Map<unsigned, unsigned
     }
 }
 
+const Map<SymbolicBoundTightener::NodeIndex, unsigned> &SymbolicBoundTightener::getNodeIndexToBMapping() const
+{
+    return _nodeIndexToBVariable;
+}
+
 const Map<SymbolicBoundTightener::NodeIndex, unsigned> &SymbolicBoundTightener::getNodeIndexToFMapping() const
 {
     return _nodeIndexToFVariable;

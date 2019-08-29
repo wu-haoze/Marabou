@@ -95,6 +95,7 @@ public:
     void setReluFVariable( unsigned layer, unsigned neuron, unsigned f );
 
     NodeIndex nodeIndexFromB( unsigned b ) const;
+    const Map<NodeIndex, unsigned> &getNodeIndexToBMapping() const;
     const Map<NodeIndex, unsigned> &getNodeIndexToFMapping() const;
 
     void updateVariableIndices( const Map<unsigned, unsigned> &oldIndexToNewIndex,

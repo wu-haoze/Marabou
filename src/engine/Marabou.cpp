@@ -88,15 +88,17 @@ void Marabou::solveQuery()
     if ( _engine.processInputQuery( _inputQuery ) )
     {
         String invariantFilePath = Options::get()->getString( Options::INVARIANT_FILE_PATH );
+        Invariant invariant;
         if ( invariantFilePath != "" )
         {
-            Invariant invariant;
             printf( "Invariant: %s\n", invariantFilePath.ascii() );
             InvariantParser().parse( invariantFilePath, invariant );
-            _engine.performSplitsPreemptively( invariant );
+            //_engine.performSplitsPreemptively( invariant );
         }
         else
             printf( "Invariant: None\n" );
+
+        _engine._invariant = invariant;
 
         //_engine.applyInvariant( invariant ):
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
