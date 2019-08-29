@@ -28,6 +28,8 @@
 #include "TableauRow.h"
 #include "TimeUtils.h"
 
+#include "Vector.h"
+
 Engine::Engine( unsigned verbosity )
     : _rowBoundTightener( *_tableau )
     , _symbolicBoundTightener( NULL )
@@ -112,7 +114,12 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     storeInitialEngineState();
 
-    performSplitsPreemptively( _invariant );
+    auto patterns = _invariant.getActivationPatterns();
+    Vector<std::pair<InputQuery::NodeIndex, int>> relusToSplit;
+    for ( const auto &entry : patterns )
+        relusToSplit.append(std::make_pair(entry.first, entry.second));
+    unsigned curReLUToSplit = 0;
+    std::cout << curReLUToSplit << " " << relusToSplit.size() << std::endl;
 
     if (_symbolicBoundTightener){
         for ( unsigned i = 0; i < 10; ++i )
@@ -205,7 +212,20 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 explicitBasisBoundTightening();
 
             // Perform any SmtCore-initiated case splits
-            if ( _smtCore.needToSplit() )
+            if ( curReLUToSplit < relusToSplit.size() )
+            {
+                auto entry = relusToSplit[curReLUToSplit++];
+                auto relu = _preprocessedQuery._nodeIndexToRelu[entry.first];
+                _smtCore.setNeedToSplit( true );
+                _smtCore.setConstraintForSplitting( relu );
+                _smtCore.performSplit( entry.second );
+                do
+                {
+                    performSymbolicBoundTightening();
+                }
+                while ( applyAllValidConstraintCaseSplits() );
+                continue;
+            } else if ( _smtCore.needToSplit() )
             {
                 _smtCore.performSplit();
 
