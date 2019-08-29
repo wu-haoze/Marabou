@@ -119,7 +119,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
     for ( const auto &entry : patterns )
         relusToSplit.append(std::make_pair(entry.first, entry.second));
     unsigned curReLUToSplit = 0;
-    std::cout << curReLUToSplit << " " << relusToSplit.size() << std::endl;
 
     if (_symbolicBoundTightener){
         for ( unsigned i = 0; i < 10; ++i )

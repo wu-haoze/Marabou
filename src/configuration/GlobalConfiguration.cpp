@@ -50,7 +50,7 @@ const bool GlobalConfiguration::USE_LINEAR_CONCRETIZATION = true;
 const double GlobalConfiguration::SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT = 0.00000005;
 
 const bool GlobalConfiguration::PREPROCESS_INPUT_QUERY = true;
-const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;
+const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = false;
 const bool GlobalConfiguration::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS = true;
 const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 0.00001;
 
@@ -71,9 +71,9 @@ const GlobalConfiguration::BasisFactorizationType GlobalConfiguration::BASIS_FAC
     GlobalConfiguration::SPARSE_FORREST_TOMLIN_FACTORIZATION;
 
 // Logging
-const bool GlobalConfiguration::ENGINE_LOGGING = true;
+const bool GlobalConfiguration::ENGINE_LOGGING = false;
 const bool GlobalConfiguration::TABLEAU_LOGGING = false;
-const bool GlobalConfiguration::SMT_CORE_LOGGING = true;
+const bool GlobalConfiguration::SMT_CORE_LOGGING = false;
 const bool GlobalConfiguration::DANTZIGS_RULE_LOGGING = false;
 const bool GlobalConfiguration::BASIS_FACTORIZATION_LOGGING = false;
 const bool GlobalConfiguration::PROJECTED_STEEPEST_EDGE_LOGGING = false;
