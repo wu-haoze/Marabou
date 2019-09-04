@@ -210,21 +210,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( _tableau->basisMatrixAvailable() )
                 explicitBasisBoundTightening();
 
-            // Perform any SmtCore-initiated case splits
-            if ( curReLUToSplit < relusToSplit.size() )
-            {
-                auto entry = relusToSplit[curReLUToSplit++];
-                auto relu = _preprocessedQuery._nodeIndexToRelu[entry.first];
-                _smtCore.setNeedToSplit( true );
-                _smtCore.setConstraintForSplitting( relu );
-                _smtCore.performSplit( entry.second );
-                do
-                {
-                    performSymbolicBoundTightening();
-                }
-                while ( applyAllValidConstraintCaseSplits() );
-                continue;
-            } else if ( _smtCore.needToSplit() )
+	    if ( _smtCore.needToSplit() )
             {
                 _smtCore.performSplit();
 
@@ -281,6 +267,20 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 while ( applyAllValidConstraintCaseSplits() )
                     performSymbolicBoundTightening();
 
+		            // Perform any SmtCore-initiated case splits
+		if ( curReLUToSplit < relusToSplit.size() )
+		{
+		    auto entry = relusToSplit[curReLUToSplit++];
+		    auto relu = _preprocessedQuery._nodeIndexToRelu[entry.first];
+		    _smtCore.setNeedToSplit( true );
+		    _smtCore.setConstraintForSplitting( relu );
+		    _smtCore.performSplit( entry.second );
+		    do
+		    {
+			performSymbolicBoundTightening();
+		    }
+		    while ( applyAllValidConstraintCaseSplits() );
+		}
                 continue;
             }
 
