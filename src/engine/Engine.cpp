@@ -1173,7 +1173,6 @@ void Engine::storeState( EngineState &state, bool storeAlsoTableauState ) const
 
     for ( const auto &constraint : _plConstraints )
     {
-        std::cout << "store state: " << constraint << std::endl;
         state._plConstraintToState[constraint] = constraint->duplicateConstraint();
     }
     state._numPlConstraintsDisabledByValidSplits = _numPlConstraintsDisabledByValidSplits;

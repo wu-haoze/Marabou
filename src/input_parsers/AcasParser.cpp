@@ -155,7 +155,8 @@ void AcasParser::generateQuery( InputQuery &inputQuery, Invariant invariant )
             unsigned b = _nodeToB[NodeIndex(i, j)];
             unsigned f = _nodeToF[NodeIndex(i, j)];
             PiecewiseLinearConstraint *relu = new ReluConstraint( b, f );
-            relu->setDirection(invariant.getActivationPatterns()[InputQuery::NodeIndex( i, j )]);
+            if ( invariant.getActivationPatterns().exists( InputQuery::NodeIndex( i, j ) ) )
+                 relu->setDirection(invariant.getActivationPatterns()[InputQuery::NodeIndex( i, j )]);
 
             inputQuery.addPiecewiseLinearConstraint( relu );
             inputQuery.addNodeIndexToReluMapping( i, j, relu );

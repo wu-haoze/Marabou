@@ -82,10 +82,8 @@ ReluConstraint::ReluConstraint( const String &serializedRelu )
 
 PiecewiseLinearConstraint *ReluConstraint::duplicateConstraint() const
 {
-    std::cout << "Original direction: " << _direction << std::endl;
     ReluConstraint *clone = new ReluConstraint( _b, _f );
     *clone = *this;
-    std::cout << "Duplicated direction: " << clone->_direction << std::endl;
     return clone;
 }
 
@@ -433,11 +431,13 @@ List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
     {
         splits.append( getInactiveSplit() );
         splits.append( getActiveSplit() );
+        return splits;
     }
     else if ( _direction == 1 )
     {
         splits.append( getActiveSplit() );
         splits.append( getInactiveSplit() );
+        return splits;
     }
 
     // If we have existing knowledge about the assignment, use it to
