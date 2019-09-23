@@ -25,11 +25,21 @@
 #include "TableauRow.h"
 
 ReluConstraint::ReluConstraint( unsigned b, unsigned f )
-    : _b( b )
+    : _direction( -1 )
+    , _b( b )
     , _f( f )
     , _auxVarInUse( false )
     , _haveEliminatedVariables( false )
-    , _direction( -1 )
+{
+    setPhaseStatus( PhaseStatus::PHASE_NOT_FIXED );
+}
+
+ReluConstraint::ReluConstraint( unsigned b, unsigned f, int direction )
+    : _direction( direction )
+    , _b( b )
+    , _f( f )
+    , _auxVarInUse( false )
+    , _haveEliminatedVariables( false )
 {
     setPhaseStatus( PhaseStatus::PHASE_NOT_FIXED );
 }
@@ -72,8 +82,10 @@ ReluConstraint::ReluConstraint( const String &serializedRelu )
 
 PiecewiseLinearConstraint *ReluConstraint::duplicateConstraint() const
 {
+    std::cout << "Original direction: " << _direction << std::endl;
     ReluConstraint *clone = new ReluConstraint( _b, _f );
     *clone = *this;
+    std::cout << "Duplicated direction: " << clone->_direction << std::endl;
     return clone;
 }
 

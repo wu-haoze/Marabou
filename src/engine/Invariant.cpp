@@ -22,10 +22,10 @@ Invariant::Invariant()
 void Invariant::addActivationPattern( unsigned layerIndex, unsigned nodeIndex,
                                       int direction )
 {
-    _patterns.append( std::make_pair( InputQuery::NodeIndex( layerIndex, nodeIndex ), direction ) );
+    _patterns[InputQuery::NodeIndex( layerIndex, nodeIndex )] = direction;
 }
 
-const Vector<std::pair<InputQuery::NodeIndex, int>> Invariant::getActivationPatterns() const
+const Map<InputQuery::NodeIndex, int> Invariant::getActivationPatterns() const
 {
     return _patterns;
 }

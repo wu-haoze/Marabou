@@ -17,6 +17,7 @@
 #define __AcasParser_h__
 
 #include "AcasNeuralNetwork.h"
+#include "Invariant.h"
 #include "Map.h"
 
 class InputQuery;
@@ -40,7 +41,7 @@ public:
     };
 
     AcasParser( const String &path );
-    void generateQuery( InputQuery &inputQuery );
+    void generateQuery( InputQuery &inputQuery, Invariant invariant );
 
     unsigned getNumInputVaribales() const;
     unsigned getNumOutputVariables() const;

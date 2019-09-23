@@ -65,7 +65,7 @@ public:
       Perform the split according to the constraint marked for
       splitting. Update bounds, add equations and update the stack.
     */
-    void performSplit( int direction = -1 );
+    void performSplit();
 
     /*
       Pop an old split from the stack, and perform a new split as

@@ -20,6 +20,7 @@
 #include "Marabou.h"
 #include "Options.h"
 #include "PropertyParser.h"
+#include "Invariant.h"
 #include "InvariantParser.h"
 #include "MarabouError.h"
 
@@ -54,6 +55,19 @@ void Marabou::run()
 void Marabou::prepareInputQuery()
 {
     /*
+      Step 0: extract the invariant
+    */
+    String invariantFilePath = Options::get()->getString( Options::INVARIANT_FILE_PATH );
+    Invariant invariant;
+    if ( invariantFilePath != "" )
+        {
+            printf( "Invariant: %s\n", invariantFilePath.ascii() );
+            InvariantParser().parse( invariantFilePath, invariant );
+        }
+    else
+        printf( "Invariant: None\n" );
+
+    /*
       Step 1: extract the network
     */
     String networkFilePath = Options::get()->getString( Options::INPUT_FILE_PATH );
@@ -66,7 +80,7 @@ void Marabou::prepareInputQuery()
 
     // For now, assume the network is given in ACAS format
     _acasParser = new AcasParser( networkFilePath );
-    _acasParser->generateQuery( _inputQuery );
+    _acasParser->generateQuery( _inputQuery, invariant );
 
     /*
       Step 2: extract the property in question
@@ -87,19 +101,6 @@ void Marabou::solveQuery()
 {
     if ( _engine.processInputQuery( _inputQuery ) )
     {
-        String invariantFilePath = Options::get()->getString( Options::INVARIANT_FILE_PATH );
-        Invariant invariant;
-        if ( invariantFilePath != "" )
-        {
-            printf( "Invariant: %s\n", invariantFilePath.ascii() );
-            InvariantParser().parse( invariantFilePath, invariant );
-            //_engine.performSplitsPreemptively( invariant );
-        }
-        else
-            printf( "Invariant: None\n" );
-
-        _engine._invariant = invariant;
-
         //_engine.applyInvariant( invariant ):
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
     }

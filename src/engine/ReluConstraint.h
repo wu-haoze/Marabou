@@ -29,6 +29,7 @@ public:
     };
 
     ReluConstraint( unsigned b, unsigned f );
+    ReluConstraint( unsigned b, unsigned f, int direction );
     ReluConstraint( const String &serializedRelu );
 
     /*
@@ -164,6 +165,8 @@ public:
     */
     bool supportsSymbolicBoundTightening() const;
 
+    int _direction;
+
 private:
     unsigned _b, _f;
     PhaseStatus _phaseStatus;
@@ -174,8 +177,6 @@ private:
     PiecewiseLinearCaseSplit getActiveSplit() const;
 
     bool _haveEliminatedVariables;
-
-    int _direction;
 
     /*
       Set the phase status.

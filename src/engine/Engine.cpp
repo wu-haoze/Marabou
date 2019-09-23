@@ -94,19 +94,6 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
-bool Engine::performSplitsPreemptively( const Invariant &invariant )
-{
-    auto patterns = invariant.getActivationPatterns();
-    for ( const auto &entry : patterns )
-    {
-        auto relu = _preprocessedQuery._nodeIndexToRelu[entry.first];
-        _smtCore.setNeedToSplit( true );
-        _smtCore.setConstraintForSplitting( relu );
-        _smtCore.performSplit( entry.second );
-    }
-    return false;
-}
-
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
@@ -114,22 +101,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     storeInitialEngineState();
 
-    auto patterns = _invariant.getActivationPatterns();
-    Vector<std::pair<InputQuery::NodeIndex, int>> relusToSplit;
-    for ( const auto &entry : patterns )
-        relusToSplit.append(std::make_pair(entry.first, entry.second));
-    unsigned curReLUToSplit = 0;
-
-    if (_symbolicBoundTightener){
-        for ( unsigned i = 0; i < 10; ++i )
-            {
-                unsigned var = _symbolicBoundTightener->getNodeIndexToBMapping()[SymbolicBoundTightener::NodeIndex(1, i)];
-                double currentLb = _tableau->getLowerBound( var );
-                double currentUb = _tableau->getUpperBound( var );
-
-                std::cout << "ws" << 1 << "_" << i << ": " << currentLb << ", " << currentUb << std::endl;
-            }
-    }
     if ( _verbosity > 0 )
     {
         printf( "\nEngine::solve: Initial statistics\n" );
@@ -267,20 +238,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 while ( applyAllValidConstraintCaseSplits() )
                     performSymbolicBoundTightening();
 
-		            // Perform any SmtCore-initiated case splits
-		if ( curReLUToSplit < relusToSplit.size() )
-		{
-		    auto entry = relusToSplit[curReLUToSplit++];
-		    auto relu = _preprocessedQuery._nodeIndexToRelu[entry.first];
-		    _smtCore.setNeedToSplit( true );
-		    _smtCore.setConstraintForSplitting( relu );
-		    _smtCore.performSplit( entry.second );
-		    do
-		    {
-			performSymbolicBoundTightening();
-		    }
-		    while ( applyAllValidConstraintCaseSplits() );
-		}
                 continue;
             }
 
@@ -1215,8 +1172,10 @@ void Engine::storeState( EngineState &state, bool storeAlsoTableauState ) const
         state._tableauStateIsStored = false;
 
     for ( const auto &constraint : _plConstraints )
+    {
+        std::cout << "store state: " << constraint << std::endl;
         state._plConstraintToState[constraint] = constraint->duplicateConstraint();
-
+    }
     state._numPlConstraintsDisabledByValidSplits = _numPlConstraintsDisabledByValidSplits;
 }
 

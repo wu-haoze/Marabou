@@ -54,6 +54,7 @@ CFLAGS += \
 	-Werror \
 	-Wno-deprecated \
 	-std=c++0x \
+	-g \
 
 %.obj: %.cpp
 	@echo "CC\t" $@

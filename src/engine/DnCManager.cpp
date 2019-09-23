@@ -285,9 +285,10 @@ bool DnCManager::createEngines()
     _baseEngine = std::make_shared<Engine>();
     InputQuery *baseInputQuery = new InputQuery();
 
+    Invariant invariant;
     // InputQuery is owned by engine
     AcasParser acasParser( _networkFilePath );
-    acasParser.generateQuery( *baseInputQuery );
+    acasParser.generateQuery( *baseInputQuery, invariant );
 
     if ( _propertyFilePath != "" )
         PropertyParser().parse( _propertyFilePath, *baseInputQuery );

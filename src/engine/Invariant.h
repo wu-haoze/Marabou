@@ -18,7 +18,7 @@
 #include "Tightening.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "InputQuery.h"
-#include "Vector.h"
+#include "Map.h"
 
 class Invariant
 {
@@ -27,7 +27,7 @@ public:
 
     void addActivationPattern( unsigned layerIndex, unsigned nodeIndex, int direction );
 
-    const Vector<std::pair<InputQuery::NodeIndex, int>> getActivationPatterns() const;
+    const Map<InputQuery::NodeIndex, int> getActivationPatterns() const;
 
     /*
       Dump the invariant - for debugging purposes.
@@ -35,7 +35,7 @@ public:
     void dump();
 
 private:
-    Vector<std::pair<InputQuery::NodeIndex, int>> _patterns;
+    Map<InputQuery::NodeIndex, int> _patterns;
 };
 
 #endif // __Invariant_h__
