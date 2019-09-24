@@ -282,14 +282,30 @@ List<PiecewiseLinearConstraint::Fix> ReluConstraint::getPossibleFixes() const
         }
         else
         {
-            fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
-            fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+            if ( _direction == 0 )
+            {
+                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
+            } else
+            {
+                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
+                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+            }
+
         }
     }
     else
     {
-        fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
-        fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+        if ( _direction == 1 )
+        {
+            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
+
+        } else
+        {
+            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
+            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+        }
     }
 
     return fixes;
