@@ -120,8 +120,6 @@ private:
     double *_work1;
     double *_work2;
 
-    Map<Index, unsigned> _indexToWeightedSumVariable;
-
     void freeMemoryIfNeeded();
 
     /*
