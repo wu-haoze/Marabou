@@ -26,6 +26,34 @@
 class NetworkLevelReasoner
 {
 public:
+    struct Index
+    {
+        Index()
+            : _layer( 0 )
+            , _neuron( 0 )
+        {
+        }
+
+        Index( unsigned layer, unsigned neuron )
+            : _layer( layer )
+            , _neuron( neuron )
+        {
+        }
+
+        bool operator<( const Index &other ) const
+        {
+            if ( _layer < other._layer )
+                return true;
+            if ( _layer > other._layer )
+                return false;
+
+            return _neuron < other._neuron;
+        }
+
+        unsigned _layer;
+        unsigned _neuron;
+    };
+
     NetworkLevelReasoner();
     ~NetworkLevelReasoner();
 
@@ -47,44 +75,40 @@ public:
 
     /*
       Mapping from node indices to the variables representing their
-      (input) weighted sum values
+      weighted sum values and activation result values.
     */
     void setWeightedSumVariable( unsigned layer, unsigned neuron, unsigned variable );
     unsigned getWeightedSumVariable( unsigned layer, unsigned neuron ) const;
+    void setActivationResultVariable( unsigned layer, unsigned neuron, unsigned variable );
+    unsigned getActivationResultVariable( unsigned layer, unsigned neuron ) const;
+    const Map<Index, unsigned> &getIndexToWeightedSumVariable();
+    const Map<Index, unsigned> &getIndexToActivationResultVariable();
+
+    /*
+      Mapping from node indices to the nodes' assignments, as computed
+      by evaluate()
+    */
+    const Map<Index, double> &getIndexToWeightedSumAssignment();
+    const Map<Index, double> &getIndexToActivationResultAssignment();
 
     /*
       Interface methods for performing operations on the network.
     */
-    void evaluate( double *input, double *output ) const;
+    void evaluate( double *input, double *output );
 
     /*
       Duplicate the reasoner
     */
     void storeIntoOther( NetworkLevelReasoner &other ) const;
 
+    /*
+      Methods that are typically invoked by the preprocessor,
+      to inform us of changes in variable indices
+    */
+    void updateVariableIndices( const Map<unsigned, unsigned> &oldIndexToNewIndex,
+                                const Map<unsigned, unsigned> &mergedVariables );
+
 private:
-    struct Index
-    {
-        Index( unsigned layer, unsigned neuron )
-            : _layer( layer )
-            , _neuron( neuron )
-        {
-        }
-
-        bool operator<( const Index &other ) const
-        {
-            if ( _layer < other._layer )
-                return true;
-            if ( _layer > other._layer )
-                return false;
-
-            return _neuron < other._neuron;
-        }
-
-        unsigned _layer;
-        unsigned _neuron;
-    };
-
     unsigned _numberOfLayers;
     Map<unsigned, unsigned> _layerSizes;
     Map<Index, ActivationFunction> _neuronToActivationFunction;
@@ -96,9 +120,19 @@ private:
     double *_work1;
     double *_work2;
 
-    Map<Index, unsigned> _indexToWeightedSumVariable;
-
     void freeMemoryIfNeeded();
+
+    /*
+      Mappings of indices to weighted sum and activation result variables
+    */
+    Map<Index, unsigned> _indexToWeightedSumVariable;
+    Map<Index, unsigned> _indexToActivationResultVariable;
+
+    /*
+      Store the assignment to all variables when evaluate() is called
+    */
+    Map<Index, double> _indexToWeightedSumAssignment;
+    Map<Index, double> _indexToActivationResultAssignment;
 };
 
 #endif // __NetworkLevelReasoner_h__

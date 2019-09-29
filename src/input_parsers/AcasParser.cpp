@@ -211,7 +211,9 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
         for ( unsigned j = 0; j < layerSize; ++j )
         {
             unsigned b = _nodeToB[NodeIndex( i, j )];
+            unsigned f = _nodeToF[NodeIndex( i, j )];
             nlr->setWeightedSumVariable( i, j, b );
+            nlr->setActivationResultVariable( i, j, f );
         }
     }
 
@@ -267,7 +269,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
                 unsigned b = _nodeToB[NodeIndex( i, j )];
                 sbt->setReluBVariable( i, j, b );
 
-                unsigned f = _nodeToF[NodeIndex(i, j)];
+                unsigned f = _nodeToF[NodeIndex( i, j )];
                 sbt->setReluFVariable( i, j, f );
             }
         }
@@ -277,7 +279,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
             sbt->setReluFVariable( numberOfLayers - 1, i, _nodeToB[NodeIndex( numberOfLayers - 1, i )] );
         }
 
-        inputQuery.setSymbolicBoundTightener(sbt);
+        inputQuery.setSymbolicBoundTightener( sbt );
     }
 }
 
