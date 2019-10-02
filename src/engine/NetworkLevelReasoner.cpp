@@ -183,8 +183,6 @@ void NetworkLevelReasoner::getActivationPattern( double *input,
     memcpy( _work1, input, sizeof(double) * _layerSizes[0] );
 
     ASSERT( layer < _numberOfLayers );
-    if ( layer < 1 )
-        layer = _numberOfLayers;
     for ( unsigned targetLayer = 1; targetLayer < layer + 1;
           ++targetLayer )
     {
