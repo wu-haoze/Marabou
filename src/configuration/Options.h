@@ -53,6 +53,9 @@ public:
 
         // Global timeout
         TIMEOUT,
+
+        // Biased search
+        FOCUS_LAYER,
     };
 
     enum FloatOptions{

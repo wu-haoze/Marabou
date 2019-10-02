@@ -102,7 +102,8 @@ void Marabou::solveQuery()
     if ( _engine.processInputQuery( _inputQuery ) )
     {
         //_engine.applyInvariant( invariant ):
-        _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+        _engine.solve( Options::get()->getInt( Options::TIMEOUT ),
+                       Options::get()->getInt( Options::FOCUS_LAYER ) );
     }
     if ( _engine.getExitCode() == Engine::SAT )
         _engine.extractSolution( _inputQuery );

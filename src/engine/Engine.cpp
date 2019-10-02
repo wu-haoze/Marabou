@@ -96,15 +96,24 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
-bool Engine::solve( unsigned timeoutInSeconds )
+bool Engine::solve( unsigned timeoutInSeconds, unsigned layer )
 {
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
-    double *centroid = new double[_preprocessedQuery.getNumInputVariables()];
-    getCentroid( centroid );
-    ActivationPattern *pattern = new ActivationPattern();
-    _networkLevelReasoner->getActivationPattern( centroid, pattern );
+    if ( layer != 0 )
+    {
+        double *centroid = new double[_preprocessedQuery.getNumInputVariables()];
+        getCentroid( centroid );
+        ActivationPattern *pattern = new ActivationPattern();
+        _networkLevelReasoner->getActivationPattern( centroid, pattern, layer );
+        for ( unsigned i = 0; i < pattern->size(); ++i )
+        {
+            auto relu = _preprocessedQuery._nodeIndexToRelu[InputQuery::NodeIndex( layer, i )];
+            if ( ( ( ReluConstraint * ) relu )->_direction == -1 )
+                relu->setDirection( (*pattern)[i]);
+        }
+    }
 
     storeInitialEngineState();
 

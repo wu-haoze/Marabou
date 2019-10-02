@@ -102,7 +102,8 @@ public:
     /*
       Get the Activation Pattern of the network given the inputs.
     */
-    void getActivationPattern( double *input, ActivationPattern *pattern );
+    void getActivationPattern( double *input, ActivationPattern *pattern,
+                               unsigned layer = 0 );
 
     /*
       Duplicate the reasoner

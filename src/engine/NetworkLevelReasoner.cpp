@@ -175,13 +175,17 @@ void NetworkLevelReasoner::evaluate( double *input, double *output )
   Get the Activation Pattern of the network given the inputs.
 */
 void NetworkLevelReasoner::getActivationPattern( double *input,
-                                                 ActivationPattern *pattern )
+                                                 ActivationPattern *pattern,
+                                                 unsigned layer )
 {
     pattern->clear();
 
     memcpy( _work1, input, sizeof(double) * _layerSizes[0] );
 
-    for ( unsigned targetLayer = 1; targetLayer < _numberOfLayers;
+    ASSERT( layer < _numberOfLayers );
+    if ( layer < 1 )
+        layer = _numberOfLayers;
+    for ( unsigned targetLayer = 1; targetLayer < layer + 1;
           ++targetLayer )
     {
         unsigned sourceLayer = targetLayer - 1;
@@ -212,9 +216,10 @@ void NetworkLevelReasoner::getActivationPattern( double *input,
                     if ( _work2[targetNeuron] < 0 )
                     {
                         _work2[targetNeuron] = 0;
-                        pattern->append( 0 );
+                        if ( targetLayer == layer )
+                            pattern->append( 0 );
                     }
-                    else
+                    else if ( targetLayer == layer )
                     {
                         pattern->append( 1 );
                     }

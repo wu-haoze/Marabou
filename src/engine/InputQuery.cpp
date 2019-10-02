@@ -233,11 +233,18 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
     _variableToOutputIndex = other._variableToOutputIndex;
     _outputIndexToVariable = other._outputIndexToVariable;
 
-    _nodeIndexToRelu = other._nodeIndexToRelu;
-
     freeConstraintsIfNeeded();
+
+    Map<PiecewiseLinearConstraint *, PiecewiseLinearConstraint *> plMap;
     for ( const auto &constraint : other._plConstraints )
-        _plConstraints.append( constraint->duplicateConstraint() );
+    {
+        auto dup = constraint->duplicateConstraint();
+        _plConstraints.append( dup );
+        plMap[constraint] = dup;
+    }
+
+    for ( const auto &entry : other._nodeIndexToRelu )
+        _nodeIndexToRelu[entry.first] = plMap[entry.second];
 
     if ( other._networkLevelReasoner )
     {
