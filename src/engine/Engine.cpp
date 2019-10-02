@@ -111,7 +111,7 @@ bool Engine::solve( unsigned timeoutInSeconds, unsigned layer )
         {
             auto relu = _preprocessedQuery._nodeIndexToRelu[InputQuery::NodeIndex( layer, i )];
             if ( ( ( ReluConstraint * ) relu )->_direction == -1 )
-                relu->setDirection( (*pattern)[i]);
+                relu->setDirection( ( *pattern )[i] );
         }
     }
 
