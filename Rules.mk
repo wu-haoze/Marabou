@@ -59,7 +59,6 @@ CFLAGS += \
 	-Werror \
 	-Wno-deprecated \
 	-std=c++0x \
-	-g \
 
 CFLAGS += \
 	$(VERSION_FLAGS) \
