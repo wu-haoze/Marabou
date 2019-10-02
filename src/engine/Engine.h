@@ -127,6 +127,11 @@ public:
     void clearViolatedPLConstraints();
 
     /*
+      Get the centroid of the input region
+    */
+    void getCentroid( double *centroid );
+
+    /*
       PSA: The following two methods are for DnC only and should be used very
       cauciously.
      */

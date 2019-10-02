@@ -101,6 +101,11 @@ bool Engine::solve( unsigned timeoutInSeconds )
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
+    double *centroid = new double[_preprocessedQuery.getNumInputVariables()];
+    getCentroid( centroid );
+    ActivationPattern *pattern = new ActivationPattern();
+    _networkLevelReasoner->getActivationPattern( centroid, pattern );
+
     storeInitialEngineState();
 
     if ( _verbosity > 0 )
@@ -1923,6 +1928,18 @@ void Engine::checkOverallProgress()
             _lastIterationWithProgress = currentIteration;
         }
     }
+}
+
+void Engine::getCentroid( double *centroid )
+{
+    const List<unsigned> inputVariables = getInputVariables();
+    ASSERT( inputVariables.size() == _preprocessedQuery.getNumInputVariables() );
+    unsigned index = 0;
+    // Assuming that the order of the inputVariables is consistent with the
+    // network topology in the _networklevelreasoner
+    for ( auto const &var : inputVariables )
+        centroid[index++] = ( _tableau->getLowerBound( var ) +
+                              _tableau->getUpperBound( var ) ) / 2;
 }
 
 //
