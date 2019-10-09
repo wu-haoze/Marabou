@@ -39,15 +39,9 @@ Marabou::~Marabou()
 
 void Marabou::run()
 {
-    struct timespec start = TimeUtils::sampleMicro();
-
     prepareInputQuery();
     solveQuery();
-
-    struct timespec end = TimeUtils::sampleMicro();
-
-    unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
-    displayResults( totalElapsed );
+    displayResults();
 }
 
 void Marabou::prepareInputQuery()
@@ -85,13 +79,10 @@ void Marabou::prepareInputQuery()
 void Marabou::solveQuery()
 {
     if ( _engine.processInputQuery( _inputQuery ) )
-        _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
-
-    if ( _engine.getExitCode() == Engine::SAT )
-        _engine.extractSolution( _inputQuery );
+        std::cout << _engine.getNumReLUs() << std::endl;
 }
 
-void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
+void Marabou::displayResults() const
 {
     Engine::ExitCode result = _engine.getExitCode();
     String resultString;
@@ -139,20 +130,9 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
         File summaryFile( summaryFilePath );
         summaryFile.open( File::MODE_WRITE_TRUNCATE );
 
-        // Field #1: result
-        summaryFile.write( resultString );
-
+        unsigned numReLUs = _engine.getNumReLUs();
         // Field #2: total elapsed time
-        summaryFile.write( Stringf( " %u ", microSecondsElapsed / 1000000 ) ); // In seconds
-
-        // Field #3: number of visited tree states
-        summaryFile.write( Stringf( "%u ",
-                                    _engine.getStatistics()->getNumVisitedTreeStates() ) );
-
-        // Field #4: average pivot time in micro seconds
-        summaryFile.write( Stringf( "%u",
-                                    _engine.getStatistics()->getAveragePivotTimeInMicro() ) );
-
+        summaryFile.write( Stringf( "%u", numReLUs ) ); // In seconds
         summaryFile.write( "\n" );
     }
 }

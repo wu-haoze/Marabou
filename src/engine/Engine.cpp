@@ -1849,6 +1849,11 @@ void Engine::resetBoundTighteners()
     _rowBoundTightener->resetBounds();
 }
 
+unsigned Engine::getNumReLUs() const
+{
+    return _plConstraints.size();
+}
+
 void Engine::warmStart()
 {
     // An NLR is required for a warm start

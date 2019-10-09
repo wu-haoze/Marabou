@@ -135,6 +135,8 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
+    unsigned getNumReLUs() const;
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
