@@ -60,6 +60,7 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
       Then, eliminate fixed variables.
     */
 
+    struct timespec start = TimeUtils::sampleMicro();
     bool continueTightening = true;
     while ( continueTightening )
     {
@@ -72,6 +73,9 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
         if ( _statistics )
             _statistics->ppIncNumTighteningIterations();
     }
+    struct timespec end = TimeUtils::sampleMicro();
+    unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+    std::cout << "Tightening time: " << totalElapsed / 1000 << std::endl;
 
     collectFixedValues();
     separateMergedAndFixed();

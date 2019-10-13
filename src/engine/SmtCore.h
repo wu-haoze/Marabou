@@ -41,6 +41,8 @@ public:
     */
     void reportViolatedConstraint( PiecewiseLinearConstraint *constraint );
 
+    void smtCore::setConstriantForSplitting()
+
     /*
       Get the number of times a specific PL constraint has been reported as
       violated.
