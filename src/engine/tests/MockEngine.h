@@ -103,6 +103,10 @@ public:
     void setNumPlConstraintsDisabledByValidSplits( unsigned /* numConstraints */ )
     {
     }
+
+    void pickConstriantForSplitting()
+    {
+    }
 };
 
 #endif // __MockEngine_h__
