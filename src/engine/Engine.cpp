@@ -193,7 +193,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( _smtCore.needToSplit() )
             {
                 _smtCore.performSplit();
-
+                std::cout << "Split performed" << std::endl;
                 do
                 {
                     performSymbolicBoundTightening();
@@ -1328,7 +1328,6 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
 {
     log( "" );
     log( "Applying a split. " );
-
     DEBUG( _tableau->verifyInvariants() );
 
     List<Tightening> bounds = split.getBoundTightenings();
@@ -1926,6 +1925,69 @@ void Engine::checkOverallProgress()
             _lastIterationWithProgress = currentIteration;
         }
     }
+}
+
+void Engine::pickConstriantForSplitting()
+{
+    unsigned threshold = 5;
+
+    EngineState *engineState = new EngineState();
+    storeState( *engineState, true );
+
+    restoreState( *engineState );
+    unsigned numActiveUpperbound = numberOfActiveConstraints();
+
+    PiecewiseLinearConstraint *constraintToSplit = NULL;
+    float minCost = numActiveUpperbound;
+
+    for ( const auto &constraint : _plConstraints )
+    {
+        if ( !( constraint->phaseFixed() ) )
+        {
+            auto caseSplits = constraint->getCaseSplits();
+            unsigned max_ = 0;
+            unsigned min_ = numActiveUpperbound;
+            for ( const auto& caseSplit : caseSplits )
+            {
+                applySplit( caseSplit );
+
+                // Finally, take this opporunity to tighten any bounds
+                // and perform any valid case splits.
+                if ( _tableau->basisMatrixAvailable() )
+                    explicitBasisBoundTightening();
+
+                tightenBoundsOnConstraintMatrix();
+                applyAllBoundTightenings();
+
+                unsigned numActive = numberOfActiveConstraints();
+                if ( max_ < numActive )
+                    max_ = numActive;
+                if ( min_ > numActive )
+                    min_ = numActive;
+                restoreState( *engineState );
+            }
+            if ( min_ < threshold )
+                min_ = max_;
+            float newCost = float(min_ + max_) / 2;
+            if ( newCost < minCost )
+            {
+                minCost = newCost;
+                constraintToSplit = constraint;
+            }
+        }
+    }
+    _smtCore.setConstraintForSplitting( constraintToSplit );
+}
+
+unsigned Engine::numberOfActiveConstraints()
+{
+    unsigned numActiveConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+        {
+            if ( !( constraint->phaseFixed() ) )
+                ++numActiveConstraints;
+        }
+    return numActiveConstraints;
 }
 
 //

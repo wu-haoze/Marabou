@@ -41,6 +41,8 @@ public:
     */
     void reportViolatedConstraint( PiecewiseLinearConstraint *constraint );
 
+    void setConstraintForSplitting( PiecewiseLinearConstraint *constraint);
+
     /*
       Get the number of times a specific PL constraint has been reported as
       violated.
@@ -51,6 +53,8 @@ public:
       Reset all reported violation counts.
     */
     void resetReportedViolations();
+
+    void setNeedToSplit( bool needToSplit );
 
     /*
       Returns true iff the SMT core wants to perform a case split.

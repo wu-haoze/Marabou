@@ -56,9 +56,16 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
 
     if ( _constraintToViolationCount[constraint] >= GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD )
     {
+        _engine->pickConstriantForSplitting();
         _needToSplit = true;
-        _constraintForSplitting = constraint;
+        if ( _constraintForSplitting == NULL )
+            _constraintForSplitting = constraint;
     }
+}
+
+void SmtCore::setConstraintForSplitting( PiecewiseLinearConstraint *constraint )
+{
+    _constraintForSplitting = constraint;
 }
 
 unsigned SmtCore::getViolationCounts( PiecewiseLinearConstraint *constraint ) const
@@ -67,6 +74,11 @@ unsigned SmtCore::getViolationCounts( PiecewiseLinearConstraint *constraint ) co
         return 0;
 
     return _constraintToViolationCount[constraint];
+}
+
+void SmtCore::setNeedToSplit( bool needToSplit )
+{
+    _needToSplit = needToSplit;
 }
 
 bool SmtCore::needToSplit() const

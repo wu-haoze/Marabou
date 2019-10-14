@@ -135,6 +135,8 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
+    void pickConstriantForSplitting();
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
@@ -451,6 +453,8 @@ private:
     double *createConstraintMatrix();
     void addAuxiliaryVariables();
     void augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, const List<unsigned> &basicRows );
+
+    unsigned numberOfActiveConstraints();
 };
 
 #endif // __Engine_h__
