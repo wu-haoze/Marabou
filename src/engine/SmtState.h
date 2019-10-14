@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file IEngine.h
+/*! \file SmtState.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Guy Katz, Duligur Ibeling
@@ -11,35 +11,32 @@
  **
  ** [[ Add lengthier description here ]]
 
-**/
+ **/
 
-#ifndef __IEngine_h__
-#define __IEngine_h__
+#ifndef __SmtState_h__
+#define __SmtState_h__
 
-class EngineState;
-class Equation;
-class PiecewiseLinearCaseSplit;
+#include "List.h"
+#include "Map.h"
+#include "PiecewiseLinearConstraint.h"
+#include "StackEntry.h"
 
-class IEngine
+class SmtState
 {
 public:
-    virtual ~IEngine() {};
+    /*
+      Valid splits that were implied by level 0 of the stack.
+    */
+    List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;
 
     /*
-      Add equations and apply tightenings from a PL case split.
+      The stack.
     */
-    virtual void applySplit( const PiecewiseLinearCaseSplit &split ) = 0;
-
-    /*
-      Methods for storing and restoring the state of the engine.
-    */
-    virtual void storeState( EngineState &state, bool storeAlsoTableauState ) const = 0;
-    virtual void restoreState( const EngineState &state ) = 0;
-    virtual void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints ) = 0;
+    List< StackEntry *> _stack;
 
 };
 
-#endif // __IEngine_h__
+#endif // __SmtState_h__
 
 //
 // Local Variables:

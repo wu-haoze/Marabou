@@ -73,15 +73,25 @@ void DnCMarabou::run()
     unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
     float timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
 
+    DivideStrategy divideStrategy = setDivideStrategyFromOptions
+        ( Options::get()->getString( Options::DIVIDE_STRATEGY ) );
+
+    unsigned pointsPerSegment = Options::get()->getInt( Options::POINTS_PER_SEGMENT );
+    unsigned numberOfSegments = Options::get()->getInt( Options::NUMBER_OF_SEGMENTS );
+
+    bool performTreeStateRecovery = Options::get()->getBool( Options::TREE_STATE_RECOVERY );
+
+    std::cout << "Perform tree state recovery: " << performTreeStateRecovery << std::endl;
+
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
-                        onlineDivides, timeoutFactor,
-                        DivideStrategy::LargestInterval, networkFilePath,
-                        propertyFilePath, verbosity ) );
+                        onlineDivides, timeoutFactor, divideStrategy,
+                        networkFilePath, propertyFilePath, verbosity,
+                        pointsPerSegment, numberOfSegments ) );
 
     struct timespec start = TimeUtils::sampleMicro();
 
-    _dncManager->solve( timeoutInSeconds );
+    _dncManager->solve( timeoutInSeconds, performTreeStateRecovery );
 
     struct timespec end = TimeUtils::sampleMicro();
 
@@ -115,6 +125,23 @@ void DnCMarabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         summaryFile.write( "\n" );
     }
+}
+
+DivideStrategy DnCMarabou::setDivideStrategyFromOptions( const String strategy )
+{
+    if ( strategy == "activation-variance" )
+        return DivideStrategy::ActivationVariance;
+    else if ( strategy == "largest-interval" )
+        return DivideStrategy::LargestInterval;
+    else if (strategy == "look-ahead" )
+        return DivideStrategy::LookAhead;
+    else if (strategy == "relu-look-ahead" )
+        return DivideStrategy::ReluLookAhead;
+    else
+        {
+            printf ("Unknown divide strategy, using default (activation variance)");
+            return DivideStrategy::ActivationVariance;
+        }
 }
 
 //
