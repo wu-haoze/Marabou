@@ -150,6 +150,7 @@ private:
         PERFORMED_WEAK_RESTORATION = 2,
     };
 
+    unsigned propagateAndGetNumberOfActiveConstraints();
 
     /*
       Perform bound tightening operations that require

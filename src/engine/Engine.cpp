@@ -1949,16 +1949,7 @@ void Engine::pickConstriantForSplitting()
             for ( const auto& caseSplit : caseSplits )
             {
                 applySplit( caseSplit );
-
-                // Finally, take this opporunity to tighten any bounds
-                // and perform any valid case splits.
-                if ( _tableau->basisMatrixAvailable() )
-                    explicitBasisBoundTightening();
-
-                tightenBoundsOnConstraintMatrix();
-                applyAllBoundTightenings();
-
-                unsigned numActive = numberOfActiveConstraints();
+                unsigned numActive = propagateAndGetNumberOfActiveConstraints();
                 if ( max_ < numActive )
                     max_ = numActive;
                 if ( min_ > numActive )
@@ -1973,9 +1964,31 @@ void Engine::pickConstriantForSplitting()
                 minCost = newCost;
                 constraintToSplit = constraint;
             }
+            if ( minCost <= threshold * threshold )
+                break;
         }
     }
     _smtCore.setConstraintForSplitting( constraintToSplit );
+}
+
+unsigned Engine::propagateAndGetNumberOfActiveConstraints()
+{
+
+    try
+    {
+        // Tighten any bounds
+        // and perform any valid case splits.
+        if ( _tableau->basisMatrixAvailable() )
+            explicitBasisBoundTightening();
+
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        return numberOfActiveConstraints();
+    }
+    catch ( const InfeasibleQueryException & )
+    {
+        return 0;
+    }
 }
 
 unsigned Engine::numberOfActiveConstraints()
