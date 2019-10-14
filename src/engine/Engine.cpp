@@ -193,7 +193,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( _smtCore.needToSplit() )
             {
                 _smtCore.performSplit();
-
+                std::cout << "Split performed" << std::endl;
                 do
                 {
                     performSymbolicBoundTightening();
@@ -1930,6 +1930,7 @@ void Engine::checkOverallProgress()
 void Engine::pickConstriantForSplitting()
 {
     unsigned threshold = 5;
+
     EngineState *engineState = new EngineState();
     storeState( *engineState, true );
 
@@ -1939,12 +1940,10 @@ void Engine::pickConstriantForSplitting()
     PiecewiseLinearConstraint *constraintToSplit = NULL;
     float minCost = numActiveUpperbound;
 
-    unsigned i = 0;
     for ( const auto &constraint : _plConstraints )
     {
         if ( !( constraint->phaseFixed() ) )
         {
-            i++;
             auto caseSplits = constraint->getCaseSplits();
             unsigned max_ = 0;
             unsigned min_ = numActiveUpperbound;
@@ -1954,13 +1953,11 @@ void Engine::pickConstriantForSplitting()
 
                 // Finally, take this opporunity to tighten any bounds
                 // and perform any valid case splits.
+                if ( _tableau->basisMatrixAvailable() )
+                    explicitBasisBoundTightening();
+
                 tightenBoundsOnConstraintMatrix();
                 applyAllBoundTightenings();
-                // For debugging purposes
-                checkBoundCompliancyWithDebugSolution();
-
-                while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening();
 
                 unsigned numActive = numberOfActiveConstraints();
                 if ( max_ < numActive )
@@ -1979,7 +1976,6 @@ void Engine::pickConstriantForSplitting()
             }
         }
     }
-    std::cout << "Number of active splits: " << i <<  std::endl;
     _smtCore.setConstraintForSplitting( constraintToSplit );
 }
 
