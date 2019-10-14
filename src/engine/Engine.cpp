@@ -193,7 +193,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( _smtCore.needToSplit() )
             {
                 _smtCore.performSplit();
-                std::cout << "Split performed" << std::endl;
                 do
                 {
                     performSymbolicBoundTightening();
