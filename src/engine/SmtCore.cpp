@@ -56,10 +56,12 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
 
     if ( _constraintToViolationCount[constraint] >= GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD )
     {
-        _engine->pickConstriantForSplitting();
-        _needToSplit = true;
-        if ( _constraintForSplitting == NULL )
+        if ( getStackDepth() > 5 )
+            _engine->pickConstriantForSplitting();
+        else
             _constraintForSplitting = constraint;
+
+        _needToSplit = true;
     }
 }
 
