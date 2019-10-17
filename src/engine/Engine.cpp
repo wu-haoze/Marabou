@@ -1953,13 +1953,10 @@ bool Engine::restoreSmtState( SmtState &smtState )
             _smtCore.replayStackEntry( stackEntry );
             // Do all the bound propagation, and set ReLU constraints to inactive (at
             // least the one corresponding to the _activeSplit applied above.
+            if ( _tableau->basisMatrixAvailable() )
+                explicitBasisBoundTightening();
             tightenBoundsOnConstraintMatrix();
             applyAllBoundTightenings();
-            // For debugging purposes
-            checkBoundCompliancyWithDebugSolution();
-            do
-                performSymbolicBoundTightening();
-            while ( applyAllValidConstraintCaseSplits() );
         }
     }
     catch ( const InfeasibleQueryException & )
