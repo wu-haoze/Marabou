@@ -88,9 +88,11 @@ PiecewiseLinearConstraint *ReluLookAheadDivider::getPLConstraintToSplit
 {
     unsigned threshold = 5;
 
+    EngineState *engineStateBeforeSplit = new EngineState();
+    _engine->storeState( *engineStateBeforeSplit, true );
+
     _engine->applySplit( split );
     unsigned numActiveUpperbound = _engine->propagateAndGetNumberOfActiveConstraints();
-
     EngineState *engineState = new EngineState();
     _engine->storeState( *engineState, true );
 
@@ -128,6 +130,10 @@ PiecewiseLinearConstraint *ReluLookAheadDivider::getPLConstraintToSplit
                 break;
         }
     }
+
+    _engine->restoreState( *engineStateBeforeSplit );
+    delete engineStateBeforeSplit;
+    delete engineState;
     return constraintToSplit;
 }
 
