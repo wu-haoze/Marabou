@@ -20,7 +20,6 @@
 #include "Engine.h"
 #include "EngineState.h"
 #include "LargestIntervalDivider.h"
-#include "LookAheadDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "ReluLookAheadDivider.h"
@@ -60,12 +59,6 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                                             networkLevelReasoner,
                                             numberOfSegments,
                                             pointsPerSegment ) );
-    }
-    else if ( divideStrategy == DivideStrategy::LookAhead )
-    {
-        const List<unsigned> inputVariables = _engine->getInputVariables();
-        _queryDivider = std::unique_ptr<LookAheadDivider>
-            ( new LookAheadDivider( inputVariables, _engine ) );
     }
     else// if ( _divideStrategy == DivideStrategy::ReluLookAhead )
     {
@@ -147,7 +140,6 @@ void DnCWorker::run( bool performTreeStateRecovery )
                     // Step 1: all implied valid splits at root
                     for ( auto &validSplit : smtState->_impliedValidSplitsAtRoot )
                         _engine->applySplit( validSplit );
-                    _engine->propagate();
                 }
 
                 _queryDivider->createSubQueries( pow( 2, _onlineDivides ),

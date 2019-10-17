@@ -20,7 +20,6 @@ enum DivideStrategy
 {
     ActivationVariance,
     LargestInterval,
-    LookAhead,
     ReluLookAhead,
 };
 

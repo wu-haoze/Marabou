@@ -1988,11 +1988,6 @@ void Engine::storeSmtState( SmtState &smtState )
     _smtCore.storeSmtState( smtState );
 }
 
-unsigned Engine::numberOfPLConstraints()
-{
-    return _plConstraints.size();
-}
-
 unsigned Engine::numberOfFixedConstraints()
 {
     unsigned numFixedConstraints = 0;
@@ -2004,23 +1999,35 @@ unsigned Engine::numberOfFixedConstraints()
     return numFixedConstraints;
 }
 
-bool Engine::propagate()
+unsigned Engine::propagateAndGetNumberOfActiveConstraints()
 {
+
     try
-    {
-        //tightenBoundsOnConstraintMatrix();
-        //applyAllBoundTightenings();
-        // For debugging purposes
-        //checkBoundCompliancyWithDebugSolution();
-        //do
-        performSymbolicBoundTightening();
-        //while ( applyAllValidConstraintCaseSplits() );
-    }
+        {
+            // Tighten any bounds
+            // and perform any valid case splits.
+            if ( _tableau->basisMatrixAvailable() )
+                explicitBasisBoundTightening();
+
+            tightenBoundsOnConstraintMatrix();
+            applyAllBoundTightenings();
+            return numberOfActiveConstraints();
+        }
     catch ( const InfeasibleQueryException & )
-    {
-        return false;
-    }
-    return true;
+        {
+            return 0;
+        }
+}
+
+unsigned Engine::numberOfActiveConstraints()
+{
+    unsigned numActiveConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+        {
+            if ( !( constraint->phaseFixed() ) )
+                ++numActiveConstraints;
+        }
+    return numActiveConstraints;
 }
 
 List<PiecewiseLinearConstraint *> Engine::getPLConstraints()

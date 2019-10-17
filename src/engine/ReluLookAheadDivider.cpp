@@ -86,71 +86,49 @@ void ReluLookAheadDivider::createSubQueries( unsigned numNewSubqueries, const St
 PiecewiseLinearConstraint *ReluLookAheadDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
+    unsigned threshold = 5;
+
+    _engine->applySplit( split );
+    unsigned numActiveUpperbound = _engine->propagateAndGetNumberOfActiveConstraints();
 
     EngineState *engineState = new EngineState();
     _engine->storeState( *engineState, true );
 
-    _engine->applySplit( split );
-    _engine->propagate();
-
-    unsigned numFixed = _engine->numberOfFixedConstraints();
-
-    EngineState *engineStateAfterSplit = new EngineState();
-    _engine->storeState( *engineStateAfterSplit, true );
+    auto plConstraints = _engine->getPLConstraints();
 
     PiecewiseLinearConstraint *constraintToSplit = NULL;
-    unsigned maxNumFixedConstraints = 0;
+    float minCost = numActiveUpperbound;
 
-    List<PiecewiseLinearConstraint *> plConstraints =
-        _engine->getPLConstraints();
-
-    unsigned upperlimit = 50;
-    unsigned limit = 0;
     for ( const auto &constraint : plConstraints )
     {
-        std::cout << 123 << std::endl;
-        if ( limit > upperlimit || limit > plConstraints.size() )
-        {
-            if ( constraintToSplit != NULL )
-                break;
-            else
-                upperlimit += 50;
-        }
         if ( !( constraint->phaseFixed() ) )
         {
-            unsigned numFixedConstraints = 0;
             auto caseSplits = constraint->getCaseSplits();
+            unsigned max_ = 0;
+            unsigned min_ = numActiveUpperbound;
             for ( const auto& caseSplit : caseSplits )
             {
                 _engine->applySplit( caseSplit );
-                _engine->propagate();
-                numFixedConstraints += ( _engine->numberOfFixedConstraints()
-                                         - numFixed );
-                _engine->restoreState( *engineStateAfterSplit );
+                unsigned numActive = _engine->propagateAndGetNumberOfActiveConstraints();
+                if ( max_ < numActive )
+                    max_ = numActive;
+                if ( min_ > numActive )
+                    min_ = numActive;
+                _engine->restoreState( *engineState );
             }
-            if ( numFixedConstraints > maxNumFixedConstraints )
+            if ( min_ < threshold )
+                min_ = max_;
+            float newCost = float(min_ + max_) / 2;
+            if ( newCost < minCost )
             {
-                maxNumFixedConstraints = numFixedConstraints;
+                minCost = newCost;
                 constraintToSplit = constraint;
             }
-            ++limit;
+            if ( minCost <= threshold * threshold )
+                break;
         }
     }
-
-    _engine->restoreState( *engineState );
-    assert( constraintToSplit != NULL );
-
-    delete engineState;
-    delete engineStateAfterSplit;
-
     return constraintToSplit;
-}
-
-void ReluLookAheadDivider::setCandidatePLConstraints( List
-                                                  <PiecewiseLinearConstraint *>
-                                                  candidatePLConstraints )
-{
-    _candidatePLConstraints = candidatePLConstraints;
 }
 
 //

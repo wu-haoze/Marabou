@@ -156,7 +156,9 @@ public:
 
     List<PiecewiseLinearConstraint *> getPLConstraints();
 
-    unsigned numberOfPLConstraints();
+    unsigned propagateAndGetNumberOfActiveConstraints();
+
+    unsigned numberOfActiveConstraints();
 
 private:
     enum BasisRestorationRequired {

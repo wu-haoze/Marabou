@@ -47,15 +47,6 @@ private:
       The engine
     */
     std::shared_ptr<Engine> _engine;
-
-    /*
-      Piecewiselinear Constraints to be considered
-    */
-    List<PiecewiseLinearConstraint *> _candidatePLConstraints;
-
-    void setCandidatePLConstraints( List<PiecewiseLinearConstraint *>
-                                    candidatePLConstraints );
-
 };
 
 #endif // __ReluLookAheadDivider_h__

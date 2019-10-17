@@ -21,13 +21,12 @@
 #include "DnCWorker.h"
 #include "GetCPUData.h"
 #include "LargestIntervalDivider.h"
-#include "LookAheadDivider.h"
+#include "ReluLookAheadDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PropertyParser.h"
 #include "QueryDivider.h"
 #include "MarabouError.h"
-#include "ReluLookAheadDivider.h"
 #include "TimeUtils.h"
 #include <atomic>
 #include <chrono>
@@ -342,11 +341,6 @@ void DnCManager::initialDivide( SubQueries &subQueries )
                                             networkLevelReasoner,
                                             _numberOfSegments,
                                             _pointsPerSegment ) );
-    }
-    else if ( _divideStrategy == DivideStrategy::LookAhead )
-    {
-        queryDivider = std::unique_ptr<LookAheadDivider>
-            ( new LookAheadDivider( inputVariables, _baseEngine ) );
     }
     else// if ( _divideStrategy == DivideStrategy::ReluLookAhead )
     {
