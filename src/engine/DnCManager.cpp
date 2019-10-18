@@ -31,6 +31,21 @@
 #include <chrono>
 #include <cmath>
 #include <thread>
+#include <fstream>
+
+static void dumpSubQuery( const SubQuery &subquery )
+{
+    std::ofstream o{subquery._queryId.ascii()};
+    const auto& split = subquery._split;
+    auto bounds = split->getBoundTightenings();
+    for ( const auto bound : bounds )
+    {
+        if ( bound._type == Tightening::LB )
+            o << "x" << bound._variable << " >= " << bound._value << "\n";
+        else
+            o << "x" << bound._variable << " <= " << bound._value << "\n";
+    }
+}
 
 void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                            std::atomic_uint &numUnsolvedSubQueries,
@@ -52,7 +67,7 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
                         String networkFilePath, String propertyFilePath,
-                        unsigned verbosity )
+                        unsigned verbosity, bool divideOnly )
     : _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
@@ -66,6 +81,7 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
     , _timeoutReached( false )
     , _numUnsolvedSubQueries( 0 )
     , _verbosity( verbosity )
+    , _divideOnly( divideOnly )
 {
 }
 
@@ -119,6 +135,15 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     SubQueries subQueries;
     initialDivide( subQueries );
+
+    if ( _divideOnly )
+    {
+        for ( auto &subQuery : subQueries )
+        {
+            dumpSubQuery( *subQuery );
+        }
+        return;
+    }
 
     // Create objects shared across workers
     _numUnsolvedSubQueries = subQueries.size();

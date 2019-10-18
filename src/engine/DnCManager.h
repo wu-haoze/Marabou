@@ -41,7 +41,7 @@ public:
     DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, String networkFilePath,
-                String propertyFilePath, unsigned verbosity );
+                String propertyFilePath, unsigned verbosity, bool divideOnly );
 
     ~DnCManager();
 
@@ -182,6 +182,11 @@ private:
       The level of verbosity
     */
     unsigned _verbosity;
+
+    /*
+      Whether to only divide the query"
+    */
+    bool _divideOnly;
 };
 
 #endif // __DnCManager_h__

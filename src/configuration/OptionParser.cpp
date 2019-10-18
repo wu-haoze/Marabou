@@ -82,7 +82,9 @@ void OptionParser::initialize()
         ( "version",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::VERSION]) ),
           "Prints the version number")
-
+        ( "divide-only",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::DIVIDE_ONLY]) ),
+          "Only divide the query")
         ;
 
     // Positional options, for the mandatory options
