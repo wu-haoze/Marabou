@@ -39,6 +39,8 @@ public:
 
         // Version flag
         VERSION,
+
+        DIVIDE_ONLY,
     };
 
     enum IntOptions {

@@ -188,6 +188,11 @@ private:
       The level of verbosity
     */
     unsigned _verbosity;
+
+    /*
+      Whether to only divide the query"
+    */
+    bool _divideOnly;
 };
 
 #endif // __DnCManager_h__
