@@ -28,7 +28,7 @@
 #include "AcasParser.h"
 #include "Engine.h"
 #include "InputQuery.h"
-#include "ReluplexError.h"
+#include "MarabouError.h"
 #include "MString.h"
 #include "FloatUtils.h"
 #include "MaxConstraint.h"
@@ -103,7 +103,9 @@ void createInputQuery(InputQuery &inputQuery, std::string networkFilePath, std::
     printf( "Property: None\n" );
 }
 
-std::pair<std::map<int, double>, Statistics> solve(InputQuery inputQuery, std::string redirect="", unsigned timeout=0){
+/* The default parameters here are just for readability, you should specify
+ * them in the to make them work*/
+std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, std::string redirect="", unsigned timeout=0, unsigned verbosity = 2){
     // Arguments: InputQuery object, filename to redirect output
     // Returns: map from variable number to value
     std::map<int, double> ret;
@@ -113,6 +115,8 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery inputQuery, std::s
         output=redirectOutputToFile(redirect);
     try{
         Engine engine;
+        engine.setVerbosity(verbosity);
+
         if(!engine.processInputQuery(inputQuery)) return std::make_pair(ret, *(engine.getStatistics()));
 
         if(!engine.solve(timeout)) return std::make_pair(ret, *(engine.getStatistics()));
@@ -123,8 +127,8 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery inputQuery, std::s
         for(unsigned int i=0; i<inputQuery.getNumberOfVariables(); i++)
             ret[i] = inputQuery.getSolutionValue(i);
     }
-    catch(const ReluplexError &e){
-        printf( "Caught a ReluplexError. Code: %u. Message: %s\n", e.getCode(), e.getUserMessage() );
+    catch(const MarabouError &e){
+        printf( "Caught a MarabouError. Code: %u. Message: %s\n", e.getCode(), e.getUserMessage() );
         return std::make_pair(ret, retStats);
     }
     if(output != -1)
@@ -141,7 +145,7 @@ void saveQuery(InputQuery& inputQuery, std::string filename){
 PYBIND11_MODULE(MarabouCore, m) {
     m.doc() = "Marabou API Library";
     m.def("createInputQuery", &createInputQuery, "Create input query from network and property file");
-    m.def("solve", &solve, "Takes in a description of the InputQuery and returns the solution");
+    m.def("solve", &solve, "Takes in a description of the InputQuery and returns the solution", py::arg("inputQuery"), py::arg("redirect") = "", py::arg("timeout") = 0, py::arg("verbosity") = 2);
     m.def("saveQuery", &saveQuery, "Serializes the inputQuery in the given filename");
     m.def("addReluConstraint", &addReluConstraint, "Add a Relu constraint to the InputQuery");
     m.def("addMaxConstraint", &addMaxConstraint, "Add a Max constraint to the InputQuery");
@@ -151,6 +155,7 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def("setLowerBound", &InputQuery::setLowerBound)
         .def("getUpperBound", &InputQuery::getUpperBound)
         .def("getLowerBound", &InputQuery::getLowerBound)
+        .def("dump", &InputQuery::dump)
         .def("setNumberOfVariables", &InputQuery::setNumberOfVariables)
         .def("addEquation", &InputQuery::addEquation)
         .def("getSolutionValue", &InputQuery::getSolutionValue)

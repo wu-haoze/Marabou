@@ -20,6 +20,7 @@
 #include "List.h"
 #include "MString.h"
 #include "Map.h"
+#include "NetworkLevelReasoner.h"
 #include "PiecewiseLinearConstraint.h"
 #include "SymbolicBoundTightener.h"
 
@@ -115,6 +116,7 @@ public:
       Print input and output bounds
     */
     void printInputOutputBounds() const;
+    void dump() const;
 
     /*
       Adjsut the input/output variable mappings because variables have been merged
@@ -122,6 +124,12 @@ public:
     */
     void adjustInputOutputMapping( const Map<unsigned, unsigned> &oldIndexToNewIndex,
                                    const Map<unsigned, unsigned> &mergedVariables );
+
+    /*
+      Include a network level reasoner in the query
+    */
+    void setNetworkLevelReasoner( NetworkLevelReasoner *nlr );
+    NetworkLevelReasoner *getNetworkLevelReasoner() const;
 
 private:
     unsigned _numberOfVariables;
@@ -147,6 +155,16 @@ public:
     Map<unsigned, unsigned> _variableToOutputIndex;
     Map<unsigned, unsigned> _outputIndexToVariable;
 
+    /*
+      An object that knows the topology of the network being checked,
+      and can be used for various operations such as network
+      evaluation of topology-based bound tightening.
+     */
+    NetworkLevelReasoner *_networkLevelReasoner;
+
+    /*
+      Symbolic bound tightener.
+    */
     SymbolicBoundTightener *_sbt;
 };
 

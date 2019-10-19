@@ -16,7 +16,7 @@
  **/
 '''
 
-from . import MarabouCore
+from maraboupy import MarabouCore
 import numpy as np
 
 class MarabouNetwork:
@@ -245,7 +245,6 @@ class MarabouNetwork:
         Returns:
             outputValues: (np array) representing output of network
         """
-        print("Evaluating with Marabou\n")
         inputVars = self.inputVars # list of numpy arrays
         outputVars = self.outputVars
 

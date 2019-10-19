@@ -76,6 +76,14 @@ public:
     // threshold, the preprocessor will treat it as fixed.
     static const double PREPROCESSOR_ALMOST_FIXED_THRESHOLD;
 
+    // Try to set the initial tableau assignment to an assignment that is legal with
+    // respect to the input network.
+    static const bool WARM_START;
+
+    // The maximal number of iterations without new tree states being visited, before
+    // the engine performs a precision restoration.
+    static const unsigned MAX_ITERATIONS_WITHOUT_PROGRESS;
+
     // How often should the main loop check the current degradation?
     static const unsigned DEGRADATION_CHECKING_FREQUENCY;
 
@@ -121,6 +129,9 @@ public:
 
     // The tolerance for checking whether f = Relu( b ), to determine a ReLU's statisfaction
     static const double RELU_CONSTRAINT_COMPARISON_TOLERANCE;
+
+    // Should the initial basis be comprised only of auxiliary (row) variables?
+    static const bool ONLY_AUX_INITIAL_BASIS;
 
     /*
       Explicit (Reluplex-style) bound tightening options
@@ -184,6 +195,7 @@ public:
     /*
       Logging options
     */
+    static const bool DNC_MANAGER_LOGGING;
     static const bool ENGINE_LOGGING;
     static const bool TABLEAU_LOGGING;
     static const bool SMT_CORE_LOGGING;

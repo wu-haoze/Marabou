@@ -18,10 +18,11 @@
 #include "FloatUtils.h"
 #include "InputQuery.h"
 #include "MStringf.h"
-#include "ReluplexError.h"
+#include "MarabouError.h"
 
 InputQuery::InputQuery()
-    : _sbt( NULL )
+    : _networkLevelReasoner( NULL )
+    , _sbt( NULL )
 {
 }
 
@@ -39,7 +40,7 @@ void InputQuery::setLowerBound( unsigned variable, double bound )
 {
     if ( variable >= _numberOfVariables )
     {
-        throw ReluplexError( ReluplexError::VARIABLE_INDEX_OUT_OF_RANGE,
+        throw MarabouError( MarabouError::VARIABLE_INDEX_OUT_OF_RANGE,
                              Stringf( "Variable = %u, number of variables = %u (setLowerBound)",
                                       variable, _numberOfVariables ).ascii() );
     }
@@ -51,7 +52,7 @@ void InputQuery::setUpperBound( unsigned variable, double bound )
 {
     if ( variable >= _numberOfVariables )
     {
-        throw ReluplexError( ReluplexError::VARIABLE_INDEX_OUT_OF_RANGE,
+        throw MarabouError( MarabouError::VARIABLE_INDEX_OUT_OF_RANGE,
                              Stringf( "Variable = %u, number of variables = %u (setUpperBound)",
                                       variable, _numberOfVariables ).ascii() );
     }
@@ -73,7 +74,7 @@ double InputQuery::getLowerBound( unsigned variable ) const
 {
     if ( variable >= _numberOfVariables )
     {
-        throw ReluplexError( ReluplexError::VARIABLE_INDEX_OUT_OF_RANGE,
+        throw MarabouError( MarabouError::VARIABLE_INDEX_OUT_OF_RANGE,
                              Stringf( "Variable = %u, number of variables = %u (getLowerBound)",
                                       variable, _numberOfVariables ).ascii() );
     }
@@ -88,7 +89,7 @@ double InputQuery::getUpperBound( unsigned variable ) const
 {
     if ( variable >= _numberOfVariables )
     {
-        throw ReluplexError( ReluplexError::VARIABLE_INDEX_OUT_OF_RANGE,
+        throw MarabouError( MarabouError::VARIABLE_INDEX_OUT_OF_RANGE,
                              Stringf( "Variable = %u, number of variables = %u (getUpperBound)",
                                       variable, _numberOfVariables ).ascii() );
     }
@@ -131,7 +132,7 @@ void InputQuery::setSolutionValue( unsigned variable, double value )
 double InputQuery::getSolutionValue( unsigned variable ) const
 {
     if ( !_solution.exists( variable ) )
-        throw ReluplexError( ReluplexError::VARIABLE_DOESNT_EXIST_IN_SOLUTION,
+        throw MarabouError( MarabouError::VARIABLE_DOESNT_EXIST_IN_SOLUTION,
                              Stringf( "Variable: %u", variable ).ascii() );
 
     return _solution.get( variable );
@@ -217,12 +218,42 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
     for ( const auto &constraint : other._plConstraints )
         _plConstraints.append( constraint->duplicateConstraint() );
 
-    _sbt = other._sbt;
+    if ( other._networkLevelReasoner )
+    {
+        if ( !_networkLevelReasoner )
+            _networkLevelReasoner = new NetworkLevelReasoner;
+        other._networkLevelReasoner->storeIntoOther( *_networkLevelReasoner );
+    }
+    else
+    {
+        if ( _networkLevelReasoner )
+        {
+            delete _networkLevelReasoner;
+            _networkLevelReasoner = NULL;
+        }
+    }
+
+    if ( other._sbt )
+    {
+        if ( !_sbt )
+            _sbt = new SymbolicBoundTightener;
+        other._sbt->storeIntoOther( *_sbt );
+    }
+    else
+    {
+        if ( _sbt )
+        {
+            delete _sbt;
+            _sbt = NULL;
+        }
+    }
 
     return *this;
 }
 
 InputQuery::InputQuery( const InputQuery &other )
+    : _networkLevelReasoner( NULL )
+    , _sbt( NULL )
 {
     *this = other;
 }
@@ -373,6 +404,32 @@ void InputQuery::printInputOutputBounds() const
     }
 }
 
+void InputQuery::dump() const
+{
+    printf( "Variable bounds:\n" );
+    for ( unsigned i = 0; i < _numberOfVariables; ++i )
+    {
+        printf( "\t %u: [%s, %s]\n", i,
+                _lowerBounds.exists( i ) ? Stringf( "%lf", _lowerBounds[i] ).ascii() : "-inf",
+                _upperBounds.exists( i ) ? Stringf( "%lf", _upperBounds[i] ).ascii() : "inf" );
+    }
+
+    printf( "Constraints:\n" );
+    String constraintString;
+    for ( const auto &pl : _plConstraints )
+    {
+        pl->dump( constraintString );
+        printf( "\t%s\n", constraintString.ascii() );
+    }
+
+    printf( "Equations:\n" );
+    for ( const auto &e : _equations )
+    {
+        printf( "\t" );
+        e.dump();
+    }
+}
+
 void InputQuery::setSymbolicBoundTightener( SymbolicBoundTightener *sbt )
 {
     _sbt = sbt;
@@ -388,7 +445,7 @@ void InputQuery::adjustInputOutputMapping( const Map<unsigned, unsigned> &oldInd
     for ( const auto &it : _inputIndexToVariable )
     {
         if ( mergedVariables.exists( it.second ) )
-            throw ReluplexError( ReluplexError::MERGED_INPUT_VARIABLE,
+            throw MarabouError( MarabouError::MERGED_INPUT_VARIABLE,
                                  Stringf( "Input variable %u has been merged\n", it.second ).ascii() );
 
         if ( oldIndexToNewIndex.exists( it.second ) )
@@ -410,7 +467,7 @@ void InputQuery::adjustInputOutputMapping( const Map<unsigned, unsigned> &oldInd
     for ( const auto &it : _outputIndexToVariable )
     {
         if ( mergedVariables.exists( it.second ) )
-            throw ReluplexError( ReluplexError::MERGED_OUTPUT_VARIABLE,
+            throw MarabouError( MarabouError::MERGED_OUTPUT_VARIABLE,
                                  Stringf( "Output variable %u has been merged\n", it.second ).ascii() );
 
         if ( oldIndexToNewIndex.exists( it.second ) )
@@ -424,6 +481,16 @@ void InputQuery::adjustInputOutputMapping( const Map<unsigned, unsigned> &oldInd
     _variableToOutputIndex.clear();
     for ( auto it : _outputIndexToVariable )
         _variableToOutputIndex[it.second] = it.first;
+}
+
+void InputQuery::setNetworkLevelReasoner( NetworkLevelReasoner *nlr )
+{
+    _networkLevelReasoner = nlr;
+}
+
+NetworkLevelReasoner *InputQuery::getNetworkLevelReasoner() const
+{
+    return _networkLevelReasoner;
 }
 
 //

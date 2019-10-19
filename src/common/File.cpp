@@ -20,6 +20,7 @@
 #include "MStringf.h"
 #include "T/sys/stat.h"
 #include "T/unistd.h"
+#include "Vector.h"
 
 File::File( const String &path ) : _path( path ), _descriptor( NO_DESCRIPTOR )
 {
@@ -98,7 +99,8 @@ void File::write( const ConstSimpleData &data )
 
 void File::read( HeapData &buffer, unsigned maxReadSize )
 {
-    char readBuffer[maxReadSize];
+    Vector<char> readVector( maxReadSize );
+    char *readBuffer( readVector.data() );
     int bytesRead;
 
     if ( ( bytesRead = T::read( _descriptor, readBuffer, sizeof(readBuffer) ) ) == -1 )
@@ -110,7 +112,7 @@ void File::read( HeapData &buffer, unsigned maxReadSize )
 String File::readLine( char lineSeparatingChar )
 {
     enum {
-        SIZE_OF_BUFFER = 1024,
+        SIZE_OF_BUFFER = 10240,
     };
 
     Stringf separatorAsString( "%c", lineSeparatingChar );

@@ -54,11 +54,17 @@ const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;
 const bool GlobalConfiguration::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS = true;
 const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 0.00001;
 
+const bool GlobalConfiguration::WARM_START = false;
+
+const unsigned GlobalConfiguration::MAX_ITERATIONS_WITHOUT_PROGRESS = 10000;
+
 const unsigned GlobalConfiguration::PSE_ITERATIONS_BEFORE_RESET = 1000;
 const double GlobalConfiguration::PSE_GAMMA_ERROR_THRESHOLD = 0.001;
 const double GlobalConfiguration::PSE_GAMMA_UPDATE_TOLERANCE = 0.000000001;
 
 const double GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE = 0.001;
+
+const bool GlobalConfiguration::ONLY_AUX_INITIAL_BASIS = false;
 
 const GlobalConfiguration::ExplicitBasisBoundTighteningType GlobalConfiguration::EXPLICIT_BASIS_BOUND_TIGHTENING_TYPE =
     GlobalConfiguration::COMPUTE_INVERTED_BASIS_MATRIX;
@@ -69,6 +75,7 @@ const GlobalConfiguration::BasisFactorizationType GlobalConfiguration::BASIS_FAC
     GlobalConfiguration::SPARSE_FORREST_TOMLIN_FACTORIZATION;
 
 // Logging
+const bool GlobalConfiguration::DNC_MANAGER_LOGGING = false;
 const bool GlobalConfiguration::ENGINE_LOGGING = false;
 const bool GlobalConfiguration::TABLEAU_LOGGING = false;
 const bool GlobalConfiguration::SMT_CORE_LOGGING = false;
