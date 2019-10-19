@@ -3,6 +3,9 @@ project(Marabou)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 option(BUILD_PYTHON "Build Python" ON)
 option(FORCE_PYTHON_BUILD "Build python even if there is only python32" OFF)
@@ -95,11 +98,11 @@ if (NOT MSVC)
     set(RELEASE_FLAGS -O3) #-Wno-deprecated
 endif()
 
-if (RUN_MEMORY_TEST)
-    if(NOT MSVC)
-        set(MEMORY_FLAGS -fsanitize=address -fno-omit-frame-pointer -O1)
-    endif()
-endif()
+#if (RUN_MEMORY_TEST)
+#    if(NOT MSVC)
+#        set(MEMORY_FLAGS -fsanitize=address -fno-omit-frame-pointer -O1)
+#    endif()
+#endif()
 
 add_definitions(-DRESOURCES_DIR="${RESOURCES_DIR}")
 
