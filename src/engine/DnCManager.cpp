@@ -45,7 +45,10 @@ void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy );
-    worker.run();
+    while ( !shouldQuitSolving.load() )
+    {
+        worker.popOneSubQueryAndSolve();
+    }
 }
 
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
@@ -61,6 +64,28 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
     , _divideStrategy( divideStrategy )
     , _networkFilePath( networkFilePath )
     , _propertyFilePath( propertyFilePath )
+    , _baseInputQuery( NULL )
+    , _exitCode( DnCManager::NOT_DONE )
+    , _workload( NULL )
+    , _timeoutReached( false )
+    , _numUnsolvedSubQueries( 0 )
+    , _verbosity( verbosity )
+{
+}
+
+DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
+                        unsigned initialTimeout, unsigned onlineDivides,
+                        float timeoutFactor, DivideStrategy divideStrategy,
+                        InputQuery *inputQuery, unsigned verbosity )
+    : _numWorkers( numWorkers )
+    , _initialDivides( initialDivides )
+    , _initialTimeout( initialTimeout )
+    , _onlineDivides( onlineDivides )
+    , _timeoutFactor( timeoutFactor )
+    , _divideStrategy( divideStrategy )
+    , _networkFilePath( "" )
+    , _propertyFilePath( "" )
+    , _baseInputQuery( inputQuery )
     , _exitCode( DnCManager::NOT_DONE )
     , _workload( NULL )
     , _timeoutReached( false )
@@ -147,13 +172,15 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     // Wait until either all subQueries are solved or a satisfying assignment is
     // found by some worker
-    while ( _numUnsolvedSubQueries.load() > 0 &&
-            !shouldQuitSolving.load() &&
-            !_timeoutReached )
+    while ( !shouldQuitSolving.load() )
     {
         updateTimeoutReached( startTime, timeoutInMicroSeconds );
-        std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
+        if ( _timeoutReached )
+            shouldQuitSolving = true;
+        else
+            std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
     }
+
 
     // Now that we are done, tell all workers to quit
     for ( auto &quitThread : quitThreads )
@@ -229,6 +256,19 @@ String DnCManager::getResultString()
     }
 }
 
+void DnCManager::getSolution( std::map<int, double> &ret )
+{
+    ASSERT( _engineWithSATAssignment != nullptr );
+
+    InputQuery *inputQuery = _engineWithSATAssignment->getInputQuery();
+    _engineWithSATAssignment->extractSolution( *( inputQuery ) );
+
+    for ( unsigned i = 0; i < inputQuery->getNumberOfVariables(); ++i )
+        ret[i] = inputQuery->getSolutionValue( i );
+
+    return;
+}
+
 void DnCManager::printResult()
 {
     std::cout << std::endl;
@@ -289,14 +329,19 @@ bool DnCManager::createEngines()
 {
     // Create the base engine
     _baseEngine = std::make_shared<Engine>();
+
     InputQuery *baseInputQuery = new InputQuery();
 
-    // InputQuery is owned by engine
-    AcasParser acasParser( _networkFilePath );
-    acasParser.generateQuery( *baseInputQuery );
-
-    if ( _propertyFilePath != "" )
-        PropertyParser().parse( _propertyFilePath, *baseInputQuery );
+    if ( _baseInputQuery )
+        *baseInputQuery = *_baseInputQuery;
+    else
+    {
+        // InputQuery is owned by engine
+        AcasParser acasParser( _networkFilePath );
+        acasParser.generateQuery( *baseInputQuery );
+        if ( _propertyFilePath != "" )
+            PropertyParser().parse( _propertyFilePath, *baseInputQuery );
+    }
 
     if ( !_baseEngine->processInputQuery( *baseInputQuery ) )
         // Solved by preprocessing, we are done!
