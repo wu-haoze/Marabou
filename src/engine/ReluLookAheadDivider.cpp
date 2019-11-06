@@ -44,19 +44,28 @@ void ReluLookAheadDivider::createSubQueries( unsigned numNewSubqueries, const St
         {
             PiecewiseLinearConstraint *pLConstraintToSplit =
                 getPLConstraintToSplit( *split );
-            auto caseSplits = pLConstraintToSplit->getCaseSplits();
-            for ( const auto &caseSplit : caseSplits )
+            if ( pLConstraintToSplit == NULL )
             {
                 auto newSplit = new PiecewiseLinearCaseSplit();
-                *newSplit = caseSplit;
-
-                for ( const auto &tightening : split->getBoundTightenings() )
-                    newSplit->storeBoundTightening( tightening );
-
-                for ( const auto &equation : split->getEquations() )
-                    newSplit->addEquation( equation );
-
+                *newSplit = split;
                 newSplits.append( newSplit );
+            }
+            else
+            {
+                auto caseSplits = pLConstraintToSplit->getCaseSplits();
+                for ( const auto &caseSplit : caseSplits )
+                {
+                    auto newSplit = new PiecewiseLinearCaseSplit();
+                    *newSplit = caseSplit;
+
+                    for ( const auto &tightening : split->getBoundTightenings() )
+                        newSplit->storeBoundTightening( tightening );
+
+                    for ( const auto &equation : split->getEquations() )
+                        newSplit->addEquation( equation );
+
+                    newSplits.append( newSplit );
+                }
             }
             delete split;
         }
