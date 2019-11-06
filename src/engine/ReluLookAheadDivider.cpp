@@ -47,7 +47,7 @@ void ReluLookAheadDivider::createSubQueries( unsigned numNewSubqueries, const St
             if ( pLConstraintToSplit == NULL )
             {
                 auto newSplit = new PiecewiseLinearCaseSplit();
-                *newSplit = split;
+                *newSplit = *split;
                 newSplits.append( newSplit );
             }
             else
