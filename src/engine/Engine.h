@@ -156,9 +156,10 @@ public:
 
     List<PiecewiseLinearConstraint *> getPLConstraints();
 
-    unsigned propagateAndGetNumberOfActiveConstraints();
-
     unsigned numberOfActiveConstraints();
+
+    void getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEstimates,
+                       Map <PiecewiseLinearConstraint *, double> &runtimeEstimates );
 
 private:
     enum BasisRestorationRequired {

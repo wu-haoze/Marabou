@@ -86,55 +86,34 @@ void ReluLookAheadDivider::createSubQueries( unsigned numNewSubqueries, const St
 PiecewiseLinearConstraint *ReluLookAheadDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
-    unsigned threshold = 5;
-
     EngineState *engineStateBeforeSplit = new EngineState();
     _engine->storeState( *engineStateBeforeSplit, true );
-
     _engine->applySplit( split );
-    unsigned numActiveUpperbound = _engine->propagateAndGetNumberOfActiveConstraints();
-    EngineState *engineState = new EngineState();
-    _engine->storeState( *engineState, true );
-
-    auto plConstraints = _engine->getPLConstraints();
 
     PiecewiseLinearConstraint *constraintToSplit = NULL;
-    float minCost = numActiveUpperbound;
-
-    for ( const auto &constraint : plConstraints )
-    {
-        if ( !( constraint->phaseFixed() ) )
-        {
-            auto caseSplits = constraint->getCaseSplits();
-            unsigned max_ = 0;
-            unsigned min_ = numActiveUpperbound;
-            for ( const auto& caseSplit : caseSplits )
-            {
-                _engine->applySplit( caseSplit );
-                unsigned numActive = _engine->propagateAndGetNumberOfActiveConstraints();
-                if ( max_ < numActive )
-                    max_ = numActive;
-                if ( min_ > numActive )
-                    min_ = numActive;
-                _engine->restoreState( *engineState );
-            }
-            if ( min_ < threshold )
-                min_ = max_;
-            float newCost = float(min_ + max_) / 2;
-            if ( newCost < minCost )
-            {
-                minCost = newCost;
-                constraintToSplit = constraint;
-            }
-            if ( minCost <= threshold * threshold )
-                break;
-        }
-    }
-
+    if ( _engine->propagate() )
+        constraintToSplit = computeBestChoice();
     _engine->restoreState( *engineStateBeforeSplit );
     delete engineStateBeforeSplit;
-    delete engineState;
     return constraintToSplit;
+}
+
+PiecewiseLinearConstraint *ReluLookAheadDivider::computeBestChoice()
+{
+    Map<PiecewiseLinearConstraint *, double> balanceEstimates;
+    Map<PiecewiseLinearConstraint *, double> runtimeEstimates;
+    _engine->getEstimates( balanceEstimates, runtimeEstimates );
+    PiecewiseLinearConstraint *best = NULL;
+    double bestRank = _engine->numberOfActiveConstraints();
+    for ( const auto &entry : balanceEstimates ){
+        double newRank = entry.second + runtimeEstimates[entry.first];
+        if ( newRank < bestRank )
+        {
+            best = entry.first;
+            bestRank = newRank;
+        }
+    }
+    return best;
 }
 
 //

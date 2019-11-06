@@ -1996,24 +1996,23 @@ unsigned Engine::numberOfFixedConstraints()
     return numFixedConstraints;
 }
 
-unsigned Engine::propagateAndGetNumberOfActiveConstraints()
+bool Engine::propagate()
 {
-
     try
-        {
-            // Tighten any bounds
-            // and perform any valid case splits.
-            if ( _tableau->basisMatrixAvailable() )
-                explicitBasisBoundTightening();
+    {
+        // Tighten any bounds
+        // and perform any valid case splits.
+        if ( _tableau->basisMatrixAvailable() )
+            explicitBasisBoundTightening();
 
-            tightenBoundsOnConstraintMatrix();
-            applyAllBoundTightenings();
-            return numberOfActiveConstraints();
-        }
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        return true;
+    }
     catch ( const InfeasibleQueryException & )
-        {
-            return 0;
-        }
+    {
+        return false;
+    }
 }
 
 unsigned Engine::numberOfActiveConstraints()
@@ -2030,6 +2029,47 @@ unsigned Engine::numberOfActiveConstraints()
 List<PiecewiseLinearConstraint *> Engine::getPLConstraints()
 {
     return _plConstraints;
+}
+
+void Engine::getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEstimates,
+                           Map <PiecewiseLinearConstraint *, double> &runtimeEstimates )
+{
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            unsigned b = ( ( ReluConstraint * ) plConstraint )->getB();
+            double currentLb = _tableau->getLowerBound( b );
+            double currentUb = _tableau->getUpperBound( b );
+            double width = currentUb - currentLb;
+            double balance = abs( currentLb + currentUb ) / ( currentUb - currentLb );
+            balanceEstimates[plConstraint] = balance;
+            runtimeEstimates[plConstraint] = width;
+        }
+    }
+
+    Map<double, PiecewiseLinearConstraint *> temp1;
+    for ( const auto& entry : runtimeEstimates )
+        temp1[entry.second] = entry.first;
+    double index = 1;
+    for ( const auto& entry : temp1 )
+    {
+        std::cout << entry.first << " ";
+        runtimeEstimates[entry.second] = index++;
+    }
+    std::cout << std::endl;
+
+    Map<double, PiecewiseLinearConstraint *> temp2;
+    for ( const auto& entry : balanceEstimates )
+        temp2[entry.second] = entry.first;
+    index = 1;
+    for ( const auto& entry : temp2 )
+    {
+        std::cout << entry.first << " ";
+        balanceEstimates[entry.second] = index++;
+    }
+    std::cout << std::endl;
+    return;
 }
 
 //

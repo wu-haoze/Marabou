@@ -133,7 +133,7 @@ DivideStrategy DnCMarabou::setDivideStrategyFromOptions( const String strategy )
         return DivideStrategy::ActivationVariance;
     else if ( strategy == "largest-interval" )
         return DivideStrategy::LargestInterval;
-    else if (strategy == "relu-look-ahead" )
+    else if (strategy == "split-relu" )
         return DivideStrategy::ReluLookAhead;
     else
     {
