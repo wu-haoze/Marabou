@@ -51,6 +51,7 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, pointsPerSegment,
                       numberOfSegments );
+    std::cout << "DnCWorker: starting running" << std::endl;
     worker.run( performTreeStateRecovery );
 }
 
