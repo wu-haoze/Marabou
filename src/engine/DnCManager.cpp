@@ -34,6 +34,7 @@
 #include <thread>
 
 static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+                      InputQuery *inputQuery,
                       std::atomic_uint &numUnsolvedSubQueries,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
@@ -45,6 +46,7 @@ static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     //getCPUId( cpuId );
     //log( Stringf( "Thread #%u on CPU %u", threadId, cpuId ) );
 
+    engine->processInputQuery( *inputQuery );
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, pointsPerSegment,
@@ -143,10 +145,13 @@ void DnCManager::solve( unsigned timeoutInSeconds, bool performTreeStateRecovery
 
     // Spawn threads and start solving
     std::list<std::thread> threads;
+    InputQuery *inputQuery = _baseEngine->getInputQuery();
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
     {
+        InputQuery *tempInputQuery = new InputQuery();
+        *tempInputQuery = *inputQuery;
         threads.push_back( std::thread( dncSolve, workload,
-                                        _engines[ threadId ],
+                                        _engines[ threadId ], tempInputQuery,
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
@@ -296,7 +301,8 @@ void DnCManager::printResult()
 bool DnCManager::createEngines()
 {
     // Create the base engine
-    _baseEngine = std::make_shared<Engine>();
+    _baseEngine = std::make_shared<Engine>( _verbosity );
+
     InputQuery *baseInputQuery = new InputQuery();
 
     // InputQuery is owned by engine
@@ -314,9 +320,6 @@ bool DnCManager::createEngines()
     for ( unsigned i = 0; i < _numWorkers; ++i )
     {
         auto engine = std::make_shared<Engine>( _verbosity );
-        InputQuery *inputQuery = new InputQuery();
-        *inputQuery = *baseInputQuery;
-        engine->processInputQuery( *inputQuery );
         _engines.append( engine );
     }
 

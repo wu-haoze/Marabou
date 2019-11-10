@@ -2054,10 +2054,8 @@ void Engine::getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEst
     double index = 1;
     for ( const auto& entry : temp1 )
     {
-        std::cout << entry.first << " ";
         runtimeEstimates[entry.second] = index++;
     }
-    std::cout << std::endl;
 
     Map<double, PiecewiseLinearConstraint *> temp2;
     for ( const auto& entry : balanceEstimates )
@@ -2065,10 +2063,8 @@ void Engine::getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEst
     index = 1;
     for ( const auto& entry : temp2 )
     {
-        std::cout << entry.first << " ";
         balanceEstimates[entry.second] = index++;
     }
-    std::cout << std::endl;
     return;
 }
 
