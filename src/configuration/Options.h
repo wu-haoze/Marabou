@@ -34,6 +34,8 @@ public:
         // Should DNC mode be on or off
         DNC_MODE,
 
+        // Recover tree state
+        TREE_STATE_RECOVERY,
         // Help flag
         HELP,
 
@@ -53,10 +55,12 @@ public:
 
         // Global timeout
         TIMEOUT,
+
+        POINTS_PER_SEGMENT,
+        NUMBER_OF_SEGMENTS,
     };
 
     enum FloatOptions{
-        // DNC options
         TIMEOUT_FACTOR,
     };
 
@@ -64,6 +68,7 @@ public:
         INPUT_FILE_PATH = 0,
         PROPERTY_FILE_PATH,
         SUMMARY_FILE,
+        DIVIDE_STRATEGY,
     };
 
     /*

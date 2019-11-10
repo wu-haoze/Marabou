@@ -1928,6 +1928,146 @@ void Engine::checkOverallProgress()
     }
 }
 
+bool Engine::restoreSmtState( SmtState &smtState )
+{
+    try
+    {
+        // Step 1: all implied valid splits at root
+        for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
+        {
+            applySplit( validSplit );
+            _smtCore.recordImpliedValidSplit( validSplit );
+        }
+
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        // For debugging purposes
+        checkBoundCompliancyWithDebugSolution();
+        do
+            performSymbolicBoundTightening();
+        while ( applyAllValidConstraintCaseSplits() );
+
+        // Step 2: replay the stack
+        for ( auto &stackEntry : smtState._stack )
+        {
+            _smtCore.replayStackEntry( stackEntry );
+            // Do all the bound propagation, and set ReLU constraints to inactive (at
+            // least the one corresponding to the _activeSplit applied above.
+            if ( _tableau->basisMatrixAvailable() )
+                explicitBasisBoundTightening();
+            tightenBoundsOnConstraintMatrix();
+            applyAllBoundTightenings();
+        }
+    }
+    catch ( const InfeasibleQueryException & )
+    {
+        // The current query is unsat, and we need to pop.
+        // If we're at level 0, the whole query is unsat.
+        if ( !_smtCore.popSplit() )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\nEngine::solve: UNSAT query\n" );
+                _statistics.print();
+            }
+            _exitCode = Engine::UNSAT;
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+  Store the stack of the timed-out query
+*/
+void Engine::storeSmtState( SmtState &smtState )
+{
+    _smtCore.storeSmtState( smtState );
+}
+
+unsigned Engine::numberOfFixedConstraints()
+{
+    unsigned numFixedConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+    {
+        if ( constraint->phaseFixed() )
+            ++numFixedConstraints;
+    }
+    return numFixedConstraints;
+}
+
+bool Engine::propagate()
+{
+    try
+    {
+        // Tighten any bounds
+        // and perform any valid case splits.
+        if ( _tableau->basisMatrixAvailable() )
+            explicitBasisBoundTightening();
+
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        return true;
+    }
+    catch ( const InfeasibleQueryException & )
+    {
+        return false;
+    }
+}
+
+unsigned Engine::numberOfActiveConstraints()
+{
+    unsigned numActiveConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+        {
+            if ( !( constraint->phaseFixed() ) )
+                ++numActiveConstraints;
+        }
+    return numActiveConstraints;
+}
+
+List<PiecewiseLinearConstraint *> Engine::getPLConstraints()
+{
+    return _plConstraints;
+}
+
+void Engine::getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEstimates,
+                           Map <PiecewiseLinearConstraint *, double> &runtimeEstimates )
+{
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            unsigned b = ( ( ReluConstraint * ) plConstraint )->getB();
+            double currentLb = _tableau->getLowerBound( b );
+            double currentUb = _tableau->getUpperBound( b );
+            double width = currentUb - currentLb;
+            double balance = abs( currentLb + currentUb ) / ( currentUb - currentLb );
+            balanceEstimates[plConstraint] = balance;
+            runtimeEstimates[plConstraint] = width;
+        }
+    }
+
+    Map<double, PiecewiseLinearConstraint *> temp1;
+    for ( const auto& entry : runtimeEstimates )
+        temp1[entry.second] = entry.first;
+    double index = 1;
+    for ( const auto& entry : temp1 )
+    {
+        runtimeEstimates[entry.second] = index++;
+    }
+
+    Map<double, PiecewiseLinearConstraint *> temp2;
+    for ( const auto& entry : balanceEstimates )
+        temp2[entry.second] = entry.first;
+    index = 1;
+    for ( const auto& entry : temp2 )
+    {
+        balanceEstimates[entry.second] = index++;
+    }
+    return;
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

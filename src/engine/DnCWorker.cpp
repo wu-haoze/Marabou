@@ -13,6 +13,7 @@
 
  **/
 
+#include "ActivationPatternDivider.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
 #include "DnCWorker.h"
@@ -21,6 +22,7 @@
 #include "LargestIntervalDivider.h"
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "ReluLookAheadDivider.h"
 #include "SubQuery.h"
 
 #include <atomic>
@@ -32,7 +34,8 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
                       std::atomic_uint &numUnsolvedSubQueries,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy )
+                      float timeoutFactor, DivideStrategy divideStrategy,
+                      unsigned pointsPerSegment, unsigned numberOfSegments )
     : _workload( workload )
     , _engine( engine )
     , _numUnsolvedSubQueries( &numUnsolvedSubQueries )
@@ -41,26 +44,34 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
 {
-    setQueryDivider( divideStrategy );
+    if ( divideStrategy == DivideStrategy::LargestInterval )
+    {
+        const List<unsigned> inputVariables = _engine->getInputVariables();
+        _queryDivider = std::unique_ptr<LargestIntervalDivider>
+            ( new LargestIntervalDivider( inputVariables ) );
+    } else if (divideStrategy == DivideStrategy::ActivationVariance )
+    {
+        const List<unsigned> inputVariables = _engine->getInputVariables();
+        NetworkLevelReasoner *networkLevelReasoner = _engine->getInputQuery()->
+            getNetworkLevelReasoner();
+        _queryDivider = std::unique_ptr<ActivationPatternDivider>
+            ( new ActivationPatternDivider( inputVariables,
+                                            networkLevelReasoner,
+                                            numberOfSegments,
+                                            pointsPerSegment ) );
+    }
+    else// if ( _divideStrategy == DivideStrategy::ReluLookAhead )
+    {
+        _queryDivider = std::unique_ptr<ReluLookAheadDivider>
+            ( new ReluLookAheadDivider( _engine ) );
+    }
 
     // Obtain the current state of the engine
     _initialState = std::make_shared<EngineState>();
     _engine->storeState( *_initialState, true );
 }
 
-void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
-{
-    // For now, there is only one strategy
-    ASSERT( divideStrategy == DivideStrategy::LargestInterval );
-    if ( divideStrategy == DivideStrategy::LargestInterval )
-    {
-        const List<unsigned> &inputVariables = _engine->getInputVariables();
-        _queryDivider = std::unique_ptr<LargestIntervalDivider>
-            ( new LargestIntervalDivider( inputVariables ) );
-    }
-}
-
-void DnCWorker::run()
+void DnCWorker::run( bool performTreeStateRecovery )
 {
     while ( _numUnsolvedSubQueries->load() > 0 )
     {
@@ -72,26 +83,44 @@ void DnCWorker::run()
         {
             String queryId = subQuery->_queryId;
             auto split = std::move( subQuery->_split );
+            std::unique_ptr<SmtState> smtState = nullptr;
+            if ( performTreeStateRecovery && subQuery->_smtState )
+                smtState = std::move( subQuery->_smtState );
             unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
 
             // Create a new statistics object for each subQuery
             Statistics *statistics = new Statistics();
             _engine->resetStatistics( *statistics );
+
             // Reset the engine state
-            _engine->restoreState( *_initialState );
             _engine->clearViolatedPLConstraints();
-            _engine->resetSmtCore();
             _engine->resetBoundTighteners();
             _engine->resetExitCode();
+
+            // Restore the smtCore to where the parent query left
+            _engine->resetSmtCore();
+            // Apply the split and solve
+            _engine->applySplit( *split );
+
+            bool fullSolveNeeded = true;
+            if ( performTreeStateRecovery && smtState )
+                fullSolveNeeded = _engine->restoreSmtState( *smtState );
             // TODO: each worker is going to keep a map from *CaseSplit to an
             // object of class DnCStatistics, which contains some basic
             // statistics. The maps are owned by the DnCManager.
 
-            // Apply the split and solve
-            _engine->applySplit( *split );
-            _engine->solve( timeoutInSeconds );
+            Engine::ExitCode result;
+            if ( fullSolveNeeded )
+            {
+                _engine->solve( timeoutInSeconds );
+                result = _engine->getExitCode();
+            } else
+            {
+                // UNSAT is found when replaying stack-entries
+                result = Engine::UNSAT;
+            }
+            _engine->restoreState( *_initialState );
 
-            Engine::ExitCode result = _engine->getExitCode();
             printProgress( queryId, result );
             // Switch on the result
             if ( result == Engine::UNSAT )
@@ -105,12 +134,28 @@ void DnCWorker::run()
                 // If TIMEOUT, split the current input region and add the
                 // new subQueries to the current queue
                 SubQueries subQueries;
+                _engine->restoreState( *_initialState );
+                if ( performTreeStateRecovery && subQuery->_smtState )
+                {
+                    // Step 1: all implied valid splits at root
+                    for ( auto &validSplit : smtState->_impliedValidSplitsAtRoot )
+                        _engine->applySplit( validSplit );
+                }
+
                 _queryDivider->createSubQueries( pow( 2, _onlineDivides ),
                                                  queryId, *split,
                                                  (unsigned) timeoutInSeconds *
                                                  _timeoutFactor, subQueries );
                 for ( auto &newSubQuery : subQueries )
                 {
+                    // Store the SmtCore state
+                    if ( performTreeStateRecovery )
+                    {
+                        auto newSmtState = std::unique_ptr<SmtState>
+                            ( new SmtState() );
+                        _engine->storeSmtState( *newSmtState );
+                        newSubQuery->_smtState = std::move( newSmtState );
+                    }
                     if ( !_workload->push( std::move( newSubQuery ) ) )
                     {
                         ASSERT( false );

@@ -41,7 +41,8 @@ public:
     DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, String networkFilePath,
-                String propertyFilePath, unsigned verbosity );
+                String propertyFilePath, unsigned verbosity,
+                unsigned pointsPerSegment, unsigned numberOfSegments );
 
     ~DnCManager();
 
@@ -50,7 +51,7 @@ public:
     /*
       Perform the Divide-and-conquer solving
     */
-    void solve( unsigned timeoutInSeconds );
+    void solve( unsigned timeoutInSeconds, bool performTreeStateRecovery );
 
     /*
       Return the DnCExitCode of the DnCManager
@@ -68,14 +69,6 @@ public:
     void printResult();
 
 private:
-    /*
-      Create and run a DnCWorker
-    */
-    static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
-                          std::atomic_uint &numUnsolvedSubQueries,
-                          std::atomic_bool &shouldQuitSolving,
-                          unsigned threadId, unsigned onlineDivides,
-                          float timeoutFactor, DivideStrategy divideStrategy );
 
     /*
       Create the base engine from the network and property files,
@@ -151,6 +144,8 @@ private:
       The strategy for dividing a query
     */
     DivideStrategy _divideStrategy;
+    unsigned _pointsPerSegment;
+    unsigned _numberOfSegments;
 
     /*
       Path to the network and property files

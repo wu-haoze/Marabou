@@ -31,6 +31,7 @@
 #include "Preprocessor.h"
 #include "SignalHandler.h"
 #include "SmtCore.h"
+#include "SmtState.h"
 #include "Statistics.h"
 
 #include <atomic>
@@ -134,6 +135,31 @@ public:
     void resetSmtCore();
     void resetExitCode();
     void resetBoundTighteners();
+
+    /*
+      Apply the stack to the newly created SmtCore, returns false if UNSAT is
+      found in this process.
+    */
+    bool restoreSmtState( SmtState &smtState );
+
+    /*
+      Store the stack of the timed-out query
+    */
+    void storeSmtState( SmtState &smtState );
+
+    /*
+      get the number of fixed constraints
+    */
+    unsigned numberOfFixedConstraints();
+
+    bool propagate();
+
+    List<PiecewiseLinearConstraint *> getPLConstraints();
+
+    unsigned numberOfActiveConstraints();
+
+    void getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEstimates,
+                       Map <PiecewiseLinearConstraint *, double> &runtimeEstimates );
 
 private:
     enum BasisRestorationRequired {

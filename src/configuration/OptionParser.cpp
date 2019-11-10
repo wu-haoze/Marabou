@@ -45,6 +45,9 @@ void OptionParser::initialize()
         ( "dnc",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
+        ( "recover-stack",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::TREE_STATE_RECOVERY]) ),
+          "Recover the tree state" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )
@@ -69,6 +72,9 @@ void OptionParser::initialize()
         ( "timeout",
           boost::program_options::value<int>( &((*_intOptions)[Options::TIMEOUT]) ),
           "Global timeout" )
+        ( "divide-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::DIVIDE_STRATEGY]) ),
+          "The heuristics to divide the query (activation-pattern/largest-interval)" )
         ( "verbosity",
           boost::program_options::value<int>( &((*_intOptions)[Options::VERBOSITY]) ),
           "Verbosity of engine::solve(). 0: does not print anything (for DnC), 1: print"
@@ -76,6 +82,12 @@ void OptionParser::initialize()
         ( "timeout-factor",
           boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
           "(DNC) The timeout factor" )
+        ( "num-segments",
+          boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_SEGMENTS]) ),
+          "(DNC) Number of segments for activation variance strategy" )
+        ( "points-per-segment",
+          boost::program_options::value<int>( &((*_intOptions)[Options::POINTS_PER_SEGMENT]) ),
+          "(DNC) Number of points per segment for activation variance strategy" )
         ( "help",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::HELP]) ),
           "Prints the help message")

@@ -13,6 +13,7 @@
 
  **/
 
+#include "ActivationPatternDivider.h"
 #include "AcasParser.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
@@ -20,6 +21,7 @@
 #include "DnCWorker.h"
 #include "GetCPUData.h"
 #include "LargestIntervalDivider.h"
+#include "ReluLookAheadDivider.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "PiecewiseLinearCaseSplit.h"
@@ -32,33 +34,42 @@
 #include <cmath>
 #include <thread>
 
-void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
-                           std::atomic_uint &numUnsolvedSubQueries,
-                           std::atomic_bool &shouldQuitSolving,
-                           unsigned threadId, unsigned onlineDivides,
-                           float timeoutFactor, DivideStrategy divideStrategy )
+static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+                      InputQuery *inputQuery,
+                      std::atomic_uint &numUnsolvedSubQueries,
+                      std::atomic_bool &shouldQuitSolving,
+                      unsigned threadId, unsigned onlineDivides,
+                      float timeoutFactor, DivideStrategy divideStrategy,
+                      unsigned pointsPerSegment, unsigned numberOfSegments,
+                      bool performTreeStateRecovery )
 {
-    unsigned cpuId = 0;
-    getCPUId( cpuId );
-    log( Stringf( "Thread #%u on CPU %u", threadId, cpuId ) );
+    //unsigned cpuId = 0;
+    //getCPUId( cpuId );
+    //log( Stringf( "Thread #%u on CPU %u", threadId, cpuId ) );
 
+    engine->processInputQuery( *inputQuery );
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
-                      timeoutFactor, divideStrategy );
-    worker.run();
+                      timeoutFactor, divideStrategy, pointsPerSegment,
+                      numberOfSegments );
+    std::cout << "DnCWorker: starting running" << std::endl;
+    worker.run( performTreeStateRecovery );
 }
 
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
                         String networkFilePath, String propertyFilePath,
-                        unsigned verbosity )
+                        unsigned verbosity, unsigned pointsPerSegment,
+                        unsigned numberOfSegments )
     : _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
     , _divideStrategy( divideStrategy )
+    , _pointsPerSegment( pointsPerSegment )
+    , _numberOfSegments( numberOfSegments )
     , _networkFilePath( networkFilePath )
     , _propertyFilePath( propertyFilePath )
     , _exitCode( DnCManager::NOT_DONE )
@@ -90,7 +101,7 @@ void DnCManager::freeMemoryIfNeeded()
     }
 }
 
-void DnCManager::solve( unsigned timeoutInSeconds )
+void DnCManager::solve( unsigned timeoutInSeconds, bool performTreeStateRecovery )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -135,14 +146,19 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     // Spawn threads and start solving
     std::list<std::thread> threads;
+    InputQuery *inputQuery = _baseEngine->getInputQuery();
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
     {
+        InputQuery *tempInputQuery = new InputQuery();
+        *tempInputQuery = *inputQuery;
         threads.push_back( std::thread( dncSolve, workload,
-                                        _engines[ threadId ],
+                                        _engines[ threadId ], tempInputQuery,
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy ) );
+                                        _timeoutFactor, _divideStrategy,
+                                        _pointsPerSegment, _numberOfSegments,
+                                        performTreeStateRecovery) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is
@@ -288,7 +304,8 @@ void DnCManager::printResult()
 bool DnCManager::createEngines()
 {
     // Create the base engine
-    _baseEngine = std::make_shared<Engine>();
+    _baseEngine = std::make_shared<Engine>( _verbosity );
+
     InputQuery *baseInputQuery = new InputQuery();
 
     // InputQuery is owned by engine
@@ -306,9 +323,6 @@ bool DnCManager::createEngines()
     for ( unsigned i = 0; i < _numWorkers; ++i )
     {
         auto engine = std::make_shared<Engine>( _verbosity );
-        InputQuery *inputQuery = new InputQuery();
-        *inputQuery = *baseInputQuery;
-        engine->processInputQuery( *inputQuery );
         _engines.append( engine );
     }
 
@@ -324,11 +338,20 @@ void DnCManager::initialDivide( SubQueries &subQueries )
         queryDivider = std::unique_ptr<QueryDivider>
             ( new LargestIntervalDivider( inputVariables ) );
     }
-    else
+    else if ( _divideStrategy == DivideStrategy::ActivationVariance )
     {
-        // Default
-        queryDivider = std::unique_ptr<QueryDivider>
-            ( new LargestIntervalDivider( inputVariables ) );
+        NetworkLevelReasoner *networkLevelReasoner =
+            _baseEngine->getInputQuery()->getNetworkLevelReasoner();
+        queryDivider = std::unique_ptr<ActivationPatternDivider>
+            ( new ActivationPatternDivider( inputVariables,
+                                            networkLevelReasoner,
+                                            _numberOfSegments,
+                                            _pointsPerSegment ) );
+    }
+    else// if ( _divideStrategy == DivideStrategy::ReluLookAhead )
+    {
+        queryDivider = std::unique_ptr<ReluLookAheadDivider>
+            ( new ReluLookAheadDivider( _baseEngine ) );
     }
 
     String queryId = "";
