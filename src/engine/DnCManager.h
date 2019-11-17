@@ -177,6 +177,8 @@ private:
       The level of verbosity
     */
     unsigned _verbosity;
+
+    InputQuery *_baseInputQuery;
 };
 
 #endif // __DnCManager_h__
