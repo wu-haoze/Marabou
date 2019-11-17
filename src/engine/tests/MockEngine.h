@@ -19,6 +19,7 @@
 #include "IEngine.h"
 #include "List.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "SmtState.h"
 
 class MockEngine : public IEngine
 {
@@ -103,6 +104,70 @@ public:
     void setNumPlConstraintsDisabledByValidSplits( unsigned /* numConstraints */ )
     {
     }
+
+    unsigned _timeToSolve;
+    IEngine::ExitCode _exitCode;
+    bool solve( unsigned timeoutInSeconds )
+    {
+        if ( timeoutInSeconds >= _timeToSolve )
+            _exitCode = IEngine::TIMEOUT;
+        return _exitCode == IEngine::SAT;
+    }
+
+    void setTimeToSolve( unsigned timeToSolve )
+    {
+        _timeToSolve = timeToSolve;
+    }
+
+    void setExitCode( IEngine::ExitCode exitCode )
+    {
+        _exitCode = exitCode;
+    }
+
+    IEngine::ExitCode getExitCode() const
+    {
+        return _exitCode;
+    }
+
+    void reset()
+    {
+    }
+
+    List<unsigned> _inputVariables;
+    void setInputVariables( List<unsigned> &inputVariables )
+    {
+        _inputVariables = inputVariables;
+    }
+
+    List<unsigned> getInputVariables() const
+    {
+        return _inputVariables;
+    }
+
+    mutable SmtState _lastStoredSmtState;
+    void storeSmtState( SmtState &smtState )
+    {
+        _lastStoredSmtState = smtState;
+    }
+
+    mutable SmtState _lastRestoredSmtState;
+    bool restoreSmtState( SmtState &smtState )
+    {
+        _lastRestoredSmtState = smtState;
+        return true;
+    }
+
+    bool propagate()
+    {
+        return true;
+    }
+
+    void getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEstimates,
+                       Map <PiecewiseLinearConstraint *, double> &runtimeEstimates )
+    {
+        std::cout << balanceEstimates.size() << " " << runtimeEstimates.size() << std::endl;
+    }
+
 };
 
 #endif // __MockEngine_h__

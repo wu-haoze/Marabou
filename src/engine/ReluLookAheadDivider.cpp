@@ -18,7 +18,7 @@
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 
-ReluLookAheadDivider::ReluLookAheadDivider( std::shared_ptr<Engine> engine )
+ReluLookAheadDivider::ReluLookAheadDivider( std::shared_ptr<IEngine> engine )
     : _engine( std::move( engine ) )
 {
 }
@@ -113,7 +113,7 @@ PiecewiseLinearConstraint *ReluLookAheadDivider::computeBestChoice()
     Map<PiecewiseLinearConstraint *, double> runtimeEstimates;
     _engine->getEstimates( balanceEstimates, runtimeEstimates );
     PiecewiseLinearConstraint *best = NULL;
-    double bestRank = _engine->numberOfActiveConstraints();
+    double bestRank = balanceEstimates.size();
     for ( const auto &entry : balanceEstimates ){
         double newRank = entry.second + runtimeEstimates[entry.first];
         if ( newRank < bestRank )

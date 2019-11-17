@@ -26,7 +26,7 @@
 class ReluLookAheadDivider : public QueryDivider
 {
 public:
-    ReluLookAheadDivider( std::shared_ptr<Engine> engine );
+    ReluLookAheadDivider( std::shared_ptr<IEngine> engine );
 
     void createSubQueries( unsigned numNewSubQueries,
                            const String queryIdPrefix,
@@ -48,7 +48,7 @@ private:
     /*
       The engine
     */
-    std::shared_ptr<Engine> _engine;
+    std::shared_ptr<IEngine> _engine;
 };
 
 #endif // __ReluLookAheadDivider_h__

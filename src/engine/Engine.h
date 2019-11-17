@@ -36,6 +36,10 @@
 
 #include <atomic>
 
+#ifdef _WIN32
+#undef ERROR
+#endif
+
 class EngineState;
 class InputQuery;
 class PiecewiseLinearConstraint;
@@ -46,16 +50,6 @@ class Engine : public IEngine, public SignalHandler::Signalable
 public:
     Engine( unsigned verbosity = 2 );
     ~Engine();
-
-    enum ExitCode {
-        UNSAT = 0,
-        SAT = 1,
-        ERROR = 2,
-        TIMEOUT = 3,
-        QUIT_REQUESTED = 4,
-
-        NOT_DONE = 999,
-    };
 
     /*
       Attempt to find a feasible solution for the input within a time limit
@@ -114,9 +108,15 @@ public:
     void applySplit( const PiecewiseLinearCaseSplit &split );
 
     /*
+      Reset the state of the engine, before solving a new query
+      (as part of DnC mode).
+    */
+    void reset();
+
+    /*
       Reset the statistics object
     */
-    void resetStatistics( const Statistics &statistics );
+    void resetStatistics();
 
     /*
       Clear the violated PL constraints
@@ -130,7 +130,7 @@ public:
 
     /*
       PSA: The following two methods are for DnC only and should be used very
-      cauciously.
+      cautiously.
      */
     void resetSmtCore();
     void resetExitCode();
@@ -152,11 +152,12 @@ public:
     */
     unsigned numberOfFixedConstraints();
 
+    /*
+      Tighten any bounds, return false if we have a contradiction in bounds
+    */
     bool propagate();
 
     List<PiecewiseLinearConstraint *> getPLConstraints();
-
-    unsigned numberOfActiveConstraints();
 
     void getEstimates( Map <PiecewiseLinearConstraint *, double> &balanceEstimates,
                        Map <PiecewiseLinearConstraint *, double> &runtimeEstimates );
