@@ -171,7 +171,7 @@ void NetworkLevelReasoner::evaluate( double *input, double *output )
     memcpy( output, _work1, sizeof(double) * _layerSizes[_numberOfLayers - 1] );
 }
 
-void getActivationPattern( const Vector<double> &input, ActivationPattern &pattern )
+void NetworkLevelReasoner::getActivationPattern( Vector<double> &input, NetworkLevelReasoner::ActivationPattern &pattern )
 {
     // This is bad
     double *inputArray = new double[input.size()];

@@ -17,6 +17,7 @@
 #define __NetworkLevelReasoner_h__
 
 #include "Map.h"
+#include "Vector.h"
 
 /*
   A class for performing operations that require knowledge of network
@@ -66,7 +67,7 @@ public:
         ReLU,
     };
 
-    typedef ActivationPattern Map<Index, unsigned>;
+    typedef Map<Index, unsigned> ActivationPattern;
 
     void setNumberOfLayers( unsigned numberOfLayers );
     void setLayerSize( unsigned layer, unsigned size );
@@ -101,7 +102,7 @@ public:
     /*
       Interface methods for performing operations on the network.
     */
-    void getActivationPattern( const Vector<double> &input, ActivationPattern &pattern );
+    void getActivationPattern( Vector<double> &input, NetworkLevelReasoner::ActivationPattern &pattern );
 
     /*
       Duplicate the reasoner

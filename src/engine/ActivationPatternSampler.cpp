@@ -25,7 +25,7 @@ ActivationPatternSampler::ActivationPatternSampler( const List<unsigned>
                                                     *networkLevelReasoner )
     : _inputVariables( inputVariables )
     , _networkLevelReasoner( networkLevelReasoner )
-    , __numberOfInputVariables( inputVariables.size() )
+    , _numberOfInputVariables( inputVariables.size() )
 {
 }
 
@@ -40,7 +40,6 @@ bool ActivationPatternSampler::samplePoints( const InputRegion &inputRegion,
 {
     _samplers.clear();
     std::default_random_engine randomEngine( 0 );
-    unsigned varIndex = 0;
     for ( const auto &variable : _inputVariables )
     {
         float lowerBound = inputRegion._lowerBounds[variable];
@@ -108,7 +107,7 @@ void ActivationPatternSampler::dumpActivationPatterns()
 {
     for ( unsigned i = 0; i < _numberOfPoints; ++i )
     {
-        for ( auto &act : *( _patterns[i] ) )
+        for ( auto &act :  _patterns[i] )
             std::cout << act.second << " ";
         std::cout << std::endl;
     }
