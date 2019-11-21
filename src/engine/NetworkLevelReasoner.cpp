@@ -180,7 +180,7 @@ void NetworkLevelReasoner::getActivationPattern( Vector<double> &input, NetworkL
         inputArray[i] = input[i];
     evaluate( inputArray, outputArray );
     for ( const auto &entry : _indexToActivationResultAssignment )
-        pattern[entry.first] = (entry.second > 0 ? 1 : 0);
+        pattern[_indexToWeightedSumVariable[entry.first]] = ( entry.second > 0 ? 1 : 0 );
     delete inputArray;
     delete outputArray;
 }

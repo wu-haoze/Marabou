@@ -39,7 +39,6 @@ public:
 
     ActivationPatternSampler( const List<unsigned> &inputVariables,
                               NetworkLevelReasoner *networkLevelReasoner );
-    ~ActivationPatternSampler();
 
     /*
       Sample n points and store them in _samplePoints
@@ -69,10 +68,9 @@ public:
     void dumpActivationPatterns();
 
     // Getters
-    unsigned getNumberOfPoints() const;
     const Vector<Vector<double>> &getSampledPoints() const;
     const Vector<NetworkLevelReasoner::ActivationPattern> &getActivationPatterns() const;
-    const Map<NetworkLevelReasoner::Index, ReluConstraint:: PhaseStatus>
+    const Map<unsigned, ReluConstraint:: PhaseStatus>
         &getIndexToPhaseStatusEstimate() const;
 
     void clearIndexToPhaseStatusEstimate();
@@ -96,11 +94,10 @@ private:
     NetworkLevelReasoner *_networkLevelReasoner;
 
     unsigned _numberOfInputVariables;
-    unsigned _numberOfPoints;
     Vector<Vector<double>> _samplePoints;
     Vector<NetworkLevelReasoner::ActivationPattern> _patterns;
     Vector<std::uniform_real_distribution<double>> _samplers;
-    Map<NetworkLevelReasoner::Index, ReluConstraint:: PhaseStatus> _indexToPhaseStatusEstimate;
+    Map<unsigned, ReluConstraint:: PhaseStatus> _indexToPhaseStatusEstimate;
 };
 
 #endif // __ActivationVarianceSampler_h__

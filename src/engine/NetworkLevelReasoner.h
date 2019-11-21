@@ -67,7 +67,7 @@ public:
         ReLU,
     };
 
-    typedef Map<Index, unsigned> ActivationPattern;
+    typedef Map<unsigned, unsigned> ActivationPattern;
 
     void setNumberOfLayers( unsigned numberOfLayers );
     void setLayerSize( unsigned layer, unsigned size );

@@ -14,6 +14,7 @@
  ** [[ Add lengthier description here ]]
  **/
 
+#include "ActivationPatternSampler.h"
 #include "AutoConstraintMatrixAnalyzer.h"
 #include "Debug.h"
 #include "Engine.h"
@@ -85,6 +86,40 @@ void Engine::adjustWorkMemorySize()
     _work = new double[_tableau->getM()];
     if ( !_work )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
+}
+
+void Engine::setPhaseEstimate()
+{
+    auto inputVariables = getInputVariables();
+    ActivationPatternSampler sampler( inputVariables,
+                                      _networkLevelReasoner );
+    ActivationPatternSampler::InputRegion initialRegion;
+    for ( const auto &variable : inputVariables )
+    {
+        initialRegion._lowerBounds[variable] =
+            _tableau->getLowerBound( variable );
+        initialRegion._upperBounds[variable] =
+            _tableau->getUpperBound( variable );
+    }
+    sampler.samplePoints( initialRegion, 10000 );
+    sampler.computeActivationPatterns();
+    sampler.updatePhaseEstimate();
+    auto indexToPhaseStatusEstimate = sampler.getIndexToPhaseStatusEstimate();
+    for ( const auto &relu : _plConstraints )
+    {
+        unsigned b = ((ReluConstraint *) relu)->getB();
+        if ( indexToPhaseStatusEstimate.exists( b ) )
+        {
+            std::cout << "setting relu " << b << " to " << indexToPhaseStatusEstimate[b] << std::endl;
+            if ( indexToPhaseStatusEstimate[b] == ReluConstraint::PHASE_ACTIVE )
+                ((ReluConstraint *) relu)->setDirection( 1 );
+            else if ( indexToPhaseStatusEstimate[b] ==
+                      ReluConstraint::PHASE_INACTIVE )
+                ((ReluConstraint *) relu)->setDirection( 0 );
+            else
+                ((ReluConstraint *) relu)->setDirection( -1 );
+        }
+    }
 }
 
 bool Engine::solve( unsigned timeoutInSeconds )

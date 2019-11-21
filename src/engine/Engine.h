@@ -135,6 +135,8 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
+    void setPhaseEstimate();
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,

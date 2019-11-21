@@ -29,12 +29,6 @@ ActivationPatternSampler::ActivationPatternSampler( const List<unsigned>
 {
 }
 
-ActivationPatternSampler::~ActivationPatternSampler()
-{
-    freeMemoryIfNeeded();
-    // The sampler does not own the networkLeverReasoner
-}
-
 bool ActivationPatternSampler::samplePoints( const InputRegion &inputRegion,
                                               unsigned numberOfPoints )
 {
@@ -63,18 +57,20 @@ bool ActivationPatternSampler::samplePoints( const InputRegion &inputRegion,
 void ActivationPatternSampler::computeActivationPatterns()
 {
     _patterns.clear();
-    NetworkLevelReasoner::ActivationPattern pattern;
-    for ( unsigned i = 0; i < _numberOfPoints; ++i )
-        _networkLevelReasoner->getActivationPattern( _samplePoints[i],
+    for ( auto &point : _samplePoints )
+    {
+        NetworkLevelReasoner::ActivationPattern pattern;
+        _networkLevelReasoner->getActivationPattern( point,
                                                      pattern );
-    _patterns.append( pattern );
+        _patterns.append( pattern );
+    }
 }
 
 void ActivationPatternSampler::updatePhaseEstimate()
 {
-    for ( unsigned i = 0; i < _numberOfPoints; ++i )
+    for ( const auto &pattern :  _patterns )
     {
-        for ( const auto &entry : _patterns[i] )
+        for ( const auto &entry : pattern )
         {
             auto index = entry.first;
             auto currentPhase = entry.second > 0 ?
@@ -95,27 +91,22 @@ void ActivationPatternSampler::updatePhaseEstimate()
 
 void ActivationPatternSampler::dumpSampledPoints()
 {
-    for ( unsigned i = 0; i < _numberOfPoints; ++i )
+    for ( auto &point : _samplePoints )
     {
-        for ( unsigned j = 0; j < _inputVariables.size(); ++j )
-            std::cout << _samplePoints[i][j] << " ";
+        for ( const auto &val : point )
+            std::cout << val << " ";
         std::cout << std::endl;
     }
 }
 
 void ActivationPatternSampler::dumpActivationPatterns()
 {
-    for ( unsigned i = 0; i < _numberOfPoints; ++i )
+    for ( const auto& pattern : _patterns )
     {
-        for ( auto &act :  _patterns[i] )
+        for ( auto &act :  pattern )
             std::cout << act.second << " ";
         std::cout << std::endl;
     }
-}
-
-unsigned ActivationPatternSampler::getNumberOfPoints() const
-{
-    return _numberOfPoints;
 }
 
 const Vector<Vector<double>> &ActivationPatternSampler::getSampledPoints() const
@@ -129,7 +120,7 @@ getActivationPatterns() const
     return _patterns;
 }
 
-const Map<NetworkLevelReasoner::Index, ReluConstraint:: PhaseStatus>
+const Map<unsigned, ReluConstraint:: PhaseStatus>
 &ActivationPatternSampler::getIndexToPhaseStatusEstimate() const
 {
     return _indexToPhaseStatusEstimate;
