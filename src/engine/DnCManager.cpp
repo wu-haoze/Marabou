@@ -31,6 +31,9 @@
 #include <thread>
 #include <fstream>
 
+#include "util/util.hh"
+
+
 static void dumpSubQuery( const SubQuery &subquery )
 {
     std::ofstream o{subquery._queryId.ascii()};
@@ -43,6 +46,9 @@ static void dumpSubQuery( const SubQuery &subquery )
         else
             o << "x" << bound._variable << " <= " << bound._value << "\n";
     }
+    const string marabou_hash = safe_getenv( "MARABOU_HASH" );
+    
+
 }
 
 void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,

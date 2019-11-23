@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.2)
 project(Marabou)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 set(BUILD_SHARED_LIBS OFF)
@@ -153,8 +153,11 @@ if (NOT ${Boost_FOUND})
     execute_process(COMMAND ${TOOLS_DIR}/download_boost.${SCRIPT_EXTENSION})
     find_package(Boost REQUIRED COMPONENTS program_options)
 endif()
-set(LIBS_INCLUDES ${Boost_INCLUDE_DIRS})
-set(LIBS ${Boost_LIBRARIES})
+set(LIBS_INCLUDES ${Boost_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/gg-includes)
+set(LIBS ${Boost_LIBRARIES}
+    ${PROJECT_SOURCE_DIR}/gg-libs/libthunk.a
+    ${PROJECT_SOURCE_DIR}/gg-libs/libggutil.a
+    )
 
 
 # pthread
@@ -171,6 +174,7 @@ target_compile_options(${MARABOU_LIB} PRIVATE ${RELEASE_FLAGS})
 # Build marabou executable
 target_link_libraries(${MARABOU_EXE} ${MARABOU_LIB})
 target_include_directories(${MARABOU_EXE} PRIVATE ${LIBS_INCLUDES})
+
 
 
 # Build Python marabou

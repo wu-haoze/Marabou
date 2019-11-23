@@ -19,6 +19,7 @@
 #include "List.h"
 #include "Map.h"
 #include "SubQuery.h"
+#include "thunk/thunk.hh"
 
 class QueryDivider
 {
