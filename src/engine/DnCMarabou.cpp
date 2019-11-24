@@ -98,8 +98,6 @@ void DnCMarabou::run()
     unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
     float timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
 
-    bool divideOnly = Options::get()->getBool( Options::DIVIDE_ONLY );
-
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
                         onlineDivides, timeoutFactor,

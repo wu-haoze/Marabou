@@ -57,6 +57,9 @@ void OptionParser::initialize()
         ( "summary-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SUMMARY_FILE]) ),
           "Summary file" )
+	( "query-id",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::QUERY_ID]) ),
+          "The id of the query" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )

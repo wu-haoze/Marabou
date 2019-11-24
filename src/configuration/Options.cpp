@@ -67,6 +67,7 @@ void Options::initializeDefaultValues()
     _stringOptions[PROPERTY_FILE_PATH] = "";
     _stringOptions[INPUT_QUERY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";
+    _stringOptions[QUERY_ID] = "";
 }
 
 void Options::parseOptions( int argc, char **argv )

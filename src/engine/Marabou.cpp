@@ -16,12 +16,18 @@
 
 #include "AcasParser.h"
 #include "File.h"
+#include "LargestIntervalDivider.h"
 #include "MStringf.h"
 #include "Marabou.h"
+#include "MarabouError.h"
 #include "Options.h"
 #include "PropertyParser.h"
 #include "MarabouError.h"
 #include "QueryLoader.h"
+#include "QueryDivider.h"
+
+#include "thunk/thunk.hh"
+#include "util/util.hh"
 
 #ifdef _WIN32
 #undef ERROR
@@ -107,11 +113,54 @@ void Marabou::prepareInputQuery()
 
 void Marabou::solveQuery()
 {
+    unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
     if ( _engine.processInputQuery( _inputQuery ) )
-        _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+        _engine.solve( timeoutInSeconds );
 
     if ( _engine.getExitCode() == Engine::SAT )
         _engine.extractSolution( _inputQuery );
+
+    if ( _engine.getExitCode() == Engine::TIMEOUT )
+    {
+	_engine.reset();
+        const List<unsigned> inputVariables( _engine.getInputVariables() );
+        std::unique_ptr<QueryDivider> queryDivider  = std::unique_ptr<QueryDivider>
+        ( new LargestIntervalDivider( inputVariables ) );
+
+        // Create a new case split
+        QueryDivider::InputRegion initialRegion;
+        InputQuery *inputQuery = _engine.getInputQuery();
+        for ( const auto &variable : inputVariables )
+        {
+	    initialRegion._lowerBounds[variable] =
+		inputQuery->getLowerBounds()[variable];
+	    initialRegion._upperBounds[variable] =
+		inputQuery->getUpperBounds()[variable];
+        }
+
+        auto split = std::unique_ptr<PiecewiseLinearCaseSplit>
+	    ( new PiecewiseLinearCaseSplit() );
+
+        // Add bound as equations for each input variable
+        for ( const auto &variable : inputVariables )
+        {
+	    double lb = initialRegion._lowerBounds[variable];
+	    double ub = initialRegion._upperBounds[variable];
+	    split->storeBoundTightening( Tightening( variable, lb,
+						     Tightening::LB ) );
+	    split->storeBoundTightening( Tightening( variable, ub,
+						     Tightening::UB ) );
+        }
+	unsigned numDivides = Options::get()->getInt( Options::NUM_ONLINE_DIVIDES );
+	String queryId = Options::get()->getString( Options::QUERY_ID );
+	SubQueries subQueries;
+        queryDivider->createSubQueries( pow( 2, numDivides ), queryId,
+                        *split, timeoutInSeconds, subQueries );
+	for ( const auto &subQuery : subQueries )
+	{
+	    dumpSubQuery( *subQuery );
+	}
+    }
 }
 
 void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
@@ -178,6 +227,26 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         summaryFile.write( "\n" );
     }
+}
+
+void Marabou::dumpSubQuery( const SubQuery &subquery )
+{
+    std::ofstream o{subquery._queryId.ascii()};
+    const auto& split = subquery._split;
+    auto bounds = split->getBoundTightenings();
+    for ( const auto bound : bounds )
+    {
+        if ( bound._type == Tightening::LB )
+            o << "x" << bound._variable << " >= " << bound._value << "\n";
+        else
+            o << "x" << bound._variable << " <= " << bound._value << "\n";
+    }
+    //const std::string marabou_hash = safe_getenv( "MARABOU_HASH" );
+    //const Thunk subproblemThunk {
+    //{ marabou_hash, {"Marabou", "--timeout=" + timeoutInSeconds * _timeoutFactor, "--num-online-divides=" + _numOnlineDivides,
+    //            "--timeout-factor=" + _timeoutFactor, ""},  
+        
+    //}
 }
 
 //
