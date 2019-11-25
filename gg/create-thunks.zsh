@@ -1,6 +1,6 @@
 #!/usr/bin/zsh -e
 
-USAGE="$0 <MAR-PATH> <MERGE-PATH> <SUBPROBLEM-DIR> <NET-PATH>"
+USAGE="$0 <MAR-PATH> <MERGE-PATH> <NET-PATH> <PROP-PATH> <DIVIDES> <TIMEOUT> <TIMEOUT-FACTOR>"
 
 rm -rf .gg
 
@@ -8,31 +8,54 @@ gg-init
 
 MAR_PATH=${1?$USAGE}
 MERGE_PATH=${2?$USAGE}
-SUBPROBLEM_DIR=${3?$USAGE}
-NET_PATH=${4?$USAGE}
+NET_PATH=${3?$USAGE}
+PROP_PATH=${4?${USAGE}}
+DIVIDES=${5?$(${DIVIDES})}
+TIMEOUT=${6?${TIMEOUT}}
+TIMEOUT_FACTOR=${7?${TIMEOUT_FACTOR}}
 
-gg-collect $MAR_PATH $NET_PATH $MAR_PATH $MERGE_PATH >/dev/null
+gg-collect $MAR_PATH $NET_PATH $MERGE_PATH $PROP_PATH >/dev/null
 
 MAR_HASH=$(gg-hash $MAR_PATH)
-NET_HASH=$(gg-hash $NET_PATH)
 MERGE_HASH=$(gg-hash $MERGE_PATH)
+NET_HASH=$(gg-hash $NET_PATH)
+PROP_HASH=$(gg-hash $PROP_PATH)
+OUT_PATH=out
+QUERY_ID="${NET_PATH},${PROP_PATH}"
 
-subhashes=$(for subproblem in $(ls $SUBPROBLEM_DIR); do
-    gg-collect "${SUBPROBLEM_DIR}/${subproblem}" >/dev/null
-    gg-create-thunk \
-        --executable ${MAR_HASH} \
-        --output out \
-        --value $NET_HASH \
-        --value $(gg-hash "${SUBPROBLEM_DIR}/${subproblem}") \
-        -- \
-        ${MAR_HASH} Marabou "@{GGHASH:${NET_HASH}}" "@{GGHASH:$(gg-hash "${SUBPROBLEM_DIR}/${subproblem}")}" --summary-file=out
-done 2>&1)
+function placeholder() {
+    echo "@{GGHASH:$1}"
+}
+
+function countargs() {
+    echo "$#"
+}
+
+outputs=$(echo $OUT_PATH
+for i in $(seq 1 $(( DIVIDES ** 2 ))); do
+    echo $QUERY_ID-$i.prop
+    echo $QUERY_ID-$i.thunk
+done;)
+
+
 
 gg-create-thunk \
     --executable $MERGE_HASH \
-    --output out \
-    $(for f in $(echo $subhashes); do; echo --thunk $f; done) \
-    --placeholder merge_output \
+    --value $NET_HASH \
+    --value $PROP_HASH \
+    --value $MERGE_HASH \
+    $(for o in "${=outputs}"; do; echo --output $o; done) \
+    --placeholder out \
     -- \
-    $MERGE_HASH merge "@{GGHASH:$MERGE_HASH}" $(for f in $(echo $subhashes); do; echo "@{GGHASH:$f}"; done)
+    $MAR_HASH Marabou \
+    --gg-output \
+    --timeout $TIMEOUT \
+    --timeout-factor $TIMEOUT_FACTOR \
+    --num-online-divides $DIVIDES \
+    --summary-file out \
+    --merge-file $(placeholder $MERGE_HASH) \
+    --self-hash $MAR_HASH \
+    --query-id $QUERY_ID \
+    $(placeholder $NET_HASH) \
+    $(placeholder $PROP_HASH)
 

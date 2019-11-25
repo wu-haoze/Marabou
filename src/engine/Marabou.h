@@ -23,7 +23,7 @@
 class Marabou
 {
 public:
-    Marabou( unsigned verbosity = 2 );
+    Marabou( unsigned verbosity = 2, bool ggOutput = false );
     ~Marabou();
 
     /*
@@ -48,10 +48,24 @@ private:
     /*
       Display the results
     */
-    void displayResults( unsigned long long microSecondsElapsed ) const;
+    void displayResults( unsigned long long microSecondsElapsed );
 
 
-    void dumpSubQuery( const SubQueries &subQueries );
+    /**
+     * Resets this solver, and creates subqueries.
+     */
+    SubQueries split();
+
+    /**
+     * Creates output files containing thunks for these SubQueries, as well as
+     * a merge thunk.
+     */
+    void dumpSubQueriesAsThunks( const SubQueries &subQueries ) const;
+
+    /**
+     * Creates empty output files for the subproblems of this problem.
+     */
+    void createEmptySubproblemOutputs() const;
 
     /*
       ACAS network parser
@@ -62,6 +76,15 @@ private:
       The solver
     */
     Engine _engine;
+
+    /*
+     * Whether the output should be GG-compatible.
+     * In the case of TIMEOUT, this means that the summary file will contain a
+     * continuation thunk dependent on subproblem thunks.
+     * In the case of SAT/UNSAT, this just means that empty subproblem thunk
+     * files will be created.
+     */
+    bool _ggOutput;
 };
 
 #endif // __Marabou_h__

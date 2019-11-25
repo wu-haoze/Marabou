@@ -93,7 +93,7 @@ int main( int argc, char **argv )
         if ( options->getBool( Options::DNC_MODE ) )
             DnCMarabou().run();
         else
-            Marabou( options->getInt( Options::VERBOSITY ) ).run();
+            Marabou( options->getInt( Options::VERBOSITY ), options->getBool( Options::GG_OUTPUT ) ).run();
     }
     catch ( const Error &e )
     {

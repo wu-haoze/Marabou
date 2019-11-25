@@ -40,7 +40,7 @@ public:
         // Version flag
         VERSION,
 
-        DIVIDE_ONLY,
+        GG_OUTPUT,
     };
 
     enum IntOptions {
@@ -67,8 +67,9 @@ public:
         PROPERTY_FILE_PATH,
         INPUT_QUERY_FILE_PATH,
         SUMMARY_FILE,
-	QUERY_ID,
-	MERGE_FILE,
+        QUERY_ID,
+        MERGE_FILE,
+        SELF_HASH,
     };
 
     /*

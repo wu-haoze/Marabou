@@ -45,6 +45,9 @@ void OptionParser::initialize()
         ( "dnc",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
+        ( "self-hash",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::SELF_HASH]) ),
+          "Hash of the running program" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )
@@ -91,9 +94,9 @@ void OptionParser::initialize()
         ( "version",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::VERSION]) ),
           "Prints the version number")
-        ( "divide-only",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::DIVIDE_ONLY]) ),
-          "Only divide the query")
+        ( "gg-output",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::GG_OUTPUT]) ),
+          "Output in GG format")
         ;
 
     // Positional options, for the mandatory options
