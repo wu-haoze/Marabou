@@ -68,6 +68,7 @@ public:
         INPUT_QUERY_FILE_PATH,
         SUMMARY_FILE,
 	QUERY_ID,
+	MERGE_FILE,
     };
 
     /*

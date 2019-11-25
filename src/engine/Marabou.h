@@ -51,7 +51,7 @@ private:
     void displayResults( unsigned long long microSecondsElapsed ) const;
 
 
-    void dumpSubQuery( const SubQuery &subquery );
+    void dumpSubQuery( const SubQueries &subQueries );
 
     /*
       ACAS network parser

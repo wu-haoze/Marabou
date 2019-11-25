@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_PYTHON "Build Python" ON)
 option(FORCE_PYTHON_BUILD "Build python even if there is only python32" OFF)
@@ -104,6 +105,8 @@ endif()
 #    endif()
 #endif()
 
+add_subdirectory( gg/ )
+
 add_definitions(-DRESOURCES_DIR="${RESOURCES_DIR}")
 
 if (NOT MSVC)
@@ -157,6 +160,9 @@ set(LIBS_INCLUDES ${Boost_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/gg-includes)
 set(LIBS ${Boost_LIBRARIES}
     ${PROJECT_SOURCE_DIR}/gg-libs/libthunk.a
     ${PROJECT_SOURCE_DIR}/gg-libs/libggutil.a
+    ${PROJECT_SOURCE_DIR}/gg-libs/libggprotobufs.a
+    ${PROJECT_SOURCE_DIR}/gg-libs/libprotobuf.a
+    ${PROJECT_SOURCE_DIR}/gg-libs/libcrypto++.a
     )
 
 

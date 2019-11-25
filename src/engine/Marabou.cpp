@@ -27,6 +27,8 @@
 #include "QueryDivider.h"
 
 #include "thunk/thunk.hh"
+#include "thunk/thunk_writer.hh"
+#include "thunk/ggutils.hh"
 #include "util/util.hh"
 
 #ifdef _WIN32
@@ -122,7 +124,7 @@ void Marabou::solveQuery()
 
     if ( _engine.getExitCode() == Engine::TIMEOUT )
     {
-	_engine.reset();
+        _engine.reset();
         const List<unsigned> inputVariables( _engine.getInputVariables() );
         std::unique_ptr<QueryDivider> queryDivider  = std::unique_ptr<QueryDivider>
         ( new LargestIntervalDivider( inputVariables ) );
@@ -132,34 +134,31 @@ void Marabou::solveQuery()
         InputQuery *inputQuery = _engine.getInputQuery();
         for ( const auto &variable : inputVariables )
         {
-	    initialRegion._lowerBounds[variable] =
-		inputQuery->getLowerBounds()[variable];
-	    initialRegion._upperBounds[variable] =
-		inputQuery->getUpperBounds()[variable];
+            initialRegion._lowerBounds[variable] =
+                inputQuery->getLowerBounds()[variable];
+            initialRegion._upperBounds[variable] =
+                inputQuery->getUpperBounds()[variable];
         }
 
         auto split = std::unique_ptr<PiecewiseLinearCaseSplit>
-	    ( new PiecewiseLinearCaseSplit() );
+            ( new PiecewiseLinearCaseSplit() );
 
         // Add bound as equations for each input variable
         for ( const auto &variable : inputVariables )
         {
-	    double lb = initialRegion._lowerBounds[variable];
-	    double ub = initialRegion._upperBounds[variable];
-	    split->storeBoundTightening( Tightening( variable, lb,
-						     Tightening::LB ) );
-	    split->storeBoundTightening( Tightening( variable, ub,
-						     Tightening::UB ) );
+            double lb = initialRegion._lowerBounds[variable];
+            double ub = initialRegion._upperBounds[variable];
+            split->storeBoundTightening( Tightening( variable, lb,
+                                                     Tightening::LB ) );
+            split->storeBoundTightening( Tightening( variable, ub,
+                                                     Tightening::UB ) );
         }
-	unsigned numDivides = Options::get()->getInt( Options::NUM_ONLINE_DIVIDES );
-	String queryId = Options::get()->getString( Options::QUERY_ID );
-	SubQueries subQueries;
+        unsigned numDivides = Options::get()->getInt( Options::NUM_ONLINE_DIVIDES );
+        String queryId = Options::get()->getString( Options::QUERY_ID );
+        SubQueries subQueries;
         queryDivider->createSubQueries( pow( 2, numDivides ), queryId,
                         *split, timeoutInSeconds, subQueries );
-	for ( const auto &subQuery : subQueries )
-	{
-	    dumpSubQuery( *subQuery );
-	}
+	dumpSubQuery( subQueries );
     }
 }
 
@@ -192,6 +191,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
     {
         resultString = "TIMEOUT";
         printf( "Timeout\n" );
+	return;
     }
     else if ( result == Engine::ERROR )
     {
@@ -229,24 +229,99 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
     }
 }
 
-void Marabou::dumpSubQuery( const SubQuery &subquery )
+void Marabou::dumpSubQuery( const SubQueries &subQueries )
 {
-    std::ofstream o{subquery._queryId.ascii()};
-    const auto& split = subquery._split;
-    auto bounds = split->getBoundTightenings();
-    for ( const auto bound : bounds )
+    // Get options
+    unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
+    unsigned numOnlineDivides = Options::get()->getInt( Options::NUM_ONLINE_DIVIDES );
+    String networkFilePath = Options::get()->getString( Options::INPUT_FILE_PATH );
+    String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
+    String mergePath = Options::get()->getString( Options::MERGE_FILE );
+    double timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
+
+
+    // Declare suffixes
+    const std::string propSuffix = ".prop";
+    const std::string thunkSuffix = ".thunk";
+
+    std::vector<gg::thunk::Thunk::DataItem> thunkHashes;
+    std::vector<std::string> mergeArguments;
+    mergeArguments.push_back("merge");
+
+    for ( const auto &subQueryPointer : subQueries )
     {
-        if ( bound._type == Tightening::LB )
-            o << "x" << bound._variable << " >= " << bound._value << "\n";
-        else
-            o << "x" << bound._variable << " <= " << bound._value << "\n";
+	const SubQuery &subQuery = *subQueryPointer;
+	const std::string queryId = std::string(subQuery._queryId.ascii());
+	// Emit subproblem property file
+	const std::string propFilePath = queryId + propSuffix;
+	{
+	    std::ofstream o{propFilePath};
+	    const auto& split = subQuery._split;
+	    auto bounds = split->getBoundTightenings();
+	    for ( const auto bound : bounds )
+		{
+		    if ( bound._type == Tightening::LB )
+			o << "x" << bound._variable << " >= " << bound._value << "\n";
+		    else
+			o << "x" << bound._variable << " <= " << bound._value << "\n";
+		}
+	}
+
+	// Compute hashes
+	const std::string propHash = gg::hash::file_force( propFilePath );
+	const std::string networkFileHash = gg::hash::file_force( networkFilePath.ascii() );
+	const std::string marabouHash = gg::hash::file_force( "./Marabou" );
+
+	// List all potential output files
+	std::vector<std::string> outputFileNames;
+	outputFileNames.emplace_back(summaryFilePath.ascii());
+	for (unsigned i = 1; i <= (1U << numOnlineDivides); ++i)
+	    {
+		outputFileNames.push_back(queryId + std::to_string( i ) + propSuffix);
+		outputFileNames.push_back(queryId + std::to_string( i ) + thunkSuffix);
+	    }
+
+	// Construct thunk
+	const gg::thunk::Thunk subproblemThunk {
+	    { marabouHash,
+		    { "Marabou",
+			    "--timeout=" + std::to_string( timeoutInSeconds * timeoutFactor ),
+			    "--num-online-divides=" + std::to_string( numOnlineDivides ),
+			    "--timeout-factor=" + std::to_string( timeoutFactor ),
+			    std::string("--summary-file=") + summaryFilePath.ascii(),
+			    std::string("--query-id=") + queryId,
+			    gg::thunk::data_placeholder( networkFileHash ),
+			    gg::thunk::data_placeholder( propHash ),
+			    },
+			{}
+	    },
+		{
+		    { networkFileHash, "" },
+			{ propHash, "" },
+			    },
+		    {
+			{ marabouHash, "" }
+		    },
+			outputFileNames
+			    };
+	ThunkWriter::write( subproblemThunk, queryId + thunkSuffix );
+	auto subProblemThunkHash = subproblemThunk.hash();
+	thunkHashes.emplace_back( subProblemThunkHash, "" );
+	mergeArguments.push_back( gg::thunk::data_placeholder( subProblemThunkHash ) );
     }
-    //const std::string marabou_hash = safe_getenv( "MARABOU_HASH" );
-    //const Thunk subproblemThunk {
-    //{ marabou_hash, {"Marabou", "--timeout=" + timeoutInSeconds * _timeoutFactor, "--num-online-divides=" + _numOnlineDivides,
-    //            "--timeout-factor=" + _timeoutFactor, ""},  
-        
-    //}
+
+    const std::string mergeHash = gg::hash::file_force( mergePath.ascii() );
+    const gg::thunk::Thunk mergeThunk{
+	{   mergeHash, std::move( mergeArguments ), {} },
+	{},
+	std::move( thunkHashes ),
+        {
+	{ mergeHash, "" }
+	},
+	{std::string("out")}
+    };
+    
+    ThunkWriter::write( mergeThunk, summaryFilePath.ascii() );
 }
 
 //

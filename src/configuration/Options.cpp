@@ -68,6 +68,7 @@ void Options::initializeDefaultValues()
     _stringOptions[INPUT_QUERY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";
     _stringOptions[QUERY_ID] = "";
+    _stringOptions[MERGE_FILE] = "";
 }
 
 void Options::parseOptions( int argc, char **argv )

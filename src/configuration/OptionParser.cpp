@@ -60,6 +60,9 @@ void OptionParser::initialize()
 	( "query-id",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::QUERY_ID]) ),
           "The id of the query" )
+	( "merge-file",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::MERGE_FILE]) ),
+          "The path to the merge program" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )
