@@ -158,7 +158,7 @@ void Marabou::solveQuery()
         SubQueries subQueries;
         queryDivider->createSubQueries( pow( 2, numDivides ), queryId,
                         *split, timeoutInSeconds, subQueries );
-	dumpSubQuery( subQueries );
+        dumpSubQuery( subQueries );
     }
 }
 
@@ -191,7 +191,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
     {
         resultString = "TIMEOUT";
         printf( "Timeout\n" );
-	return;
+        return;
     }
     else if ( result == Engine::ERROR )
     {
@@ -250,77 +250,76 @@ void Marabou::dumpSubQuery( const SubQueries &subQueries )
 
     for ( const auto &subQueryPointer : subQueries )
     {
-	const SubQuery &subQuery = *subQueryPointer;
-	const std::string queryId = std::string(subQuery._queryId.ascii());
-	// Emit subproblem property file
-	const std::string propFilePath = queryId + propSuffix;
-	{
-	    std::ofstream o{propFilePath};
-	    const auto& split = subQuery._split;
-	    auto bounds = split->getBoundTightenings();
-	    for ( const auto bound : bounds )
-		{
-		    if ( bound._type == Tightening::LB )
-			o << "x" << bound._variable << " >= " << bound._value << "\n";
-		    else
-			o << "x" << bound._variable << " <= " << bound._value << "\n";
-		}
-	}
+        const SubQuery &subQuery = *subQueryPointer;
+        const std::string queryId = std::string(subQuery._queryId.ascii());
+        // Emit subproblem property file
+        const std::string propFilePath = queryId + propSuffix;
+        {
+            std::ofstream o{propFilePath};
+            const auto& split = subQuery._split;
+            auto bounds = split->getBoundTightenings();
+            for ( const auto bound : bounds )
+                {
+                    if ( bound._type == Tightening::LB )
+                        o << "x" << bound._variable << " >= " << bound._value << "\n";
+                    else
+                        o << "x" << bound._variable << " <= " << bound._value << "\n";
+                }
+        }
 
-	// Compute hashes
-	const std::string propHash = gg::hash::file_force( propFilePath );
-	const std::string networkFileHash = gg::hash::file_force( networkFilePath.ascii() );
-	const std::string marabouHash = gg::hash::file_force( "./Marabou" );
+        // Compute hashes
+        const std::string propHash = gg::hash::file_force( propFilePath );
+        const std::string networkFileHash = gg::hash::file_force( networkFilePath.ascii() );
+        const std::string marabouHash = gg::hash::file_force( "./Marabou" );
 
-	// List all potential output files
-	std::vector<std::string> outputFileNames;
-	outputFileNames.emplace_back(summaryFilePath.ascii());
-	for (unsigned i = 1; i <= (1U << numOnlineDivides); ++i)
-	    {
-		outputFileNames.push_back(queryId + std::to_string( i ) + propSuffix);
-		outputFileNames.push_back(queryId + std::to_string( i ) + thunkSuffix);
-	    }
+        // List all potential output files
+        std::vector<std::string> outputFileNames;
+        outputFileNames.emplace_back(summaryFilePath.ascii());
+        for (unsigned i = 1; i <= (1U << numOnlineDivides); ++i)
+        {
+            outputFileNames.push_back(queryId + std::to_string(i) + propSuffix);
+            outputFileNames.push_back(queryId + std::to_string(i) + thunkSuffix);
+        }
 
-	// Construct thunk
-	const gg::thunk::Thunk subproblemThunk {
-	    { marabouHash,
-		    { "Marabou",
-			    "--timeout=" + std::to_string( timeoutInSeconds * timeoutFactor ),
-			    "--num-online-divides=" + std::to_string( numOnlineDivides ),
-			    "--timeout-factor=" + std::to_string( timeoutFactor ),
-			    std::string("--summary-file=") + summaryFilePath.ascii(),
-			    std::string("--query-id=") + queryId,
-			    gg::thunk::data_placeholder( networkFileHash ),
-			    gg::thunk::data_placeholder( propHash ),
-			    },
-			{}
-	    },
-		{
-		    { networkFileHash, "" },
-			{ propHash, "" },
-			    },
-		    {
-			{ marabouHash, "" }
-		    },
-			outputFileNames
-			    };
-	ThunkWriter::write( subproblemThunk, queryId + thunkSuffix );
-	auto subProblemThunkHash = subproblemThunk.hash();
-	thunkHashes.emplace_back( subProblemThunkHash, "" );
-	mergeArguments.push_back( gg::thunk::data_placeholder( subProblemThunkHash ) );
+        // Construct thunk
+        const gg::thunk::Thunk subproblemThunk
+        {
+            { marabouHash,
+                {
+                    "Marabou",
+                    "--timeout=" + std::to_string(timeoutInSeconds * timeoutFactor),
+                    "--num-online-divides=" + std::to_string(numOnlineDivides),
+                    "--timeout-factor=" + std::to_string(timeoutFactor),
+                    std::string("--summary-file=") + summaryFilePath.ascii(),
+                    std::string("--query-id=") + queryId,
+                    gg::thunk::data_placeholder(networkFileHash),
+                    gg::thunk::data_placeholder(propHash),
+                },
+                {} },
+            {
+                { networkFileHash, "" },
+                { propHash, "" },
+            },
+            { { marabouHash, "" } },
+            outputFileNames
+        };
+
+        ThunkWriter::write( subproblemThunk, queryId + thunkSuffix );
+        auto subProblemThunkHash = subproblemThunk.hash();
+        thunkHashes.emplace_back( subProblemThunkHash, "" );
+        mergeArguments.push_back( gg::thunk::data_placeholder( subProblemThunkHash ) );
     }
 
     const std::string mergeHash = gg::hash::file_force( mergePath.ascii() );
-    const gg::thunk::Thunk mergeThunk{
-	{   mergeHash, std::move( mergeArguments ), {} },
-	{},
-	std::move( thunkHashes ),
-        {
-	{ mergeHash, "" }
-	},
-	{std::string("out")}
+    const gg::thunk::Thunk mergeThunk
+    {
+        { mergeHash, std::move(mergeArguments), {} },
+        {},
+        std::move(thunkHashes),
+        { { mergeHash, "" } },
+        { std::string("out") }
     };
-    
+
     ThunkWriter::write( mergeThunk, summaryFilePath.ascii() );
 }
 
