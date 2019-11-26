@@ -14,7 +14,7 @@ DIVIDES=${5?$(${DIVIDES})}
 TIMEOUT=${6?${TIMEOUT}}
 TIMEOUT_FACTOR=${7?${TIMEOUT_FACTOR}}
 
-gg-collect $MAR_PATH $NET_PATH $MERGE_PATH $PROP_PATH >/dev/null
+gg-collect $MAR_PATH $NET_PATH $MERGE_PATH $PROP_PATH
 
 MAR_HASH=$(gg-hash $MAR_PATH)
 MERGE_HASH=$(gg-hash $MERGE_PATH)
@@ -40,7 +40,7 @@ done;)
 
 
 gg-create-thunk \
-    --executable $MERGE_HASH \
+    --executable $MAR_HASH \
     --value $NET_HASH \
     --value $PROP_HASH \
     --value $MERGE_HASH \
