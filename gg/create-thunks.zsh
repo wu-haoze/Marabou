@@ -21,7 +21,7 @@ MERGE_HASH=$(gg-hash $MERGE_PATH)
 NET_HASH=$(gg-hash $NET_PATH)
 PROP_HASH=$(gg-hash $PROP_PATH)
 OUT_PATH=out
-QUERY_ID="${NET_PATH},${PROP_PATH}"
+QUERY_ID="${NET_PATH:t},${PROP_PATH:t}"
 
 function placeholder() {
     echo "@{GGHASH:$1}"

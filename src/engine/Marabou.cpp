@@ -130,6 +130,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
 {
     Engine::ExitCode result = _engine.getExitCode();
     String resultString;
+    std::ostringstream assignment;
 
     if ( result == Engine::UNSAT )
     {
@@ -143,15 +144,19 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
         resultString = "SAT";
         printf( "SAT\n" );
 
-        printf( "Input assignment:\n" );
+        assignment << "Input assignment:\n";
         for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
-            printf( "\tx%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) ) );
+        {
+            assignment << "\tx" << i << " = " << _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) ) << "\n";
+        }
 
-        printf( "\n" );
-        printf( "Output:\n" );
+        assignment << "\nOutput assignment:\n";
         for ( unsigned i = 0; i < _inputQuery.getNumOutputVariables(); ++i )
-            printf( "\ty%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
-        printf( "\n" );
+        {
+            assignment << "\ty" << i << " = " << _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) << "\n";
+        }
+        assignment << "\n";
+        std::cout << assignment.str();
         if ( _ggOutput )
             createEmptySubproblemOutputs();
     }
@@ -203,6 +208,10 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
                                     _engine.getStatistics()->getAveragePivotTimeInMicro() ) );
 
         summaryFile.write( "\n" );
+        if ( assignment.str().size() > 0 )
+        {
+            summaryFile.write( assignment.str() );
+        }
     }
 }
 

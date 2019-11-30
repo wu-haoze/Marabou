@@ -5,19 +5,17 @@
 using namespace std;
 
 int main (int argc, char *argv[]) {
-    string res = "UNSAT";
+    ofstream o{"out"};
     for (size_t i = 1; i < argc; ++i) {
         string content;
         ifstream in{argv[i]};
         in >> content;
-        if (content != "UNSAT" and content != "SAT") {
-            res = content;
-        } else if (content != "UNSAT") {
-            res = content;
-        } else {
-            res = content;
+        if (content == "SAT") {
+            o << "SAT\n";
+            o << in.rdbuf();
+            return EXIT_SUCCESS;
         }
     }
-    ofstream o{"out"};
-    o << res;
+    o << "UNSAT\n";
+    return EXIT_SUCCESS;
 }
