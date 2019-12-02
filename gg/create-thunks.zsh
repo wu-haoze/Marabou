@@ -32,7 +32,7 @@ function countargs() {
 }
 
 outputs=$(echo $OUT_PATH
-for i in $(seq 1 $(( DIVIDES ** 2 ))); do
+for i in $(seq 1 $(( 2 ** DIVIDES ))); do
     echo $QUERY_ID-$i.prop
     echo $QUERY_ID-$i.thunk
 done;)

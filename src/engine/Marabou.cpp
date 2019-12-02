@@ -31,6 +31,8 @@
 #include "thunk/ggutils.hh"
 #include "util/util.hh"
 
+#include <fstream>
+
 #ifdef _WIN32
 #undef ERROR
 #endif
@@ -256,6 +258,7 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
     const unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
     const unsigned numOnlineDivides = Options::get()->getInt( Options::NUM_ONLINE_DIVIDES );
     const String networkFilePath = Options::get()->getString( Options::INPUT_FILE_PATH );
+    const String propertyFilePath = Options::get()->getString( Options::PROPERTY_FILE_PATH );
     const String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
     const String mergePath = Options::get()->getString( Options::MERGE_FILE );
     const String selfHash = Options::get()->getString( Options::SELF_HASH );
@@ -281,7 +284,9 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
 
         // Emit subproblem property file
         {
+            std::ifstream oldFile{ propertyFilePath.ascii() };
             std::ofstream propFile{ propFilePath };
+            propFile << oldFile.rdbuf();
             const auto& split = subQuery._split;
             auto bounds = split->getBoundTightenings();
             for ( const auto bound : bounds )
