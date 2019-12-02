@@ -19,6 +19,7 @@
 #include "AcasParser.h"
 #include "Engine.h"
 #include "InputQuery.h"
+#include "SubQuery.h"
 
 class Marabou
 {
@@ -54,7 +55,7 @@ private:
     /**
      * Resets this solver, and creates subqueries.
      */
-    SubQueries split();
+    SubQueries split( unsigned divides );
 
     /**
      * Creates output files containing thunks for these SubQueries, as well as

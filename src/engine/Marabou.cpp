@@ -61,12 +61,23 @@ void Marabou::run()
     struct timespec start = TimeUtils::sampleMicro();
 
     prepareInputQuery();
-    solveQuery();
 
-    struct timespec end = TimeUtils::sampleMicro();
+    unsigned initialDivides = Options::get()->getInt( Options::NUM_INITIAL_DIVIDES );
+    if ( initialDivides > 0 )
+    {
+        _engine.processInputQuery( _inputQuery );
+        SubQueries splits = split( initialDivides );
+        dumpSubQueriesAsThunks( splits );
+    }
+    else
+    {
+        solveQuery();
 
-    unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
-    displayResults( totalElapsed );
+        struct timespec end = TimeUtils::sampleMicro();
+
+        unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+        displayResults( totalElapsed );
+    }
 }
 
 void Marabou::prepareInputQuery()
@@ -121,8 +132,9 @@ void Marabou::prepareInputQuery()
 
 void Marabou::solveQuery()
 {
-    if ( _engine.processInputQuery( _inputQuery ) )
+    if ( _engine.processInputQuery( _inputQuery ) ) {
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+    }
 
     if ( _engine.getExitCode() == Engine::SAT )
         _engine.extractSolution( _inputQuery );
@@ -168,7 +180,8 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
         printf( "Timeout\n" );
         if ( _ggOutput )
         {
-            SubQueries splits = split();
+            _engine.reset();
+            SubQueries splits = split( Options::get()->getInt( Options::NUM_ONLINE_DIVIDES ) );
             dumpSubQueriesAsThunks( splits );
             return;
         }
@@ -217,9 +230,8 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
     }
 }
 
-SubQueries Marabou::split()
+SubQueries Marabou::split( unsigned divides )
 {
-    _engine.reset();
     const List<unsigned> inputVariables(_engine.getInputVariables());
     std::unique_ptr<QueryDivider> queryDivider = std::unique_ptr<QueryDivider>(new LargestIntervalDivider(inputVariables));
 
@@ -243,12 +255,10 @@ SubQueries Marabou::split()
             Tightening::UB));
     }
 
-    unsigned numDivides = Options::get()->getInt(Options::NUM_ONLINE_DIVIDES);
-    unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
     String queryId = Options::get()->getString(Options::QUERY_ID);
     SubQueries subQueries;
-    queryDivider->createSubQueries(pow(2, numDivides), queryId,
-        *split, timeoutInSeconds, subQueries);
+    queryDivider->createSubQueries(pow(2, divides), queryId,
+        *split, 0, subQueries);
     return subQueries;
 }
 
@@ -257,6 +267,7 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
     // Get options
     const unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
     const unsigned numOnlineDivides = Options::get()->getInt( Options::NUM_ONLINE_DIVIDES );
+    const unsigned numInitialDivides = Options::get()->getInt( Options::NUM_INITIAL_DIVIDES );
     const String networkFilePath = Options::get()->getString( Options::INPUT_FILE_PATH );
     const String propertyFilePath = Options::get()->getString( Options::PROPERTY_FILE_PATH );
     const String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
@@ -313,6 +324,10 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
             outputFileNames.push_back(queryId + "-" + std::to_string(i) + THUNK_SUFFIX);
         }
 
+        unsigned nextTimeout = numInitialDivides > 0
+            ? timeoutInSeconds
+            : static_cast<unsigned>(0.5 + timeoutInSeconds * timeoutFactor);
+
         // Construct thunk
         const gg::thunk::Thunk subproblemThunk{
             { selfHash.ascii(),
@@ -320,7 +335,7 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
                     "Marabou",
                     "--gg-output",
                     "--timeout",
-                    std::to_string(static_cast<unsigned>(0.5 + timeoutInSeconds * timeoutFactor)),
+                    std::to_string(nextTimeout),
                     "--timeout-factor",
                     std::to_string(timeoutFactor),
                     "--num-online-divides",

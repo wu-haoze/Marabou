@@ -1,6 +1,6 @@
 #!/usr/bin/zsh -e
 
-USAGE="$0 <MAR-PATH> <MERGE-PATH> <NET-PATH> <PROP-PATH> <DIVIDES> <TIMEOUT> <TIMEOUT-FACTOR>"
+USAGE="$0 <MAR-PATH> <MERGE-PATH> <NET-PATH> <PROP-PATH> <INIT-DIVIDES> <ONLINE-DIVIDES> <TIMEOUT> <TIMEOUT-FACTOR>"
 
 rm -rf .gg
 
@@ -10,9 +10,10 @@ MAR_PATH=${1?$USAGE}
 MERGE_PATH=${2?$USAGE}
 NET_PATH=${3?$USAGE}
 PROP_PATH=${4?${USAGE}}
-DIVIDES=${5?$(${DIVIDES})}
-TIMEOUT=${6?${TIMEOUT}}
-TIMEOUT_FACTOR=${7?${TIMEOUT_FACTOR}}
+INIT_DIVIDES=${5?Initial Divides)}
+ONLINE_DIVIDES=${6?Online Divides)}
+TIMEOUT=${7?Timeout}
+TIMEOUT_FACTOR=${8?Timeout Factor}
 
 gg-collect $MAR_PATH $NET_PATH $MERGE_PATH $PROP_PATH
 
@@ -22,6 +23,11 @@ NET_HASH=$(gg-hash $NET_PATH)
 PROP_HASH=$(gg-hash $PROP_PATH)
 OUT_PATH=out
 QUERY_ID="${NET_PATH:t},${PROP_PATH:t}"
+if [[ $INIT_DIVIDES -ne 0 ]]; then
+    DIVIDES=$INIT_DIVIDES
+else
+    DIVIDES=$ONLINE_DIVIDES
+fi
 
 function placeholder() {
     echo "@{GGHASH:$1}"
@@ -51,7 +57,8 @@ gg-create-thunk \
     --gg-output \
     --timeout $TIMEOUT \
     --timeout-factor $TIMEOUT_FACTOR \
-    --num-online-divides $DIVIDES \
+    --initial-divides $INIT_DIVIDES \
+    --num-online-divides $ONLINE_DIVIDES \
     --summary-file out \
     --merge-file $(placeholder $MERGE_HASH) \
     --self-hash $MAR_HASH \
