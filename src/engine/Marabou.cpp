@@ -264,6 +264,10 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
     const String selfHash = Options::get()->getString( Options::SELF_HASH );
     const double timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
 
+    assert(selfHash.length() > 0);
+    assert(mergePath.length() > 0);
+    assert(summaryFilePath.length() > 0);
+
     // Hash files
     const std::string mergeHash = gg::hash::file_force( mergePath.ascii() );
     const std::string networkFileHash = gg::hash::file_force( networkFilePath.ascii() );
@@ -321,12 +325,16 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
                     std::to_string(timeoutFactor),
                     "--num-online-divides",
                     std::to_string(numOnlineDivides),
-                    std::string("--summary-file"),
+                    "--summary-file",
                     summaryFilePath.ascii(),
-                    std::string("--merge-file"),
+                    "--merge-file",
                     gg::thunk::data_placeholder(mergeHash),
-                    std::string("--query-id"),
+                    "--query-id",
                     queryId,
+                    "--self-hash",
+                    selfHash.ascii(),
+                    "--verbosity",
+                    "0",
                     gg::thunk::data_placeholder(networkFileHash),
                     gg::thunk::data_placeholder(propHash),
                 },
