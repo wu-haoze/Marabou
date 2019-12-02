@@ -41,9 +41,9 @@ done;)
 
 gg-create-thunk \
     --executable $MAR_HASH \
+    --executable $MERGE_HASH \
     --value $NET_HASH \
     --value $PROP_HASH \
-    --value $MERGE_HASH \
     $(for o in "${=outputs}"; do; echo --output $o; done) \
     --placeholder out \
     -- \

@@ -343,7 +343,10 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
                 { networkFileHash, "" },
                 { propHash, "" },
             },
-            { { selfHash.ascii(), "" } },
+            {
+                { selfHash.ascii(), "" },
+                { mergeHash, "" },
+            },
             outputFileNames
         };
 
