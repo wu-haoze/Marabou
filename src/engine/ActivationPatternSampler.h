@@ -70,8 +70,10 @@ public:
     // Getters
     const Vector<Vector<double>> &getSampledPoints() const;
     const Vector<NetworkLevelReasoner::ActivationPattern> &getActivationPatterns() const;
-    const Map<unsigned, ReluConstraint:: PhaseStatus>
+    const Map<NetworkLevelReasoner::Index, ReluConstraint:: PhaseStatus>
         &getIndexToPhaseStatusEstimate() const;
+
+    const Map<NetworkLevelReasoner::Index, double>&getIndexToMean() const;
 
     void clearIndexToPhaseStatusEstimate();
 
@@ -97,7 +99,9 @@ private:
     Vector<Vector<double>> _samplePoints;
     Vector<NetworkLevelReasoner::ActivationPattern> _patterns;
     Vector<std::uniform_real_distribution<double>> _samplers;
-    Map<unsigned, ReluConstraint:: PhaseStatus> _indexToPhaseStatusEstimate;
+    Map<NetworkLevelReasoner::Index, ReluConstraint:: PhaseStatus> _indexToPhaseStatusEstimate;
+    Map<NetworkLevelReasoner::Index, double> _indexToMean;
+
 };
 
 #endif // __ActivationVarianceSampler_h__

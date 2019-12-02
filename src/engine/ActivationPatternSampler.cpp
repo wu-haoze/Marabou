@@ -82,11 +82,20 @@ void ActivationPatternSampler::updatePhaseEstimate()
                     continue;
                 else if ( prevPhase != currentPhase )
                     _indexToPhaseStatusEstimate[index] = ReluConstraint::PHASE_NOT_FIXED;
+
+                if ( abs( entry.second ) < _indexToMean[index] )
+                    _indexToMean[index] = abs( entry.second );
             }
             else
+            {
                 _indexToPhaseStatusEstimate[index] = currentPhase;
+                _indexToMean[index] = abs(entry.second);
+            }
         }
     }
+    //for ( const auto &entry : _indexToMean )
+    //    _indexToMean[entry.first] /= _patterns.size();
+
 }
 
 void ActivationPatternSampler::dumpSampledPoints()
@@ -120,10 +129,16 @@ getActivationPatterns() const
     return _patterns;
 }
 
-const Map<unsigned, ReluConstraint:: PhaseStatus>
+const Map<NetworkLevelReasoner::Index, ReluConstraint:: PhaseStatus>
 &ActivationPatternSampler::getIndexToPhaseStatusEstimate() const
 {
     return _indexToPhaseStatusEstimate;
+}
+
+const Map<NetworkLevelReasoner::Index, double>
+&ActivationPatternSampler::getIndexToMean() const
+{
+    return _indexToMean;
 }
 
 //

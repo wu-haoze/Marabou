@@ -103,17 +103,24 @@ void Engine::setPhaseEstimate()
     }
     sampler.samplePoints( initialRegion, 10000 );
     sampler.computeActivationPatterns();
+    sampler.dumpActivationPatterns();
     sampler.updatePhaseEstimate();
     auto indexToPhaseStatusEstimate = sampler.getIndexToPhaseStatusEstimate();
+    auto indexToMean = sampler.getIndexToMean();
+
+    _networkLevelReasoner->updateVariableToNodeIndex();
     for ( const auto &relu : _plConstraints )
     {
         unsigned b = ((ReluConstraint *) relu)->getB();
-        if ( indexToPhaseStatusEstimate.exists( b ) )
+        auto index = _networkLevelReasoner->getNodeIndex( b );
+        if ( indexToPhaseStatusEstimate.exists( index ) )
         {
-            std::cout << "setting relu " << b << " to " << indexToPhaseStatusEstimate[b] << std::endl;
-            if ( indexToPhaseStatusEstimate[b] == ReluConstraint::PHASE_ACTIVE )
+            std::cout << index._layer << "_" << index._neuron << " " <<
+                indexToPhaseStatusEstimate[index] << " " <<
+                indexToMean[index] << std::endl;
+            if ( indexToPhaseStatusEstimate[index] == ReluConstraint::PHASE_ACTIVE )
                 ((ReluConstraint *) relu)->setDirection( 1 );
-            else if ( indexToPhaseStatusEstimate[b] ==
+            else if ( indexToPhaseStatusEstimate[index] ==
                       ReluConstraint::PHASE_INACTIVE )
                 ((ReluConstraint *) relu)->setDirection( 0 );
             else

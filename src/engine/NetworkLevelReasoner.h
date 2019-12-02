@@ -67,7 +67,7 @@ public:
         ReLU,
     };
 
-    typedef Map<unsigned, unsigned> ActivationPattern;
+    typedef Map<NetworkLevelReasoner::Index, double> ActivationPattern;
 
     void setNumberOfLayers( unsigned numberOfLayers );
     void setLayerSize( unsigned layer, unsigned size );
@@ -83,6 +83,10 @@ public:
     void setWeightedSumVariable( unsigned layer, unsigned neuron, unsigned variable );
     unsigned getWeightedSumVariable( unsigned layer, unsigned neuron ) const;
     void setActivationResultVariable( unsigned layer, unsigned neuron, unsigned variable );
+
+    void updateVariableToNodeIndex();
+    Index getNodeIndex( unsigned variable ) const;
+
     unsigned getActivationResultVariable( unsigned layer, unsigned neuron ) const;
     const Map<Index, unsigned> &getIndexToWeightedSumVariable();
     const Map<Index, unsigned> &getIndexToActivationResultVariable();
@@ -135,6 +139,8 @@ private:
     */
     Map<Index, unsigned> _indexToWeightedSumVariable;
     Map<Index, unsigned> _indexToActivationResultVariable;
+
+    Map<unsigned, Index> _weightedSumVariableToIndex;
 
     /*
       Store the assignment to all variables when evaluate() is called

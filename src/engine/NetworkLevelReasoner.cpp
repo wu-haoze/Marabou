@@ -179,8 +179,8 @@ void NetworkLevelReasoner::getActivationPattern( Vector<double> &input, NetworkL
     for ( unsigned i = 0; i < input.size(); ++i )
         inputArray[i] = input[i];
     evaluate( inputArray, outputArray );
-    for ( const auto &entry : _indexToActivationResultAssignment )
-        pattern[_indexToWeightedSumVariable[entry.first]] = ( entry.second > 0 ? 1 : 0 );
+    for ( const auto &entry : _indexToWeightedSumAssignment )
+        pattern[entry.first] = ( entry.second );// > 0 ? 1 : 0 );
     delete inputArray;
     delete outputArray;
 }
@@ -190,6 +190,12 @@ void NetworkLevelReasoner::setWeightedSumVariable( unsigned layer, unsigned neur
     _indexToWeightedSumVariable[Index( layer, neuron )] = variable;
 }
 
+void NetworkLevelReasoner::updateVariableToNodeIndex()
+{
+    for ( auto &entry : _indexToWeightedSumVariable )
+        _weightedSumVariableToIndex[entry.second] = entry.first;
+}
+
 unsigned NetworkLevelReasoner::getWeightedSumVariable( unsigned layer, unsigned neuron ) const
 {
     Index index( layer, neuron );
@@ -197,6 +203,15 @@ unsigned NetworkLevelReasoner::getWeightedSumVariable( unsigned layer, unsigned 
         throw MarabouError( MarabouError::INVALID_WEIGHTED_SUM_INDEX, Stringf( "weighted sum: <%u,%u>", layer, neuron ).ascii() );
 
     return _indexToWeightedSumVariable[index];
+}
+
+NetworkLevelReasoner::Index NetworkLevelReasoner::getNodeIndex( unsigned variable ) const
+{
+    if ( !_weightedSumVariableToIndex.exists( variable ) )
+        throw MarabouError( MarabouError::INVALID_WEIGHTED_SUM_INDEX, Stringf( "weighted sum: <%u>", variable ).ascii() );
+
+    return _weightedSumVariableToIndex[variable];
+
 }
 
 void NetworkLevelReasoner::setActivationResultVariable( unsigned layer, unsigned neuron, unsigned variable )
