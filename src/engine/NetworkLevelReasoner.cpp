@@ -195,6 +195,16 @@ void NetworkLevelReasoner::setIdToNodeIndex( unsigned id, unsigned layer, unsign
     _idToNodeIndex[id] = Index( layer, neuron );
 }
 
+void NetworkLevelReasoner::setLayerToIds( unsigned layer, unsigned id )
+{
+    if ( !_layerToIds.exists( layer ) )
+    {
+        List<unsigned> ids;
+        _layerToIds[layer] = ids;
+    }
+    _layerToIds[layer].append( id );
+}
+
 unsigned NetworkLevelReasoner::getActivationResultVariable( unsigned layer, unsigned neuron ) const
 {
     Index index( layer, neuron );

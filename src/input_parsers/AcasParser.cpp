@@ -217,6 +217,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
             nlr->setWeightedSumVariable( i, j, b );
             nlr->setActivationResultVariable( i, j, f );
             nlr->setIdToNodeIndex( id, i, j );
+            nlr->setLayerToIds( i, id );
             ++id;
         }
     }

@@ -81,6 +81,7 @@ public:
     unsigned getWeightedSumVariable( unsigned layer, unsigned neuron ) const;
     void setActivationResultVariable( unsigned layer, unsigned neuron, unsigned variable );
     void setIdToNodeIndex( unsigned id, unsigned layer, unsigned neuron );
+    void setLayerToIds( unsigned layer, unsigned id );
     unsigned getActivationResultVariable( unsigned layer, unsigned neuron ) const;
     const Map<Index, unsigned> &getIndexToWeightedSumVariable();
     const Map<Index, unsigned> &getIndexToActivationResultVariable();
@@ -133,6 +134,8 @@ private:
       Mapping from plConstraint id to node index
     */
     Map<unsigned, Index> _idToNodeIndex;
+
+    Map<unsigned, List<unsigned>> _layerToIds;
 
     /*
       Store the assignment to all variables when evaluate() is called
