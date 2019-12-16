@@ -205,6 +205,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     }
 
     // Variable indexing
+    unsigned id = 0;
     for ( unsigned i = 1; i < numberOfLayers - 1; ++i )
     {
         unsigned layerSize = _acasNeuralNetwork.getLayerSize( i );
@@ -215,6 +216,8 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
             unsigned f = _nodeToF[NodeIndex( i, j )];
             nlr->setWeightedSumVariable( i, j, b );
             nlr->setActivationResultVariable( i, j, f );
+            nlr->setIdToNodeIndex( id, i, j );
+            ++id;
         }
     }
 

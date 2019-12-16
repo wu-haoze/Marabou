@@ -190,6 +190,11 @@ void NetworkLevelReasoner::setActivationResultVariable( unsigned layer, unsigned
     _indexToActivationResultVariable[Index( layer, neuron )] = variable;
 }
 
+void NetworkLevelReasoner::setIdToNodeIndex( unsigned id, unsigned layer, unsigned neuron )
+{
+    _idToNodeIndex[id] = Index( layer, neuron );
+}
+
 unsigned NetworkLevelReasoner::getActivationResultVariable( unsigned layer, unsigned neuron ) const
 {
     Index index( layer, neuron );

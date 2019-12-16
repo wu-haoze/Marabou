@@ -129,6 +129,11 @@ private:
     Map<Index, unsigned> _indexToActivationResultVariable;
 
     /*
+      Mapping from plConstraint id to node index
+    */
+    Map<unsigned, Index> _idToNodeIndex;
+
+    /*
       Store the assignment to all variables when evaluate() is called
     */
     Map<Index, double> _indexToWeightedSumAssignment;
