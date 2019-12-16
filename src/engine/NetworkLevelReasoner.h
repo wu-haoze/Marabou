@@ -80,6 +80,7 @@ public:
     void setWeightedSumVariable( unsigned layer, unsigned neuron, unsigned variable );
     unsigned getWeightedSumVariable( unsigned layer, unsigned neuron ) const;
     void setActivationResultVariable( unsigned layer, unsigned neuron, unsigned variable );
+    void setIdToNodeIndex( unsigned id, unsigned layer, unsigned neuron );
     unsigned getActivationResultVariable( unsigned layer, unsigned neuron ) const;
     const Map<Index, unsigned> &getIndexToWeightedSumVariable();
     const Map<Index, unsigned> &getIndexToActivationResultVariable();

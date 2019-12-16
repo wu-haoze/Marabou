@@ -205,7 +205,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     }
 
     // Variable indexing
-    unsigned id = 0;
+    id = 0;
     for ( unsigned i = 1; i < numberOfLayers - 1; ++i )
     {
         unsigned layerSize = _acasNeuralNetwork.getLayerSize( i );
