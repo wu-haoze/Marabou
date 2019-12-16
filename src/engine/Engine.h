@@ -145,7 +145,7 @@ public:
 
     bool lookAheadPropagate( Map<unsigned, unsigned> &allSplits, bool sbtOnly );
 
-    void quickSolve( unsigned depthThreshold );
+    void quickSolve( unsigned id );
 
     void numberOfActive();
 
@@ -175,6 +175,8 @@ public:
       account the current state of the piecewise linear constraints.
     */
     void performSymbolicBoundTightening( bool performSbt = true );
+
+    void performBackwardsBoundTightening( unsigned layer );
 
     /*
       Collect and print various statistics.

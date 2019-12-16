@@ -113,6 +113,8 @@ public:
     void setReluStatus( unsigned layer, unsigned neuron, ReluConstraint::PhaseStatus status );
     void clearReluStatuses();
 
+    void runBackwardsFrom( unsigned layer );
+
     /*
       Running the tool, with or without linear concertization
     */

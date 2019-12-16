@@ -278,6 +278,42 @@ void SymbolicBoundTightener::setInputUpperBound( unsigned neuron, double bound )
     _inputUpperBounds[_inputNeuronToIndex[neuron]] = bound;
 }
 
+void SymbolicBoundTightener::runBackwardsFrom( unsigned layer )
+{
+    for ( unsigned i = 0; i < layer; ++i )
+    {
+        unsigned currentLayer = layer - i;
+        unsigned currentLayerSize = _layerSizes[currentLayer];
+        unsigned previousLayerSize = _layerSizes[currentLayer-1];
+
+        std::cout << "Current layer: " << currentLayer << std::endl;
+
+        WeightMatrix weights = _weights[currentLayer-1];
+        for ( unsigned j = 0; j < currentLayerSize; ++j )
+        {
+            // Given lower and upper bound of the current node B
+            // sum(wi * fi) + b = B
+            // Step 1: compute The upper and lower bound of sum(wi * fi) + b - B
+            double upperBound = -_lowerBounds[currentLayer][j] + _biases[currentLayer][j];
+            double lowerBound = -_upperBounds[currentLayer][j] + _biases[currentLayer][j];
+            for ( unsigned k = 0; k < previousLayerSize; ++k )
+            {
+                lowerBound += _upperBounds[currentLayer-1][k] *
+                    weights._negativeValues[k * currentLayerSize + j];
+                lowerBound += _lowerBounds[currentLayer-1][k] *
+                    weights._positiveValues[k * currentLayerSize + j];
+                upperBound += _upperBounds[currentLayer-1][k] *
+                    weights._positiveValues[k * currentLayerSize + j];
+                upperBound += _lowerBounds[currentLayer-1][k] *
+                    weights._negativeValues[k * currentLayerSize + j];
+            }
+            // Step 2: Compute the new upper and lower bound for each variable at the previous layer
+
+        }
+
+    }
+}
+
 void SymbolicBoundTightener::run()
 {
     run( GlobalConfiguration::USE_LINEAR_CONCRETIZATION );

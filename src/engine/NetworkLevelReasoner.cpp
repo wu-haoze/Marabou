@@ -236,6 +236,8 @@ void NetworkLevelReasoner::storeIntoOther( NetworkLevelReasoner &other ) const
     other._indexToActivationResultVariable = _indexToActivationResultVariable;
     other._indexToWeightedSumAssignment = _indexToWeightedSumAssignment;
     other._indexToActivationResultAssignment = _indexToActivationResultAssignment;
+    other._idToNodeIndex = _idToNodeIndex;
+    other._layerToIds = _layerToIds;
 }
 
 const Map<NetworkLevelReasoner::Index, unsigned> &NetworkLevelReasoner::getIndexToWeightedSumVariable()
