@@ -680,6 +680,16 @@ double SymbolicBoundTightener::getUpperBound( unsigned layer, unsigned neuron ) 
     return _upperBounds[layer][neuron];
 }
 
+void SymbolicBoundTightener::setLowerBound( unsigned layer, unsigned neuron, double value )
+{
+    _lowerBounds[layer][neuron] = value;
+}
+
+void SymbolicBoundTightener::setUpperBound( unsigned layer, unsigned neuron, double value )
+{
+    _upperBounds[layer][neuron] = value;
+}
+
 void SymbolicBoundTightener::log( const String &message )
 {
     if ( GlobalConfiguration::SYMBOLIC_BOUND_TIGHTENER_LOGGING )

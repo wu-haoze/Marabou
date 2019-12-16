@@ -110,6 +110,12 @@ public:
     void updateVariableIndices( const Map<unsigned, unsigned> &oldIndexToNewIndex,
                                 const Map<unsigned, unsigned> &mergedVariables );
 
+    /*
+      Mapping from plConstraint id to node index
+    */
+    Map<unsigned, Index> _idToNodeIndex;
+    Map<unsigned, List<unsigned>> _layerToIds;
+
 private:
     unsigned _numberOfLayers;
     Map<unsigned, unsigned> _layerSizes;
@@ -129,13 +135,6 @@ private:
     */
     Map<Index, unsigned> _indexToWeightedSumVariable;
     Map<Index, unsigned> _indexToActivationResultVariable;
-
-    /*
-      Mapping from plConstraint id to node index
-    */
-    Map<unsigned, Index> _idToNodeIndex;
-
-    Map<unsigned, List<unsigned>> _layerToIds;
 
     /*
       Store the assignment to all variables when evaluate() is called

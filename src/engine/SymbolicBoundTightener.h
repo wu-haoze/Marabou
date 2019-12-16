@@ -126,6 +126,9 @@ public:
     double getLowerBound( unsigned layer, unsigned neuron ) const;
     double getUpperBound( unsigned layer, unsigned neuron ) const;
 
+    void setLowerBound( unsigned layer, unsigned neuron, double value );
+    void setUpperBound( unsigned layer, unsigned neuron, double value );
+
     /*
       Duplicate the tightener
     */
