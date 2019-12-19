@@ -34,6 +34,8 @@ public:
         // Should DNC mode be on or off
         DNC_MODE,
 
+        LOOK_AHEAD_PREPROCESSING,
+
         // Help flag
         HELP,
 
@@ -64,6 +66,8 @@ public:
         INPUT_FILE_PATH = 0,
         PROPERTY_FILE_PATH,
         SUMMARY_FILE,
+
+        DIVIDE_STRATEGY,
     };
 
     /*

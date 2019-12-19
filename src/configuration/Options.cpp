@@ -43,6 +43,7 @@ void Options::initializeDefaultValues()
     */
     _boolOptions[DNC_MODE] = false;
     _boolOptions[PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS] = false;
+    _boolOptions[LOOK_AHEAD_PREPROCESSING] = false;
 
     /*
       Int options
@@ -65,6 +66,7 @@ void Options::initializeDefaultValues()
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";
+    _stringOptions[DIVIDE_STRATEGY] = "";
 }
 
 void Options::parseOptions( int argc, char **argv )

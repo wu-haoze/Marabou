@@ -36,6 +36,8 @@ public:
     */
     void freeMemory();
 
+    void reportViolatedConstraintPrep( PiecewiseLinearConstraint *constraint );
+
     /*
       Inform the SMT core that a PL constraint is violated.
     */
@@ -79,6 +81,8 @@ public:
     */
     void recordImpliedValidSplit( PiecewiseLinearCaseSplit &validSplit );
 
+    void recordImpliedIdToPhase( unsigned id, unsigned phaseStatus );
+
     /*
       Return a list of all splits performed so far, both SMT-originating and valid ones,
       in the correct order.
@@ -103,6 +107,13 @@ public:
     bool checkSkewFromDebuggingSolution();
     bool splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, String &error ) const;
 
+    /*
+      Valid splits that were implied by level 0 of the stack.
+    */
+    List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;
+
+    Map<unsigned, unsigned> _impliedIdToPhaseAtRoot;
+
 private:
     /*
       A stack entry consists of the engine state before the split,
@@ -117,11 +128,6 @@ private:
         List<PiecewiseLinearCaseSplit> _alternativeSplits;
         EngineState *_engineState;
     };
-
-    /*
-      Valid splits that were implied by level 0 of the stack.
-    */
-    List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;
 
     /*
       Collect and print various statistics.
