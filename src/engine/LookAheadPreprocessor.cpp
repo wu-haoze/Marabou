@@ -104,7 +104,6 @@ void LookAheadPreprocessor::preprocessWorker( LookAheadPreprocessor::WorkerQueue
 
             if ( engine->_exitCode == IEngine::QUIT_REQUESTED )
                 {
-                std::cout << "Here!" << std::endl;
                 return;
                 }
             if ( engine->_exitCode == IEngine::ERROR )

@@ -105,13 +105,19 @@ void Engine::quickSolve( unsigned id )
 {
     try
     {
-        std::cout << "Id: " << id << std::endl;
         std::cout << "node: " << _networkLevelReasoner->_idToNodeIndex[id]._layer << " " <<
             _networkLevelReasoner->_idToNodeIndex[id]._neuron << std::endl;
         unsigned layer = _networkLevelReasoner->_idToNodeIndex[id]._layer;
-        performBackwardsBoundTightening( layer );
+        do
+        {
+            performBackwardsBoundTightening( layer );
+            applyAllBoundTightenings();
+        }
+        while ( applyAllValidConstraintCaseSplits() );
+
         if ( !_tableau->allBoundsValid() )
         {
+            std::cout << "not all bounds valid" << std::endl;
             // Some variable bounds are invalid, so the query is unsat
             throw InfeasibleQueryException();
         }
@@ -1850,18 +1856,22 @@ void Engine::performBackwardsBoundTightening( unsigned layer )
     // Step 3: perfrom the bound tightening
     _symbolicBoundTightener->runBackwardsFrom( layer );
 
-    // Stpe 4: extract any tighter bounds that were discovered
-    for ( const auto &pair : _symbolicBoundTightener->getNodeIndexToFMapping() )
+    inputVariableIndex = 0;
+    for ( const auto &inputVariable : _preprocessedQuery.getInputVariables() )
     {
-        unsigned layer = pair.first._layer;
-        unsigned neuron = pair.first._neuron;
-        unsigned var = pair.second;
+        // We assume the input variables are the first variables
+        if ( inputVariable != inputVariableIndex )
+        {
+            throw MarabouError( MarabouError::SYMBOLIC_BOUND_TIGHTENER_FAULTY_INPUT,
+                                Stringf( "Sanity check failed, input variable %u with unexpected index %u", inputVariableIndex, inputVariable ).ascii() );
+        }
+        ++inputVariableIndex;
 
-        double lb = _symbolicBoundTightener->getLowerBound( layer, neuron );
-        double ub = _symbolicBoundTightener->getUpperBound( layer, neuron );
+        double min = _symbolicBoundTightener->getLowerBound( 0, inputVariable );
+        _tableau->tightenLowerBound( inputVariable, min );
 
-        _tableau->tightenLowerBound( var, lb );
-        _tableau->tightenUpperBound( var, ub );
+        double max = _symbolicBoundTightener->getUpperBound( 0, inputVariable );
+        _tableau->tightenUpperBound( inputVariable, max );
     }
 
     struct timespec end = TimeUtils::sampleMicro();
