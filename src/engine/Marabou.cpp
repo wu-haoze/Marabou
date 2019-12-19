@@ -92,7 +92,6 @@ unsigned long long Marabou::solveQuery()
     unsigned long long totalElapsed = 0;
     if ( _engine.processInputQuery( _inputQuery ))
     {
-        _engine.setPhaseEstimate();
         Map<unsigned, unsigned> idToPhase;
         if ( Options::get()->getBool( Options::LOOK_AHEAD_PREPROCESSING ) )
         {

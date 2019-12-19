@@ -106,10 +106,8 @@ void Engine::setPhaseEstimate()
     }
     sampler.samplePoints( initialRegion, 10000 );
     sampler.computeActivationPatterns();
-    sampler.dumpActivationPatterns();
     sampler.updatePhaseEstimate();
     auto indexToPhaseStatusEstimate = sampler.getIndexToPhaseStatusEstimate();
-    auto indexToMean = sampler.getIndexToMean();
 
     _networkLevelReasoner->updateVariableToNodeIndex();
     for ( const auto &relu : _plConstraints )
@@ -118,9 +116,6 @@ void Engine::setPhaseEstimate()
         auto index = _networkLevelReasoner->getNodeIndex( b );
         if ( indexToPhaseStatusEstimate.exists( index ) )
         {
-            std::cout << index._layer << "_" << index._neuron << " " <<
-                indexToPhaseStatusEstimate[index] << " " <<
-                indexToMean[index] << std::endl;
             if ( indexToPhaseStatusEstimate[index] == ReluConstraint::PHASE_ACTIVE )
                 ((ReluConstraint *) relu)->setDirection( 1 );
             else if ( indexToPhaseStatusEstimate[index] ==
@@ -349,6 +344,8 @@ void Engine::applySplits( const Map<unsigned, unsigned> &idToPhase )
 
 bool Engine::solve( unsigned timeoutInSeconds )
 {
+    setPhaseEstimate();
+
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
