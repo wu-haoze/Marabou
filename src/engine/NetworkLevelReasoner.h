@@ -67,7 +67,7 @@ public:
         ReLU,
     };
 
-    typedef Map<NetworkLevelReasoner::Index, double> ActivationPattern;
+    typedef Map<unsigned, unsigned> ActivationPattern;
 
     void setNumberOfLayers( unsigned numberOfLayers );
     void setLayerSize( unsigned layer, unsigned size );
@@ -86,6 +86,9 @@ public:
 
     void updateVariableToNodeIndex();
     Index getNodeIndex( unsigned variable ) const;
+
+    void setIdToNodeIndex( unsigned id, unsigned layer, unsigned neuron );
+    void setLayerToIds( unsigned layer, unsigned id );
 
     unsigned getActivationResultVariable( unsigned layer, unsigned neuron ) const;
     const Map<Index, unsigned> &getIndexToWeightedSumVariable();
@@ -119,6 +122,12 @@ public:
     */
     void updateVariableIndices( const Map<unsigned, unsigned> &oldIndexToNewIndex,
                                 const Map<unsigned, unsigned> &mergedVariables );
+
+    /*
+      Mapping from plConstraint id to node index
+    */
+    Map<unsigned, Index> _idToNodeIndex;
+    Map<unsigned, List<unsigned>> _layerToIds;
 
 private:
     unsigned _numberOfLayers;

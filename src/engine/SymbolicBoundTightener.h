@@ -113,6 +113,8 @@ public:
     void setReluStatus( unsigned layer, unsigned neuron, ReluConstraint::PhaseStatus status );
     void clearReluStatuses();
 
+    void runBackwardsFrom( unsigned layer );
+
     /*
       Running the tool, with or without linear concertization
     */
@@ -125,6 +127,9 @@ public:
     */
     double getLowerBound( unsigned layer, unsigned neuron ) const;
     double getUpperBound( unsigned layer, unsigned neuron ) const;
+
+    void setLowerBound( unsigned layer, unsigned neuron, double value );
+    void setUpperBound( unsigned layer, unsigned neuron, double value );
 
     /*
       Duplicate the tightener

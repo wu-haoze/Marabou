@@ -179,8 +179,8 @@ void NetworkLevelReasoner::getActivationPattern( Vector<double> &input, NetworkL
     for ( unsigned i = 0; i < input.size(); ++i )
         inputArray[i] = input[i];
     evaluate( inputArray, outputArray );
-    for ( const auto &entry : _indexToWeightedSumAssignment )
-        pattern[entry.first] = ( entry.second );// > 0 ? 1 : 0 );
+    for ( const auto entry : _idToNodeIndex )
+        pattern[entry.first] = (_indexToWeightedSumAssignment[entry.second] > 0 ? 1 : 0);
     delete inputArray;
     delete outputArray;
 }
@@ -219,6 +219,21 @@ void NetworkLevelReasoner::setActivationResultVariable( unsigned layer, unsigned
     _indexToActivationResultVariable[Index( layer, neuron )] = variable;
 }
 
+void NetworkLevelReasoner::setIdToNodeIndex( unsigned id, unsigned layer, unsigned neuron )
+{
+    _idToNodeIndex[id] = Index( layer, neuron );
+}
+
+void NetworkLevelReasoner::setLayerToIds( unsigned layer, unsigned id )
+{
+    if ( !_layerToIds.exists( layer ) )
+    {
+        List<unsigned> ids;
+        _layerToIds[layer] = ids;
+    }
+    _layerToIds[layer].append( id );
+}
+
 unsigned NetworkLevelReasoner::getActivationResultVariable( unsigned layer, unsigned neuron ) const
 {
     Index index( layer, neuron );
@@ -250,6 +265,8 @@ void NetworkLevelReasoner::storeIntoOther( NetworkLevelReasoner &other ) const
     other._indexToActivationResultVariable = _indexToActivationResultVariable;
     other._indexToWeightedSumAssignment = _indexToWeightedSumAssignment;
     other._indexToActivationResultAssignment = _indexToActivationResultAssignment;
+    other._idToNodeIndex = _idToNodeIndex;
+    other._layerToIds = _layerToIds;
 }
 
 const Map<NetworkLevelReasoner::Index, unsigned> &NetworkLevelReasoner::getIndexToWeightedSumVariable()

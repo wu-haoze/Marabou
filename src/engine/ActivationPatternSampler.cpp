@@ -72,20 +72,20 @@ void ActivationPatternSampler::updatePhaseEstimate()
     {
         for ( const auto &entry : pattern )
         {
-            auto index = entry.first;
-            auto currentPhase = entry.second > 0 ?
+            auto id = entry.first;
+            auto currentPhase = entry.second == 1 ?
                 ReluConstraint::PHASE_ACTIVE : ReluConstraint::PHASE_INACTIVE;
-            if ( _indexToPhaseStatusEstimate.exists( index ) )
+            if ( _idToPhaseStatusEstimate.exists( id ) )
             {
-                auto prevPhase = _indexToPhaseStatusEstimate[index];
+                auto prevPhase = _idToPhaseStatusEstimate[id];
                 if ( prevPhase == ReluConstraint::PHASE_NOT_FIXED )
                     continue;
                 else if ( prevPhase != currentPhase )
-                    _indexToPhaseStatusEstimate[index] = ReluConstraint::PHASE_NOT_FIXED;
+                    _idToPhaseStatusEstimate[id] = ReluConstraint::PHASE_NOT_FIXED;
             }
             else
             {
-                _indexToPhaseStatusEstimate[index] = currentPhase;
+                _idToPhaseStatusEstimate[id] = currentPhase;
             }
         }
     }
@@ -122,16 +122,10 @@ getActivationPatterns() const
     return _patterns;
 }
 
-const Map<NetworkLevelReasoner::Index, ReluConstraint:: PhaseStatus>
-&ActivationPatternSampler::getIndexToPhaseStatusEstimate() const
+const Map<unsigned, ReluConstraint:: PhaseStatus>
+&ActivationPatternSampler::getIdToPhaseStatusEstimate() const
 {
-    return _indexToPhaseStatusEstimate;
-}
-
-const Map<NetworkLevelReasoner::Index, double>
-&ActivationPatternSampler::getIndexToMean() const
-{
-    return _indexToMean;
+    return _idToPhaseStatusEstimate;
 }
 
 //

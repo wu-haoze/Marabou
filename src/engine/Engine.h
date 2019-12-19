@@ -50,6 +50,8 @@ public:
     Engine( unsigned verbosity = 2 );
     ~Engine();
 
+    void setBiasedRatio( float biasedRatio );
+
     void applySplits( const Map<unsigned, unsigned> &idToPhase );
 
     /*
@@ -147,7 +149,7 @@ public:
 
     bool lookAheadPropagate( Map<unsigned, unsigned> &allSplits, bool sbtOnly );
 
-    void quickSolve( unsigned depthThreshold );
+    void quickSolve( unsigned id );
 
     void numberOfActive();
 
@@ -178,6 +180,8 @@ public:
     */
     void performSymbolicBoundTightening( bool performSbt = true );
 
+    void performBackwardsBoundTightening( unsigned layer );
+
     /*
       Collect and print various statistics.
     */
@@ -185,7 +189,12 @@ public:
 
     void storeInitialEngineState();
 
+
+
  private:
+
+    float _biasedRatio;
+
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
         STRONG_RESTORATION_NEEDED = 1,

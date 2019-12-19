@@ -15,6 +15,7 @@
 
 #include "Debug.h"
 #include "FloatUtils.h"
+#include "InfeasibleQueryException.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "SymbolicBoundTightener.h"
@@ -276,6 +277,174 @@ void SymbolicBoundTightener::setInputUpperBound( unsigned neuron, double bound )
 {
     ASSERT( _inputNeuronToIndex.exists( neuron ) );
     _inputUpperBounds[_inputNeuronToIndex[neuron]] = bound;
+}
+
+void SymbolicBoundTightener::runBackwardsFrom( unsigned layer )
+{
+    for ( unsigned i = 0; i < layer; ++i )
+    {
+        unsigned currentLayer = layer - i;
+        unsigned currentLayerSize = _layerSizes[currentLayer];
+        unsigned previousLayerSize = _layerSizes[currentLayer-1];
+
+        std::cout << "Current layer: " << currentLayer << std::endl;
+
+        std::fill_n( _currentLayerLowerBounds, currentLayerSize, 0 );
+        std::fill_n( _currentLayerUpperBounds, currentLayerSize, 0 );
+        for ( unsigned j = 0; j < currentLayerSize; ++j )
+        {
+            _currentLayerLowerBounds[j] = _lowerBounds[currentLayer][j];
+            _currentLayerUpperBounds[j] = _upperBounds[currentLayer][j];
+        }
+
+        std::fill_n( _previousLayerLowerBounds, previousLayerSize, 0 );
+        std::fill_n( _previousLayerUpperBounds, previousLayerSize, 0 );
+        if ( currentLayer > 1 )
+        {
+            for ( unsigned j = 0; j < previousLayerSize; ++j )
+            {
+                if ( FloatUtils::isNegative( _lowerBounds[currentLayer-1][j] ) )
+                    _previousLayerLowerBounds[j] = 0;
+                else
+                    _previousLayerLowerBounds[j] = _lowerBounds[currentLayer-1][j];
+                if ( FloatUtils::isNegative( _upperBounds[currentLayer-1][j] ) )
+                    _previousLayerUpperBounds[j] = 0;
+                else
+                    _previousLayerUpperBounds[j] = _upperBounds[currentLayer-1][j];
+            }
+        }
+        else
+        {
+            for ( unsigned j = 0; j < previousLayerSize; ++j )
+            {
+                _previousLayerLowerBounds[j] = _lowerBounds[currentLayer-1][j];
+                _previousLayerUpperBounds[j] = _upperBounds[currentLayer-1][j];
+            }
+        }
+        WeightMatrix weights = _weights[currentLayer-1];
+
+        // Step A: Tighten the previous F layer until saturation
+        bool progressMade = false;
+        while ( true )
+        {
+            progressMade = false;
+            for ( unsigned j = 0; j < currentLayerSize; ++j )
+            {
+                // Given lower and upper bound of the current node B
+                // sum(wi * fi) + b = B
+
+                // Step A1: compute The upper and lower bound of sum(wi * fi) + b - B
+                double upperBound = -_currentLayerLowerBounds[j] + _biases[currentLayer][j];
+                double lowerBound = -_currentLayerUpperBounds[j] + _biases[currentLayer][j];
+                for ( unsigned k = 0; k < previousLayerSize; ++k )
+                {
+                    lowerBound += _previousLayerUpperBounds[k] *
+                        weights._negativeValues[k * currentLayerSize + j];
+                    lowerBound += _previousLayerLowerBounds[k] *
+                        weights._positiveValues[k * currentLayerSize + j];
+                    upperBound += _previousLayerUpperBounds[k] *
+                        weights._positiveValues[k * currentLayerSize + j];
+                    upperBound += _previousLayerLowerBounds[k] *
+                        weights._negativeValues[k * currentLayerSize + j];
+                }
+
+                // Step A2: Compute the new upper and lower bound for each variable at the previous layer
+                for ( unsigned k = 0; k < previousLayerSize; ++k)
+                {
+                    double realUB = 0;
+                    double realLB = 0;
+                    if ( FloatUtils::isZero( weights._negativeValues[k * currentLayerSize + j] ) &&
+                         FloatUtils::isZero( weights._positiveValues[k * currentLayerSize + j] ) )
+                        continue;
+                    else if ( FloatUtils::isZero( weights._negativeValues[k * currentLayerSize + j] ) )
+                    {
+                        // Positive weight: LB <= -w_k * x_k <= UB
+                        double UB = upperBound - weights._positiveValues[k * currentLayerSize + j] *
+                            _previousLayerUpperBounds[k];
+                        double LB = lowerBound - weights._positiveValues[k * currentLayerSize + j] *
+                            _previousLayerLowerBounds[k];
+                        realUB = - LB / weights._positiveValues[k * currentLayerSize + j];
+                        realLB = - UB / weights._positiveValues[k * currentLayerSize + j];
+                    }
+                    else
+                    {
+                        // Negative weight: LB <= -w_k * x_k <= UB
+                        double UB = upperBound - weights._negativeValues[k * currentLayerSize + j] *
+                            _previousLayerLowerBounds[k];
+                        double LB = lowerBound - weights._negativeValues[k * currentLayerSize + j] *
+                            _previousLayerUpperBounds[k];
+                        realUB = - UB / weights._negativeValues[k * currentLayerSize + j];
+                        realLB = - LB / weights._negativeValues[k * currentLayerSize + j];
+                    }
+
+                    //std::cout << realLB << " <= x" << currentLayer - 1<< "_" << k << " <= "  << realUB << std::endl;
+
+                    if ( currentLayer > 1 )
+                        if ( FloatUtils::isNegative( realUB ) ) // Immediately throw exceptions
+                            throw InfeasibleQueryException();
+                    if ( FloatUtils::gt( _previousLayerUpperBounds[k], realUB ) )
+                    {
+                        _previousLayerUpperBounds[k] = realUB;
+                        progressMade = true;
+                    }
+                    if ( FloatUtils::lt( _previousLayerLowerBounds[k], realLB ) )
+                    {
+                        _previousLayerLowerBounds[k] = realLB;
+                        progressMade = true;
+                    }
+                    if ( FloatUtils::lt( _previousLayerUpperBounds[k],
+                                         _previousLayerLowerBounds[k] ) )
+                        throw InfeasibleQueryException();
+                }
+            }
+            //std::cout << "Lower: ";
+            //for ( unsigned k = 0; k < previousLayerSize; ++k )
+            //    std::cout << _previousLayerLowerBounds[k] << " ";
+            //std::cout << "\nUpper: ";
+            //for ( unsigned k = 0; k < previousLayerSize; ++k )
+            //    std::cout << _previousLayerUpperBounds[k] << " ";
+            //std::cout << std::endl;
+            if ( !progressMade )
+                break;
+            else
+                std::cout << "Bound Tightened!" << std::endl;
+        }
+
+        // Step B: Propagate the F layer to B layer
+        if ( layer == 1 )
+        {
+            for ( unsigned j = 0; j < previousLayerSize; ++j )
+            {
+                _lowerBounds[currentLayer-1][j] = _previousLayerLowerBounds[j];
+                _upperBounds[currentLayer-1][j] = _previousLayerUpperBounds[j];
+            }
+        }
+        else
+        {
+            for ( unsigned j = 0; j < previousLayerSize; ++j )
+            {
+                // lb >=0, ub >= 0
+                // Case 1: lb > 0
+                if ( FloatUtils::isPositive( _previousLayerLowerBounds[j] ) )
+                {
+                    _lowerBounds[currentLayer-1][j] = _previousLayerLowerBounds[j];
+                    _upperBounds[currentLayer-1][j] = _previousLayerUpperBounds[j];
+
+                }
+                else
+                {
+                    _upperBounds[currentLayer-1][j] = _previousLayerUpperBounds[j];
+                }
+            }
+        }
+    }
+
+    //for ( unsigned inputVariable = 0; inputVariable < _layerSizes[0]; ++inputVariable )
+    //{
+    //    setInputLowerBound( inputVariable, _lowerBounds[0][inputVariable] );
+    //    setInputUpperBound( inputVariable, _upperBounds[0][inputVariable] );
+    //}
+    // run();
 }
 
 void SymbolicBoundTightener::run()
@@ -678,6 +847,16 @@ double SymbolicBoundTightener::getLowerBound( unsigned layer, unsigned neuron ) 
 double SymbolicBoundTightener::getUpperBound( unsigned layer, unsigned neuron ) const
 {
     return _upperBounds[layer][neuron];
+}
+
+void SymbolicBoundTightener::setLowerBound( unsigned layer, unsigned neuron, double value )
+{
+    _lowerBounds[layer][neuron] = value;
+}
+
+void SymbolicBoundTightener::setUpperBound( unsigned layer, unsigned neuron, double value )
+{
+    _upperBounds[layer][neuron] = value;
 }
 
 void SymbolicBoundTightener::log( const String &message )

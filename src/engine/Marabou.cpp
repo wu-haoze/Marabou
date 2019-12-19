@@ -111,6 +111,7 @@ unsigned long long Marabou::solveQuery()
                 return totalElapsed;
             }
         }
+        _engine.setBiasedRatio( Options::get()->getFloat( Options::BIASED_RATIO ) );
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
     }
     if ( _engine.getExitCode() == Engine::SAT )

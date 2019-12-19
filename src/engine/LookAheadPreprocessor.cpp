@@ -54,7 +54,6 @@ void LookAheadPreprocessor::preprocessWorker( LookAheadPreprocessor::WorkerQueue
 
     unsigned prevSize = idToPhase.size();
 
-    unsigned numPlConstraints = engine->getInputQuery()->getPiecewiseLinearConstraints().size();
     // Repeatedly pop from queue
     while ( !workload->empty() )
     {
@@ -98,11 +97,7 @@ void LookAheadPreprocessor::preprocessWorker( LookAheadPreprocessor::WorkerQueue
         for ( const auto &caseSplit : caseSplits )
         {
             engine->applySplit( caseSplit );
-
-            unsigned depthThreshold = (numPlConstraints - id) /
-                GlobalConfiguration::QUICK_SOLVE_STACK_DEPTH_THRESHOLD;
-            if ( depthThreshold > 0 )
-                engine->quickSolve( depthThreshold );
+            engine->quickSolve( id );
 
             // print stats
             //engine->_statistics.print();
