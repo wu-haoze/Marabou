@@ -327,6 +327,9 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
         unsigned nextTimeout = numInitialDivides > 0
             ? timeoutInSeconds
             : static_cast<unsigned>(0.5 + timeoutInSeconds * timeoutFactor);
+        if (nextTimeout > 890) {
+            nextTimeout = 890;
+        }
 
         // Construct thunk
         const gg::thunk::Thunk subproblemThunk{
