@@ -275,10 +275,11 @@ if __name__ == '__main__':
                 60 * 60,
                 5,
                 1.5)
-        #I = with_n_trials(with_all_jobs_counts(with_all_infras([i]), list(reversed([4, 8, 16, 32]))), 1)
+        I = []
+        I += with_n_trials(with_all_jobs_counts([i], list(reversed([64, 128, 256, 512, 1024]))), 3)
+        I += with_n_trials(with_all_jobs_counts(with_all_infras([i]), list(reversed([4, 8, 16, 32]))), 3)
         #I = with_n_trials(with_all_jobs_counts([i], list(reversed([4, 8, 16, 32, 64, 128, 256, 512, 1024]))), 1)
-        #I = with_n_trials(with_all_jobs_counts([i], list(reversed([1024]))), 6)
-        I = [i]
+        #I = [i]
         R = [i.run() for i in I]
         print(RunOutputs.csv_header())
         for r in R:
