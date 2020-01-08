@@ -156,9 +156,11 @@ class MarabouNetwork:
             eq.setScalar(e.scalar)
             ipq.addEquation(eq)
 
+        id_ = 0
         for r in self.reluList:
             assert r[1] < self.numVars and r[0] < self.numVars
-            MarabouCore.addReluConstraint(ipq, r[0], r[1])
+            MarabouCore.addReluConstraint(ipq, r[0], r[1], id_)
+            id_ += 1
 
         for m in self.maxList:
             assert m[1] < self.numVars
@@ -176,7 +178,7 @@ class MarabouNetwork:
             
         return ipq
 
-    def solve(self, filename="", verbose=True, options=None):
+    def solve(self, summaryFilePath="", fixedReluFilePath="", filename="", verbose=True, options=None):
         """
         Function to solve query represented by this network
         Arguments:
@@ -196,7 +198,23 @@ class MarabouNetwork:
         ipq = self.getMarabouQuery()
         if options == None:
             options = MarabouCore.Options()
-        vals, stats = MarabouCore.solve(ipq, options, filename)
+        if options._focusLayer > 0:
+            centroid = []
+            i = 0
+            for inputVarArray in self.inputVars:
+                for inputVar in inputVarArray.flatten():
+                    centroid.append((self.lowerBounds[i] + self.upperBounds[i])/2)
+                    i+=1
+            shape = np.array(self.inputVars).shape[1:]
+            centroid = np.array(centroid).reshape(shape)
+            pattern = self.getReluPattern(centroid)
+            i = 0
+            for layer in range(min(len(pattern), options._focusLayer)):
+                for p in pattern[layer]:
+                    MarabouCore.setDirection(ipq, i, p)
+                    i += 1
+
+        vals, stats = MarabouCore.solve(ipq, options, summaryFilePath, fixedReluFilePath, filename)
         if verbose:
             if stats.hasTimedOut():
                 print("TO")
@@ -250,7 +268,7 @@ class MarabouNetwork:
 
         if options == None:
             options = MarabouCore.Options()
-        outputDict = MarabouCore.solve(ipq, options, filename)
+        outputDict = MarabouCore.solve(ipq, options, "", "", filename)
         outputValues = outputVars.reshape(-1).astype(np.float64)
         for i in range(len(outputValues)):
             outputValues[i] = (outputDict[0])[outputValues[i]]

@@ -42,7 +42,8 @@ public:
     DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, InputQuery *inputQuery,
-                unsigned verbosity );
+                unsigned verbosity, Map<unsigned, unsigned> idToPhase,
+                unsigned biasedLayer, BiasStrategy strategy );
 
     ~DnCManager();
 
@@ -51,7 +52,7 @@ public:
     /*
       Perform the Divide-and-conquer solving
     */
-    void solve( unsigned timeoutInSeconds );
+    void solve( unsigned timeoutInSeconds, bool restoreTreeStates );
 
     /*
       Return the DnCExitCode of the DnCManager
@@ -73,15 +74,23 @@ public:
     */
     void getSolution( std::map<int, double> &ret );
 
+    /*
+      The exit code of the DnCManager.
+    */
+    DnCExitCode _exitCode;
+
 private:
     /*
       Create and run a DnCWorker
     */
-    static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+    static void dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
+                          std::shared_ptr<Engine> engine,
                           std::atomic_uint &numUnsolvedSubQueries,
                           std::atomic_bool &shouldQuitSolving,
                           unsigned threadId, unsigned onlineDivides,
-                          float timeoutFactor, DivideStrategy divideStrategy );
+                          float timeoutFactor, DivideStrategy divideStrategy,
+                          bool restoreTreeStates, Map<unsigned, unsigned> idToPhase,
+                          unsigned biasedLayer, BiasStrategy strategy );
 
     /*
       Create the base engine from the network and property files,
@@ -165,11 +174,6 @@ private:
     InputQuery *_baseInputQuery;
 
     /*
-      The exit code of the DnCManager.
-    */
-    DnCExitCode _exitCode;
-
-    /*
       Set of subQueries to be solved by workers
     */
     WorkerQueue *_workload;
@@ -188,6 +192,12 @@ private:
       The level of verbosity
     */
     unsigned _verbosity;
+
+    Map<unsigned, unsigned> _idToPhase;
+
+    unsigned _biasedLayer;
+
+    BiasStrategy _biasStrategy;
 };
 
 #endif // __DnCManager_h__

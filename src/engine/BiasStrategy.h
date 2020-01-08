@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file DivideStrategy.h
+/*! \file BiasStrategy.h
 ** \verbatim
 ** Top contributors (to current version):
 **   Haoze Wu
@@ -13,17 +13,17 @@
 
 **/
 
-#ifndef __DivideStrategy_h__
-#define __DivideStrategy_h__
+#ifndef __BiasStrategy_h__
+#define __BiasStrategy_h__
 
-enum DivideStrategy
+enum BiasStrategy
 {
-    ActivationVariance,
-    LargestInterval,
-    SplitRelu,
+    Centroid,
+    Sampling,
+    Random
 };
 
-#endif // __DivideStrategy_h__
+#endif // __BiasStrategy_h__
 
 //
 // Local Variables:

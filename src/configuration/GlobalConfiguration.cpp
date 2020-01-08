@@ -17,6 +17,9 @@
 #include "MString.h"
 #include <cstdio>
 
+const unsigned GlobalConfiguration::QUICK_SOLVE_STACK_DEPTH_THRESHOLD = 6;
+const unsigned GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD_QUICK = 20;
+const unsigned GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD = 30;
 const double GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS = 0.0000000001;
 const unsigned GlobalConfiguration::DEFAULT_DOUBLE_TO_STRING_PRECISION = 10;
 const unsigned GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY = 10000;
@@ -75,7 +78,7 @@ const GlobalConfiguration::BasisFactorizationType GlobalConfiguration::BASIS_FAC
     GlobalConfiguration::SPARSE_FORREST_TOMLIN_FACTORIZATION;
 
 // Logging
-const bool GlobalConfiguration::DNC_MANAGER_LOGGING = false;
+const bool GlobalConfiguration::DNC_MANAGER_LOGGING = true;
 const bool GlobalConfiguration::ENGINE_LOGGING = false;
 const bool GlobalConfiguration::TABLEAU_LOGGING = false;
 const bool GlobalConfiguration::SMT_CORE_LOGGING = false;

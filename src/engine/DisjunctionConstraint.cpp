@@ -293,6 +293,11 @@ bool DisjunctionConstraint::disjunctIsFeasible( const PiecewiseLinearCaseSplit &
     return true;
 }
 
+unsigned DisjunctionConstraint::getId() const
+{
+    return 0;
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

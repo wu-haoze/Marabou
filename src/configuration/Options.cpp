@@ -44,7 +44,9 @@ void Options::initializeDefaultValues()
     _boolOptions[DNC_MODE] = false;
     _boolOptions[PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS] = false;
     _boolOptions[GG_OUTPUT] = false;
-
+    _boolOptions[RESTORE_TREE_STATES] = false;
+    _boolOptions[LOOK_AHEAD_PREPROCESSING] = false;
+    _boolOptions[PREPROCESS_ONLY] = false;
     /*
       Int options
     */
@@ -54,6 +56,7 @@ void Options::initializeDefaultValues()
     _intOptions[INITIAL_TIMEOUT] = 5;
     _intOptions[VERBOSITY] = 2;
     _intOptions[TIMEOUT] = 0;
+    _intOptions[FOCUS_LAYER] = 0;
 
     /*
       Float options
@@ -65,10 +68,13 @@ void Options::initializeDefaultValues()
     */
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
+    _stringOptions[FIXED_RELU_PATH] = "";
     _stringOptions[INPUT_QUERY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";
     _stringOptions[QUERY_ID] = "";
     _stringOptions[MERGE_FILE] = "";
+    _stringOptions[DIVIDE_STRATEGY] = "";
+    _stringOptions[BIAS_STRATEGY] = "";
 }
 
 void Options::parseOptions( int argc, char **argv )

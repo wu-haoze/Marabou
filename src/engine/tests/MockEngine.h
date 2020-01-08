@@ -19,6 +19,7 @@
 #include "IEngine.h"
 #include "List.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "PiecewiseLinearConstraint.h"
 
 class MockEngine : public IEngine
 {
@@ -142,6 +143,40 @@ public:
     {
         return _inputVariables;
     }
+
+    bool propagate()
+    {
+        return true;
+    }
+
+    void getEstimates( Map <unsigned, double>
+                       &balanceEstimates,
+                       Map <unsigned, double>
+                       &runtimeEstimates )
+    {
+        balanceEstimates.clear();
+        runtimeEstimates.clear();
+    }
+
+    mutable SmtState *lastRestoredSmtState;
+    bool restoreSmtState( SmtState &smtState )
+    {
+        lastRestoredSmtState = &smtState;
+        return true;
+    }
+
+    mutable SmtState *lastStoredSmtState;
+    void storeSmtState( SmtState &smtState )
+    {
+        lastStoredSmtState = &smtState;
+    }
+
+    PiecewiseLinearConstraint *getConstraintFromId( unsigned id )
+    {
+        std::cout << id << std::endl;
+        return NULL;
+    }
+
 };
 
 #endif // __MockEngine_h__

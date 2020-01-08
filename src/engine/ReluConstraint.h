@@ -28,6 +28,7 @@ public:
         PHASE_INACTIVE = 2,
     };
 
+    ReluConstraint( unsigned b, unsigned f, unsigned id );
     ReluConstraint( unsigned b, unsigned f );
     ReluConstraint( const String &serializedRelu );
 
@@ -80,6 +81,8 @@ public:
       Return a list of smart fixes for violated constraint.
     */
     List<PiecewiseLinearConstraint::Fix> getSmartFixes( ITableau *tableau ) const;
+
+    void setDirection( int direction );
 
     /*
       Returns the list of case splits that this piecewise linear
@@ -162,14 +165,24 @@ public:
     */
     bool supportsSymbolicBoundTightening() const;
 
+    /*
+      -1: ambiguous
+       0: inactive
+       1: active
+    */
+    int _direction;
+
+    PiecewiseLinearCaseSplit getInactiveSplit() const;
+    PiecewiseLinearCaseSplit getActiveSplit() const;
+
+    unsigned getId() const;
+
 private:
+    unsigned _id;
     unsigned _b, _f;
     PhaseStatus _phaseStatus;
     bool _auxVarInUse;
     unsigned _aux;
-
-    PiecewiseLinearCaseSplit getInactiveSplit() const;
-    PiecewiseLinearCaseSplit getActiveSplit() const;
 
     bool _haveEliminatedVariables;
 

@@ -141,6 +141,8 @@ public:
     */
     bool supportsSymbolicBoundTightening() const;
 
+    unsigned getId() const;
+
 private:
     /*
       The disjuncts that form this PL constraint

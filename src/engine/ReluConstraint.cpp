@@ -28,8 +28,21 @@
 #define __attribute__(x)
 #endif
 
+ReluConstraint::ReluConstraint( unsigned b, unsigned f, unsigned id )
+    : _direction( -1 )
+    , _id( id )
+    , _b( b )
+    , _f( f )
+    , _auxVarInUse( false )
+    , _haveEliminatedVariables( false )
+{
+    setPhaseStatus( PhaseStatus::PHASE_NOT_FIXED );
+}
+
 ReluConstraint::ReluConstraint( unsigned b, unsigned f )
-    : _b( b )
+    : _direction( -1 )
+    , _id( 0 )
+    , _b( b )
     , _f( f )
     , _auxVarInUse( false )
     , _haveEliminatedVariables( false )
@@ -75,7 +88,7 @@ ReluConstraint::ReluConstraint( const String &serializedRelu )
 
 PiecewiseLinearConstraint *ReluConstraint::duplicateConstraint() const
 {
-    ReluConstraint *clone = new ReluConstraint( _b, _f );
+    ReluConstraint *clone = new ReluConstraint( _b, _f, _id );
     *clone = *this;
     return clone;
 }
@@ -275,14 +288,30 @@ List<PiecewiseLinearConstraint::Fix> ReluConstraint::getPossibleFixes() const
         }
         else
         {
-            fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
-            fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+            if ( _direction == 0 )
+            {
+                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
+            } else
+            {
+                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
+                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+            }
+
         }
     }
     else
     {
-        fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
-        fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+        if ( _direction == 1 )
+        {
+            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
+
+        } else
+        {
+            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
+            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+        }
     }
 
     return fixes;
@@ -408,12 +437,30 @@ List<PiecewiseLinearConstraint::Fix> ReluConstraint::getSmartFixes( ITableau *ta
     return fixes;
 }
 
+void ReluConstraint::setDirection( int direction )
+{
+    _direction = direction;
+}
+
 List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
 {
     if ( _phaseStatus != PhaseStatus::PHASE_NOT_FIXED )
         throw MarabouError( MarabouError::REQUESTED_CASE_SPLITS_FROM_FIXED_CONSTRAINT );
 
     List<PiecewiseLinearCaseSplit> splits;
+
+    if ( _direction == 0 )
+    {
+        splits.append( getInactiveSplit() );
+        splits.append( getActiveSplit() );
+        return splits;
+    }
+    else if ( _direction == 1 )
+    {
+        splits.append( getActiveSplit() );
+        splits.append( getInactiveSplit() );
+        return splits;
+    }
 
     // If we have existing knowledge about the assignment, use it to
     // influence the order of splits
@@ -827,6 +874,11 @@ bool ReluConstraint::auxVariableInUse() const
 unsigned ReluConstraint::getAux() const
 {
     return _aux;
+}
+
+unsigned ReluConstraint::getId() const
+{
+    return _id;
 }
 
 //

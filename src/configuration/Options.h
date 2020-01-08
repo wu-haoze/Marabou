@@ -34,6 +34,14 @@ public:
         // Should DNC mode be on or off
         DNC_MODE,
 
+        // Restore tree states in DnC mode
+        RESTORE_TREE_STATES,
+
+        // Perform look-ahead preprocessing
+        LOOK_AHEAD_PREPROCESSING,
+
+        PREPROCESS_ONLY,
+
         // Help flag
         HELP,
 
@@ -55,6 +63,9 @@ public:
 
         // Global timeout
         TIMEOUT,
+
+        // Biased search
+        FOCUS_LAYER,
     };
 
     enum FloatOptions{
@@ -65,11 +76,14 @@ public:
     enum StringOptions {
         INPUT_FILE_PATH = 0,
         PROPERTY_FILE_PATH,
+        FIXED_RELU_PATH,
         INPUT_QUERY_FILE_PATH,
         SUMMARY_FILE,
         QUERY_ID,
         MERGE_FILE,
         SELF_HASH,
+        DIVIDE_STRATEGY,
+        BIAS_STRATEGY,
     };
 
     /*

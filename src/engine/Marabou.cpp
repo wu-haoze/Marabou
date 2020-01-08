@@ -17,7 +17,9 @@
 #include "AcasParser.h"
 #include "File.h"
 #include "LargestIntervalDivider.h"
+#include "FixedReluParser.h"
 #include "MStringf.h"
+#include "LookAheadPreprocessor.h"
 #include "Marabou.h"
 #include "MarabouError.h"
 #include "Options.h"
@@ -132,12 +134,77 @@ void Marabou::prepareInputQuery()
 
 void Marabou::solveQuery()
 {
-    if ( _engine.processInputQuery( _inputQuery ) ) {
+    if ( _engine.processInputQuery( _inputQuery ) &&
+         lookAheadPreprocessing() && !Options::get()->
+         getBool( Options::PREPROCESS_ONLY ) )
+    {
+        String fixedReluFilePath = Options::get()->getString( Options::FIXED_RELU_PATH );
+        if ( fixedReluFilePath != "" )
+        {
+            Map<unsigned, unsigned> idToPhase;
+            printf( "Fixed Relus: %s\n", fixedReluFilePath.ascii() );
+            FixedReluParser().parse( fixedReluFilePath, idToPhase );
+            _engine.applySplits( idToPhase );
+        }
+
+        BiasStrategy biasStrategy = setBiasStrategyFromOptions
+            ( Options::get()->getString( Options::BIAS_STRATEGY ) );
+        _engine.setBiasedPhases( Options::get()->getInt( Options::FOCUS_LAYER ),
+                                 biasStrategy );
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
     }
-
     if ( _engine.getExitCode() == Engine::SAT )
         _engine.extractSolution( _inputQuery );
+}
+
+bool Marabou::lookAheadPreprocessing()
+{
+    bool feasible = true;
+    if ( Options::get()->getBool( Options::LOOK_AHEAD_PREPROCESSING ) )
+    {
+        Map<unsigned, unsigned> idToPhase;
+
+        struct timespec start = TimeUtils::sampleMicro();
+        auto lookAheadPreprocessor = new LookAheadPreprocessor
+            ( Options::get()->getInt( Options::NUM_WORKERS ),
+              *_engine.getInputQuery() );
+        feasible = lookAheadPreprocessor->run( idToPhase );
+        struct timespec end = TimeUtils::sampleMicro();
+        unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+        String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
+        if ( summaryFilePath != "" )
+        {
+            File summaryFile( summaryFilePath + ".preprocess" );
+            summaryFile.open( File::MODE_WRITE_TRUNCATE );
+
+            // Field #1: result
+            summaryFile.write( ( feasible ? "UNKNOWN" : "UNSAT" ) );
+
+            // Field #2: total elapsed time
+            summaryFile.write( Stringf( " %u ", totalElapsed / 1000000 ) ); // In seconds
+
+            // Field #3: number of fixed relus by look ahead preprocessing
+            summaryFile.write( Stringf( "%u ", idToPhase.size() ) );
+            summaryFile.write( "\n" );
+        }
+        if ( summaryFilePath != "" )
+        {
+            File fixedFile( summaryFilePath + ".fixed" );
+            fixedFile.open( File::MODE_WRITE_TRUNCATE );
+
+            for ( const auto entry : idToPhase )
+            {
+                fixedFile.write( Stringf( "%u %u\n", entry.first, entry.second ) );
+            }
+        }
+
+        if ( feasible )
+            _engine.applySplits( idToPhase );
+        else
+            // Solved by preprocessing, we are done!
+            _engine._exitCode = Engine::UNSAT;
+    }
+    return feasible;
 }
 
 void Marabou::displayResults( unsigned long long microSecondsElapsed )
@@ -217,10 +284,6 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
         // Field #3: number of visited tree states
         summaryFile.write( Stringf( "%u ",
                                     _engine.getStatistics()->getNumVisitedTreeStates() ) );
-
-        // Field #4: average pivot time in micro seconds
-        summaryFile.write( Stringf( "%u",
-                                    _engine.getStatistics()->getAveragePivotTimeInMicro() ) );
 
         summaryFile.write( "\n" );
         if ( assignment.str().size() > 0 )
@@ -396,6 +459,21 @@ void Marabou::createEmptySubproblemOutputs() const
         std::ofstream thunk{ queryId + "-" + std::to_string(i) + THUNK_SUFFIX };
         thunk << "NONE";
     }
+}
+
+BiasStrategy Marabou::setBiasStrategyFromOptions( const String strategy )
+{
+    if ( strategy == "centroid" )
+        return BiasStrategy::Centroid;
+    else if ( strategy == "sampling" )
+        return BiasStrategy::Sampling;
+    else if ( strategy == "random" )
+        return BiasStrategy::Random;
+    else
+        {
+            printf ("Unknown bias strategy, using default (centroid).\n");
+            return BiasStrategy::Centroid;
+        }
 }
 
 //

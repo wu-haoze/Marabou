@@ -25,12 +25,19 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include "AcasParser.h"
+#include "BiasStrategy.h"
 #include "DnCManager.h"
+#include "DivideStrategy.h"
 #include "Engine.h"
 #include "FloatUtils.h"
+#include "File.h"
+#include "FixedReluParser.h"
 #include "InputQuery.h"
+#include "LookAheadPreprocessor.h"
 #include "MarabouError.h"
+#include "Map.h"
 #include "MString.h"
+#include "MStringf.h"
 #include "MaxConstraint.h"
 #include "PiecewiseLinearConstraint.h"
 #include "PropertyParser.h"
@@ -83,8 +90,8 @@ void restoreOutputStream(int outputStream)
     close(outputStream);
 }
 
-void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
-    PiecewiseLinearConstraint* r = new ReluConstraint(var1, var2);
+void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2, unsigned id){
+    PiecewiseLinearConstraint* r = new ReluConstraint(var1, var2, id);
     ipq.addPiecewiseLinearConstraint(r);
 }
 
@@ -94,6 +101,10 @@ void addMaxConstraint(InputQuery& ipq, std::set<unsigned> elements, unsigned v){
         e.insert(var);
     PiecewiseLinearConstraint* m = new MaxConstraint(v, e);
     ipq.addPiecewiseLinearConstraint(m);
+}
+
+void setDirection(InputQuery& ipq, unsigned id, unsigned phase){
+    ipq.setDirection(id, phase);
 }
 
 void createInputQuery(InputQuery &inputQuery, std::string networkFilePath, std::string propertyFilePath){
@@ -116,9 +127,15 @@ struct MarabouOptions {
         , _initialDivides( 0 )
         , _onlineDivides( 2 )
         , _timeoutInSeconds( 0 )
+        , _focusLayer( 0 )
         , _timeoutFactor( 1.5 )
         , _verbosity( 2 )
         , _dnc( false )
+        , _restoreTreeStates( false )
+        , _lookAheadPreprocessing( false )
+        , _preprocessOnly( false )
+        , _divideStrategy( "largest-interval" )
+        , _biasStrategy( "centroid" )
     {};
 
     unsigned _numWorkers;
@@ -126,15 +143,51 @@ struct MarabouOptions {
     unsigned _initialDivides;
     unsigned _onlineDivides;
     unsigned _timeoutInSeconds;
+    unsigned _focusLayer;
     float _timeoutFactor;
     unsigned _verbosity;
     bool _dnc;
+    bool _restoreTreeStates;
+    bool _lookAheadPreprocessing;
+    bool _preprocessOnly;
+    std::string _divideStrategy;
+    std::string _biasStrategy;
 };
+
+BiasStrategy setBiasStrategyFromOptions( const String strategy )
+{
+    if ( strategy == "centroid" )
+        return BiasStrategy::Centroid;
+    else if ( strategy == "sampling" )
+        return BiasStrategy::Sampling;
+    else if ( strategy == "random" )
+        return BiasStrategy::Random;
+    else
+        {
+            printf ("Unknown divide strategy, using default (centroid).\n");
+            return BiasStrategy::Centroid;
+        }
+}
+
+DivideStrategy setDivideStrategyFromOptions( const String strategy )
+{
+    if ( strategy == "split-relu" )
+        return DivideStrategy::SplitRelu;
+    else if ( strategy == "largest-interval" )
+        return DivideStrategy::LargestInterval;
+    else
+        {
+            printf ("Unknown divide strategy, using default (SplitRelu).\n");
+            return DivideStrategy::SplitRelu;
+        }
+}
 
 /* The default parameters here are just for readability, you should specify
  * them in the to make them work*/
 std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, MarabouOptions &options,
-                                                   std::string redirect=""){
+                                                   std::string summaryFilePath, std::string fixedReluFilePath,
+                                                   std::string redirect="" )
+{
     // Arguments: InputQuery object, filename to redirect output
     // Returns: map from variable number to value
     std::map<int, double> ret;
@@ -146,25 +199,74 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, Marab
         bool verbosity = options._verbosity;
         unsigned timeoutInSeconds = options._timeoutInSeconds;
         bool dnc = options._dnc;
+        bool lookAheadPreprocessing = options._lookAheadPreprocessing;
+        bool preprocessOnly = options._preprocessOnly;
+        unsigned numWorkers = options._numWorkers;
+        unsigned focusLayer = options._focusLayer;
+        DivideStrategy divideStrategy = setDivideStrategyFromOptions( options._divideStrategy );
+        BiasStrategy biasStrategy = setBiasStrategyFromOptions( options._biasStrategy );
 
         Engine engine;
         engine.setVerbosity(verbosity);
 
         if(!engine.processInputQuery(inputQuery)) return std::make_pair(ret, *(engine.getStatistics()));
+
+        Map<unsigned, unsigned> idToPhase;
+
+        if ( fixedReluFilePath != "" )
+        {
+            String fixedReluFilePathM = String( fixedReluFilePath );
+            FixedReluParser().parse( fixedReluFilePathM, idToPhase );
+        }
+
+        if ( lookAheadPreprocessing )
+        {
+            struct timespec start = TimeUtils::sampleMicro();
+            auto lookAheadPreprocessor = new LookAheadPreprocessor
+                ( numWorkers, *(engine.getInputQuery()) );
+            bool feasible = lookAheadPreprocessor->run( idToPhase );
+            struct timespec end = TimeUtils::sampleMicro();
+            unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+            if ( summaryFilePath != "" )
+            {
+                File summaryFile( summaryFilePath + ".preprocess" );
+                summaryFile.open( File::MODE_WRITE_TRUNCATE );
+
+                // Field #1: result
+                summaryFile.write( ( feasible ? "UNKNOWN" : "UNSAT" ) );
+
+                // Field #2: total elapsed time
+                summaryFile.write( Stringf( " %u ", totalElapsed / 1000000 ) ); // In seconds
+
+                // Field #3: number of fixed relus by look ahead preprocessing
+                summaryFile.write( Stringf( "%u ", idToPhase.size() ) );
+                summaryFile.write( "\n" );
+            }
+            if ( summaryFilePath != "" )
+            {
+                File fixedFile( summaryFilePath + ".fixed" );
+                fixedFile.open( File::MODE_WRITE_TRUNCATE );
+                for ( const auto entry : idToPhase )
+                    fixedFile.write( Stringf( "%u %u\n", entry.first, entry.second ) );
+            }
+
+            if ( (!feasible) || preprocessOnly ) return std::make_pair(ret, *(engine.getStatistics()));
+        }
         if ( dnc )
         {
             unsigned initialDivides = options._initialDivides;
             unsigned initialTimeout = options._initialTimeout;
-            unsigned numWorkers = options._numWorkers;
             unsigned onlineDivides = options._onlineDivides;
             float timeoutFactor = options._timeoutFactor;
+            bool restoreTreeStates = options._restoreTreeStates;
 
             auto dncManager = std::unique_ptr<DnCManager>
                 ( new DnCManager( numWorkers, initialDivides, initialTimeout, onlineDivides,
-                                  timeoutFactor, DivideStrategy::LargestInterval,
-                                  &inputQuery, verbosity ) );
+                                  timeoutFactor, divideStrategy,
+                                  engine.getInputQuery(), verbosity, idToPhase,
+                                  focusLayer, biasStrategy ) );
 
-            dncManager->solve( timeoutInSeconds );
+            dncManager->solve( timeoutInSeconds, restoreTreeStates );
             switch ( dncManager->getExitCode() )
             {
             case DnCManager::SAT:
@@ -184,6 +286,8 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, Marab
             }
         } else
         {
+            engine.applySplits( idToPhase );
+            engine.setBiasedPhases( focusLayer, biasStrategy );
             if(!engine.solve(timeoutInSeconds)) return std::make_pair(ret, *(engine.getStatistics()));
 
             if (engine.getExitCode() == Engine::SAT)
@@ -215,11 +319,13 @@ InputQuery loadQuery(std::string filename){
 PYBIND11_MODULE(MarabouCore, m) {
     m.doc() = "Marabou API Library";
     m.def("createInputQuery", &createInputQuery, "Create input query from network and property file");
-    m.def("solve", &solve, "Takes in a description of the InputQuery and returns the solution", py::arg("inputQuery"), py::arg("options"), py::arg("redirect") = "");
+    m.def("solve", &solve, "Takes in a description of the InputQuery and returns the solution", py::arg("inputQuery"), py::arg("options"),
+          py::arg("summaryFilePath"), py::arg("fixedReluFilePath"),  py::arg("redirect") = "");
     m.def("saveQuery", &saveQuery, "Serializes the inputQuery in the given filename");
     m.def("loadQuery", &loadQuery, "Loads and returns a serialized inputQuery from the given filename");
     m.def("addReluConstraint", &addReluConstraint, "Add a Relu constraint to the InputQuery");
     m.def("addMaxConstraint", &addMaxConstraint, "Add a Max constraint to the InputQuery");
+    m.def("setDirection", &setDirection, "Set direction of a relu");
     py::class_<InputQuery>(m, "InputQuery")
         .def(py::init())
         .def("setUpperBound", &InputQuery::setUpperBound)
@@ -245,9 +351,15 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def_readwrite("_initialDivides", &MarabouOptions::_initialDivides)
         .def_readwrite("_onlineDivides", &MarabouOptions::_onlineDivides)
         .def_readwrite("_timeoutInSeconds", &MarabouOptions::_timeoutInSeconds)
+        .def_readwrite("_focusLayer", &MarabouOptions::_focusLayer)
         .def_readwrite("_timeoutFactor", &MarabouOptions::_timeoutFactor)
         .def_readwrite("_verbosity", &MarabouOptions::_verbosity)
-        .def_readwrite("_dnc", &MarabouOptions::_dnc);
+        .def_readwrite("_dnc", &MarabouOptions::_dnc)
+        .def_readwrite("_restoreTreeStates", &MarabouOptions::_restoreTreeStates)
+        .def_readwrite("_lookAheadPreprocessing", &MarabouOptions::_lookAheadPreprocessing)
+        .def_readwrite("_preprocessOnly", &MarabouOptions::_preprocessOnly)
+        .def_readwrite("_divideStrategy", &MarabouOptions::_divideStrategy)
+        .def_readwrite("_biasStrategy", &MarabouOptions::_biasStrategy);
     py::class_<SymbolicBoundTightener, std::unique_ptr<SymbolicBoundTightener,py::nodelete>>(m, "SymbolicBoundTightener")
         .def(py::init())
         .def("setNumberOfLayers", &SymbolicBoundTightener::setNumberOfLayers)

@@ -17,6 +17,9 @@
 #define __IEngine_h__
 
 #include "List.h"
+#include "Map.h"
+
+#include "BiasStrategy.h"
 
 #ifdef _WIN32
 #undef ERROR
@@ -25,6 +28,8 @@
 class EngineState;
 class Equation;
 class PiecewiseLinearCaseSplit;
+class PiecewiseLinearConstraint;
+class SmtState;
 
 class IEngine
 {
@@ -51,6 +56,8 @@ public:
     */
     virtual void storeState( EngineState &state, bool storeAlsoTableauState ) const = 0;
     virtual void restoreState( const EngineState &state ) = 0;
+    virtual void storeSmtState( SmtState &smtState ) = 0;
+    virtual bool restoreSmtState( SmtState &smtState ) = 0;
     virtual void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints ) = 0;
 
     /*
@@ -69,6 +76,14 @@ public:
     */
     virtual void reset() = 0;
     virtual List<unsigned> getInputVariables() const = 0;
+
+    virtual bool propagate() = 0;
+    virtual void getEstimates( Map <unsigned, double>
+                               &balanceEstimates,
+                               Map <unsigned, double>
+                               &runtimeEstimates ) = 0;
+
+    virtual PiecewiseLinearConstraint *getConstraintFromId( unsigned id ) = 0;
 };
 
 #endif // __IEngine_h__

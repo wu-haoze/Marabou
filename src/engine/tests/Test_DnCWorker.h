@@ -194,8 +194,8 @@ public:
         numUnsolvedSubQueries=( 1 );
         shouldQuitSolving=( false );
 		dncWorker = DnCWorker( _workload, _engine, numUnsolvedSubQueries,
-                             shouldQuitSolving, threadId, onlineDivides,
-                              timeoutFactor, divideStrategy );
+                               shouldQuitSolving, threadId, onlineDivides,
+                               timeoutFactor, divideStrategy );
 
         dncWorker.popOneSubQueryAndSolve();
         TS_ASSERT( _engine->getExitCode() == IEngine::SAT );

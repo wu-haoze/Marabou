@@ -23,6 +23,7 @@
 #include "MarabouError.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "QueryDivider.h"
+#include "ReluDivider.h"
 #include "TimeUtils.h"
 #include "Vector.h"
 #include <atomic>
@@ -33,41 +34,56 @@
 
 #include "util/util.hh"
 
-void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+#include "Map.h"
+
+void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
+                           std::shared_ptr<Engine> engine,
                            std::atomic_uint &numUnsolvedSubQueries,
                            std::atomic_bool &shouldQuitSolving,
                            unsigned threadId, unsigned onlineDivides,
-                           float timeoutFactor, DivideStrategy divideStrategy )
+                           float timeoutFactor, DivideStrategy divideStrategy,
+                           bool restoreTreeStates, Map<unsigned, unsigned>
+                           idToPhase, unsigned biasedLayer,
+                           BiasStrategy biasStrategy )
 {
     unsigned cpuId = 0;
     getCPUId( cpuId );
     log( Stringf( "Thread #%u on CPU %u", threadId, cpuId ) );
+
+    engine->processInputQuery( *inputQuery, false );
+    engine->applySplits( idToPhase );
+    engine->setBiasedPhases( biasedLayer, biasStrategy );
+    engine->numberOfActive();
 
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy );
     while ( !shouldQuitSolving.load() )
     {
-        worker.popOneSubQueryAndSolve();
+        worker.popOneSubQueryAndSolve( restoreTreeStates );
     }
 }
 
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
-                        InputQuery *inputQuery, unsigned verbosity )
-    : _numWorkers( numWorkers )
+                        InputQuery *inputQuery, unsigned verbosity,
+                        Map<unsigned, unsigned> idToPhase, unsigned biasedLayer,
+                        BiasStrategy biasStrategy )
+    : _exitCode( DnCManager::NOT_DONE )
+    , _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
     , _divideStrategy( divideStrategy )
     , _baseInputQuery( inputQuery )
-    , _exitCode( DnCManager::NOT_DONE )
-    , _workload( NULL )
     , _timeoutReached( false )
     , _numUnsolvedSubQueries( 0 )
     , _verbosity( verbosity )
+    , _idToPhase( idToPhase )
+    , _biasedLayer( biasedLayer )
+    , _biasStrategy( biasStrategy )
 {
 }
 
@@ -86,13 +102,11 @@ void DnCManager::freeMemoryIfNeeded()
             _workload->pop( subQuery );
             delete subQuery;
         }
-
-        delete _workload;
-        _workload = NULL;
     }
+    delete _workload;
 }
 
-void DnCManager::solve( unsigned timeoutInSeconds )
+void DnCManager::solve( unsigned timeoutInSeconds, bool restoreTreeStates )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -115,20 +129,17 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     // Partition the input query into initial subqueries, and place these
     // queries in the queue
-    _workload = new WorkerQueue( 0 );
-    if ( !_workload )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DnCManager::workload" );
-
     SubQueries subQueries;
     initialDivide( subQueries );
 
     // Create objects shared across workers
     _numUnsolvedSubQueries = subQueries.size();
     std::atomic_bool shouldQuitSolving( false );
-    WorkerQueue *workload = new WorkerQueue( 0 );
+
+    _workload = new WorkerQueue( 0 );
     for ( auto &subQuery : subQueries )
     {
-        if ( !workload->push( subQuery ) )
+        if ( !_workload->push( subQuery ) )
         {
             // This should never happen
             ASSERT( false );
@@ -139,12 +150,16 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     std::list<std::thread> threads;
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
     {
-        threads.push_back( std::thread( dncSolve, workload,
-                                        _engines[ threadId ],
+        InputQuery *inputQuery = new InputQuery();
+        *inputQuery = *_baseInputQuery;
+        threads.push_back( std::thread( dncSolve, _workload,
+                                        inputQuery, _engines[ threadId ],
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy ) );
+                                        _timeoutFactor, _divideStrategy,
+                                        restoreTreeStates, _idToPhase,
+                                        _biasedLayer, _biasStrategy ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is
@@ -311,23 +326,13 @@ void DnCManager::printResult()
 bool DnCManager::createEngines()
 {
     // Create the base engine
-    _baseEngine = std::make_shared<Engine>();
-
-    InputQuery *baseInputQuery = new InputQuery();
-
-    *baseInputQuery = *_baseInputQuery;
-
-    if ( !_baseEngine->processInputQuery( *baseInputQuery ) )
-        // Solved by preprocessing, we are done!
-        return false;
+    _baseEngine = std::make_shared<Engine>( _verbosity );
+    _baseEngine->processInputQuery( *_baseInputQuery, false );
 
     // Create engines for each thread
     for ( unsigned i = 0; i < _numWorkers; ++i )
     {
         auto engine = std::make_shared<Engine>( _verbosity );
-        InputQuery *inputQuery = new InputQuery();
-        *inputQuery = *baseInputQuery;
-        engine->processInputQuery( *inputQuery );
         _engines.append( engine );
     }
 
@@ -336,44 +341,44 @@ bool DnCManager::createEngines()
 
 void DnCManager::initialDivide( SubQueries &subQueries )
 {
+    String queryId = "";
+    auto split = std::unique_ptr<PiecewiseLinearCaseSplit>
+        ( new PiecewiseLinearCaseSplit() );
+
     const List<unsigned> inputVariables( _baseEngine->getInputVariables() );
     std::unique_ptr<QueryDivider> queryDivider = nullptr;
     if ( _divideStrategy == DivideStrategy::LargestInterval )
     {
         queryDivider = std::unique_ptr<QueryDivider>
             ( new LargestIntervalDivider( inputVariables ) );
+
+        // If we are dividing the input region, we add all the original bounds
+        QueryDivider::InputRegion initialRegion;
+        InputQuery *inputQuery = _baseEngine->getInputQuery();
+        for ( const auto &variable : inputVariables )
+        {
+            initialRegion._lowerBounds[variable] =
+                inputQuery->getLowerBounds()[variable];
+            initialRegion._upperBounds[variable] =
+                inputQuery->getUpperBounds()[variable];
+        }
+
+        // Add bound as equations for each input variable
+        for ( const auto &variable : inputVariables )
+        {
+            double lb = initialRegion._lowerBounds[variable];
+            double ub = initialRegion._upperBounds[variable];
+            split->storeBoundTightening( Tightening( variable, lb,
+                                                     Tightening::LB ) );
+            split->storeBoundTightening( Tightening( variable, ub,
+                                                     Tightening::UB ) );
+        }
     }
     else
     {
         // Default
         queryDivider = std::unique_ptr<QueryDivider>
-            ( new LargestIntervalDivider( inputVariables ) );
-    }
-
-    String queryId = "";
-    // Create a new case split
-    QueryDivider::InputRegion initialRegion;
-    InputQuery *inputQuery = _baseEngine->getInputQuery();
-    for ( const auto &variable : inputVariables )
-    {
-        initialRegion._lowerBounds[variable] =
-            inputQuery->getLowerBounds()[variable];
-        initialRegion._upperBounds[variable] =
-            inputQuery->getUpperBounds()[variable];
-    }
-
-    auto split = std::unique_ptr<PiecewiseLinearCaseSplit>
-        ( new PiecewiseLinearCaseSplit() );
-
-    // Add bound as equations for each input variable
-    for ( const auto &variable : inputVariables )
-    {
-        double lb = initialRegion._lowerBounds[variable];
-        double ub = initialRegion._upperBounds[variable];
-        split->storeBoundTightening( Tightening( variable, lb,
-                                                 Tightening::LB ) );
-        split->storeBoundTightening( Tightening( variable, ub,
-                                                 Tightening::UB ) );
+            ( new ReluDivider( _baseEngine ) );
     }
 
     queryDivider->createSubQueries( pow( 2, _initialDivides ), queryId,

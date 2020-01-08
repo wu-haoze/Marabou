@@ -14,9 +14,12 @@
  ** [[ Add lengthier description here ]]
  **/
 
+#include "AcasParser.h"
 #include "DnCManager.h"
 #include "DnCMarabou.h"
 #include "File.h"
+#include "FixedReluParser.h"
+#include "LookAheadPreprocessor.h"
 #include "MStringf.h"
 #include "Options.h"
 #include "PropertyParser.h"
@@ -28,6 +31,8 @@ DnCMarabou::DnCMarabou()
     : _dncManager( nullptr )
     , _inputQuery( InputQuery() )
 {
+    unsigned verbosity = Options::get()->getInt( Options::VERBOSITY );
+    _baseEngine = std::make_shared<Engine>( verbosity );
 }
 
 void DnCMarabou::run()
@@ -97,20 +102,85 @@ void DnCMarabou::run()
     unsigned verbosity = Options::get()->getInt( Options::VERBOSITY );
     unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
     float timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
+    DivideStrategy divideStrategy = setDivideStrategyFromOptions
+        ( Options::get()->getString( Options::DIVIDE_STRATEGY ) );
+    bool restoreTreeStates = Options::get()->getBool( Options::RESTORE_TREE_STATES );
+    unsigned biasedLayer = Options::get()->getInt( Options::FOCUS_LAYER );
+    BiasStrategy biasStrategy = setBiasStrategyFromOptions
+        ( Options::get()->getString( Options::BIAS_STRATEGY ) );
 
-    _dncManager = std::unique_ptr<DnCManager>
-      ( new DnCManager( numWorkers, initialDivides, initialTimeout,
-                        onlineDivides, timeoutFactor,
-                        DivideStrategy::LargestInterval, &_inputQuery,
-                        verbosity ) );
     struct timespec start = TimeUtils::sampleMicro();
 
-    _dncManager->solve( timeoutInSeconds );
+    Map<unsigned, unsigned> idToPhase;
+    if ( _baseEngine->processInputQuery( _inputQuery ) &&
+         lookAheadPreprocessing( idToPhase ) &&
+         !Options::get()->getBool( Options::PREPROCESS_ONLY ) )
+    {
+        if ( !Options::get()->getBool( Options::PREPROCESS_ONLY ) )
+        {
+            String fixedReluFilePath = Options::get()->getString( Options::FIXED_RELU_PATH );
+            if ( fixedReluFilePath != "" )
+            {
+                printf( "Fixed Relus: %s\n", fixedReluFilePath.ascii() );
+                FixedReluParser().parse( fixedReluFilePath, idToPhase );
+            }
 
+            _dncManager = std::unique_ptr<DnCManager>
+                ( new DnCManager( numWorkers, initialDivides, initialTimeout,
+                                  onlineDivides, timeoutFactor, divideStrategy,
+                                  _baseEngine->getInputQuery(), verbosity,
+                                  idToPhase, biasedLayer, biasStrategy ) );
+            _dncManager->solve( timeoutInSeconds, restoreTreeStates );
+        }
+    }
+    else
+    {
+        _dncManager->_exitCode = DnCManager::UNSAT;
+    }
     struct timespec end = TimeUtils::sampleMicro();
 
     unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
     displayResults( totalElapsed );
+}
+
+bool DnCMarabou::lookAheadPreprocessing( Map<unsigned, unsigned> &idToPhase )
+{
+    bool feasible = true;
+    if ( Options::get()->getBool( Options::LOOK_AHEAD_PREPROCESSING ) )
+    {
+        struct timespec start = TimeUtils::sampleMicro();
+        auto lookAheadPreprocessor = new LookAheadPreprocessor
+            ( Options::get()->getInt( Options::NUM_WORKERS ),
+              *(_baseEngine->getInputQuery()) );
+        feasible = lookAheadPreprocessor->run( idToPhase );
+        struct timespec end = TimeUtils::sampleMicro();
+        unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+        String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
+        if ( summaryFilePath != "" )
+        {
+            File summaryFile( summaryFilePath + ".preprocess" );
+            summaryFile.open( File::MODE_WRITE_TRUNCATE );
+
+            // Field #1: result
+            summaryFile.write( ( feasible ? "UNKNOWN" : "UNSAT" ) );
+
+            // Field #2: total elapsed time
+            summaryFile.write( Stringf( " %u ", totalElapsed / 1000000 ) ); // In seconds
+
+            // Field #3: number of fixed relus by look ahead preprocessing
+            summaryFile.write( Stringf( "%u ", idToPhase.size() ) );
+            summaryFile.write( "\n" );
+        }
+        if ( summaryFilePath != "" )
+        {
+            File fixedFile( summaryFilePath + ".fixed" );
+            fixedFile.open( File::MODE_WRITE_TRUNCATE );
+
+            for ( const auto entry : idToPhase )
+                fixedFile.write( Stringf( "%u %u\n", entry.first, entry.second ) );
+        }
+    }
+    return feasible;
 }
 
 void DnCMarabou::displayResults( unsigned long long microSecondsElapsed ) const
@@ -138,6 +208,34 @@ void DnCMarabou::displayResults( unsigned long long microSecondsElapsed ) const
         summaryFile.write( Stringf( "0" ) );
 
         summaryFile.write( "\n" );
+    }
+}
+
+BiasStrategy DnCMarabou::setBiasStrategyFromOptions( const String strategy )
+{
+    if ( strategy == "centroid" )
+        return BiasStrategy::Centroid;
+    else if ( strategy == "sampling" )
+        return BiasStrategy::Sampling;
+    else if ( strategy == "random" )
+        return BiasStrategy::Random;
+    else
+    {
+        printf ("Unknown bias strategy, using default (centroid).\n");
+        return BiasStrategy::Centroid;
+    }
+}
+
+DivideStrategy DnCMarabou::setDivideStrategyFromOptions( const String strategy )
+{
+    if ( strategy == "split-relu" )
+        return DivideStrategy::SplitRelu;
+    else if ( strategy == "largest-interval" )
+        return DivideStrategy::LargestInterval;
+    else
+    {
+        printf ("Unknown divide strategy, using default (SplitRelu).\n");
+        return DivideStrategy::SplitRelu;
     }
 }
 

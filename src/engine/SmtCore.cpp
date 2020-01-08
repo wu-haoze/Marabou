@@ -47,6 +47,20 @@ void SmtCore::freeMemory()
     _stack.clear();
 }
 
+void SmtCore::reportViolatedConstraintPrep( PiecewiseLinearConstraint *constraint )
+{
+    if ( !_constraintToViolationCount.exists( constraint ) )
+        _constraintToViolationCount[constraint] = 0;
+
+    ++_constraintToViolationCount[constraint];
+
+    if ( _constraintToViolationCount[constraint] >= GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD_QUICK )
+    {
+        _needToSplit = true;
+        _constraintForSplitting = constraint;
+    }
+}
+
 void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
 {
     if ( !_constraintToViolationCount.exists( constraint ) )
@@ -232,6 +246,12 @@ void SmtCore::recordImpliedValidSplit( PiecewiseLinearCaseSplit &validSplit )
     checkSkewFromDebuggingSolution();
 }
 
+void SmtCore::recordImpliedIdToPhase( unsigned id, unsigned phaseStatus )
+{
+    if ( _stack.empty() )
+        _impliedIdToPhaseAtRoot[id] = phaseStatus;
+}
+
 void SmtCore::allSplitsSoFar( List<PiecewiseLinearCaseSplit> &result ) const
 {
     result.clear();
@@ -388,6 +408,64 @@ PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<Piec
 
     return candidate;
 }
+
+void SmtCore::replayStackEntry( StackEntry *stackEntry )
+{
+    struct timespec start = TimeUtils::sampleMicro();
+
+    if ( _statistics )
+    {
+        _statistics->incNumSplits();
+        _statistics->incNumVisitedTreeStates();
+    }
+
+    // Obtain the current state of the engine
+    EngineState *stateBeforeSplits = new EngineState;
+    stateBeforeSplits->_stateId = _stateId;
+    ++_stateId;
+    _engine->storeState( *stateBeforeSplits, true );
+    stackEntry->_engineState = stateBeforeSplits;
+
+    // Apply all the splits
+    _engine->applySplit( stackEntry->_activeSplit );
+    for ( const auto &impliedSplit : stackEntry->_impliedValidSplits )
+        _engine->applySplit( impliedSplit );
+
+    _stack.append( stackEntry );
+
+    if ( _statistics )
+    {
+        _statistics->setCurrentStackDepth( getStackDepth() );
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics->addTimeSmtCore( TimeUtils::timePassed( start, end ) );
+    }
+}
+
+/*
+  Store the stack of the timed-out query
+*/
+void SmtCore::storeSmtState( SmtState &smtState )
+{
+    smtState._impliedValidSplitsAtRoot = _impliedValidSplitsAtRoot;
+
+    for ( auto &stackEntry : _stack )
+        smtState._stack.append( duplicateStackEntry( *stackEntry ) );
+
+}
+
+StackEntry *SmtCore::duplicateStackEntry( const StackEntry &stackEntry )
+{
+    StackEntry *copy = new StackEntry();
+
+    copy->_activeSplit = stackEntry._activeSplit;
+    copy->_impliedValidSplits = stackEntry._impliedValidSplits;
+    copy->_alternativeSplits = stackEntry._alternativeSplits;
+    copy->_engineState = NULL;
+
+    return copy;
+}
+
+
 
 //
 // Local Variables:

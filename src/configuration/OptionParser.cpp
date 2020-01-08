@@ -48,12 +48,24 @@ void OptionParser::initialize()
         ( "self-hash",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SELF_HASH]) ),
           "Hash of the running program" )
+        ( "restore-tree-states",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::RESTORE_TREE_STATES]) ),
+          "Restore tree states in dnc mode" )
+        ( "look-ahead-preprocessing",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::LOOK_AHEAD_PREPROCESSING]) ),
+          "Look ahead preprocessing" )
+        ( "preprocess-only",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::PREPROCESS_ONLY]) ),
+          "Look ahead preprocessing" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )
         ( "property",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::PROPERTY_FILE_PATH]) ),
           "Property file" )
+        ( "fixed-relu",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::FIXED_RELU_PATH]) ),
+          "Fixed relus file" )
         ( "input-query",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_QUERY_FILE_PATH]) ),
           "Input Query file" )
@@ -66,6 +78,12 @@ void OptionParser::initialize()
 	( "merge-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::MERGE_FILE]) ),
           "The path to the merge program" )
+        ( "divide-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::DIVIDE_STRATEGY]) ),
+          "(DNC) Strategy for dividing a query into subqueries (split-relu/largest-interval/activationPattern)" )
+        ( "bias-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::BIAS_STRATEGY]) ),
+          "(DNC) Strategy for biasing the fix (centroid/sampling/random)" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )
@@ -81,6 +99,9 @@ void OptionParser::initialize()
         ( "timeout",
           boost::program_options::value<int>( &((*_intOptions)[Options::TIMEOUT]) ),
           "Global timeout" )
+        ( "focus-layer",
+          boost::program_options::value<int>( &((*_intOptions)[Options::FOCUS_LAYER]) ),
+          "Layer to focus the search on." )
         ( "verbosity",
           boost::program_options::value<int>( &((*_intOptions)[Options::VERBOSITY]) ),
           "Verbosity of engine::solve(). 0: does not print anything (for DnC), 1: print"

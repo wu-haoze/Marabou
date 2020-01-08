@@ -46,6 +46,8 @@ private:
     */
     void solveQuery();
 
+    bool lookAheadPreprocessing();
+
     /*
       Display the results
     */
@@ -67,6 +69,8 @@ private:
      * Creates empty output files for the subproblems of this problem.
      */
     void createEmptySubproblemOutputs() const;
+
+    BiasStrategy setBiasStrategyFromOptions( const String strategy );
 
     /*
       ACAS network parser

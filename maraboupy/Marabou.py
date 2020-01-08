@@ -62,7 +62,8 @@ def load_query(filename):
     return MarabouCore.loadQuery(filename)
 
 
-def solve_query(ipq, filename="", verbose=True, timeout=0, verbosity=2):
+def solve_query(ipq, filename="", verbose=True, timeout=0, verbosity=2,
+                preprocesser_summary=""):
     """
     Function to solve query represented by this network
     Arguments:
@@ -82,7 +83,7 @@ def solve_query(ipq, filename="", verbose=True, timeout=0, verbosity=2):
                 to how an input query was solved.
     """
     options = createOptions(timeoutInSeconds=timeout, verbosity=verbosity)
-    vals, stats = MarabouCore.solve(ipq, options, filename)
+    vals, stats = MarabouCore.solve(ipq, options, filename, "", "")
     if verbose:
         if stats.hasTimedOut():
             print ("TIMEOUT")
@@ -97,8 +98,12 @@ def solve_query(ipq, filename="", verbose=True, timeout=0, verbosity=2):
 
     return [vals, stats]
 
-def createOptions( numWorkers=4, initialTimeout=5, initialDivides=0, onlineDivides=2,
-                   timeoutInSeconds=0, timeoutFactor=1.5, verbosity=2, dnc=False):
+def createOptions( numWorkers=4, initialTimeout=5, initialDivides=0,
+                   onlineDivides=2, timeoutInSeconds=0, focusLayer=0,
+                   timeoutFactor=1.5, verbosity=2, dnc=False,
+                   restoreTreeStates=False, lookAheadPreprocessing=False,
+                   preprocessOnly=False, divideStrategy="split-relu",
+                   biasStrategy="centroid" ):
     """
     Create an option object
     """
@@ -108,7 +113,13 @@ def createOptions( numWorkers=4, initialTimeout=5, initialDivides=0, onlineDivid
     options._initialDivides = initialDivides
     options._onlineDivides = onlineDivides
     options._timeoutInSeconds = timeoutInSeconds
+    options._focusLayer = focusLayer
     options._timeoutFactor = timeoutFactor
     options._verbosity = verbosity
     options._dnc = dnc
+    options._restoreTreeStates = restoreTreeStates
+    options._lookAheadPreprocessing = lookAheadPreprocessing
+    options._preprocessOnly = preprocessOnly
+    options._divideStrategy = divideStrategy
+    options._biasStrategy = biasStrategy
     return options

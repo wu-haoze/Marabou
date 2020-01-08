@@ -16,6 +16,7 @@
 #ifndef __DnCWorker_h__
 #define __DnCWorker_h__
 
+#include "BiasStrategy.h"
 #include "DivideStrategy.h"
 #include "Engine.h"
 #include "PiecewiseLinearCaseSplit.h"
@@ -36,7 +37,7 @@ public:
       Pop one subQuery, solve it and handle the result
       Return true if the DnCWorker should continue running
     */
-    void popOneSubQueryAndSolve();
+    void popOneSubQueryAndSolve( bool restoreTreeStates = false );
 
 private:
     /*
@@ -80,6 +81,10 @@ private:
     unsigned _threadId;
     unsigned _onlineDivides;
     float _timeoutFactor;
+
+    unsigned _biasedLayer;
+    BiasStrategy _biasStrategy;
+
 };
 
 #endif // __DnCWorker_h__
