@@ -180,12 +180,22 @@ class Result(Enum):
     UNSAT = 2
     TIMEOUT = 3
 
+# When you add a field to RunOutputs, add it here, so that you stay backwards compatible
+RUN_OUTPUT_ADDITIONS = [
+        'region',
+]
+RUN_OUTPUT_DEFAULTS = {
+        'region': 'us-west-2',
+
+}
+
 class RunOutputs(object):
     def __init__(self, inputs, start_time, runtime, result):
         self.inputs = inputs
         self.start_time = start_time
         self.runtime = runtime
         self.result = result
+        self.region = os.environ['AWS_REGION']
 
     def csv_header():
         return [
@@ -193,6 +203,7 @@ class RunOutputs(object):
             'prop',
             'infra',
             'jobs',
+            'runtime',
             'initial_divides',
             'divides',
             'timeout',
@@ -200,8 +211,8 @@ class RunOutputs(object):
             'timeout_factor',
             'hash',
             'trial',
+            'region',
             'start_time',
-            'runtime',
             'result',
         ]
 
@@ -211,6 +222,7 @@ class RunOutputs(object):
             str(self.inputs.prop),
             str(self.inputs.infra),
             str(self.inputs.jobs),
+            str(self.runtime),
             str(self.inputs.initial_divides),
             str(self.inputs.divides),
             str(self.inputs.timeout),
@@ -218,10 +230,16 @@ class RunOutputs(object):
             str(self.inputs.timeout_factor),
             str(self.inputs.trial),
             str(self.inputs.hash),
+            str(self.region),
             str(self.start_time),
-            str(self.runtime),
             str(self.result),
         ]
+
+    def __getattr__(self, attr):
+        if attr in RUN_OUTPUT_DEFAULTS:
+            return RUN_OUTPUT_DEFAULTS[attr]
+        else:
+            raise AttributeError(f"No attribute `{attr}` in RunOutputs or its defaults")
 
 def with_n_trials(inputs, N):
     def help():
