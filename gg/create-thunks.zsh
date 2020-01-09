@@ -1,6 +1,6 @@
 #!/usr/bin/zsh -e
 
-USAGE="$0 <MAR-PATH> <MERGE-PATH> <NET-PATH> <PROP-PATH> <INIT-DIVIDES> <ONLINE-DIVIDES> <TIMEOUT> <TIMEOUT-FACTOR>"
+USAGE="$0 <MAR-PATH> <MERGE-PATH> <NET-PATH> <PROP-PATH> <INIT-DIVIDES> <ONLINE-DIVIDES> <TIMEOUT> <TIMEOUT-FACTOR> <SPLIT-STRATEGY>"
 
 rm -rf .gg
 
@@ -14,6 +14,7 @@ INIT_DIVIDES=${5?Initial Divides)}
 ONLINE_DIVIDES=${6?Online Divides)}
 TIMEOUT=${7?Timeout}
 TIMEOUT_FACTOR=${8?Timeout Factor}
+SPLIT_STRATEGY=${9?Split Strategy}
 
 gg-collect $MAR_PATH $NET_PATH $MERGE_PATH $PROP_PATH
 
@@ -63,6 +64,7 @@ gg-create-thunk \
     --merge-file $(placeholder $MERGE_HASH) \
     --self-hash $MAR_HASH \
     --query-id $QUERY_ID \
+    --divide-strategy $SPLIT_STRATEGY \
     $(placeholder $NET_HASH) \
     $(placeholder $PROP_HASH)
 

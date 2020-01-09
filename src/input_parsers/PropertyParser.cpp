@@ -63,7 +63,10 @@ void PropertyParser::processSingleLine( const String &line, InputQuery &inputQue
     List<String> tokens = line.tokenize( " " );
 
     if ( tokens.size() < 3 )
-        throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
+    {
+        // This line is a ReLU phase, not a bound.
+        return;
+    }
 
     auto it = tokens.rbegin();
     if ( !isScalar( *it ) )

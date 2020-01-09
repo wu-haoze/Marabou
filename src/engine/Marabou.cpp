@@ -27,6 +27,7 @@
 #include "MarabouError.h"
 #include "QueryLoader.h"
 #include "QueryDivider.h"
+#include "ReluDivider.h"
 
 #include "thunk/thunk.hh"
 #include "thunk/thunk_writer.hh"
@@ -138,7 +139,7 @@ void Marabou::solveQuery()
          lookAheadPreprocessing() && !Options::get()->
          getBool( Options::PREPROCESS_ONLY ) )
     {
-        String fixedReluFilePath = Options::get()->getString( Options::FIXED_RELU_PATH );
+        String fixedReluFilePath = Options::get()->getString( Options::PROPERTY_FILE_PATH );
         if ( fixedReluFilePath != "" )
         {
             Map<unsigned, unsigned> idToPhase;
@@ -295,9 +296,8 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
 
 SubQueries Marabou::split( unsigned divides )
 {
+    std::unique_ptr<QueryDivider> queryDivider = nullptr;
     const List<unsigned> inputVariables(_engine.getInputVariables());
-    std::unique_ptr<QueryDivider> queryDivider = std::unique_ptr<QueryDivider>(new LargestIntervalDivider(inputVariables));
-
     // Create a new case split
     QueryDivider::InputRegion initialRegion;
     InputQuery* inputQuery = _engine.getInputQuery();
@@ -305,23 +305,34 @@ SubQueries Marabou::split( unsigned divides )
         initialRegion._lowerBounds[variable] = inputQuery->getLowerBounds()[variable];
         initialRegion._upperBounds[variable] = inputQuery->getUpperBounds()[variable];
     }
-
+    
     auto split = std::unique_ptr<PiecewiseLinearCaseSplit>(new PiecewiseLinearCaseSplit());
-
+    
     // Add bound as equations for each input variable
     for (const auto& variable : inputVariables) {
         double lb = initialRegion._lowerBounds[variable];
         double ub = initialRegion._upperBounds[variable];
         split->storeBoundTightening(Tightening(variable, lb,
-            Tightening::LB));
+                                               Tightening::LB));
         split->storeBoundTightening(Tightening(variable, ub,
-            Tightening::UB));
+                                               Tightening::UB));
     }
 
     String queryId = Options::get()->getString(Options::QUERY_ID);
     SubQueries subQueries;
+
+    if ( Options::get()->getString( Options::DIVIDE_STRATEGY ) == "largest-interval" )
+    {
+        queryDivider = std::unique_ptr<QueryDivider>(new LargestIntervalDivider(inputVariables));
+
+    }
+    else
+    {
+        queryDivider = std::unique_ptr<QueryDivider>(new ReluDivider(_engine));
+    }
     queryDivider->createSubQueries(pow(2, divides), queryId,
-        *split, 0, subQueries);
+                                   *split, 0, subQueries);
+
     return subQueries;
 }
 
@@ -336,6 +347,7 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
     const String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
     const String mergePath = Options::get()->getString( Options::MERGE_FILE );
     const String selfHash = Options::get()->getString( Options::SELF_HASH );
+    const String divideStrategy = Options::get()->getString( Options::DIVIDE_STRATEGY );
     const double timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
 
     assert(selfHash.length() > 0);
@@ -367,13 +379,26 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
             propFile << oldFile.rdbuf();
             const auto& split = subQuery._split;
             auto bounds = split->getBoundTightenings();
-            for ( const auto bound : bounds )
+            if ( divideStrategy == "largest-interval" )
             {
-                propFile << "x"
-                         << bound._variable
-                         << (bound._type == Tightening::LB ? " >= " : " <= ")
-                         << bound._value
-                         << "\n";
+                for ( const auto bound : bounds )
+                {
+                    propFile << "x"
+                             << bound._variable
+                             << (bound._type == Tightening::LB ? " >= " : " <= ")
+                             << bound._value
+                             << "\n";
+                }
+            }
+            else
+            {
+                for ( const auto& reluPhasePair : split->getReluPhases() )
+                {
+                    propFile << reluPhasePair.first()
+                             << " "
+                             << 2 - static_cast<unsigned>(reluPhasePair.second())
+                             << "\n";
+                }
             }
         }
         const std::string propHash = gg::hash::file_force( propFilePath );
@@ -412,6 +437,8 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
                     gg::thunk::data_placeholder(mergeHash),
                     "--query-id",
                     queryId,
+                    "--divide-strategy",
+                    divideStrategy.ascii(),
                     "--self-hash",
                     selfHash.ascii(),
                     "--verbosity",

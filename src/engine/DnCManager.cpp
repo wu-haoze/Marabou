@@ -378,7 +378,7 @@ void DnCManager::initialDivide( SubQueries &subQueries )
     {
         // Default
         queryDivider = std::unique_ptr<QueryDivider>
-            ( new ReluDivider( _baseEngine ) );
+            ( new ReluDivider( *_baseEngine ) );
     }
 
     queryDivider->createSubQueries( pow( 2, _initialDivides ), queryId,

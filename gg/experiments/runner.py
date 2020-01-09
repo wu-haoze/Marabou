@@ -31,9 +31,23 @@ class Infra(Enum):
     GG_LOCAL = 2
     GG_LAMBDA = 3
 
+LARGEST_INTERVAL =  'largest-interval'
+SPLIT_RELU =  'split-relu'
+
+# When you add a field to RunInputs, add it here, so that you stay backwards compatible
+RUN_INPUT_ADDITIONS = [
+        'trial',
+        'divide_strategy',
+]
+RUN_INPUT_DEFAULTS = {
+        'divide_strategy': LARGEST_INTERVAL,
+        'trial': 0,
+
+}
+
 
 class RunInputs(object):
-    def __init__(self, net, prop, infra, jobs, initial_divides, divides, timeout, initial_timeout, timeout_factor, trial = 0):
+    def __init__(self, net, prop, infra, jobs, initial_divides, divides, timeout, initial_timeout, timeout_factor, divide_strategy, trial = 0):
         self.marabou = abs_marabou_repo() + '/build/Marabou'
         self.net = net
         self.prop = prop
@@ -44,6 +58,7 @@ class RunInputs(object):
         self.timeout = timeout
         self.initial_timeout = initial_timeout
         self.timeout_factor = timeout_factor
+        self.divide_strategy = divide_strategy
         self.trial = trial
         self.hash = self.get_marabou_hash()
 
@@ -54,7 +69,22 @@ class RunInputs(object):
         return f'{abs_marabou_repo()}/gg/acas-properties/{self.prop}'
 
     def __str__(self):
-        return f'{self.net}-{self.prop}-{self.infra}-{self.jobs}-{self.initial_divides}-{self.divides}-{self.timeout}-{self.initial_timeout}-{self.timeout_factor}-{self.trial}'
+        return self.dash_string(0)
+
+    def dash_string(self, missing = 0):
+        displayed = [ self.net,
+            self.prop,
+            self.infra,
+            self.jobs,
+            self.initial_divides,
+            self.divides,
+            self.timeout,
+            self.initial_timeout,
+            self.timeout_factor,
+            self.trial,
+            self.divide_strategy]
+        return '-'.join(str(d).replace('-','') for d in (displayed[:-missing] if missing > 0 else displayed))
+
 
     def get_marabou_hash(self):
         cp = sub.run([self.marabou, '--version'], stdout = sub.PIPE, check = True)
@@ -70,8 +100,26 @@ class RunInputs(object):
         else:
             assert False, f'Unsupport infra {self.infra}'
 
+    def run_data_dir(self):
+        existing = []
+        for n_missing_attrs in reversed(range(1, len(RUN_INPUT_ADDITIONS) + 1)):
+            path = os.path.join(DATA, self.dash_string(n_missing_attrs))
+            print(path)
+            if os.path.exists(path):
+                existing.append(path)
+        if len(existing) > 1:
+            pstring = ''.join('\n\t' + str(o) for o in existing)
+            print(f"Multiple paths match {self}:{pstring}")
+            assert False
+        elif len(existing) == 1:
+            return existing[0]
+        else:
+            return os.path.join(DATA, self.dash_string(n_missing_attrs))
+
+
     def run_as_gg(self):
-        this_data_dir = os.path.join(DATA, str(self))
+        this_data_dir = self.run_data_dir()
+        print(f'running in {this_data_dir}')
         output_path = os.path.join(this_data_dir, OUTPUT_FILE)
         gg_output_path = os.path.join(this_data_dir, GG_OUTPUT_FILE)
         if not os.path.exists(output_path):
@@ -113,7 +161,7 @@ class RunInputs(object):
     def setup_gg(self):
         merge_path = abs_marabou_repo() + "/build/gg/merge"
         create_path = abs_marabou_repo() + "/gg/create-thunks.zsh"
-        this_data_dir = os.path.join(DATA, str(self))
+        this_data_dir = self.run_data_dir()
         os.makedirs(this_data_dir, exist_ok = True)
         args = [ create_path,
                  self.marabou,
@@ -123,12 +171,13 @@ class RunInputs(object):
                  str(self.initial_divides),
                  str(self.divides),
                  str(self.initial_timeout),
-                 str(self.timeout_factor) ]
+                 str(self.timeout_factor),
+                 self.divide_strategy]
         print(' '.join(args))
         sub.run(args, cwd = this_data_dir, check = True)
 
     def run_as_threads(self):
-        this_data_dir = os.path.join(DATA, str(self))
+        this_data_dir = self.run_data_dir()
         output_path = os.path.join(this_data_dir, OUTPUT_FILE)
         summary_path = os.path.join(this_data_dir, SUMMARY_FILE)
         if not os.path.exists(output_path):
@@ -146,6 +195,7 @@ class RunInputs(object):
                     '--num-workers', self.jobs,
                     '--verbosity', '0',
                     '--summary-file', SUMMARY_FILE,
+                    '--divide-strategy', self.divide_strategy,
                     self.net_path(),
                     self.prop_path(),
                 ] ]
@@ -168,6 +218,13 @@ class RunInputs(object):
                 return output
         with open(output_path, 'rb') as f:
             return pickle.load(f)
+
+
+    def __getattr__(self, attr):
+        if attr in RUN_INPUT_DEFAULTS:
+            return RUN_INPUT_DEFAULTS[attr]
+        else:
+            raise AttributeError(f"No attribute `{attr}` in RunInputs or its defaults")
 
 def abs_marabou_repo():
     p = Path.cwd().resolve()
@@ -211,6 +268,7 @@ class RunOutputs(object):
             'timeout_factor',
             'hash',
             'trial',
+            'divide_strategy',
             'region',
             'start_time',
             'result',
@@ -228,8 +286,9 @@ class RunOutputs(object):
             str(self.inputs.timeout),
             str(self.inputs.initial_timeout),
             str(self.inputs.timeout_factor),
-            str(self.inputs.trial),
             str(self.inputs.hash),
+            str(self.inputs.trial),
+            str(self.inputs.divide_strategy),
             str(self.region),
             str(self.start_time),
             str(self.result),
@@ -292,12 +351,14 @@ if __name__ == '__main__':
                 2,
                 60 * 60,
                 5,
-                1.5)
+                1.5,
+                LARGEST_INTERVAL)
         I = []
-        I += with_n_trials(with_all_jobs_counts([i], list(reversed([64, 128, 256, 512, 1024]))), 3)
-        I += with_n_trials(with_all_jobs_counts(with_all_infras([i]), list(reversed([4, 8, 16, 32]))), 3)
+        #I += with_n_trials(with_all_jobs_counts(with_all_infras([i]), list(reversed([4, 8, 16, 32]))), 3)
+        #I += with_n_trials(with_all_jobs_counts([i], list(reversed([64, 128, 256, 512, 1024]))), 3)
         #I = with_n_trials(with_all_jobs_counts([i], list(reversed([4, 8, 16, 32, 64, 128, 256, 512, 1024]))), 1)
-        #I = [i]
+        I = with_n_trials(with_all_jobs_counts([i], list(reversed([512]))), 4)
+        #I += [i]
         R = [i.run() for i in I]
         print(RunOutputs.csv_header())
         for r in R:

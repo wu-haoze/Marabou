@@ -35,8 +35,11 @@ public:
       Store information regarding a new equation to be added.
     */
     void addEquation( const Equation &equation );
-  	List<Equation> getEquations() const;
+    List<Equation> getEquations() const;
 
+    void addReluPhase( unsigned id, bool activated );
+    const List<Pair<unsigned, bool>> &getReluPhases() const;
+    
     /*
       Dump the case split - for debugging purposes.
     */
@@ -63,6 +66,9 @@ private:
       The equation that needs to be added.
     */
     List<Equation> _equations;
+
+    List<Pair<unsigned, bool>> _reluPhases;
+    
 };
 
 #endif // __PiecewiseLinearCaseSplit_h__

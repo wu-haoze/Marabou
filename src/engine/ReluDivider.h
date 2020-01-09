@@ -26,7 +26,7 @@
 class ReluDivider : public QueryDivider
 {
 public:
-    ReluDivider( std::shared_ptr<IEngine> engine );
+    ReluDivider( IEngine& engine );
 
     void createSubQueries( unsigned numNewSubQueries,
                            const String queryIdPrefix,
@@ -48,7 +48,7 @@ private:
     /*
       The engine
     */
-    std::shared_ptr<IEngine> _engine;
+    IEngine& _engine;
 };
 
 #endif // __ReluDivider_h__

@@ -39,15 +39,22 @@ void FixedReluParser::parse( const String &fixedReluFilePath, Map<unsigned, unsi
             unsigned index = 0;
             unsigned id = 0;
             unsigned phase = 0;
-            for ( const auto token : tokens )
+            if (tokens.size() == 2)
             {
-                if ( index == 0 )
-                    id = atoi( token.ascii() );
-                else
-                    phase = atoi( token.ascii() );
-                ++index;
+                for ( const auto token : tokens )
+                {
+                    if ( index == 0 )
+                        id = atoi( token.ascii() );
+                    else
+                        phase = atoi( token.ascii() );
+                    ++index;
+                }
+                fixedRelus[id] = phase;
             }
-            fixedRelus[id] = phase;
+            else
+            {
+                // Do nothing, this line is not a relu phase
+            }
         }
     }
     catch ( const CommonError &e )

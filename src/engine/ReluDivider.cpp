@@ -19,8 +19,8 @@
 #include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 
-ReluDivider::ReluDivider( std::shared_ptr<IEngine> engine )
-    : _engine( std::move( engine ) )
+ReluDivider::ReluDivider( IEngine& engine )
+    : _engine( engine )
 {
 }
 
@@ -36,7 +36,7 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
     auto split = new PiecewiseLinearCaseSplit();
     *split = previousSplit;
     splits.append( split );
-    _engine->propagate();
+    _engine.propagate();
 
     for ( unsigned i = 0; i < numBisects; ++i )
     {
@@ -58,6 +58,7 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
                 {
                     auto newSplit = new PiecewiseLinearCaseSplit();
                     *newSplit = caseSplit;
+		    newSplit->addReluPhase( pLConstraintToSplit->getId(), caseSplit.getEquations().size() > 0);
 
                     for ( const auto &tightening : split->getBoundTightenings() )
                         newSplit->storeBoundTightening( tightening );
@@ -65,6 +66,9 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
                     for ( const auto &equation : split->getEquations() )
                         newSplit->addEquation( equation );
 
+		    for ( const auto &reluPhase : split->getReluPhases() )
+			newSplit->addReluPhase( reluPhase.first(), reluPhase.second() );
+		    
                     newSplits.append( newSplit );
                 }
             }
@@ -97,13 +101,13 @@ PiecewiseLinearConstraint *ReluDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
     EngineState *engineStateBeforeSplit = new EngineState();
-    _engine->storeState( *engineStateBeforeSplit, true );
-    _engine->applySplit( split );
+    _engine.storeState( *engineStateBeforeSplit, true );
+    _engine.applySplit( split );
 
     PiecewiseLinearConstraint *constraintToSplit = NULL;
-    if ( _engine->propagate() )
+    if ( _engine.propagate() )
         constraintToSplit = computeBestChoice();
-    _engine->restoreState( *engineStateBeforeSplit );
+    _engine.restoreState( *engineStateBeforeSplit );
     delete engineStateBeforeSplit;
     return constraintToSplit;
 }
@@ -112,7 +116,7 @@ PiecewiseLinearConstraint *ReluDivider::computeBestChoice()
 {
     Map<unsigned, double> balanceEstimates;
     Map<unsigned, double> runtimeEstimates;
-    _engine->getEstimates( balanceEstimates, runtimeEstimates );
+    _engine.getEstimates( balanceEstimates, runtimeEstimates );
     PiecewiseLinearConstraint *best = NULL;
     double bestRank = balanceEstimates.size() * 2;
     for ( const auto &entry : runtimeEstimates ){
@@ -121,7 +125,7 @@ PiecewiseLinearConstraint *ReluDivider::computeBestChoice()
             double newRank = entry.second + balanceEstimates[entry.first];
             if ( newRank < bestRank )
             {
-                best = _engine->getConstraintFromId( entry.first );
+                best = _engine.getConstraintFromId( entry.first );
                 bestRank = newRank;
             }
         }

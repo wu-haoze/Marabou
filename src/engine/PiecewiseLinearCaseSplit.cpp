@@ -79,6 +79,17 @@ void PiecewiseLinearCaseSplit::updateVariableIndex( unsigned oldIndex, unsigned 
         equation.updateVariableIndex( oldIndex, newIndex );
 }
 
+void PiecewiseLinearCaseSplit::addReluPhase( unsigned id, bool activated )
+{
+    _reluPhases.append( Pair<unsigned, bool>(id, activated) );
+}
+
+const List<Pair<unsigned, bool>> &PiecewiseLinearCaseSplit::getReluPhases() const
+{
+    return _reluPhases;
+}
+
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

@@ -63,7 +63,7 @@ void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
     else
     {
         _queryDivider = std::unique_ptr<QueryDivider>
-            ( new ReluDivider( _engine ) );
+            ( new ReluDivider( *_engine ) );
     }
 }
 
