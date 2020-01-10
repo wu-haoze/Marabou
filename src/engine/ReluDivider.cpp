@@ -33,7 +33,7 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
                                     SubQueries &subQueries )
 {
     std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
-    ofs << Stringf("\n\tCreating subqueries for Id:%s \n", queryIdPrefix.ascii()).ascii();
+    ofs << Stringf("\nCreating subqueries for Id:%s \n", queryIdPrefix.ascii()).ascii();
     ofs.close();
 
     unsigned numBisects = (unsigned)log2( numNewSubqueries );
@@ -47,14 +47,14 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
     for ( unsigned i = 0; i < numBisects; ++i )
     {
         std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
-        ofs << i << "th level of splitting: \n";
+        ofs << "\t\n" << i << "th level of splitting: \n";
         ofs.close();
 
         List<PiecewiseLinearCaseSplit *> newSplits;
         for ( const auto &split : splits )
         {
             std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
-            ofs << "Creating splits\n";
+            ofs << "\tCreating splits\n";
             ofs.close();
             PiecewiseLinearConstraint *pLConstraintToSplit =
                 getPLConstraintToSplit( *split );
@@ -114,26 +114,26 @@ PiecewiseLinearConstraint *ReluDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
     std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
-    ofs << "Storing State!\n";
+    ofs << "\tStoring State!\n";
     EngineState *engineStateBeforeSplit = new EngineState();
     _engine->storeState( *engineStateBeforeSplit, true );
-    ofs << "State stored, apply Split!\n";
+    ofs << "\tState stored, apply Split!\n";
     _engine->applySplit( split );
-    ofs << "Split applied! Propagating\n";
+    ofs << "\tSplit applied! Propagating\n";
     PiecewiseLinearConstraint *constraintToSplit = NULL;
     if ( _engine->propagate() )
     {
-        ofs << "Propagated!\n";
+        ofs << "\tPropagated!\n";
         constraintToSplit = computeBestChoice();
     }
-    if ( constraintToSplit )
-        ofs << "No constraint selected!\n";
+    if ( !constraintToSplit )
+        ofs << "\tNo constraint selected!\n";
     else
-        ofs << "Constraint selected: " <<  constraintToSplit->getId() << "\n";
+        ofs << "\tConstraint selected: " <<  constraintToSplit->getId() << "\n";
 
     _engine->restoreState( *engineStateBeforeSplit );
     delete engineStateBeforeSplit;
-    ofs << "State restored!\n";
+    ofs << "\tState restored!\n";
     ofs.close();
     return constraintToSplit;
 }
