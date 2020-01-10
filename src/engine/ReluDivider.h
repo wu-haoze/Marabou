@@ -18,6 +18,7 @@
 
 #include "IEngine.h"
 #include "List.h"
+#include "MStringf.h"
 #include "PiecewiseLinearConstraint.h"
 #include "QueryDivider.h"
 
@@ -26,7 +27,7 @@
 class ReluDivider : public QueryDivider
 {
 public:
-    ReluDivider( std::shared_ptr<IEngine> engine );
+    ReluDivider( std::shared_ptr<IEngine> engine, String summaryFile );
 
     void createSubQueries( unsigned numNewSubQueries,
                            const String queryIdPrefix,
@@ -49,6 +50,8 @@ private:
       The engine
     */
     std::shared_ptr<IEngine> _engine;
+
+    String _summaryFile;
 };
 
 #endif // __ReluDivider_h__

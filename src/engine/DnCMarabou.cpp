@@ -145,6 +145,8 @@ void DnCMarabou::run()
     std::cout << "Perform tree state restoration: " << ( restoreTreeStates ? "Yes" : "No" )
               << std::endl;
 
+    String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
+
     struct timespec start = TimeUtils::sampleMicro();
 
     Map<unsigned, unsigned> idToPhase;
@@ -166,7 +168,7 @@ void DnCMarabou::run()
                                   onlineDivides, timeoutFactor, divideStrategy,
                                   _baseEngine->getInputQuery(), verbosity,
                                   idToPhase, biasedLayer, biasStrategy,
-                                  maxDepth ) );
+                                  maxDepth, summaryFilePath ) );
             _dncManager->solve( timeoutInSeconds, restoreTreeStates );
         }
     }

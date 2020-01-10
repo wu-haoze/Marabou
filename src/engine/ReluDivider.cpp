@@ -16,11 +16,13 @@
 #include "Debug.h"
 #include "EngineState.h"
 #include "ReluDivider.h"
-#include "MStringf.h"
 #include "PiecewiseLinearCaseSplit.h"
 
-ReluDivider::ReluDivider( std::shared_ptr<IEngine> engine )
+#include <fstream>
+
+ReluDivider::ReluDivider( std::shared_ptr<IEngine> engine, String summaryFile )
     : _engine( std::move( engine ) )
+    , _summaryFile( summaryFile )
 {
 }
 
@@ -30,6 +32,10 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
                                     const unsigned timeoutInSeconds,
                                     SubQueries &subQueries )
 {
+    std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+    ofs << Stringf("\n\tCreating subqueries for Id:%s \n", queryIdPrefix.ascii()).ascii();
+    ofs.close();
+
     unsigned numBisects = (unsigned)log2( numNewSubqueries );
 
     List<PiecewiseLinearCaseSplit *> splits;
@@ -40,9 +46,16 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
 
     for ( unsigned i = 0; i < numBisects; ++i )
     {
+        std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+        ofs << i << "th level of splitting: \n";
+        ofs.close();
+
         List<PiecewiseLinearCaseSplit *> newSplits;
         for ( const auto &split : splits )
         {
+            std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+            ofs << "Creating splits\n";
+            ofs.close();
             PiecewiseLinearConstraint *pLConstraintToSplit =
                 getPLConstraintToSplit( *split );
             if ( pLConstraintToSplit == NULL )
@@ -72,6 +85,8 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
         }
         splits = newSplits;
     }
+    std::ofstream ofs1 (_summaryFile.ascii(), std::ofstream::app);
+    ofs1 << "Splits seleted!\n";
 
     unsigned queryIdSuffix = 1; // For query id
     // Create a new subquery for each newly created input region
@@ -91,20 +106,35 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
         subQuery->_timeoutInSeconds = timeoutInSeconds;
         subQueries.append( subQuery );
     }
+    ofs1 << "Subqueries added!\n\n\n";
+    ofs1.close();
 }
 
 PiecewiseLinearConstraint *ReluDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
+    std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+    ofs << "Storing State!\n";
     EngineState *engineStateBeforeSplit = new EngineState();
     _engine->storeState( *engineStateBeforeSplit, true );
+    ofs << "State stored, apply Split!\n";
     _engine->applySplit( split );
-
+    ofs << "Split applied! Propagating\n";
     PiecewiseLinearConstraint *constraintToSplit = NULL;
     if ( _engine->propagate() )
+    {
+        ofs << "Propagated!\n";
         constraintToSplit = computeBestChoice();
+    }
+    if ( constraintToSplit )
+        ofs << "No constraint selected!\n";
+    else
+        ofs << "Constraint selected: " <<  constraintToSplit->getId() << "\n";
+
     _engine->restoreState( *engineStateBeforeSplit );
     delete engineStateBeforeSplit;
+    ofs << "State restored!\n";
+    ofs.close();
     return constraintToSplit;
 }
 

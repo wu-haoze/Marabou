@@ -299,7 +299,7 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, Marab
                 ( new DnCManager( numWorkers, initialDivides, initialTimeout, onlineDivides,
                                   timeoutFactor, divideStrategy,
                                   engine.getInputQuery(), verbosity, idToPhase,
-                                  focusLayer, biasStrategy, maxDepth ) );
+                                  focusLayer, biasStrategy, maxDepth, summaryFilePath ) );
 
             dncManager->solve( timeoutInSeconds, restoreTreeStates );
             switch ( dncManager->getExitCode() )

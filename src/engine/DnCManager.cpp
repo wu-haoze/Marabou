@@ -41,7 +41,8 @@ void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
                            float timeoutFactor, DivideStrategy divideStrategy,
                            bool restoreTreeStates, Map<unsigned, unsigned>
                            idToPhase, unsigned biasedLayer,
-                           BiasStrategy biasStrategy, unsigned maxDepth )
+                           BiasStrategy biasStrategy, unsigned maxDepth,
+                           String summaryFile )
 {
     unsigned cpuId = 0;
     getCPUId( cpuId );
@@ -54,7 +55,7 @@ void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
 
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
-                      timeoutFactor, divideStrategy, maxDepth );
+                      timeoutFactor, divideStrategy, maxDepth, summaryFile );
     while ( !shouldQuitSolving.load() )
     {
         worker.popOneSubQueryAndSolve( restoreTreeStates );
@@ -66,7 +67,8 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
                         InputQuery *inputQuery, unsigned verbosity,
                         Map<unsigned, unsigned> idToPhase, unsigned biasedLayer,
-                        BiasStrategy biasStrategy, unsigned maxDepth )
+                        BiasStrategy biasStrategy, unsigned maxDepth,
+                        String summaryFile )
     : _exitCode( DnCManager::NOT_DONE )
     , _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
@@ -82,6 +84,7 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
     , _biasedLayer( biasedLayer )
     , _biasStrategy( biasStrategy )
     , _maxDepth( maxDepth )
+    , _summaryFile( summaryFile )
 {
 }
 
@@ -158,7 +161,7 @@ void DnCManager::solve( unsigned timeoutInSeconds, bool restoreTreeStates )
                                         _timeoutFactor, _divideStrategy,
                                         restoreTreeStates, _idToPhase,
                                         _biasedLayer, _biasStrategy,
-                                        _maxDepth ) );
+                                        _maxDepth, _summaryFile ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is
@@ -377,7 +380,7 @@ void DnCManager::initialDivide( SubQueries &subQueries )
     {
         // Default
         queryDivider = std::unique_ptr<QueryDivider>
-            ( new ReluDivider( _baseEngine ) );
+            ( new ReluDivider( _baseEngine, _summaryFile + ".log.manager" ) );
     }
 
     queryDivider->createSubQueries( pow( 2, _initialDivides ), queryId,

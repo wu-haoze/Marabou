@@ -43,7 +43,8 @@ public:
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, InputQuery *inputQuery,
                 unsigned verbosity, Map<unsigned, unsigned> idToPhase,
-                unsigned biasedLayer, BiasStrategy strategy, unsigned maxDepth );
+                unsigned biasedLayer, BiasStrategy strategy, unsigned maxDepth,
+                String summaryFile );
 
     ~DnCManager();
 
@@ -91,7 +92,7 @@ private:
                           float timeoutFactor, DivideStrategy divideStrategy,
                           bool restoreTreeStates, Map<unsigned, unsigned> idToPhase,
                           unsigned biasedLayer, BiasStrategy strategy,
-                          unsigned maxDepth );
+                          unsigned maxDepth, String summaryFile );
 
     /*
       Create the base engine from the network and property files,
@@ -201,6 +202,8 @@ private:
     BiasStrategy _biasStrategy;
 
     unsigned _maxDepth;
+
+    String _summaryFile;
 };
 
 #endif // __DnCManager_h__

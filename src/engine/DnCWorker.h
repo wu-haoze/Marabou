@@ -31,7 +31,8 @@ public:
                std::atomic_uint &numUnsolvedSubqueries,
                std::atomic_bool &shouldQuitSolving, unsigned threadId,
                unsigned onlineDivides, float timeoutFactor,
-               DivideStrategy divideStrategy, unsigned maxDepth );
+               DivideStrategy divideStrategy, unsigned maxDepth,
+               String summaryFile );
 
     /*
       Pop one subQuery, solve it and handle the result
@@ -86,6 +87,8 @@ private:
     BiasStrategy _biasStrategy;
 
     unsigned _maxDepth;
+
+    String _summaryFile;
 
 };
 

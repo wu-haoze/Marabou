@@ -29,6 +29,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <thread>
 
 DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<IEngine> engine,
@@ -36,7 +37,7 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<IEngine> engine,
                       std::atomic_bool &shouldQuitSolving,
                       unsigned threadId, unsigned onlineDivides,
                       float timeoutFactor, DivideStrategy divideStrategy,
-                      unsigned maxDepth )
+                      unsigned maxDepth, String summaryFile )
     : _workload( workload )
     , _engine( engine )
     , _numUnsolvedSubQueries( &numUnsolvedSubQueries )
@@ -46,11 +47,17 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<IEngine> engine,
     , _timeoutFactor( timeoutFactor )
     , _maxDepth( maxDepth )
 {
+    _summaryFile = Stringf( "%s.log.%u", summaryFile.ascii(), threadId );
+    std::ofstream ofs (_summaryFile.ascii(), std::ofstream::out);
+    ofs << Stringf("Worker %u initiated!\n", threadId).ascii();
+    ofs.close();
+
     setQueryDivider( divideStrategy );
 
     // Obtain the current state of the engine
     _initialState = std::make_shared<EngineState>();
     _engine->storeState( *_initialState, true );
+
 }
 
 void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
@@ -65,7 +72,7 @@ void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
     else
     {
         _queryDivider = std::unique_ptr<QueryDivider>
-            ( new ReluDivider( _engine ) );
+            ( new ReluDivider( _engine, _summaryFile ) );
     }
 }
 
@@ -205,6 +212,12 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
 
 void DnCWorker::printProgress( String queryId, IEngine::ExitCode result ) const
 {
+    std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+    ofs << Stringf( "Worker %d: Query %s %s, %d tasks remaining\n", _threadId,
+                    queryId.ascii(), exitCodeToString( result ).ascii(),
+                    _numUnsolvedSubQueries->load() ).ascii();
+    ofs.close();
+
     printf( "Worker %d: Query %s %s, %d tasks remaining\n", _threadId,
             queryId.ascii(), exitCodeToString( result ).ascii(),
             _numUnsolvedSubQueries->load() );
