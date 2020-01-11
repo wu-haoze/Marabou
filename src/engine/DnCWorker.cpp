@@ -88,7 +88,7 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
     // in most cases)
     if ( _workload->pop( subQuery ) )
     {
-        std::ofstream ofs (_summaryFile.ascii(), std::ofstream::out);
+        std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
         ofs << "\nSubquery poped!\n";
         ofs.close();
 
@@ -177,18 +177,18 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
                     throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH );
                 }
                 std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
-                ofs << "newSubquery Pushed!";
+                ofs << "newSubquery Pushed!\n";
                 ofs.close();
 
                 *_numUnsolvedSubQueries += 1;
             }
             std::ofstream ofs1 (_summaryFile.ascii(), std::ofstream::app);
-            ofs1 << "all newSubquery Pushed!";
+            ofs1 << "\nall newSubquery Pushed!\n";
 
             *_numUnsolvedSubQueries -= 1;
             delete subQuery;
             std::ofstream ofs2 (_summaryFile.ascii(), std::ofstream::app);
-            ofs2 << "old subQuery deleted!";
+            ofs2 << "old subQuery deleted!\n";
             ofs2.close();
 
             _engine->reset();
