@@ -78,12 +78,20 @@ void DnCWorker::setQueryDivider( DivideStrategy divideStrategy )
 
 void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
 {
+    std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+    ofs << "\nPoping one subquery and solve\n";
+    ofs.close();
+
     SubQuery *subQuery = NULL;
     // Boost queue stores the next element into the passed-in pointer
     // and returns true if the pop is successful (aka, the queue is not empty
     // in most cases)
     if ( _workload->pop( subQuery ) )
     {
+        std::ofstream ofs (_summaryFile.ascii(), std::ofstream::out);
+        ofs << "\nSubquery poped!\n";
+        ofs.close();
+
         String queryId = subQuery->_queryId;
         auto split = std::move( subQuery->_split );
         std::unique_ptr<SmtState> smtState = nullptr;
@@ -151,6 +159,11 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
                                              queryId, *split,
                                              (unsigned)timeoutInSeconds *
                                              _timeoutFactor, subQueries );
+
+            std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+            ofs << "\nQuit from queryDivider!\n";
+            ofs.close();
+
             unsigned i = 0;
             for ( auto &newSubQuery : subQueries )
             {
@@ -163,11 +176,24 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
                 {
                     throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH );
                 }
+                std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
+                ofs << "newSubquery Pushed!";
+                ofs.close();
 
                 *_numUnsolvedSubQueries += 1;
             }
+            std::ofstream ofs1 (_summaryFile.ascii(), std::ofstream::app);
+            ofs1 << "all newSubquery Pushed!";
+
             *_numUnsolvedSubQueries -= 1;
             delete subQuery;
+            std::ofstream ofs2 (_summaryFile.ascii(), std::ofstream::app);
+            ofs2 << "old subQuery deleted!";
+            ofs2.close();
+
+            _engine->reset();
+            _engine->restoreState( *_initialState );
+
         }
         else if ( result == IEngine::QUIT_REQUESTED )
         {
