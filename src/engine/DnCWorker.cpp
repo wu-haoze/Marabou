@@ -94,8 +94,6 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
         String queryId = subQuery->_queryId;
 
         ofs << Stringf( "Id: %s\n", queryId.ascii() ).ascii();
-        ofs.close();
-
 
         auto split = std::move( subQuery->_split );
         std::unique_ptr<SmtState> smtState = nullptr;
@@ -113,9 +111,18 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
         // object of class DnCStatistics, which contains some basic
         // statistics. The maps are owned by the DnCManager.
 
+        ofs << "Applying split\n";
+
+        String outSplit = "";
+        split->dump( outSplit );
+        ofs << outSplit.ascii() << "\n";
+
         // Apply the split and solve
         _engine->applySplit( *split );
+        ofs << "Split applied, start propagating\n";
         _engine->propagate();
+        ofs << "Propagated\n";
+
         bool fullSolveNeeded = true;
         if ( restoreTreeStates && smtState )
             fullSolveNeeded = _engine->restoreSmtState( *smtState );
@@ -123,6 +130,7 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
         Engine::ExitCode result;
         if ( fullSolveNeeded )
         {
+            ofs << "Start solving\n";
             _engine->solve( timeoutInSeconds );
             result = _engine->getExitCode();
         } else
@@ -130,6 +138,7 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
             // UNSAT is found when replaying stack-entries
             result = Engine::UNSAT;
         }
+        ofs.close();
 
         printProgress( queryId, result );
         // Switch on the result
