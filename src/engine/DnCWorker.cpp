@@ -90,9 +90,13 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
     {
         std::ofstream ofs (_summaryFile.ascii(), std::ofstream::app);
         ofs << "\nSubquery poped!\n";
-        ofs.close();
 
         String queryId = subQuery->_queryId;
+
+        ofs << Stringf( "Id: %s\n", queryId.ascii() ).ascii();
+        ofs.close();
+
+
         auto split = std::move( subQuery->_split );
         std::unique_ptr<SmtState> smtState = nullptr;
         if ( restoreTreeStates && subQuery->_smtState )
