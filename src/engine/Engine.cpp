@@ -2238,11 +2238,12 @@ bool Engine::propagate()
 {
     try
     {
+        tightenBoundsOnConstraintMatrix();
         applyAllBoundTightenings();
         do
-            {
-                performSymbolicBoundTightening( false );
-            }
+        {
+            performSymbolicBoundTightening( false );
+        }
         while ( applyAllValidConstraintCaseSplits() );
         return true;
         }
@@ -2305,7 +2306,7 @@ bool Engine::restoreSmtState( SmtState &smtState )
         // For debugging purposes
         checkBoundCompliancyWithDebugSolution();
         do
-            performSymbolicBoundTightening();
+            performSymbolicBoundTightening( false );
         while ( applyAllValidConstraintCaseSplits() );
 
         // Step 2: replay the stack

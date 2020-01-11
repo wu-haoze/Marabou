@@ -111,6 +111,7 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
 
         // Apply the split and solve
         _engine->applySplit( *split );
+        _engine->propagate();
         bool fullSolveNeeded = true;
         if ( restoreTreeStates && smtState )
             fullSolveNeeded = _engine->restoreSmtState( *smtState );
