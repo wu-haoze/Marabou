@@ -3,12 +3,22 @@
 """gg-Marabou test runner
 
 Usage:
-  runner.py run <net_num> <prop_num>
+  runner.py run [options] <net_num> <prop_num>
   runner.py list
   runner.py (-h | --help)
 
 Options:
-  -h --help     Show this screen.
+  --jobs N              The number of jobs
+  --initial-divides N   The initial number of divides
+  --divide-strategy S   The divide strategy
+  --timeout N           How long to try for (s)
+  --initial-timeout N   How long to try for (s) before splitting
+  --timeout-factor N    How long to multiply the initial_timeout by each split
+  --infra I             gg-local, gg-lambda, or thread
+  --lambda              Run the lambda benchmarks
+  --local               Run the local benchmarks
+  --specific            Run just one benchmark
+  -h --help             Show this screen.
 """
 from copy import deepcopy
 from docopt import docopt
@@ -31,6 +41,15 @@ class Infra(Enum):
     GG_LOCAL = 2
     GG_LAMBDA = 3
 
+INFRA_STRINGS = {
+        'thread': Infra.THREAD,
+        'gg-local': Infra.GG_LOCAL,
+        'gg-lambda': Infra.GG_LAMBDA,
+}
+
+def infra_from_string(s):
+    return INFRA_STRINGS[s] if s in INFRA_STRINGS else None
+
 LARGEST_INTERVAL =  'largest-interval'
 SPLIT_RELU =  'split-relu'
 
@@ -44,6 +63,7 @@ RUN_INPUT_DEFAULTS = {
         'trial': 0,
 
 }
+RUN_INPUT_DEFAULT_LIST = [RUN_INPUT_DEFAULTS[p] for p in RUN_INPUT_ADDITIONS]
 
 
 class RunInputs(object):
@@ -83,7 +103,7 @@ class RunInputs(object):
             self.timeout_factor,
             self.trial,
             self.divide_strategy]
-        return '-'.join(str(d).replace('-','') for d in (displayed[:-missing] if missing > 0 else displayed))
+        return '-'.join(str(d).replace('-','') for d in (displayed[:-missing] + RUN_INPUT_DEFAULT_LIST[-missing:] if missing > 0 else displayed))
 
 
     def get_marabou_hash(self):
@@ -318,6 +338,15 @@ def with_all_infras(inputs):
                 yield i1
     return list(help())
 
+def with_local_infras(inputs):
+    def help():
+        for i in inputs:
+            for infra in [Infra.GG_LOCAL, Infra.THREAD]:
+                i1 = deepcopy(i)
+                i1.infra = infra
+                yield i1
+    return list(help())
+
 def with_all_jobs_counts(inputs, job_counts):
     def help(inputs):
         for i in inputs:
@@ -329,11 +358,12 @@ def with_all_jobs_counts(inputs, job_counts):
     return list(help(inputs))
 
 def log2(i):
+    r2 = 1
     r = 0
-    while i > 0:
-        i = i // 2
+    while i > r2:
+        r2 *= 2
         r += 1
-    return r - 1
+    return r
 
 if __name__ == '__main__':
     arguments = docopt(__doc__)
@@ -342,23 +372,36 @@ if __name__ == '__main__':
         prop_num = arguments['<prop_num>']
         net = f'ACASXU_run2a_{net_num}_batch_2000.nnet'
         prop = f'property{prop_num}.txt'
+        jobs = int(arguments['--jobs'] or '1')
+        initial_divides = int(arguments['--initial-divides'] or '0')
+        timeout = int(arguments['--timeout'] or '3600')
+        initial_timeout = int(arguments['--initial-timeout'] or '5')
+        timeout_factor = float(arguments['--timeout-factor'] or '1.5')
+        divide_strategy = arguments['--divide-strategy'] or LARGEST_INTERVAL
+        assert divide_strategy in [SPLIT_RELU, LARGEST_INTERVAL]
+        infra = infra_from_string(arguments['--infra']) or Infra.GG_LOCAL
         i = RunInputs(
                 net,
                 prop,
-                Infra.GG_LAMBDA,
-                4,
+                infra,
+                jobs,
+                initial_divides,
                 2,
-                2,
-                60 * 60,
-                5,
-                1.5,
-                LARGEST_INTERVAL)
+                timeout,
+                initial_timeout,
+                timeout_factor,
+                divide_strategy)
+        print(i)
         I = []
-        #I += with_n_trials(with_all_jobs_counts(with_all_infras([i]), list(reversed([4, 8, 16, 32]))), 3)
-        #I += with_n_trials(with_all_jobs_counts([i], list(reversed([64, 128, 256, 512, 1024]))), 3)
-        #I = with_n_trials(with_all_jobs_counts([i], list(reversed([4, 8, 16, 32, 64, 128, 256, 512, 1024]))), 1)
-        I = with_n_trials(with_all_jobs_counts([i], list(reversed([512]))), 4)
-        #I += [i]
+        if arguments['--specific']:
+            I += [i]
+        elif arguments['--lambda']:
+            I += with_n_trials(with_all_jobs_counts([i], list(reversed([8, 16, 32, 64, 128, 256, 512]))), 3)
+        elif arguments['--local']:
+            I += with_n_trials(with_all_jobs_counts(with_local_infras([i]), list(reversed([4, 8, 16]))), 3)
+        else:
+            assert False
+
         R = [i.run() for i in I]
         print(RunOutputs.csv_header())
         for r in R:
