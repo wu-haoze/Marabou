@@ -35,6 +35,8 @@ public:
 private:
     InputQuery _inputQuery;
 
+    EngineState _postReluFixState{};
+
     /*
       Extract the input files: network and property, and use them
       to generate the input query

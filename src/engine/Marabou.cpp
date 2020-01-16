@@ -68,6 +68,7 @@ void Marabou::run()
     unsigned initialDivides = Options::get()->getInt( Options::NUM_INITIAL_DIVIDES );
     if ( initialDivides > 0 )
     {
+        std::cerr << "Divide initially" << std::endl;
         _engine.processInputQuery( _inputQuery );
         SubQueries splits = split( initialDivides );
         dumpSubQueriesAsThunks( splits );
@@ -97,7 +98,7 @@ void Marabou::prepareInputQuery()
             throw MarabouError( MarabouError::FILE_DOESNT_EXIST, inputQueryFilePath.ascii() );
         }
 
-        printf( "InputQuery: %s\n", inputQueryFilePath.ascii() );
+        //printf( "InputQuery: %s\n", inputQueryFilePath.ascii() );
         _inputQuery = QueryLoader::loadQuery(inputQueryFilePath);
     }
     else
@@ -111,7 +112,7 @@ void Marabou::prepareInputQuery()
             printf( "Error: the specified network file (%s) doesn't exist!\n", networkFilePath.ascii() );
             throw MarabouError( MarabouError::FILE_DOESNT_EXIST, networkFilePath.ascii() );
         }
-        printf( "Network: %s\n", networkFilePath.ascii() );
+        //printf( "Network: %s\n", networkFilePath.ascii() );
 
         // For now, assume the network is given in ACAS format
         _acasParser = new AcasParser( networkFilePath );
@@ -123,13 +124,15 @@ void Marabou::prepareInputQuery()
         String propertyFilePath = Options::get()->getString( Options::PROPERTY_FILE_PATH );
         if ( propertyFilePath != "" )
         {
-            printf( "Property: %s\n", propertyFilePath.ascii() );
+            //printf( "Property: %s\n", propertyFilePath.ascii() );
             PropertyParser().parse( propertyFilePath, _inputQuery );
         }
         else
-            printf( "Property: None\n" );
+        {
+            //printf( "Property: None\n" );
+        }
 
-        printf( "\n" );
+        //printf( "\n" );
     }
 }
 
@@ -143,10 +146,12 @@ void Marabou::solveQuery()
         if ( fixedReluFilePath != "" )
         {
             Map<unsigned, unsigned> idToPhase;
-            printf( "Fixed Relus: %s\n", fixedReluFilePath.ascii() );
+            //printf( "Fixed Relus: %s\n", fixedReluFilePath.ascii() );
             FixedReluParser().parse( fixedReluFilePath, idToPhase );
             _engine.applySplits( idToPhase );
         }
+
+        _engine.storeState(_postReluFixState, true);
 
         BiasStrategy biasStrategy = setBiasStrategyFromOptions
             ( Options::get()->getString( Options::BIAS_STRATEGY ) );
@@ -249,6 +254,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
         if ( _ggOutput )
         {
             _engine.reset();
+            _engine.restoreState(_postReluFixState);
             SubQueries splits = split( Options::get()->getInt( Options::NUM_ONLINE_DIVIDES ) );
             dumpSubQueriesAsThunks( splits );
             return;
@@ -347,6 +353,7 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
     const String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
     const String mergePath = Options::get()->getString( Options::MERGE_FILE );
     const String selfHash = Options::get()->getString( Options::SELF_HASH );
+    const String currentQueryId = Options::get()->getString( Options::QUERY_ID );
     const String divideStrategy = Options::get()->getString( Options::DIVIDE_STRATEGY );
     const double timeoutFactor = Options::get()->getFloat( Options::TIMEOUT_FACTOR );
 
@@ -366,18 +373,22 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
     std::vector<std::string> mergeArguments;
     mergeArguments.push_back("merge");
 
-    for ( const auto &subQueryPointer : subQueries )
+    std::cout << "subqueries: " << subQueries.size() << std::endl;
+    size_t n_subproblems = 1 << std::max(numOnlineDivides, numInitialDivides);
+
+    auto subQueryPointer = subQueries.begin();
+    for (size_t i = 0; i < n_subproblems; ++i)
     {
-        const SubQuery &subQuery = *subQueryPointer;
-        const std::string queryId = std::string(subQuery._queryId.ascii());
+        const std::string queryId = currentQueryId.ascii() + std::string("-") + std::to_string(i + 1);
         const std::string propFilePath = queryId + PROP_SUFFIX;
 
         // Emit subproblem property file
+        if (i < subQueries.size())
         {
             std::ifstream oldFile{ propertyFilePath.ascii() };
             std::ofstream propFile{ propFilePath };
             propFile << oldFile.rdbuf();
-            const auto& split = subQuery._split;
+            const auto& split = (*subQueryPointer)->_split;
             auto bounds = split->getBoundTightenings();
             if ( divideStrategy == "largest-interval" )
             {
@@ -400,6 +411,12 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
                              << "\n";
                 }
             }
+        }
+        else
+        {
+            std::ofstream propFile{ propFilePath };
+            propFile << "x0 <= 0\n";
+            propFile << "x0 >= 1\n";
         }
         const std::string propHash = gg::hash::file_force( propFilePath );
 
@@ -429,6 +446,8 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
                     std::to_string(nextTimeout),
                     "--timeout-factor",
                     std::to_string(timeoutFactor),
+                    "--initial-divides",
+                    "0",
                     "--num-online-divides",
                     std::to_string(numOnlineDivides),
                     "--summary-file",
@@ -462,6 +481,10 @@ void Marabou::dumpSubQueriesAsThunks( const SubQueries &subQueries ) const
         auto subProblemThunkHash = subproblemThunk.hash();
         thunkHashes.emplace_back( subProblemThunkHash, "" );
         mergeArguments.push_back( gg::thunk::data_placeholder( subProblemThunkHash ) );
+        if (i < subQueries.size())
+        {
+            ++subQueryPointer;
+        }
     }
 
     const gg::thunk::Thunk mergeThunk

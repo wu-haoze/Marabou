@@ -198,7 +198,7 @@ void Engine::quickSolve( unsigned depthThreshold )
                 checkBoundCompliancyWithDebugSolution();
 
                 while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening( false );
+                    performSymbolicBoundTightening( true );
                 continue;
             }
             else if ( _statistics.getNumMainLoopIterations() % 100 == 0 )
@@ -207,7 +207,7 @@ void Engine::quickSolve( unsigned depthThreshold )
                applyAllBoundTightenings();
 
                while ( applyAllValidConstraintCaseSplits() )
-                   performSymbolicBoundTightening( false );
+                   performSymbolicBoundTightening( true );
             }
 
             // We have out-of-bounds variables.
@@ -472,7 +472,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 _smtCore.performSplit();
                 do
                 {
-                    performSymbolicBoundTightening( false );
+                    performSymbolicBoundTightening( true );
                 }
                 while ( applyAllValidConstraintCaseSplits() );
                 continue;
@@ -524,7 +524,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 checkBoundCompliancyWithDebugSolution();
 
                 while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening( false );
+                    performSymbolicBoundTightening( true );
 
                 continue;
             }
@@ -2248,7 +2248,7 @@ bool Engine::propagate()
         applyAllBoundTightenings();
         do
             {
-                performSymbolicBoundTightening( false );
+                performSymbolicBoundTightening( true );
             }
         while ( applyAllValidConstraintCaseSplits() );
         return true;
@@ -2312,7 +2312,7 @@ bool Engine::restoreSmtState( SmtState &smtState )
         // For debugging purposes
         checkBoundCompliancyWithDebugSolution();
         do
-            performSymbolicBoundTightening( false );
+            performSymbolicBoundTightening( true );
         while ( applyAllValidConstraintCaseSplits() );
 
         // Step 2: replay the stack
