@@ -3,12 +3,14 @@
 """gg-Marabou test runner
 
 Usage:
-  runner.py run <net_num> <prop_num>
+  runner.py run (--lambda | --specific | --local) <net_num> <prop_num>
   runner.py list
   runner.py (-h | --help)
-
 Options:
-  -h --help     Show this screen.
+  --lambda     Run the lambda benchmarks
+  --local      Run the local benchmarks
+  --specific   Run just one benchmark
+  -h --help    Show this screen.
 """
 from copy import deepcopy
 from docopt import docopt
@@ -259,6 +261,15 @@ def with_all_infras(inputs):
                 yield i1
     return list(help())
 
+def with_local_infras(inputs):
+    def help():
+        for i in inputs:
+            for infra in [Infra.GG_LOCAL, Infra.THREAD]:
+                i1 = deepcopy(i)
+                i1.infra = infra
+                yield i1
+    return list(help())
+
 def with_all_jobs_counts(inputs, job_counts):
     def help(inputs):
         for i in inputs:
@@ -270,15 +281,17 @@ def with_all_jobs_counts(inputs, job_counts):
     return list(help(inputs))
 
 def log2(i):
+    r2 = 1
     r = 0
-    while i > 0:
-        i = i // 2
+    while i > r2:
+        r2 *= 2
         r += 1
-    return r - 1
+    return r
 
 if __name__ == '__main__':
     arguments = docopt(__doc__)
     if arguments['run']:
+        print(arguments)
         net_num = arguments['<net_num>']
         prop_num = arguments['<prop_num>']
         net = f'ACASXU_run2a_{net_num}_batch_2000.nnet'
@@ -294,10 +307,15 @@ if __name__ == '__main__':
                 5,
                 1.5)
         I = []
-        I += with_n_trials(with_all_jobs_counts([i], list(reversed([64, 128, 256, 512, 1024]))), 3)
-        I += with_n_trials(with_all_jobs_counts(with_all_infras([i]), list(reversed([4, 8, 16, 32]))), 3)
-        #I = with_n_trials(with_all_jobs_counts([i], list(reversed([4, 8, 16, 32, 64, 128, 256, 512, 1024]))), 1)
-        #I = [i]
+        if arguments['--specific']:
+            I += with_all_jobs_counts([i], [512])
+        elif arguments['--lambda']:
+            I += with_n_trials(with_all_jobs_counts([i], list(reversed([8, 16, 32, 64, 128, 256, 512]))), 3)
+        elif arguments['--local']:
+            I += with_n_trials(with_all_jobs_counts(with_local_infras([i]), list(reversed([4, 8, 16]))), 3)
+        else:
+            assert False
+
         R = [i.run() for i in I]
         print(RunOutputs.csv_header())
         for r in R:
