@@ -36,7 +36,6 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
     auto split = new PiecewiseLinearCaseSplit();
     *split = previousSplit;
     splits.append( split );
-    _engine.propagate();
 
     for ( unsigned i = 0; i < numBisects; ++i )
     {
@@ -63,8 +62,10 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
                     for ( const auto &tightening : split->getBoundTightenings() )
                         newSplit->storeBoundTightening( tightening );
 
-                    for ( const auto &equation : split->getEquations() )
-                        newSplit->addEquation( equation );
+                    // Only store bounds for now. Storing Equation results in segfault
+                    // some time for some reason.
+                    //for ( const auto &equation : split->getEquations() )
+                    //    newSplit->addEquation( equation );
 
 		    for ( const auto &reluPhase : split->getReluPhases() )
 			newSplit->addReluPhase( reluPhase.first(), reluPhase.second() );

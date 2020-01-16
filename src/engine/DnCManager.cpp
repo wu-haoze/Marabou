@@ -44,7 +44,7 @@ void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
                            float timeoutFactor, DivideStrategy divideStrategy,
                            bool restoreTreeStates, Map<unsigned, unsigned>
                            idToPhase, unsigned biasedLayer,
-                           BiasStrategy biasStrategy )
+                           BiasStrategy biasStrategy, unsigned maxDepth )
 {
     unsigned cpuId = 0;
     getCPUId( cpuId );
@@ -57,7 +57,7 @@ void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
 
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
-                      timeoutFactor, divideStrategy );
+                      timeoutFactor, divideStrategy, maxDepth );
     while ( !shouldQuitSolving.load() )
     {
         worker.popOneSubQueryAndSolve( restoreTreeStates );
@@ -69,7 +69,7 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
                         InputQuery *inputQuery, unsigned verbosity,
                         Map<unsigned, unsigned> idToPhase, unsigned biasedLayer,
-                        BiasStrategy biasStrategy )
+                        BiasStrategy biasStrategy, unsigned maxDepth )
     : _exitCode( DnCManager::NOT_DONE )
     , _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
@@ -84,6 +84,7 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
     , _idToPhase( idToPhase )
     , _biasedLayer( biasedLayer )
     , _biasStrategy( biasStrategy )
+    , _maxDepth( maxDepth )
 {
 }
 
@@ -159,7 +160,8 @@ void DnCManager::solve( unsigned timeoutInSeconds, bool restoreTreeStates )
                                         threadId, _onlineDivides,
                                         _timeoutFactor, _divideStrategy,
                                         restoreTreeStates, _idToPhase,
-                                        _biasedLayer, _biasStrategy ) );
+                                        _biasedLayer, _biasStrategy,
+                                        _maxDepth ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is

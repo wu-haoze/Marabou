@@ -66,6 +66,8 @@ public:
 
         // Biased search
         FOCUS_LAYER,
+
+        MAX_DEPTH,
     };
 
     enum FloatOptions{
