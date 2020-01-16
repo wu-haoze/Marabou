@@ -8,13 +8,14 @@ Usage:
   runner.py (-h | --help)
 
 Options:
-  --jobs N              The number of jobs
-  --initial-divides N   The initial number of divides
-  --divide-strategy S   The divide strategy
-  --timeout N           How long to try for (s)
-  --initial-timeout N   How long to try for (s) before splitting
-  --timeout-factor N    How long to multiply the initial_timeout by each split
-  --infra I             gg-local, gg-lambda, or thread
+  --jobs N              The number of jobs [default: 1]
+  --initial-divides N   The initial number of divides [default: 0]
+  --divide-strategy S   The divide strategy [default: largest-interval]
+  --timeout N           How long to try for (s) [default: 3600]
+  --initial-timeout N   How long to try for (s) before splitting [default: 5]
+  --timeout-factor N    How long to multiply the initial_timeout by each split [default: 1.5]
+  --infra I             gg-local, gg-lambda, or thread [default: gg-local]
+  --trial N             the trial number to run [default: 0]
   --lambda              Run the lambda benchmarks
   --local               Run the local benchmarks
   --specific            Run just one benchmark
@@ -48,6 +49,7 @@ INFRA_STRINGS = {
 }
 
 def infra_from_string(s):
+    assert s in list(INFRA_STRINGS.keys()) + [None], "Invalid --infra"
     return INFRA_STRINGS[s] if s in INFRA_STRINGS else None
 
 LARGEST_INTERVAL =  'largest-interval'
@@ -91,8 +93,8 @@ class RunInputs(object):
     def __str__(self):
         return self.dash_string(0)
 
-    def dash_string(self, missing = 0):
-        displayed = [ self.net,
+    def key_props(self):
+        return [ self.net,
             self.prop,
             self.infra,
             self.jobs,
@@ -103,7 +105,10 @@ class RunInputs(object):
             self.timeout_factor,
             self.trial,
             self.divide_strategy]
-        return '-'.join(str(d).replace('-','') for d in (displayed[:-missing] + RUN_INPUT_DEFAULT_LIST[-missing:] if missing > 0 else displayed))
+
+    def dash_string(self, missing = 0):
+        displayed = self.key_props()
+        return '-'.join(str(d).replace('-','') for d in (displayed[:-missing] if missing > 0 else displayed))
 
 
     def get_marabou_hash(self):
@@ -121,18 +126,17 @@ class RunInputs(object):
             assert False, f'Unsupport infra {self.infra}'
 
     def run_data_dir(self):
-        existing = []
+        existing = set([])
         for n_missing_attrs in reversed(range(1, len(RUN_INPUT_ADDITIONS) + 1)):
             path = os.path.join(DATA, self.dash_string(n_missing_attrs))
-            print(path)
-            if os.path.exists(path):
-                existing.append(path)
+            if self.key_props()[-n_missing_attrs:] == RUN_INPUT_ADDITIONS[-n_missing_attrs]:
+                if os.path.exists(path):
+                    existing.add(path)
         if len(existing) > 1:
             pstring = ''.join('\n\t' + str(o) for o in existing)
-            print(f"Multiple paths match {self}:{pstring}")
-            assert False
+            assert False, f"Multiple paths match {self}:{pstring}"
         elif len(existing) == 1:
-            return existing[0]
+            return list(existing)[0]
         else:
             return os.path.join(DATA, self.dash_string(n_missing_attrs))
 
@@ -372,14 +376,15 @@ if __name__ == '__main__':
         prop_num = arguments['<prop_num>']
         net = f'ACASXU_run2a_{net_num}_batch_2000.nnet'
         prop = f'property{prop_num}.txt'
-        jobs = int(arguments['--jobs'] or '1')
-        initial_divides = int(arguments['--initial-divides'] or '0')
-        timeout = int(arguments['--timeout'] or '3600')
-        initial_timeout = int(arguments['--initial-timeout'] or '5')
-        timeout_factor = float(arguments['--timeout-factor'] or '1.5')
-        divide_strategy = arguments['--divide-strategy'] or LARGEST_INTERVAL
+        jobs = int(arguments['--jobs'])
+        initial_divides = int(arguments['--initial-divides'])
+        timeout = int(arguments['--timeout'])
+        initial_timeout = int(arguments['--initial-timeout'])
+        timeout_factor = float(arguments['--timeout-factor'])
+        divide_strategy = arguments['--divide-strategy']
         assert divide_strategy in [SPLIT_RELU, LARGEST_INTERVAL]
-        infra = infra_from_string(arguments['--infra']) or Infra.GG_LOCAL
+        infra = infra_from_string(arguments['--infra'])
+        trial = int(arguments['--trial'])
         i = RunInputs(
                 net,
                 prop,
@@ -390,13 +395,14 @@ if __name__ == '__main__':
                 timeout,
                 initial_timeout,
                 timeout_factor,
-                divide_strategy)
+                divide_strategy,
+                trial)
         print(i)
         I = []
         if arguments['--specific']:
             I += [i]
         elif arguments['--lambda']:
-            I += with_n_trials(with_all_jobs_counts([i], list(reversed([8, 16, 32, 64, 128, 256, 512]))), 3)
+            I += with_n_trials(with_all_jobs_counts([i], list(reversed([4, 8, 16, 32, 64, 128, 256, 512]))), 3)
         elif arguments['--local']:
             I += with_n_trials(with_all_jobs_counts(with_local_infras([i]), list(reversed([4, 8, 16]))), 3)
         else:
