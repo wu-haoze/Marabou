@@ -19,6 +19,7 @@ Options:
   --lambda              Run the lambda benchmarks
   --local               Run the local benchmarks
   --specific            Run just one benchmark
+  --acas                Use ACAS shorthand for network & property files.
   -h --help             Show this screen.
 """
 from copy import deepcopy
@@ -65,7 +66,7 @@ RUN_INPUT_DEFAULTS = {
         'trial': 0,
 
 }
-RUN_INPUT_DEFAULT_LIST = [RUN_INPUT_DEFAULTS[p] for p in RUN_INPUT_ADDITIONS]
+RUN_INPUT_DEFAULTS_LIST = [RUN_INPUT_DEFAULTS[p] for p in RUN_INPUT_ADDITIONS]
 
 
 class RunInputs(object):
@@ -84,18 +85,24 @@ class RunInputs(object):
         self.trial = trial
         self.hash = self.get_marabou_hash()
 
+    def net_name(self):
+        return os.path.split(self.net)[1]
+
+    def prop_name(self):
+        return os.path.split(self.prop)[1]
+
     def net_path(self):
-        return f'{abs_marabou_repo()}/gg/acas/{self.net}'
+        return self.net
 
     def prop_path(self):
-        return f'{abs_marabou_repo()}/gg/acas-properties/{self.prop}'
+        return self.prop
 
     def __str__(self):
         return self.dash_string(0)
 
     def key_props(self):
-        return [ self.net,
-            self.prop,
+        return [ self.net_name(),
+            self.prop_name(),
             self.infra,
             self.jobs,
             self.initial_divides,
@@ -127,18 +134,21 @@ class RunInputs(object):
 
     def run_data_dir(self):
         existing = set([])
-        for n_missing_attrs in reversed(range(1, len(RUN_INPUT_ADDITIONS) + 1)):
-            path = os.path.join(DATA, self.dash_string(n_missing_attrs))
-            if self.key_props()[-n_missing_attrs:] == RUN_INPUT_ADDITIONS[-n_missing_attrs]:
-                if os.path.exists(path):
+        for n_missing_attrs in range(1, len(RUN_INPUT_ADDITIONS) + 1):
+            if self.key_props()[-n_missing_attrs] == RUN_INPUT_DEFAULTS_LIST[-n_missing_attrs]:
+                path = os.path.join(DATA, self.dash_string(n_missing_attrs))
+                if os.path.exists(os.path.join(path, OUTPUT_FILE)):
                     existing.add(path)
+            else:
+                break
         if len(existing) > 1:
             pstring = ''.join('\n\t' + str(o) for o in existing)
             assert False, f"Multiple paths match {self}:{pstring}"
         elif len(existing) == 1:
+            print(existing)
             return list(existing)[0]
         else:
-            return os.path.join(DATA, self.dash_string(n_missing_attrs))
+            return os.path.join(DATA, self.dash_string(0))
 
 
     def run_as_gg(self):
@@ -300,8 +310,8 @@ class RunOutputs(object):
 
     def csv_row(self):
         return [
-            str(self.inputs.net),
-            str(self.inputs.prop),
+            str(self.inputs.net_name()),
+            str(self.inputs.prop_name()),
             str(self.inputs.infra),
             str(self.inputs.jobs),
             str(self.runtime),
@@ -372,10 +382,14 @@ def log2(i):
 if __name__ == '__main__':
     arguments = docopt(__doc__)
     if arguments['run']:
-        net_num = arguments['<net_num>']
-        prop_num = arguments['<prop_num>']
-        net = f'ACASXU_run2a_{net_num}_batch_2000.nnet'
-        prop = f'property{prop_num}.txt'
+        if arguments['--acas']:
+            net_num = arguments['<net_num>']
+            prop_num = arguments['<prop_num>']
+            net = f'{abs_marabou_repo()}/gg/acas/ACASXU_run2a_{net_num}_batch_2000.nnet'
+            prop = f'{abs_marabou_repo()}/gg/acas-properties/property{prop_num}.txt'
+        else:
+            net = os.path.abspath(arguments['<net_num>'])
+            prop = os.path.abspath(arguments['<prop_num>'])
         jobs = int(arguments['--jobs'])
         initial_divides = int(arguments['--initial-divides'])
         timeout = int(arguments['--timeout'])
@@ -402,7 +416,7 @@ if __name__ == '__main__':
         if arguments['--specific']:
             I += [i]
         elif arguments['--lambda']:
-            I += with_n_trials(with_all_jobs_counts([i], list(reversed([4, 8, 16, 32, 64, 128, 256, 512]))), 3)
+            I += with_n_trials(with_all_jobs_counts([i], list(reversed([4, 8, 16, 32, 64, 128, 256, 512, 1000]))), 3)
         elif arguments['--local']:
             I += with_n_trials(with_all_jobs_counts(with_local_infras([i]), list(reversed([4, 8, 16]))), 3)
         else:
