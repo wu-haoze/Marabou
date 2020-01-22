@@ -79,6 +79,15 @@ void PiecewiseLinearCaseSplit::updateVariableIndex( unsigned oldIndex, unsigned 
         equation.updateVariableIndex( oldIndex, newIndex );
 }
 
+bool PiecewiseLinearCaseSplit::hasRelu( unsigned id ) const
+{
+    for ( const auto &p : _reluPhases )
+        if ( p.first() == id )
+            return true;
+    return false;
+}
+
+
 void PiecewiseLinearCaseSplit::addReluPhase( unsigned id, bool activated )
 {
     _reluPhases.append( Pair<unsigned, bool>(id, activated) );

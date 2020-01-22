@@ -42,7 +42,7 @@ public:
                                                        PiecewiseLinearCaseSplit
                                                        &split );
 
-    PiecewiseLinearConstraint *computeBestChoice();
+    PiecewiseLinearConstraint *computeBestChoice( const PiecewiseLinearCaseSplit &split );
 
 private:
     /*

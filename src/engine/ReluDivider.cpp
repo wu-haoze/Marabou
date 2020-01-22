@@ -105,36 +105,28 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
 PiecewiseLinearConstraint *ReluDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
-    EngineState *engineStateBeforeSplit = new EngineState();
-    _engine.storeState( *engineStateBeforeSplit, true );
-    _engine.applySplit( split );
     PiecewiseLinearConstraint *constraintToSplit = NULL;
     //if ( _engine.propagate() )
-    constraintToSplit = computeBestChoice();
-    _engine.restoreState( *engineStateBeforeSplit );
-    delete engineStateBeforeSplit;
+    constraintToSplit = computeBestChoice( split );
     return constraintToSplit;
 }
 
-PiecewiseLinearConstraint *ReluDivider::computeBestChoice()
+PiecewiseLinearConstraint *ReluDivider::computeBestChoice( const PiecewiseLinearCaseSplit &split )
 {
     PiecewiseLinearConstraint *best = NULL;
     double bestRank = _balanceEstimates.size() * 2;
     for ( const auto &entry : _runtimeEstimates ){
-        auto reluConstraint = _engine.getConstraintFromId(entry.first);
-        if ( reluConstraint->isActive() &&
-             ( !reluConstraint->phaseFixed() ) &&
+        if ( (!split.hasRelu( entry.first )) &&
              entry.second < GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD )
         {
             double newRank = _balanceEstimates[entry.first];
             if ( newRank < bestRank )
             {
-                best = reluConstraint;
+                best = _engine.getConstraintFromId( entry.first );
                 bestRank = newRank;
             }
         }
     }
-    std::cout << best->getId() << std::endl;
     return best;
 }
 

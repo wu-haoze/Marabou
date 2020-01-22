@@ -56,6 +56,8 @@ public:
     */
     void updateVariableIndex( unsigned oldIndex, unsigned newIndex );
 
+    bool hasRelu( unsigned id ) const;
+
 private:
     /*
       Bound tightening information.
