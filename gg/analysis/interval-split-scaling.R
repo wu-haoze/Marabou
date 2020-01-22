@@ -20,7 +20,7 @@ series <- no_outliers %>%
   group_by(jobs,infra,divide_strategy,net) %>%
   summarise(rt_mean_trial = mean(runtime), rt_sd_trial = sd(runtime)) %>%
   group_by(jobs,infra,divide_strategy) %>%
-  summarise(rt_mean_net = mean(rt_mean_trial), rt_sd_net = sd(rt_sd_trial))
+  summarise(rt_mean_net = mean(rt_mean_trial))
 
 #series[is.na(series)] <- 0
 ggplot(series, aes(x = jobs, y = rt_mean_net, linetype = infra)) +
@@ -35,4 +35,5 @@ ggplot(series, aes(x = jobs, y = rt_mean_net, linetype = infra)) +
     linetype = "Infrastructure",
     color = "Split Strategy"
   )
-ggsave("interval-split-scaling.png", width = 5, height = 4, units="in")    
+ggsave("interval-split-scaling.png", width = 5, height = 4, units="in")
+write_csv(series, "./interval-split-scaling.csv")

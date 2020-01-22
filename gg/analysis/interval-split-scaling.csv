@@ -1,0 +1,16 @@
+jobs,infra,divide_strategy,rt_mean_net
+4,Infra.GG_LAMBDA,largest-interval,2640.8590355237325
+4,Infra.GG_LOCAL,largest-interval,2569.891183945338
+4,Infra.THREAD,largest-interval,2771.256915171941
+8,Infra.GG_LAMBDA,largest-interval,1600.867717669805
+8,Infra.GG_LOCAL,largest-interval,1564.376966547966
+8,Infra.THREAD,largest-interval,1706.0707844575245
+16,Infra.GG_LAMBDA,largest-interval,852.4091854135196
+16,Infra.GG_LOCAL,largest-interval,821.9227124849956
+16,Infra.THREAD,largest-interval,927.3625839630763
+32,Infra.GG_LAMBDA,largest-interval,406.9823169708252
+64,Infra.GG_LAMBDA,largest-interval,231.9777097940445
+128,Infra.GG_LAMBDA,largest-interval,121.74979977607727
+256,Infra.GG_LAMBDA,largest-interval,94.2789520184199
+512,Infra.GG_LAMBDA,largest-interval,61.76680500507355
+1000,Infra.GG_LAMBDA,largest-interval,71.64972502390543
