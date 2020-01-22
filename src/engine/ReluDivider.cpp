@@ -32,6 +32,10 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
 {
     unsigned numBisects = (unsigned)log2( numNewSubqueries );
 
+    _engine.applySplit( previousSplit );
+    _engine.propagate();
+    _engine.getEstimates( _balanceEstimates, _runtimeEstimates );
+
     List<PiecewiseLinearCaseSplit *> splits;
     auto split = new PiecewiseLinearCaseSplit();
     *split = previousSplit;
@@ -57,7 +61,7 @@ void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
                 {
                     auto newSplit = new PiecewiseLinearCaseSplit();
                     *newSplit = caseSplit;
-		    newSplit->addReluPhase( pLConstraintToSplit->getId(), caseSplit.getEquations().size() > 0);
+                    newSplit->addReluPhase( pLConstraintToSplit->getId(), caseSplit.getEquations().size() > 0);
 
                     for ( const auto &tightening : split->getBoundTightenings() )
                         newSplit->storeBoundTightening( tightening );
@@ -104,10 +108,9 @@ PiecewiseLinearConstraint *ReluDivider::getPLConstraintToSplit
     EngineState *engineStateBeforeSplit = new EngineState();
     _engine.storeState( *engineStateBeforeSplit, true );
     _engine.applySplit( split );
-
     PiecewiseLinearConstraint *constraintToSplit = NULL;
-    if ( _engine.propagate() )
-        constraintToSplit = computeBestChoice();
+    //if ( _engine.propagate() )
+    constraintToSplit = computeBestChoice();
     _engine.restoreState( *engineStateBeforeSplit );
     delete engineStateBeforeSplit;
     return constraintToSplit;
@@ -115,22 +118,23 @@ PiecewiseLinearConstraint *ReluDivider::getPLConstraintToSplit
 
 PiecewiseLinearConstraint *ReluDivider::computeBestChoice()
 {
-    Map<unsigned, double> balanceEstimates;
-    Map<unsigned, double> runtimeEstimates;
-    _engine.getEstimates( balanceEstimates, runtimeEstimates );
     PiecewiseLinearConstraint *best = NULL;
-    double bestRank = balanceEstimates.size() * 2;
-    for ( const auto &entry : runtimeEstimates ){
-        if ( entry.second < GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD )
+    double bestRank = _balanceEstimates.size() * 2;
+    for ( const auto &entry : _runtimeEstimates ){
+        auto reluConstraint = _engine.getConstraintFromId(entry.first);
+        if ( reluConstraint->isActive() &&
+             ( !reluConstraint->phaseFixed() ) &&
+             entry.second < GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD )
         {
-            double newRank = entry.second + balanceEstimates[entry.first];
+            double newRank = _balanceEstimates[entry.first];
             if ( newRank < bestRank )
             {
-                best = _engine.getConstraintFromId( entry.first );
+                best = reluConstraint;
                 bestRank = newRank;
             }
         }
     }
+    std::cout << best->getId() << std::endl;
     return best;
 }
 
