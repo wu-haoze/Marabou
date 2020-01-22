@@ -2262,6 +2262,8 @@ bool Engine::propagate()
 void Engine::getEstimates( Map <unsigned, double> &balanceEstimates,
                            Map <unsigned, double> &runtimeEstimates )
 {
+    balanceEstimates.clear();
+    runtimeEstimates.clear();
     for ( const auto &plConstraint : _plConstraints )
     {
         if ( plConstraint->isActive() && !plConstraint->phaseFixed() )

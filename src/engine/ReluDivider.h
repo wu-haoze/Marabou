@@ -49,6 +49,10 @@ private:
       The engine
     */
     IEngine& _engine;
+
+    Map<unsigned, double> _balanceEstimates;
+    Map<unsigned, double> _runtimeEstimates;
+
 };
 
 #endif // __ReluDivider_h__
