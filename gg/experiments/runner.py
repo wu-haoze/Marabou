@@ -358,7 +358,7 @@ def with_all_infras(inputs):
 def with_local_infras(inputs):
     def help():
         for i in inputs:
-            for infra in [Infra.GG_LOCAL, Infra.THREAD]:
+            for infra in [Infra.THREAD, Infra.GG_LOCAL]:
                 i1 = deepcopy(i)
                 i1.infra = infra
                 yield i1
