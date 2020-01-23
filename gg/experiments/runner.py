@@ -3,13 +3,14 @@
 """gg-Marabou test runner
 
 Usage:
-  runner.py run [options] <net_num> <prop_num>
+  runner.py run [options] <net> <prop>
   runner.py list
   runner.py (-h | --help)
 
 Options:
   --jobs N              The number of jobs [default: 1]
   --initial-divides N   The initial number of divides [default: 0]
+  --online-divides N    The number of divides to do on timeout [default: 2]
   --divide-strategy S   The divide strategy [default: largest-interval]
   --timeout N           How long to try for (s) [default: 3600]
   --initial-timeout N   How long to try for (s) before splitting [default: 5]
@@ -20,11 +21,13 @@ Options:
   --local               Run the local benchmarks
   --specific            Run just one benchmark
   --acas                Use ACAS shorthand for network & property files.
+  --mnist               Use MNIST shorthand for network & property files.
   -h --help             Show this screen.
 """
 from copy import deepcopy
 from docopt import docopt
 from enum import Enum
+from glob import glob
 from os import path
 from pathlib import Path
 from re import search
@@ -383,15 +386,23 @@ if __name__ == '__main__':
     arguments = docopt(__doc__)
     if arguments['run']:
         if arguments['--acas']:
-            net_num = arguments['<net_num>']
-            prop_num = arguments['<prop_num>']
-            net = f'{abs_marabou_repo()}/gg/acas/ACASXU_run2a_{net_num}_batch_2000.nnet'
-            prop = f'{abs_marabou_repo()}/gg/acas-properties/property{prop_num}.txt'
+            net = arguments['<net>']
+            prop = arguments['<prop>']
+            net = f'{abs_marabou_repo()}/gg/acas/ACASXU_run2a_{net}_batch_2000.nnet'
+            prop = f'{abs_marabou_repo()}/gg/acas-properties/property{prop}.txt'
+        elif arguments['--mnist']:
+            net_short = arguments['<net>']
+            prop = arguments['<prop>']
+            net = f'{abs_marabou_repo()}/gg/mnist/mnist{net_short}.nnet'
+            props = glob(f'{abs_marabou_repo()}/gg/mnist-properties/net{net_short}_ind{prop}*.txt')
+            assert len(props) == 1
+            prop = props[0]
         else:
-            net = os.path.abspath(arguments['<net_num>'])
-            prop = os.path.abspath(arguments['<prop_num>'])
+            net = os.path.abspath(arguments['<net>'])
+            prop = os.path.abspath(arguments['<prop>'])
         jobs = int(arguments['--jobs'])
         initial_divides = int(arguments['--initial-divides'])
+        online_divides = int(arguments['--online-divides'])
         timeout = int(arguments['--timeout'])
         initial_timeout = int(arguments['--initial-timeout'])
         timeout_factor = float(arguments['--timeout-factor'])
@@ -405,7 +416,7 @@ if __name__ == '__main__':
                 infra,
                 jobs,
                 initial_divides,
-                2,
+                online_divides,
                 timeout,
                 initial_timeout,
                 timeout_factor,
