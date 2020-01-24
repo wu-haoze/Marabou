@@ -1,9 +1,9 @@
 library(tidyverse)
 
-data <- read_csv("./interval-split-scaling-raw.csv")
-benches <- c("2_6","4_2","3_5","4_5","5_5")
+data <- read_csv("./relu-split-scaling-raw.csv")
+benches <- c("20x20")
 regex <- str_c(benches, collapse="|")
-right_benches <- data %>% filter(grepl(regex, net))
+right_benches <- data %>% filter(grepl(regex, net)) %>% filter(initial_timeout==80)
 no_outliers <- right_benches %>%
   filter(jobs < 32 | grepl("LAM", infra)) %>%
   # Outliers
@@ -35,5 +35,5 @@ ggplot(series, aes(x = jobs, y = rt_mean_net, linetype = infra)) +
     linetype = "Infrastructure",
     color = "Split Strategy"
   )
-ggsave("interval-split-scaling.pdf", width = 5, height = 4, units="in")
-write_csv(series, "./interval-split-scaling.csv")
+ggsave("relu-split-scaling.pdf", width = 5, height = 4, units="in")
+write_csv(series, "./relu-split-scaling.csv")
