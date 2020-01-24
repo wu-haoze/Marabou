@@ -17,6 +17,7 @@ Options:
   --timeout-factor N    How long to multiply the initial_timeout by each split [default: 1.5]
   --infra I             gg-local, gg-lambda, or thread [default: gg-local]
   --trial N             the trial number to run [default: 0]
+  --trials N            run N trials. Ignores option above. [default: 0]
   --lambda              Run the lambda benchmarks
   --local               Run the local benchmarks
   --specific            Run just one benchmark
