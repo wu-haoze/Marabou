@@ -53,6 +53,7 @@ private:
     Map<unsigned, double> _balanceEstimates;
     Map<unsigned, double> _runtimeEstimates;
 
+    unsigned _threshold;
 };
 
 #endif // __ReluDivider_h__

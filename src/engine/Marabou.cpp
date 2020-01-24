@@ -171,10 +171,20 @@ bool Marabou::lookAheadPreprocessing()
         Map<unsigned, unsigned> idToPhase;
 
         struct timespec start = TimeUtils::sampleMicro();
+
+        int initialTimeoutInt = Options::get()->getInt( Options::INITIAL_TIMEOUT );
+        unsigned initialTimeout = 0;
+        if ( initialTimeoutInt < 0 )
+            initialTimeout = _inputQuery.getPiecewiseLinearConstraints().size() / 2.5;
+        else
+            initialTimeout = static_cast<unsigned>(initialTimeoutInt);
+
         auto lookAheadPreprocessor = new LookAheadPreprocessor
             ( Options::get()->getInt( Options::NUM_WORKERS ),
-              *_engine.getInputQuery() );
-        feasible = lookAheadPreprocessor->run( idToPhase );
+              *_engine.getInputQuery(), initialTimeout );
+
+        List<unsigned> maxTimes;
+        feasible = lookAheadPreprocessor->run( idToPhase, maxTimes );
         struct timespec end = TimeUtils::sampleMicro();
         unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
         String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
@@ -191,6 +201,9 @@ bool Marabou::lookAheadPreprocessing()
 
             // Field #3: number of fixed relus by look ahead preprocessing
             summaryFile.write( Stringf( "%u ", idToPhase.size() ) );
+
+	    for ( const auto& maxTime : maxTimes )
+		summaryFile.write( Stringf( "%u ", maxTime ) );
             summaryFile.write( "\n" );
         }
         if ( summaryFilePath != "" )
@@ -519,6 +532,8 @@ BiasStrategy Marabou::setBiasStrategyFromOptions( const String strategy )
         return BiasStrategy::Sampling;
     else if ( strategy == "random" )
         return BiasStrategy::Random;
+    else if ( strategy == "estimate" )
+        return BiasStrategy::Estimate;
     else
         {
             printf ("Unknown bias strategy, using default (centroid).\n");

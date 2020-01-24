@@ -21,11 +21,12 @@
 #include <thread>
 
 LookAheadPreprocessor::LookAheadPreprocessor( unsigned numWorkers,
-                                              const InputQuery &inputQuery )
+                                              const InputQuery &inputQuery,
+                                              unsigned initialTimeout )
     : _workload( 0 )
-    , _numWorkers ( 2 * numWorkers )
+    , _numWorkers ( numWorkers )
     , _baseInputQuery( inputQuery )
-
+    , _initialTimeout( initialTimeout )
 {
     createEngines();
 }
@@ -45,11 +46,12 @@ void LookAheadPreprocessor::preprocessWorker( LookAheadPreprocessor::WorkerQueue
                                               std::atomic_bool
                                               &shouldQuitPreprocessing,
                                               std::mutex &mtx,
-                                              std::atomic_int &lastFixed )
+                                              std::atomic_int &lastFixed,
+                                              std::atomic_int &maxTime,
+                                              unsigned initialTimeout )
 {
-    //unsigned cpuId = 0;
-    //getCPUId( cpuId );
-    //printf( "Thread #%u on CPU %u\n", threadId, cpuId );
+
+    std::cout << "initial timeout" << initialTimeout << std::endl;
 
     if ( !engine->_processed )
     {
@@ -58,10 +60,15 @@ void LookAheadPreprocessor::preprocessWorker( LookAheadPreprocessor::WorkerQueue
 
     // Apply all splits
     engine->applySplits( idToPhase );
+    engine->propagate();
     do
     {
         engine->performSymbolicBoundTightening();
     } while ( engine->applyAllValidConstraintCaseSplits() );
+
+    Map<unsigned, double> balanceEstimates;
+    Map<unsigned, double> runtimeEstimates;
+    engine->getEstimatesReal( balanceEstimates, runtimeEstimates );
 
     mtx.lock();
     for ( const auto &entry : engine->_smtCore._impliedIdToPhaseAtRoot )
@@ -91,111 +98,62 @@ void LookAheadPreprocessor::preprocessWorker( LookAheadPreprocessor::WorkerQueue
         PiecewiseLinearConstraint *plConstraint = engine->
             getConstraintFromId( id );
 
-        if ( (!plConstraint->isActive()) || plConstraint->phaseFixed() )
+
+        float balanceEstimate = balanceEstimates[id];
+        if ( (!plConstraint->isActive()) || plConstraint->phaseFixed()
+             || runtimeEstimates[id] > runtimeEstimates.size() ||
+             ( balanceEstimate > -0.4 && balanceEstimate < 0.4 ) )
             continue;
 
         engine->storeInitialEngineState();
 
         // Try to propagate
-        auto caseSplits = plConstraint->getCaseSplits();
-
+        PiecewiseLinearCaseSplit _caseSplit;
+        if ( balanceEstimate > 0 )
+            _caseSplit = ((ReluConstraint *)plConstraint)->getInactiveSplit();
+        else
+            _caseSplit = ((ReluConstraint *)plConstraint)->getActiveSplit();
         EngineState *stateBeforeSplit = new EngineState();
         engine->storeState( *stateBeforeSplit, true );
+        auto caseSplit = PiecewiseLinearCaseSplit();
+        for ( const auto &bound : _caseSplit.getBoundTightenings() )
+            caseSplit.storeBoundTightening( bound );
 
-        Map<unsigned, unsigned> commonImpliedIdToPhase;
-        Map<unsigned, unsigned> idToCount;
-        Vector<List<PiecewiseLinearCaseSplit>> feasibleImpliedSplits;
-        Vector<Map<unsigned, unsigned>> feasibleImpliedIdToPhase;
-        Vector<unsigned> feasibleStatus;
+        engine->applySplit( caseSplit );
 
-        unsigned numActive = (engine->_idToConstraint.size() - idToPhase.size());
-        double temp = (int) engine->_idToConstraint.size() - (int) id;
-        if (temp < 0)
-            temp = 0;
-        double factor = temp / numActive;
-        factor = 1 < factor ? 1 : factor;
-        unsigned threshold = (int) GlobalConfiguration::QUICK_SOLVE_STACK_DEPTH_THRESHOLD *
-                     factor;
-        if ( threshold == 0 ) continue;
+        struct timespec start = TimeUtils::sampleMicro();
+        engine->solve( initialTimeout / 10 );
+        struct timespec end = TimeUtils::sampleMicro();
+        unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+        unsigned time =  totalElapsed / 1000000;
+        if ( static_cast<int>(time) > maxTime.load() )
+            maxTime = static_cast<int>(time);
 
-        for ( const auto &_caseSplit : caseSplits )
-        {
-            auto caseSplit = PiecewiseLinearCaseSplit();
-            for ( const auto &bound : _caseSplit.getBoundTightenings() )
-                caseSplit.storeBoundTightening( bound );
-
-            engine->applySplit( caseSplit );
-            engine->quickSolve( threshold + 1 );
-
-            if ( engine->_exitCode == IEngine::QUIT_REQUESTED )
-                return;
-            if ( engine->_exitCode == IEngine::ERROR )
-                return;
-            if ( engine->_exitCode != IEngine::UNSAT )
-            {
-                List<PiecewiseLinearCaseSplit> temp = engine->
-                    _smtCore._impliedValidSplitsAtRoot;
-                feasibleImpliedSplits.append( temp );
-
-                Map<unsigned, unsigned> tempMap = engine->
-                    _smtCore._impliedIdToPhaseAtRoot;
-                feasibleImpliedIdToPhase.append( tempMap );
-
-                for ( const auto &entry : tempMap )
-                {
-                    if ( !commonImpliedIdToPhase.exists( entry.first ) )
-                    {
-                        commonImpliedIdToPhase[entry.first] = entry.second;
-                        idToCount[entry.first] = 0;
-                    }
-                    if ( commonImpliedIdToPhase[entry.first] == entry.second )
-                        idToCount[entry.first] += 1;
-                }
-                feasibleStatus.append( ( ( ReluConstraint * ) plConstraint )
-                                       ->getPhaseStatus() );
-            }
-            engine->reset();
-            engine->restoreState( *stateBeforeSplit );
-        }
-        if ( feasibleImpliedSplits.size() == 0 )
-        {
-            engine->_exitCode = IEngine::UNSAT;
-            std::cout << "UNSAT! Finished preprocessing early!" << std::endl;
-            lastFixed = -2;
-            shouldQuitPreprocessing = true;
-            return;
-        }
-        else if ( feasibleImpliedSplits.size() == 1 )
+        if ( engine->_exitCode == IEngine::UNSAT )
         {
             printf("Thread %u fixed relu %u\n", threadId, plConstraint->getId() );
             lastFixed = plConstraint->getId();
-            engine->applySplits( feasibleImpliedIdToPhase[0] );
             mtx.lock();
-            for ( const auto &entry : feasibleImpliedIdToPhase[0] )
-                idToPhase[entry.first] = entry.second;
-            prevSize = idToPhase.size();
+            idToPhase[plConstraint->getId()] = ( balanceEstimate > 0 ?
+                                                 ReluConstraint::PHASE_ACTIVE :
+                                                 ReluConstraint::PHASE_INACTIVE );
+            prevSize += 1;
             mtx.unlock();
         }
-        else
-        {
-            unsigned commonCount = 0;
-            for ( const auto &entry : commonImpliedIdToPhase )
-            {
-                if ( idToCount[entry.first] == caseSplits.size() )
-                {
-                    mtx.lock();
-                    idToPhase[entry.first] = entry.second;
-                    prevSize = idToPhase.size();
-                    mtx.unlock();
-                    commonCount += 1;
-                }
-            }
-        }
+        if ( engine->_exitCode == IEngine::QUIT_REQUESTED )
+            return;
+        if ( engine->_exitCode == IEngine::ERROR )
+            return;
+
+        engine->reset();
+        engine->restoreState( *stateBeforeSplit );
+
         engine->applyAllValidConstraintCaseSplits();
     }
 }
 
-bool LookAheadPreprocessor::run( Map<unsigned, unsigned> &idToPhase )
+bool LookAheadPreprocessor::run( Map<unsigned, unsigned> &idToPhase,
+				 List<unsigned> &maxTimes )
 {
     bool progressMade = true;
     //Vector<Map<unsigned, unsigned>> allIdToPhase;
@@ -215,6 +173,7 @@ bool LookAheadPreprocessor::run( Map<unsigned, unsigned> &idToPhase )
 
     while ( progressMade )
     {
+	std::atomic_int maxTime ( 0 );
         std::cout << "new look ahead preprocessing iteration" << std::endl;
         unsigned previousSize = idToPhase.size();
         for ( auto id : _allPiecewiseLinearConstraints )
@@ -232,7 +191,9 @@ bool LookAheadPreprocessor::run( Map<unsigned, unsigned> &idToPhase )
                                             std::ref( idToPhase ),
                                             std::ref( shouldQuitPreprocessing ),
                                             std::ref( mtx ),
-                                            std::ref( lastFixed ) ) );
+                                            std::ref( lastFixed ),
+                                            std::ref( maxTime ),
+                                            _initialTimeout ) );
         }
 
         while ( (!shouldQuitPreprocessing.load()) && (!_workload.empty()) )
@@ -247,6 +208,8 @@ bool LookAheadPreprocessor::run( Map<unsigned, unsigned> &idToPhase )
         for ( auto &thread : threads )
             thread.join();
 
+	maxTimes.append( maxTime.load() );
+	    
         if ( shouldQuitPreprocessing.load() )
         {
             std::cout << "Preprocessing done!" << std::endl;

@@ -293,9 +293,48 @@ void Engine::applySplits( const Map<unsigned, unsigned> &idToPhase )
 
 void Engine::setBiasedPhases( unsigned biasedLayer, BiasStrategy strategy )
 {
-    if ( !_networkLevelReasoner )
+    if ( biasedLayer == 0 )
         return;
-    std::cout << "Bias the first " << biasedLayer << " layers" << std::endl;
+    if ( !_networkLevelReasoner )
+    {
+        if ( strategy == BiasStrategy::Estimate )
+        {
+            Map<unsigned, double> balanceEstimates;
+            Map<unsigned, double> runtimeEstimates;
+            getEstimatesReal( balanceEstimates, runtimeEstimates );
+            for ( const auto &constraint : _plConstraints )
+            {
+                auto reluConstraint = (ReluConstraint *) constraint;
+                if ( reluConstraint->_direction != -1 )
+                {
+                    unsigned direction =
+                        ( balanceEstimates[constraint->getId()] > 0 ?
+                          1 : 0 );
+                    reluConstraint->setDirection( direction );
+                }
+            }
+        }
+        else if ( strategy == BiasStrategy::Random )
+        {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dis( 0, 1 );
+            for ( const auto &constraint : _plConstraints )
+            {
+                auto reluConstraint = (ReluConstraint *) constraint;
+                if ( reluConstraint->_direction != -1 )
+                {
+                    unsigned direction = dis( gen );
+                    reluConstraint->setDirection( direction );
+                }
+            }
+        }
+        return;
+    }
+    if ( _networkLevelReasoner->_layerToIds.size() < biasedLayer )
+    {
+        biasedLayer = _networkLevelReasoner->_layerToIds.size();
+    }
     if ( biasedLayer == 0 )
     {
         return;
@@ -348,6 +387,27 @@ void Engine::setBiasedPhases( unsigned biasedLayer, BiasStrategy strategy )
                         constraint->setDirection( 1 );
                     else if ( phase == ReluConstraint::PHASE_INACTIVE )
                         constraint->setDirection( 0 );
+                }
+            }
+        }
+    }
+    else if ( strategy == BiasStrategy::Estimate )
+    {
+        Map<unsigned, double> balanceEstimates;
+        Map<unsigned, double> runtimeEstimates;
+        getEstimatesReal( balanceEstimates, runtimeEstimates );
+        for ( unsigned layer = 1; layer < biasedLayer + 1; ++layer )
+        {
+            auto ids = _networkLevelReasoner->_layerToIds[layer];
+            for ( const auto id : ids )
+            {
+                auto constraint = (ReluConstraint *) getConstraintFromId( id );
+                if ( constraint )
+                {
+
+                    unsigned direction = ( balanceEstimates[constraint->getId()] > 0 ?
+                                           1 : 0 );
+                    constraint->setDirection( direction );
                 }
             }
         }
@@ -2259,6 +2319,42 @@ bool Engine::propagate()
     }
 }
 
+void Engine::getEstimatesReal( Map <unsigned, double> &balanceEstimates,
+                               Map <unsigned, double> &runtimeEstimates )
+{
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            unsigned b = ( ( ReluConstraint * ) plConstraint )->getB();
+            double currentLb = _tableau->getLowerBound( b );
+            double currentUb = _tableau->getUpperBound( b );
+            double width = currentUb - currentLb;
+            double sum = currentLb + currentUb;
+            double balance = sum / width;
+            balanceEstimates[plConstraint->getId()] = balance;
+            runtimeEstimates[plConstraint->getId()] = width;
+        }
+    }
+
+    // Sort the map
+    Map<double, unsigned> temp1;
+    for ( const auto& entry : runtimeEstimates )
+        temp1[entry.second] = entry.first;
+
+    double index = 1;
+    for ( const auto& entry : temp1 )
+        runtimeEstimates[entry.second] = index++;
+    Map<double, unsigned> temp2;
+    for ( const auto& entry : balanceEstimates )
+        temp2[entry.second] = entry.first;
+    for ( const auto& entry : temp2 )
+        balanceEstimates[entry.second] = entry.first;
+
+
+    return;
+}
+
 void Engine::getEstimates( Map <unsigned, double> &balanceEstimates,
                            Map <unsigned, double> &runtimeEstimates )
 {
@@ -2275,7 +2371,7 @@ void Engine::getEstimates( Map <unsigned, double> &balanceEstimates,
             double sum = currentLb + currentUb;
             double balance = ( sum > 0 ? sum : -sum ) / width;
             balanceEstimates[plConstraint->getId()] = balance;
-            runtimeEstimates[plConstraint->getId()] = width;
+            runtimeEstimates[plConstraint->getId()] = plConstraint->getId();
         }
     }
 
@@ -2367,6 +2463,11 @@ void Engine::getCentroid( Vector<double> &centroid )
     for ( auto const &var : inputVariables )
         centroid.append( ( _tableau->getLowerBound( var ) +
                            _tableau->getUpperBound( var ) ) / 2 );
+}
+
+unsigned Engine::numberOfConstraints()
+{
+    return _plConstraints.size();
 }
 
 //

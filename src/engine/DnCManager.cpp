@@ -52,6 +52,7 @@ void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
 
     engine->processInputQuery( *inputQuery, false );
     engine->applySplits( idToPhase );
+    engine->propagate();
     engine->setBiasedPhases( biasedLayer, biasStrategy );
     engine->numberOfActive();
 
@@ -60,7 +61,8 @@ void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
                       timeoutFactor, divideStrategy, maxDepth );
     while ( !shouldQuitSolving.load() )
     {
-        worker.popOneSubQueryAndSolve( restoreTreeStates );
+        worker.popOneSubQueryAndSolve( restoreTreeStates, biasedLayer,
+                                       biasStrategy );
     }
 }
 
@@ -330,6 +332,7 @@ bool DnCManager::createEngines()
     // Create the base engine
     _baseEngine = std::make_shared<Engine>( _verbosity );
     _baseEngine->processInputQuery( *_baseInputQuery, false );
+    _baseEngine->applySplits( _idToPhase );
 
     // Create engines for each thread
     for ( unsigned i = 0; i < _numWorkers; ++i )
