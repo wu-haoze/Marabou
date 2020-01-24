@@ -68,6 +68,8 @@ public:
         FOCUS_LAYER,
 
         MAX_DEPTH,
+
+	MAX_TREE_DEPTH,
     };
 
     enum FloatOptions{

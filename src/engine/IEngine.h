@@ -78,12 +78,22 @@ public:
     virtual List<unsigned> getInputVariables() const = 0;
 
     virtual bool propagate() = 0;
+
+    virtual void getEstimatesReal( Map <unsigned, double>
+                                   &balanceEstimates,
+                                   Map <unsigned, double>
+                                   &runtimeEstimates ) = 0;
+
     virtual void getEstimates( Map <unsigned, double>
                                &balanceEstimates,
                                Map <unsigned, double>
                                &runtimeEstimates ) = 0;
 
     virtual PiecewiseLinearConstraint *getConstraintFromId( unsigned id ) = 0;
+
+    virtual unsigned numberOfConstraints() = 0;
+    virtual void setBiasedPhases( unsigned biasedLayer, BiasStrategy strategy ) = 0;
+
 };
 
 #endif // __IEngine_h__

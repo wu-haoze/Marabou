@@ -22,6 +22,9 @@
 ReluDivider::ReluDivider( IEngine& engine )
     : _engine( engine )
 {
+    _threshold = _engine.numberOfConstraints() / 20;
+    if ( _threshold < 5 )	
+	_threshold = 5;
 }
 
 void ReluDivider::createSubQueries( unsigned numNewSubqueries, const String
@@ -117,7 +120,7 @@ PiecewiseLinearConstraint *ReluDivider::computeBestChoice( const PiecewiseLinear
     double bestRank = _balanceEstimates.size() * 2;
     for ( const auto &entry : _runtimeEstimates ){
         if ( (!split.hasRelu( entry.first )) &&
-             entry.second < GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD )
+             entry.second < _threshold )
         {
             double newRank = _balanceEstimates[entry.first];
             if ( newRank < bestRank )

@@ -31,7 +31,7 @@ public:
 
         lastStoredState = NULL;
     }
-
+    
     ~MockEngine()
     {
     }
@@ -149,6 +149,15 @@ public:
         return true;
     }
 
+    void getEstimatesReal( Map <unsigned, double>
+                           &balanceEstimates,
+                           Map <unsigned, double>
+                           &runtimeEstimates )
+    {
+        balanceEstimates.clear();
+        runtimeEstimates.clear();
+    }
+
     void getEstimates( Map <unsigned, double>
                        &balanceEstimates,
                        Map <unsigned, double>
@@ -175,6 +184,16 @@ public:
     {
         std::cout << id << std::endl;
         return NULL;
+    }
+
+    unsigned numberOfConstraints()
+    {
+	return 0;
+    }
+    
+    void setBiasedPhases( unsigned biasedLayer, BiasStrategy strategy )
+    {
+        std::cout << biasedLayer << " " << strategy << std::endl;
     }
 
 };
