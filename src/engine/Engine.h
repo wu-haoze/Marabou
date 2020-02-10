@@ -135,6 +135,11 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
+    /*
+      Get the bounds of the input of each Relu
+    */
+    void getBounds();
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,

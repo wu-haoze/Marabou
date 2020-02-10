@@ -94,6 +94,13 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     storeInitialEngineState();
 
+    do
+    {
+        performSymbolicBoundTightening();
+    }
+    while ( applyAllValidConstraintCaseSplits() );
+    return false;
+
     if ( _verbosity > 0 )
     {
         printf( "\nEngine::solve: Initial statistics\n" );
@@ -658,13 +665,13 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
                 _preprocessedQuery.getEquations().size(),
                 _preprocessedQuery.getNumberOfVariables() );
 
-    unsigned infiniteBounds = _preprocessedQuery.countInfiniteBounds();
-    if ( infiniteBounds != 0 )
-    {
-        _exitCode = Engine::ERROR;
-        throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
-                             Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
-    }
+    //unsigned infiniteBounds = _preprocessedQuery.countInfiniteBounds();
+    //if ( infiniteBounds != 0 )
+    //{
+    //    _exitCode = Engine::ERROR;
+    //    throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
+    //                         Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
+    //}
 }
 
 void Engine::printInputBounds( const InputQuery &inputQuery ) const
@@ -1922,6 +1929,16 @@ void Engine::checkOverallProgress()
             _lastIterationWithProgress = currentIteration;
         }
     }
+}
+
+void Engine::getBounds()
+{
+    for ( const auto &plConstraint : _plConstraints )
+        {
+            auto relu = (ReluConstraint *) plConstraint;
+            std::cout << relu->getF() << " " << relu->getLowerBound()
+                      << " " << relu->getUpperBound() << "\n";
+        }
 }
 
 //

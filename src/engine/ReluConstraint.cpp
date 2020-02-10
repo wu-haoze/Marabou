@@ -809,6 +809,11 @@ unsigned ReluConstraint::getB() const
     return _b;
 }
 
+unsigned ReluConstraint::getF() const
+{
+    return _f;
+}
+
 ReluConstraint::PhaseStatus ReluConstraint::getPhaseStatus() const
 {
     return _phaseStatus;
@@ -827,6 +832,16 @@ bool ReluConstraint::auxVariableInUse() const
 unsigned ReluConstraint::getAux() const
 {
     return _aux;
+}
+
+double ReluConstraint::getLowerBound() const
+{
+    return _lowerBounds[_f];
+}
+
+double ReluConstraint::getUpperBound() const
+{
+    return _upperBounds[_f];
 }
 
 //

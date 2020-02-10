@@ -34,6 +34,9 @@ public:
         // Should DNC mode be on or off
         DNC_MODE,
 
+        // Only Preprocess
+        PREPROCESS_ONLY,
+
         // Help flag
         HELP,
 
