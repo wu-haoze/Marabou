@@ -44,6 +44,10 @@ void Options::initializeDefaultValues()
     _boolOptions[DNC_MODE] = false;
     _boolOptions[PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS] = false;
     _boolOptions[PREPROCESS_ONLY] = false;
+    _boolOptions[NO_PREPROCESSING] = false;
+    _boolOptions[NO_SYMBOLIC_BOUND_TIGHTENING] = false;
+    _boolOptions[NO_ROW_BOUND_TIGHTENING] = false;
+    _boolOptions[NO_CONSTRAINT_BOUND_TIGHTENING] = false;
 
     /*
       Int options

@@ -37,6 +37,15 @@ public:
         // Only Preprocess
         PREPROCESS_ONLY,
 
+        NO_PREPROCESSING,
+
+        NO_SYMBOLIC_BOUND_TIGHTENING,
+
+        NO_ROW_BOUND_TIGHTENING,
+
+        NO_CONSTRAINT_BOUND_TIGHTENING,
+
+
         // Help flag
         HELP,
 

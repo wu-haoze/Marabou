@@ -40,7 +40,8 @@ AcasParser::AcasParser( const String &path )
 {
 }
 
-void AcasParser::generateQuery( InputQuery &inputQuery )
+void AcasParser::generateQuery( InputQuery &inputQuery,
+                                bool performSymbolicBoundTightening )
 {
     // First encode the actual network
     // _acasNeuralNetwork doesn't count the input layer, so add 1
@@ -220,7 +221,7 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
     inputQuery.setNetworkLevelReasoner( nlr );
 
     // TODO: remove the below, once SBT is merged into NLR
-    if ( GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING )
+    if ( performSymbolicBoundTightening )
     {
         // Prepare the symbolic bound tightener
         SymbolicBoundTightener *sbt = new SymbolicBoundTightener;

@@ -61,9 +61,6 @@ public:
     // Toggle use of Harris' two-pass ratio test for selecting the leaving variable
     static const bool USE_HARRIS_RATIO_TEST;
 
-    // Toggle query-preprocessing on/off.
-	static const bool PREPROCESS_INPUT_QUERY;
-
     // Assuming the preprocessor is on, toggle whether or not it will attempt to perform variable
     // elimination.
     static const bool PREPROCESSOR_ELIMINATE_VARIABLES;
@@ -153,9 +150,6 @@ public:
     /*
       Symbolic bound tightening options
     */
-
-    // Whether symbolic bound tightening should be used or not
-    static const bool USE_SYMBOLIC_BOUND_TIGHTENING;
 
     // If symbolic bound tightening is used, should linear concretization (as
     // opposed to constant concretization) be used.

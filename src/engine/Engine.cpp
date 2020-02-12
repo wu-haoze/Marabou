@@ -47,6 +47,10 @@ Engine::Engine( unsigned verbosity )
     , _verbosity( verbosity )
     , _lastNumVisitedStates( 0 )
     , _lastIterationWithProgress( 0 )
+    , _performRowBoundTightening( true )
+    , _performConstraintBoundTightening( true )
+    , _performSymbolicBoundTightening( true )
+    , _performPreprocessing( true )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -181,7 +185,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 continue;
             }
 
-            if ( _tableau->basisMatrixAvailable() )
+            if ( _performRowBoundTightening && _tableau->basisMatrixAvailable() )
                 explicitBasisBoundTightening();
 
             // Perform any SmtCore-initiated case splits
@@ -237,7 +241,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
                 // Finally, take this opporunity to tighten any bounds
                 // and perform any valid case splits.
-                tightenBoundsOnConstraintMatrix();
+                if ( _performConstraintBoundTightening )
+                    tightenBoundsOnConstraintMatrix();
                 applyAllBoundTightenings();
                 // For debugging purposes
                 checkBoundCompliancyWithDebugSolution();
@@ -292,6 +297,13 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 }
                 _exitCode = Engine::UNSAT;
                 return false;
+            }
+            {
+                do
+                {
+                    performSymbolicBoundTightening();
+                }
+                while ( applyAllValidConstraintCaseSplits() );
             }
         }
         catch ( ... )
@@ -627,7 +639,7 @@ void Engine::fixViolatedPlConstraintIfPossible()
 
 bool Engine::processInputQuery( InputQuery &inputQuery )
 {
-    return processInputQuery( inputQuery, GlobalConfiguration::PREPROCESS_INPUT_QUERY );
+    return processInputQuery( inputQuery, _performPreprocessing );
 }
 
 void Engine::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
@@ -1475,8 +1487,10 @@ void Engine::applyAllBoundTightenings()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
-    applyAllRowTightenings();
-    applyAllConstraintTightenings();
+    if ( _performRowBoundTightening )
+        applyAllRowTightenings();
+    if ( _performConstraintBoundTightening )
+        applyAllConstraintTightenings();
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForApplyingStoredTightenings( TimeUtils::timePassed( start, end ) );
@@ -1720,7 +1734,7 @@ List<unsigned> Engine::getInputVariables() const
 
 void Engine::performSymbolicBoundTightening()
 {
-    if ( ( !GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING ) ||
+    if ( ( !_performSymbolicBoundTightening ) ||
          ( !_symbolicBoundTightener ) )
         return;
 
@@ -1939,6 +1953,26 @@ void Engine::getBounds()
             std::cout << relu->getF() << " " << relu->getLowerBound()
                       << " " << relu->getUpperBound() << "\n";
         }
+}
+
+void Engine::setPerformRowBoundTightening( bool v )
+{
+    _performRowBoundTightening = v;
+}
+
+void Engine::setPerformConstraintBoundTightening( bool v )
+{
+    _performConstraintBoundTightening = v;
+}
+
+void Engine::setPerformSymbolicBoundTightening( bool v )
+{
+    _performSymbolicBoundTightening = v;
+}
+
+void Engine::setPerformPreprocessing( bool v )
+{
+    _performPreprocessing = v;
 }
 
 //

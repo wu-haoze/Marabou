@@ -40,7 +40,7 @@ public:
     };
 
     AcasParser( const String &path );
-    void generateQuery( InputQuery &inputQuery );
+    void generateQuery( InputQuery &inputQuery, bool performSymbolicBoundTightening=true );
 
     unsigned getNumInputVaribales() const;
     unsigned getNumOutputVariables() const;

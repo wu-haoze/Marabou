@@ -48,6 +48,18 @@ void OptionParser::initialize()
         ( "preprocess-only",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::PREPROCESS_ONLY]) ),
           "Only preprocess" )
+        ( "no-preprocessing",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_PREPROCESSING]) ),
+          "Not performing preprocessing" )
+        ( "sbt",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_SYMBOLIC_BOUND_TIGHTENING]) ),
+          "Not performing symbolic bound tightening" )
+        ( "rbt",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_ROW_BOUND_TIGHTENING]) ),
+          "Not performing row bound tightening" )
+        ( "cbt",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_CONSTRAINT_BOUND_TIGHTENING]) ),
+          "Not performing constraint bound tightening" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

@@ -140,6 +140,14 @@ public:
     */
     void getBounds();
 
+    void setPerformRowBoundTightening( bool v );
+
+    void setPerformConstraintBoundTightening( bool v );
+
+    void setPerformSymbolicBoundTightening( bool v );
+
+    void setPerformPreprocessing( bool v );
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
@@ -306,6 +314,11 @@ private:
     */
     unsigned _lastNumVisitedStates;
     unsigned long long _lastIterationWithProgress;
+
+    bool _performRowBoundTightening;
+    bool _performConstraintBoundTightening;
+    bool _performSymbolicBoundTightening;
+    bool _performPreprocessing;
 
     /*
       Perform a simplex step: compute the cost function, pick the

@@ -45,11 +45,9 @@ const double GlobalConfiguration::COST_FUNCTION_ERROR_THRESHOLD = 0.0000000001;
 
 const bool GlobalConfiguration::USE_HARRIS_RATIO_TEST = true;
 
-const bool GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING = true;
 const bool GlobalConfiguration::USE_LINEAR_CONCRETIZATION = true;
 const double GlobalConfiguration::SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT = 0.00000005;
 
-const bool GlobalConfiguration::PREPROCESS_INPUT_QUERY = false;
 const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = false;
 const bool GlobalConfiguration::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS = true;
 const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 0.00001;
@@ -116,7 +114,6 @@ void GlobalConfiguration::print()
     printf( "  COST_FUNCTION_ERROR_THRESHOLD: %.15lf\n", COST_FUNCTION_ERROR_THRESHOLD );
     printf( "  USE_HARRIS_RATIO_TEST: %s\n", USE_HARRIS_RATIO_TEST ? "Yes" : "No" );
 
-    printf( "  PREPROCESS_INPUT_QUERY: %s\n", PREPROCESS_INPUT_QUERY ? "Yes" : "No" );
     printf( "  PREPROCESSOR_ELIMINATE_VARIABLES: %s\n", PREPROCESSOR_ELIMINATE_VARIABLES ? "Yes" : "No" );
     printf( "  PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS: %s\n",
             PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS ? "Yes" : "No" );

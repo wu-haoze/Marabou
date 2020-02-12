@@ -107,6 +107,19 @@ void Marabou::prepareInputQuery()
 
 void Marabou::solveQuery()
 {
+    bool performPreprocessing = !Options::get()->
+        getBool(Options::NO_PREPROCESSING );
+    bool performRowBoundTightening = !Options::get()->
+        getBool(Options::NO_ROW_BOUND_TIGHTENING );
+    bool performConstraintBoundTightening = !Options::get()->
+        getBool(Options::NO_CONSTRAINT_BOUND_TIGHTENING );
+    bool performSymbolicBoundTightening = !Options::get()->
+        getBool(Options::NO_SYMBOLIC_BOUND_TIGHTENING );
+    _engine.setPerformPreprocessing( performPreprocessing );
+    _engine.setPerformRowBoundTightening( performRowBoundTightening );
+    _engine.setPerformConstraintBoundTightening( performConstraintBoundTightening );
+    _engine.setPerformSymbolicBoundTightening( performSymbolicBoundTightening );
+
     if ( _engine.processInputQuery( _inputQuery ) &&
          ( !Options::get()->getBool(Options::PREPROCESS_ONLY )) )
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
