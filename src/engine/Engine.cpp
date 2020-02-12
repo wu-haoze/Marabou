@@ -33,7 +33,6 @@ Engine::Engine( unsigned verbosity )
     , _symbolicBoundTightener( NULL )
     , _smtCore( this )
     , _numPlConstraintsDisabledByValidSplits( 0 )
-    , _preprocessingEnabled( false )
     , _initialStateStored( false )
     , _work( NULL )
     , _basisRestorationRequired( Engine::RESTORATION_NOT_NEEDED )
@@ -51,6 +50,7 @@ Engine::Engine( unsigned verbosity )
     , _performConstraintBoundTightening( true )
     , _performSymbolicBoundTightening( true )
     , _performPreprocessing( true )
+    , _preprocessOnly( false )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -96,15 +96,15 @@ bool Engine::solve( unsigned timeoutInSeconds )
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
-    storeInitialEngineState();
-
     do
     {
         performSymbolicBoundTightening();
     }
     while ( applyAllValidConstraintCaseSplits() );
-    return false;
+    if ( _preprocessOnly )
+        return false;
 
+    storeInitialEngineState();
     if ( _verbosity > 0 )
     {
         printf( "\nEngine::solve: Initial statistics\n" );
@@ -655,7 +655,7 @@ void Engine::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
     }
 }
 
-void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
+void Engine::invokePreprocessor( const InputQuery &inputQuery, bool performPreprocessing )
 {
     if ( _verbosity > 0 )
         printf( "Engine::processInputQuery: Input query (before preprocessing): "
@@ -664,26 +664,15 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
                 inputQuery.getNumberOfVariables() );
 
     // If processing is enabled, invoke the preprocessor
-    _preprocessingEnabled = preprocess;
-    if ( _preprocessingEnabled )
-        _preprocessedQuery = _preprocessor.preprocess
-            ( inputQuery, GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES );
-    else
-        _preprocessedQuery = inputQuery;
+    _preprocessedQuery = _preprocessor.preprocess
+        ( inputQuery, GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES,
+          performPreprocessing );
 
     if ( _verbosity > 0 )
         printf( "Engine::processInputQuery: Input query (after preprocessing): "
                 "%u equations, %u variables\n\n",
                 _preprocessedQuery.getEquations().size(),
                 _preprocessedQuery.getNumberOfVariables() );
-
-    //unsigned infiniteBounds = _preprocessedQuery.countInfiniteBounds();
-    //if ( infiniteBounds != 0 )
-    //{
-    //    _exitCode = Engine::ERROR;
-    //    throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
-    //                         Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
-    //}
 }
 
 void Engine::printInputBounds( const InputQuery &inputQuery ) const
@@ -694,7 +683,7 @@ void Engine::printInputBounds( const InputQuery &inputQuery ) const
         unsigned variable = inputQuery.inputVariableByIndex( i );
         double lb, ub;
         bool fixed = false;
-        if ( _preprocessingEnabled )
+        if ( _performPreprocessing )
         {
             // Fixed variables are easy: return the value they've been fixed to.
             if ( _preprocessor.variableIsFixed( variable ) )
@@ -1057,7 +1046,7 @@ void Engine::initializeNetworkLevelReasoning()
         _symbolicBoundTightener = _preprocessedQuery._sbt;
 }
 
-bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
+bool Engine::processInputQuery( InputQuery &inputQuery, bool performPreprocessing )
 {
     log( "processInputQuery starting\n" );
 
@@ -1066,7 +1055,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
     try
     {
         informConstraintsOfInitialBounds( inputQuery );
-        invokePreprocessor( inputQuery, preprocess );
+        invokePreprocessor( inputQuery, performPreprocessing );
         if ( _verbosity > 0 )
             printInputBounds( inputQuery );
 
@@ -1121,7 +1110,7 @@ void Engine::extractSolution( InputQuery &inputQuery )
 {
     for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
     {
-        if ( _preprocessingEnabled )
+        if ( _performPreprocessing )
         {
             // Has the variable been merged into another?
             unsigned variable = i;
@@ -1780,6 +1769,27 @@ void Engine::performSymbolicBoundTightening()
     _symbolicBoundTightener->run();
 
     // Stpe 4: extract any tighter bounds that were discovered
+    for ( const auto &pair : _symbolicBoundTightener->getNodeIndexToBMapping() )
+    {
+        unsigned layer = pair.first._layer;
+        unsigned neuron = pair.first._neuron;
+        unsigned var = pair.second;
+
+        double lb = _symbolicBoundTightener->getBLowerBound( layer, neuron );
+        double ub = _symbolicBoundTightener->getBUpperBound( layer, neuron );
+
+        double currentLb = _tableau->getLowerBound( var );
+        double currentUb = _tableau->getUpperBound( var );
+
+        _tableau->tightenLowerBound( var, lb );
+        _tableau->tightenUpperBound( var, ub );
+
+        if ( FloatUtils::lt( ub, currentUb ) )
+            ++numTightenedBounds;
+
+        if ( FloatUtils::gt( lb, currentLb ) )
+            ++numTightenedBounds;
+    }
     for ( const auto &pair : _symbolicBoundTightener->getNodeIndexToFMapping() )
     {
         unsigned layer = pair.first._layer;
@@ -1947,12 +1957,24 @@ void Engine::checkOverallProgress()
 
 void Engine::getBounds()
 {
+    for ( const auto &var : getInputVariables() )
+    {
+        std::cout << var << " " << _tableau->getLowerBound( var )
+                  << " " << _tableau->getUpperBound( var ) << "\n";
+    }
     for ( const auto &plConstraint : _plConstraints )
-        {
-            auto relu = (ReluConstraint *) plConstraint;
-            std::cout << relu->getF() << " " << relu->getLowerBound()
-                      << " " << relu->getUpperBound() << "\n";
-        }
+    {
+        auto relu = (ReluConstraint *) plConstraint;
+        std::cout << relu->getB() << " " << relu->getBLowerBound()
+                  << " " << relu->getBUpperBound() << "\n";
+        std::cout << relu->getF() << " " << relu->getLowerBound()
+                  << " " << relu->getUpperBound() << "\n";
+    }
+    for ( const auto &var : _preprocessedQuery.getOutputVariables() )
+    {
+        std::cout << var << " " << _tableau->getLowerBound( var )
+                  << " " << _tableau->getUpperBound( var ) << "\n";
+    }
 }
 
 void Engine::setPerformRowBoundTightening( bool v )
@@ -1973,6 +1995,11 @@ void Engine::setPerformSymbolicBoundTightening( bool v )
 void Engine::setPerformPreprocessing( bool v )
 {
     _performPreprocessing = v;
+}
+
+void Engine::setPreprocessOnly( bool v )
+{
+    _preprocessOnly = v;
 }
 
 //

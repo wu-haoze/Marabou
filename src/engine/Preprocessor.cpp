@@ -37,52 +37,59 @@ Preprocessor::Preprocessor()
 {
 }
 
-InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariableElimination )
+InputQuery Preprocessor::preprocess( const InputQuery &query,
+                                     bool attemptVariableElimination,
+                                     bool performPreprocessing )
 {
     _preprocessed = query;
-
-    /*
-      Initial work: if needed, have the PL constraints add their additional
-      equations to the pool.
-    */
-    if ( GlobalConfiguration::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS )
-        addPlAuxiliaryEquations();
-
-    /*
-      Next, make sure all equations are of type EQUALITY. If not, turn them
-      into one.
-    */
-    makeAllEquationsEqualities();
-
-    /*
-      Do the preprocessing steps:
-
-      Until saturation:
-        1. Tighten bounds using equations
-        2. Tighten bounds using pl constraints
-
-      Then, eliminate fixed variables.
-    */
-
-    bool continueTightening = true;
-    while ( continueTightening )
+    std::cout << performPreprocessing << std::endl;
+    if ( performPreprocessing )
     {
-        continueTightening = processEquations();
-        continueTightening = processConstraints() || continueTightening;
+        /*
+          Initial work: if needed, have the PL constraints add their additional
+          equations to the pool.
+        */
+        if ( GlobalConfiguration::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS )
+            addPlAuxiliaryEquations();
+
+        /*
+          Next, make sure all equations are of type EQUALITY. If not, turn them
+          into one.
+        */
+        makeAllEquationsEqualities();
+        /*
+          Do the preprocessing steps:
+
+          Until saturation:
+          1. Tighten bounds using equations
+          2. Tighten bounds using pl constraints
+
+          Then, eliminate fixed variables.
+        */
+
+        bool continueTightening = true;
+        while ( continueTightening )
+        {
+            continueTightening = processEquations();
+            continueTightening = processConstraints() || continueTightening;
+
+            if ( attemptVariableElimination )
+                continueTightening = processIdenticalVariables() || continueTightening;
+
+            if ( _statistics )
+                _statistics->ppIncNumTighteningIterations();
+        }
+
+        collectFixedValues();
+        separateMergedAndFixed();
 
         if ( attemptVariableElimination )
-            continueTightening = processIdenticalVariables() || continueTightening;
-
-        if ( _statistics )
-            _statistics->ppIncNumTighteningIterations();
+            eliminateVariables();
     }
-
-    collectFixedValues();
-    separateMergedAndFixed();
-
-    if ( attemptVariableElimination )
-        eliminateVariables();
-
+    else
+    {
+        makeAllEquationsEqualities();
+    }
     return _preprocessed;
 }
 

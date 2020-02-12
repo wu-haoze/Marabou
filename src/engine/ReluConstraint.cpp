@@ -834,6 +834,16 @@ unsigned ReluConstraint::getAux() const
     return _aux;
 }
 
+double ReluConstraint::getBLowerBound() const
+{
+    return _lowerBounds[_b];
+}
+
+double ReluConstraint::getBUpperBound() const
+{
+    return _upperBounds[_b];
+}
+
 double ReluConstraint::getLowerBound() const
 {
     return _lowerBounds[_f];

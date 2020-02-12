@@ -148,6 +148,8 @@ public:
 
     void setPerformPreprocessing( bool v );
 
+    void setPreprocessOnly( bool v );
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
@@ -237,11 +239,6 @@ private:
     Preprocessor _preprocessor;
 
     /*
-      Is preprocessing enabled?
-    */
-    bool _preprocessingEnabled;
-
-    /*
       Is the initial state stored?
     */
     bool _initialStateStored;
@@ -319,6 +316,7 @@ private:
     bool _performConstraintBoundTightening;
     bool _performSymbolicBoundTightening;
     bool _performPreprocessing;
+    bool _preprocessOnly;
 
     /*
       Perform a simplex step: compute the cost function, pick the

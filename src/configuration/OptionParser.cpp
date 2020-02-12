@@ -51,13 +51,13 @@ void OptionParser::initialize()
         ( "no-preprocessing",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_PREPROCESSING]) ),
           "Not performing preprocessing" )
-        ( "sbt",
+        ( "no-sbt",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_SYMBOLIC_BOUND_TIGHTENING]) ),
           "Not performing symbolic bound tightening" )
-        ( "rbt",
+        ( "no-rbt",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_ROW_BOUND_TIGHTENING]) ),
           "Not performing row bound tightening" )
-        ( "cbt",
+        ( "no-cbt",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::NO_CONSTRAINT_BOUND_TIGHTENING]) ),
           "Not performing constraint bound tightening" )
         ( "input",

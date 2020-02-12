@@ -23,6 +23,8 @@ SymbolicBoundTightener::SymbolicBoundTightener()
     : _layerSizes( NULL )
     , _biases( NULL )
     , _weights( NULL )
+    , _bLowerBounds( NULL )
+    , _bUpperBounds( NULL )
     , _lowerBounds( NULL )
     , _upperBounds( NULL )
     , _currentLayerLowerBounds( NULL )
@@ -110,6 +112,36 @@ void SymbolicBoundTightener::freeMemoryIfNeeded()
 
         delete[] _upperBounds;
         _upperBounds = NULL;
+    }
+
+    if ( _bLowerBounds )
+    {
+        for ( unsigned i = 0; i < _numberOfLayers; ++i )
+        {
+            if ( _bLowerBounds[i] )
+            {
+                delete[] _bLowerBounds[i];
+                _bLowerBounds[i] = NULL;
+            }
+        }
+
+        delete[] _bLowerBounds;
+        _bLowerBounds = NULL;
+    }
+
+    if ( _bUpperBounds )
+    {
+        for ( unsigned i = 0; i < _numberOfLayers; ++i )
+        {
+            if ( _bUpperBounds[i] )
+            {
+                delete[] _bUpperBounds[i];
+                _bUpperBounds[i] = NULL;
+            }
+        }
+
+        delete[] _bUpperBounds;
+        _bUpperBounds = NULL;
     }
 
     if ( _currentLayerLowerBounds )
@@ -227,6 +259,24 @@ void SymbolicBoundTightener::allocateWeightAndBiasSpace()
         _upperBounds[i] = new double[_layerSizes[i]];
 
         std::fill_n( _upperBounds[i], _layerSizes[i], FloatUtils::infinity() );
+    }
+
+    _bLowerBounds = new double *[_numberOfLayers];
+    for ( unsigned i = 0; i < _numberOfLayers; ++i )
+    {
+        ASSERT( _layerSizes[i] > 0 );
+        _bLowerBounds[i] = new double[_layerSizes[i]];
+
+        std::fill_n( _bLowerBounds[i], _layerSizes[i], FloatUtils::negativeInfinity() );
+    }
+
+    _bUpperBounds = new double *[_numberOfLayers];
+    for ( unsigned i = 0; i < _numberOfLayers; ++i )
+    {
+        ASSERT( _layerSizes[i] > 0 );
+        _bUpperBounds[i] = new double[_layerSizes[i]];
+
+        std::fill_n( _bUpperBounds[i], _layerSizes[i], FloatUtils::infinity() );
     }
 
     // Allocate work space for the bound computation
@@ -504,6 +554,10 @@ void SymbolicBoundTightener::run( bool useLinearConcretization )
 
             log( Stringf( "Neuron %u: Computed concrete lb: %lf, ub: %lf\n", i, lbLb, ubUb ) );
 
+            // Store the bounds for this neuron
+            _bLowerBounds[currentLayer][i] = lbLb;
+            _bUpperBounds[currentLayer][i] = ubUb;
+
             // Handle the ReLU activation. We know that:
             //   lbLb <= true LB <= lbUb
             //   ubLb <= true UB <= ubUb
@@ -670,6 +724,16 @@ void SymbolicBoundTightener::run( bool useLinearConcretization )
     }
 }
 
+double SymbolicBoundTightener::getBLowerBound( unsigned layer, unsigned neuron ) const
+{
+    return _bLowerBounds[layer][neuron];
+}
+
+double SymbolicBoundTightener::getBUpperBound( unsigned layer, unsigned neuron ) const
+{
+    return _bUpperBounds[layer][neuron];
+}
+
 double SymbolicBoundTightener::getLowerBound( unsigned layer, unsigned neuron ) const
 {
     return _lowerBounds[layer][neuron];
@@ -831,6 +895,11 @@ void SymbolicBoundTightener::updateVariableIndices( const Map<unsigned, unsigned
     }
 }
 
+const Map<SymbolicBoundTightener::NodeIndex, unsigned> &SymbolicBoundTightener::getNodeIndexToBMapping() const
+{
+    return _nodeIndexToBVariable;
+}
+
 const Map<SymbolicBoundTightener::NodeIndex, unsigned> &SymbolicBoundTightener::getNodeIndexToFMapping() const
 {
     return _nodeIndexToFVariable;
@@ -873,6 +942,9 @@ void SymbolicBoundTightener::storeIntoOther( SymbolicBoundTightener &other ) con
     {
         memcpy( other._lowerBounds[i], _lowerBounds[i], sizeof(double) * _layerSizes[i] );
         memcpy( other._upperBounds[i], _upperBounds[i], sizeof(double) * _layerSizes[i] );
+        memcpy( other._bLowerBounds[i], _bLowerBounds[i], sizeof(double) * _layerSizes[i] );
+        memcpy( other._bUpperBounds[i], _bUpperBounds[i], sizeof(double) * _layerSizes[i] );
+
     }
 
     other._nodeIndexToBVariable = _nodeIndexToBVariable;

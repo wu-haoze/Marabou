@@ -31,7 +31,9 @@ public:
     /*
       Main method of this class: preprocess the input query
     */
-    InputQuery preprocess( const InputQuery &query, bool attemptVariableElimination = true );
+    InputQuery preprocess( const InputQuery &query,
+                           bool attemptVariableElimination = true,
+                           bool performPreprocessing = true );
 
     /*
       Have the preprocessor start reporting statistics.

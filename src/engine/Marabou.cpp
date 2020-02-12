@@ -115,13 +115,15 @@ void Marabou::solveQuery()
         getBool(Options::NO_CONSTRAINT_BOUND_TIGHTENING );
     bool performSymbolicBoundTightening = !Options::get()->
         getBool(Options::NO_SYMBOLIC_BOUND_TIGHTENING );
+    bool preprocessOnly = Options::get()->getBool(Options::PREPROCESS_ONLY );
     _engine.setPerformPreprocessing( performPreprocessing );
     _engine.setPerformRowBoundTightening( performRowBoundTightening );
     _engine.setPerformConstraintBoundTightening( performConstraintBoundTightening );
     _engine.setPerformSymbolicBoundTightening( performSymbolicBoundTightening );
+    _engine.setPreprocessOnly( preprocessOnly );
 
-    if ( _engine.processInputQuery( _inputQuery ) &&
-         ( !Options::get()->getBool(Options::PREPROCESS_ONLY )) )
+
+    if ( _engine.processInputQuery( _inputQuery ) )
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
 
     _engine.getBounds();

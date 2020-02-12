@@ -95,6 +95,7 @@ public:
     void setReluFVariable( unsigned layer, unsigned neuron, unsigned f );
 
     NodeIndex nodeIndexFromB( unsigned b ) const;
+    const Map<NodeIndex, unsigned> &getNodeIndexToBMapping() const;
     const Map<NodeIndex, unsigned> &getNodeIndexToFMapping() const;
 
     void updateVariableIndices( const Map<unsigned, unsigned> &oldIndexToNewIndex,
@@ -123,6 +124,13 @@ public:
       After running the tools, these methods will extract the discovered
       bounds for every neuron
     */
+    double getBLowerBound( unsigned layer, unsigned neuron ) const;
+    double getBUpperBound( unsigned layer, unsigned neuron ) const;
+
+    /*
+      After running the tools, these methods will extract the discovered
+      bounds for every neuron
+    */
     double getLowerBound( unsigned layer, unsigned neuron ) const;
     double getUpperBound( unsigned layer, unsigned neuron ) const;
 
@@ -145,6 +153,10 @@ private:
     // Lower and upper bounds for input neurons
     Map<unsigned,double> _inputLowerBounds;
     Map<unsigned,double> _inputUpperBounds;
+
+    // Lower and upper bounds for internal neurons
+    double **_bLowerBounds;
+    double **_bUpperBounds;
 
     // Lower and upper bounds for internal neurons
     double **_lowerBounds;

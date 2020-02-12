@@ -167,6 +167,9 @@ public:
     */
     bool supportsSymbolicBoundTightening() const;
 
+    double getBLowerBound() const;
+    double getBUpperBound() const;
+
     double getLowerBound() const;
     double getUpperBound() const;
 
