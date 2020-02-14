@@ -246,9 +246,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 applyAllBoundTightenings();
                 // For debugging purposes
                 checkBoundCompliancyWithDebugSolution();
-
-                while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening();
+                if ( _performRowBoundTightening || _performConstraintBoundTightening )
+                    while ( applyAllValidConstraintCaseSplits() )
+                        performSymbolicBoundTightening();
 
                 continue;
             }
@@ -532,7 +532,10 @@ void Engine::performSimplexStep()
     if ( !fakePivot )
     {
         _tableau->computePivotRow();
-        _rowBoundTightener->examinePivotRow();
+        if ( _performRowBoundTightening )
+        {
+            _rowBoundTightener->examinePivotRow();
+        }
     }
 
     // Perform the actual pivot
