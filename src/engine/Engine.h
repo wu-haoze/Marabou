@@ -127,6 +127,8 @@ public:
     */
     void setVerbosity( unsigned verbosity );
 
+    void setSplitThreshold( unsigned splitThreshold );
+
     /*
       PSA: The following two methods are for DnC only and should be used very
       cautiously.

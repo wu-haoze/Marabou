@@ -107,6 +107,8 @@ void Marabou::prepareInputQuery()
 
 void Marabou::solveQuery()
 {
+    unsigned splitThreshold = Options::get()->getInt( Options::SPLIT_THRESHOLD );
+    _engine.setSplitThreshold( splitThreshold );
     if ( _engine.processInputQuery( _inputQuery ) )
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
 

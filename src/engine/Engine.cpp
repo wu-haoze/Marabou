@@ -1924,6 +1924,11 @@ void Engine::checkOverallProgress()
     }
 }
 
+void Engine::setSplitThreshold( unsigned splitThreshold )
+{
+    _smtCore.setSplitThreshold( splitThreshold );
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "
