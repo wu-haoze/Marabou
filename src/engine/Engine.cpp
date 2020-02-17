@@ -204,6 +204,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
                     performSymbolicBoundTightening();
                 }
                 while ( applyAllValidConstraintCaseSplits() );
+                if ( _performConstraintBoundTightening )
+                    tightenBoundsOnConstraintMatrix();
+                applyAllBoundTightenings();
                 continue;
             }
 
@@ -310,6 +313,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
                     performSymbolicBoundTightening();
                 }
                 while ( applyAllValidConstraintCaseSplits() );
+                if ( _performConstraintBoundTightening )
+                    tightenBoundsOnConstraintMatrix();
+                applyAllBoundTightenings();
             }
         }
         catch ( ... )
