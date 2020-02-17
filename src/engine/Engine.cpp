@@ -191,7 +191,13 @@ bool Engine::solve( unsigned timeoutInSeconds )
             // Perform any SmtCore-initiated case splits
             if ( _smtCore.needToSplit() )
             {
+
                 _smtCore.performSplit();
+                // Finally, take this opporunity to tighten any bounds
+                // and perform any valid case splits.
+                if ( _performConstraintBoundTightening )
+                    tightenBoundsOnConstraintMatrix();
+                applyAllBoundTightenings();
 
                 do
                 {
@@ -239,11 +245,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 // We have violated piecewise-linear constraints.
                 performConstraintFixingStep();
 
-                // Finally, take this opporunity to tighten any bounds
-                // and perform any valid case splits.
-                if ( _performConstraintBoundTightening )
-                    tightenBoundsOnConstraintMatrix();
-                applyAllBoundTightenings();
                 // For debugging purposes
                 checkBoundCompliancyWithDebugSolution();
                 if ( _performRowBoundTightening || _performConstraintBoundTightening )
@@ -299,6 +300,11 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 return false;
             }
             {
+                // Finally, take this opporunity to tighten any bounds
+                // and perform any valid case splits.
+                if ( _performConstraintBoundTightening )
+                    tightenBoundsOnConstraintMatrix();
+                applyAllBoundTightenings();
                 do
                 {
                     performSymbolicBoundTightening();
