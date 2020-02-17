@@ -103,6 +103,8 @@ public:
     bool checkSkewFromDebuggingSolution();
     bool splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, String &error ) const;
 
+    void setSplitThreshold( unsigned split_threshold );
+
 private:
     /*
       A stack entry consists of the engine state before the split,
@@ -161,6 +163,8 @@ private:
       debugging purposes.
     */
     unsigned _stateId;
+
+    unsigned _splitThreshold;
 };
 
 #endif // __SmtCore_h__

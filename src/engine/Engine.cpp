@@ -2007,6 +2007,11 @@ void Engine::setPreprocessOnly( bool v )
     _preprocessOnly = v;
 }
 
+void Engine::setSplitThreshold( unsigned splitThreshold )
+{
+    _smtCore.setSplitThreshold( splitThreshold );
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

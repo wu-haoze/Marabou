@@ -28,6 +28,7 @@ SmtCore::SmtCore( IEngine *engine )
     , _needToSplit( false )
     , _constraintForSplitting( NULL )
     , _stateId( 0 )
+    , _splitThreshold( 20 )
 {
 }
 
@@ -54,7 +55,7 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
 
     ++_constraintToViolationCount[constraint];
 
-    if ( _constraintToViolationCount[constraint] >= GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD )
+    if ( _constraintToViolationCount[constraint] >= _splitThreshold )
     {
         _needToSplit = true;
         _constraintForSplitting = constraint;
@@ -354,6 +355,11 @@ bool SmtCore::splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, 
     }
 
     return true;
+}
+
+void SmtCore::setSplitThreshold(unsigned int splitThreshold )
+{
+    _splitThreshold = splitThreshold;
 }
 
 PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const

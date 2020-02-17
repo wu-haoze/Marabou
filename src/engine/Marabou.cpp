@@ -121,8 +121,8 @@ void Marabou::solveQuery()
     _engine.setPerformConstraintBoundTightening( performConstraintBoundTightening );
     _engine.setPerformSymbolicBoundTightening( performSymbolicBoundTightening );
     _engine.setPreprocessOnly( preprocessOnly );
-
-
+    unsigned splitThreshold = Options::get()->getInt( Options::SPLIT_THRESHOLD );
+    _engine.setSplitThreshold( splitThreshold );
     if ( _engine.processInputQuery( _inputQuery ) )
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
 
