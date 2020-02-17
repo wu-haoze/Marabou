@@ -112,6 +112,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
         printf( "\n---\n" );
     }
 
+    bool splitPerformed = false;
+
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( true )
     {
@@ -188,25 +190,30 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( _performRowBoundTightening && _tableau->basisMatrixAvailable() )
                 explicitBasisBoundTightening();
 
-            // Perform any SmtCore-initiated case splits
-            if ( _smtCore.needToSplit() )
+            if ( splitPerformed )
             {
-
-                _smtCore.performSplit();
                 // Finally, take this opporunity to tighten any bounds
                 // and perform any valid case splits.
-                if ( _performConstraintBoundTightening )
+                if ( _performConstraintBoundTightening ) {
                     tightenBoundsOnConstraintMatrix();
+                }
                 applyAllBoundTightenings();
-
+                // For debugging purposes
+                checkBoundCompliancyWithDebugSolution();
                 do
                 {
                     performSymbolicBoundTightening();
                 }
                 while ( applyAllValidConstraintCaseSplits() );
-                if ( _performConstraintBoundTightening )
-                    tightenBoundsOnConstraintMatrix();
-                applyAllBoundTightenings();
+
+                splitPerformed = false;
+            }
+
+            // Perform any SmtCore-initiated case splits
+            if ( _smtCore.needToSplit() )
+            {
+                _smtCore.performSplit();
+                splitPerformed = true;
                 continue;
             }
 
@@ -247,12 +254,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
                 // We have violated piecewise-linear constraints.
                 performConstraintFixingStep();
-
-                // For debugging purposes
-                checkBoundCompliancyWithDebugSolution();
-                if ( _performRowBoundTightening || _performConstraintBoundTightening )
-                    while ( applyAllValidConstraintCaseSplits() )
-                        performSymbolicBoundTightening();
 
                 continue;
             }
@@ -302,20 +303,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 _exitCode = Engine::UNSAT;
                 return false;
             }
+            else
             {
-                // Finally, take this opporunity to tighten any bounds
-                // and perform any valid case splits.
-                if ( _performConstraintBoundTightening )
-                    tightenBoundsOnConstraintMatrix();
-                applyAllBoundTightenings();
-                do
-                {
-                    performSymbolicBoundTightening();
-                }
-                while ( applyAllValidConstraintCaseSplits() );
-                if ( _performConstraintBoundTightening )
-                    tightenBoundsOnConstraintMatrix();
-                applyAllBoundTightenings();
+                splitPerformed = true;
             }
         }
         catch ( ... )
