@@ -16,10 +16,14 @@
 #ifndef __GlobalConfiguration_h__
 #define __GlobalConfiguration_h__
 
+#include "DivideStrategy.h"
+
 class GlobalConfiguration
 {
 public:
     static void print();
+
+    static const bool USE_POLARITY_BASED_DIRECTION_HEURISTICS;
 
     // The default epsilon used for comparing doubles
     static const double DEFAULT_EPSILON_FOR_COMPARISONS;
@@ -107,6 +111,8 @@ public:
 
     // The number of violations of a constraints after which the SMT core will initiate a case split
     static const unsigned CONSTRAINT_VIOLATION_THRESHOLD;
+
+    static const DivideStrategy BRANCHING_HEURISTICS;
 
     // How often should we perform full bound tightening, on the entire contraints matrix A.
     static const unsigned BOUND_TIGHTING_ON_CONSTRAINT_MATRIX_FREQUENCY;

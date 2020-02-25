@@ -18,6 +18,7 @@
 #include "Debug.h"
 #include "Engine.h"
 #include "EngineState.h"
+#include "GlobalConfiguration.h"
 #include "InfeasibleQueryException.h"
 #include "InputQuery.h"
 #include "MStringf.h"
@@ -31,7 +32,7 @@
 Engine::Engine( unsigned verbosity )
     : _rowBoundTightener( *_tableau )
     , _symbolicBoundTightener( NULL )
-    , _smtCore( this )
+    , _smtCore( SmtCore( this, GlobalConfiguration::BRANCHING_HEURISTICS ) )
     , _numPlConstraintsDisabledByValidSplits( 0 )
     , _preprocessingEnabled( false )
     , _initialStateStored( false )
@@ -92,6 +93,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
+    updateDirections();
     storeInitialEngineState();
 
     if ( _verbosity > 0 )
@@ -1831,7 +1833,7 @@ void Engine::clearViolatedPLConstraints()
 void Engine::resetSmtCore()
 {
     _smtCore.freeMemory();
-    _smtCore = SmtCore( this );
+    _smtCore = SmtCore( this, GlobalConfiguration::BRANCHING_HEURISTICS );
 }
 
 void Engine::resetExitCode()
@@ -1927,6 +1929,34 @@ void Engine::checkOverallProgress()
 void Engine::setSplitThreshold( unsigned splitThreshold )
 {
     _smtCore.setSplitThreshold( splitThreshold );
+}
+
+void Engine::updateDirections()
+{
+    if ( GlobalConfiguration::USE_POLARITY_BASED_DIRECTION_HEURISTICS )
+        for ( const auto &constraint : _plConstraints )
+            if ( constraint->supportPolarity() &&
+                 constraint->isActive() && !constraint->phaseFixed() )
+                constraint->updateDirection();
+}
+
+void Engine::updateScores()
+{
+    _plConstraintsSet.clear();
+    for ( const auto plConstraint : _plConstraints )
+    {
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            plConstraint->updateScore();
+            _plConstraintsSet.insert( plConstraint );
+        }
+    }
+}
+
+PiecewiseLinearConstraint *Engine::pickBranchPLConstraint()
+{
+    updateScores();
+    return  *(_plConstraintsSet.begin());
 }
 
 //

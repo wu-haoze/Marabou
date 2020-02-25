@@ -20,15 +20,17 @@
 #include "IEngine.h"
 #include "MStringf.h"
 #include "MarabouError.h"
+#include "ReluConstraint.h"
 #include "SmtCore.h"
 
-SmtCore::SmtCore( IEngine *engine )
+SmtCore::SmtCore( IEngine *engine, DivideStrategy divideStrategy )
     : _statistics( NULL )
     , _engine( engine )
     , _needToSplit( false )
     , _constraintForSplitting( NULL )
     , _stateId( 0 )
     , _splitThreshold( 20 )
+    , _divideStrategy( divideStrategy )
 {
 }
 
@@ -58,7 +60,10 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
     if ( _constraintToViolationCount[constraint] >= _splitThreshold )
     {
         _needToSplit = true;
-        _constraintForSplitting = constraint;
+        if ( _divideStrategy == DivideStrategy::None )
+            _constraintForSplitting = constraint;
+        else
+            pickBranchPLConstraint();
     }
 }
 
@@ -393,6 +398,15 @@ PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<Piec
     }
 
     return candidate;
+}
+
+void SmtCore::pickBranchPLConstraint()
+{
+    if ( _needToSplit && ( !_constraintForSplitting ) )
+    {
+        _constraintForSplitting = _engine->pickBranchPLConstraint();
+        //std::cout << ((ReluConstraint *)_constraintForSplitting)->computeInterval() << std::endl;
+    }
 }
 
 //

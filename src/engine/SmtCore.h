@@ -16,6 +16,7 @@
 #ifndef __SmtCore_h__
 #define __SmtCore_h__
 
+#include "DivideStrategy.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearConstraint.h"
 #include "Stack.h"
@@ -28,7 +29,7 @@ class String;
 class SmtCore
 {
 public:
-    SmtCore( IEngine *engine );
+    SmtCore( IEngine *engine, DivideStrategy DivideStrategy=DivideStrategy::None );
     ~SmtCore();
 
     /*
@@ -105,6 +106,8 @@ public:
 
     void setSplitThreshold( unsigned split_threshold );
 
+    void pickBranchPLConstraint();
+
 private:
     /*
       A stack entry consists of the engine state before the split,
@@ -165,6 +168,10 @@ private:
     unsigned _stateId;
 
     unsigned _splitThreshold;
+
+    Set<PiecewiseLinearConstraint *> _scores;
+
+    DivideStrategy _divideStrategy;
 };
 
 #endif // __SmtCore_h__

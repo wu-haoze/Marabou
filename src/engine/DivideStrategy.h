@@ -18,7 +18,10 @@
 
 enum DivideStrategy
 {
+    EarliestLayer,
     LargestInterval,
+    SmallestReluInterval,
+    None,
 };
 
 #endif // __DivideStrategy_h__

@@ -60,6 +60,11 @@ public:
     PiecewiseLinearConstraint();
     virtual ~PiecewiseLinearConstraint() {}
 
+    bool operator<( const PiecewiseLinearConstraint &other ) const
+    {
+        return _score < other._score;
+    }
+
     /*
       Return a clone of the constraint.
     */
@@ -203,11 +208,33 @@ public:
         return false;
     }
 
+    /*
+      Return true if and only if this piecewise linear constraint supports
+      the polarity metric
+    */
+    virtual bool supportPolarity() const
+    {
+        return false;
+    }
+
+    /*
+      Update the preferred direction to take first when branching on this PLConstraint
+    */
+    virtual void updateDirection()
+    {
+    }
+
+    virtual void updateScore()
+    {
+    }
+
 protected:
     bool _constraintActive;
 	Map<unsigned, double> _assignment;
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
+
+    double _score;
 
     IConstraintBoundTightener *_constraintBoundTightener;
 
