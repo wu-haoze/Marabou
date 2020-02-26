@@ -24,7 +24,6 @@
 #include "BlandsRule.h"
 #include "DantzigsRule.h"
 #include "DegradationChecker.h"
-#include "DivideStrategy.h"
 #include "IEngine.h"
 #include "InputQuery.h"
 #include "Map.h"
@@ -128,8 +127,6 @@ public:
     */
     void setVerbosity( unsigned verbosity );
 
-    void setSplitThreshold( unsigned splitThreshold );
-
     /*
       PSA: The following two methods are for DnC only and should be used very
       cautiously.
@@ -137,10 +134,6 @@ public:
     void resetSmtCore();
     void resetExitCode();
     void resetBoundTighteners();
-
-    PiecewiseLinearConstraint *pickBranchPLConstraint();
-
-    void updateScores();
 
 private:
     enum BasisRestorationRequired {
@@ -176,8 +169,6 @@ private:
       The existing piecewise-linear constraints.
     */
     List<PiecewiseLinearConstraint *> _plConstraints;
-
-    Set<PiecewiseLinearConstraint *> _plConstraintsSet;
 
     /*
       Piecewise linear constraints that are currently violated.
@@ -466,6 +457,7 @@ private:
       to handle case splits
     */
     void updateDirections();
+
 };
 
 #endif // __Engine_h__

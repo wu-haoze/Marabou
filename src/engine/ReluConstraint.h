@@ -29,7 +29,6 @@ public:
     };
 
     ReluConstraint( unsigned b, unsigned f );
-    ReluConstraint( unsigned b, unsigned f, unsigned layer );
     ReluConstraint( const String &serializedRelu );
 
     /*
@@ -179,19 +178,15 @@ public:
     */
     double computePolarity() const;
 
-    double computeInterval() const;
-
     /*
       Update the preferred direction for fixing and handling case split
     */
     void updateDirection();
 
-    void updateScore();
-
     PhaseStatus getDirection() const;
 
 private:
-    unsigned _b, _f, _layer;
+    unsigned _b, _f;
     PhaseStatus _phaseStatus;
     bool _auxVarInUse;
     unsigned _aux;
@@ -201,8 +196,6 @@ private:
       And which phase status to repair a relu into.
     */
     PhaseStatus _direction;
-
-    float _score;
 
     PiecewiseLinearCaseSplit getInactiveSplit() const;
     PiecewiseLinearCaseSplit getActiveSplit() const;
