@@ -20,6 +20,7 @@
 #include "EngineState.h"
 #include "InfeasibleQueryException.h"
 #include "InputQuery.h"
+#include "IntervalConstraint.h"
 #include "MStringf.h"
 #include "MalformedBasisException.h"
 #include "MarabouError.h"
