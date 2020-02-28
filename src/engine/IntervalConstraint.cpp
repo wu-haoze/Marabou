@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file DisjunctionConstraint.cpp
+/*! \file IntervalConstraint.cpp
 ** \verbatim
 ** Top contributors (to current version):
 **   Haoze Wu
@@ -12,6 +12,8 @@
 ** [[ Add lengthier description here ]]
 **/
 
+#include "DivideStrategy.h"
+#include "GlobalConfiguration.h"
 #include "IntervalConstraint.h"
 #include "Debug.h"
 #include "FloatUtils.h"
@@ -19,23 +21,24 @@
 #include "MarabouError.h"
 #include "Statistics.h"
 
-IntervalConstraint::IntervalConstraint( unsigned var )
+IntervalConstraint::IntervalConstraint( unsigned var, double lowerBound,
+                                        double upperBound )
     : _var( var )
-    , _lowerBound( FloatUtils::negativeInfinity() )
-    , _upperBound( FloatUtils::infinity() )
+    , _lowerBound( lowerBound )
+    , _upperBound( upperBound )
 {
 }
 
-PiecewiseLinearConstraint * IntervalConstraint::duplicateConstraint() const
+PiecewiseLinearConstraint *IntervalConstraint::duplicateConstraint() const
 {
-    IntervalConstraint *clone = new IntervalConstraint( _var );
-    *clone = *this;
+    PiecewiseLinearConstraint *clone = new IntervalConstraint( _var, _lowerBound,
+                                                               _upperBound );
     return clone;
 }
 
 void IntervalConstraint::restoreState( const PiecewiseLinearConstraint * state )
 {
-    const IntervalConstraint *bound = dynamic_cast<const IntervalConstraint *>( state );
+    const IntervalConstraint *bound = dynamic_cast<const IntervalConstraint*>( state );
     *this = *bound;
 }
 
@@ -163,4 +166,13 @@ String IntervalConstraint::serializeToString() const
 {
     throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
                         "Serialize DisjunctionConstraint to String" );
+}
+
+void IntervalConstraint::updateScore()
+{
+    if ( GlobalConfiguration::SPLITTING_HEURISTICS ==
+         DivideStrategy::LargestInterval )
+    {
+        _score = _upperBound - _lowerBound;
+    }
 }

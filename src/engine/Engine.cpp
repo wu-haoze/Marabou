@@ -1938,12 +1938,27 @@ void Engine::updateDirections()
 void Engine::updateScores()
 {
     _candidatePlConstraints.clear();
-    for ( const auto plConstraint : _plConstraints )
+    if ( GlobalConfiguration::SPLITTING_HEURISTICS ==
+         DivideStrategy::LargestInterval )
     {
-        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        for ( const auto &input : _preprocessedQuery.getInputVariables() )
         {
-            plConstraint->updateScore();
-            _candidatePlConstraints.insert( plConstraint );
+            double min = _tableau->getLowerBound( input );
+            double max = _tableau->getUpperBound( input );
+            auto interval = new IntervalConstraint( input, min, max );
+            interval->updateScore();
+            _candidatePlConstraints.insert( interval );
+        }
+    }
+    else
+    {
+        for ( const auto plConstraint : _plConstraints )
+        {
+            if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+            {
+                plConstraint->updateScore();
+                _candidatePlConstraints.insert( plConstraint );
+            }
         }
     }
 }

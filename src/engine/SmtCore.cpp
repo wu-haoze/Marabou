@@ -62,7 +62,8 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
          _constraintViolationThreshold )
     {
         _needToSplit = true;
-        if ( GlobalConfiguration::SPLITTING_HEURISTICS == DivideStrategy::ReLUViolation )
+        if ( GlobalConfiguration::SPLITTING_HEURISTICS ==
+             DivideStrategy::ReLUViolation )
             _constraintForSplitting = constraint;
         else
             pickSplitPLConstraint();

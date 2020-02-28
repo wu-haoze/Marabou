@@ -22,9 +22,7 @@
 class IntervalConstraint : public PiecewiseLinearConstraint
 {
  public:
-    ~IntervalConstraint();
-
-    IntervalConstraint( unsigned f );
+    IntervalConstraint( unsigned var, double lowerBound, double upperBound );
 
     /*
       Return a clone of the constraint.
@@ -114,6 +112,8 @@ class IntervalConstraint : public PiecewiseLinearConstraint
       max, _f, element_1, element_2, ... , element_n
     */
     String serializeToString() const;
+
+    void updateScore();
 
  private:
     unsigned _var;
