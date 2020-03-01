@@ -178,16 +178,16 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
             if ( splitJustPerformed )
             {
-                do
-                {
-                    performSymbolicBoundTightening();
-                }
-                while ( applyAllValidConstraintCaseSplits() );
+                //do
+                //{
+                performSymbolicBoundTightening();
+                //}
+                //while ( applyAllValidConstraintCaseSplits() );
                 splitJustPerformed = false;
             }
 
-            if ( _tableau->basisMatrixAvailable() )
-                explicitBasisBoundTightening();
+            //if ( _tableau->basisMatrixAvailable() )
+            //    explicitBasisBoundTightening();
 
             // Perform any SmtCore-initiated case splits
             if ( _smtCore.needToSplit() )
