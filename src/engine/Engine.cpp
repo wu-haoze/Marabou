@@ -176,9 +176,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 continue;
             }
 
-            if ( _tableau->basisMatrixAvailable() )
-                explicitBasisBoundTightening();
-
             if ( splitJustPerformed )
             {
                 do
@@ -188,6 +185,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 while ( applyAllValidConstraintCaseSplits() );
                 splitJustPerformed = false;
             }
+
+            if ( _tableau->basisMatrixAvailable() )
+                explicitBasisBoundTightening();
 
             // Perform any SmtCore-initiated case splits
             if ( _smtCore.needToSplit() )
@@ -251,6 +251,10 @@ bool Engine::solve( unsigned timeoutInSeconds )
             // We have out-of-bounds variables.
             if ( GlobalConfiguration::PERFORM_SIMPLEX_STEP )
                 performSimplexStep();
+            else
+            {
+                _smtCore.reportViolatedConstraint( NULL );
+            }
             continue;
         }
         catch ( const MalformedBasisException & )

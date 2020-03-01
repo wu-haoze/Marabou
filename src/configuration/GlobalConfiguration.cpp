@@ -18,7 +18,7 @@
 #include "MString.h"
 #include <cstdio>
 
-const bool GlobalConfiguration::PERFORM_SIMPLEX_STEP = true;
+const bool GlobalConfiguration::PERFORM_SIMPLEX_STEP = false;
 
 // Use the polarity metrics to decide which branch to take first in a case split
 // and how to repair a ReLU constraint.
