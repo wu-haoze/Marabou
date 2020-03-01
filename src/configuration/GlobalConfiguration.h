@@ -21,6 +21,8 @@ class GlobalConfiguration
 public:
     static void print();
 
+    static const bool PERFORM_SIMPLEX_STEP;
+
     static const bool USE_POLARITY_BASED_DIRECTION_HEURISTICS;
 
     // The default epsilon used for comparing doubles

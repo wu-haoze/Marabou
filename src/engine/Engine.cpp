@@ -249,7 +249,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
             }
 
             // We have out-of-bounds variables.
-            performSimplexStep();
+            if ( GlobalConfiguration::PERFORM_SIMPLEX_STEP )
+                performSimplexStep();
             continue;
         }
         catch ( const MalformedBasisException & )
