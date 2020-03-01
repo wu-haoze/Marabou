@@ -28,6 +28,7 @@
 #include "IEngine.h"
 #include "InputQuery.h"
 #include "Map.h"
+#include "PiecewiseLinearConstraint.h"
 #include "PrecisionRestorer.h"
 #include "Preprocessor.h"
 #include "SignalHandler.h"
@@ -186,10 +187,12 @@ private:
     */
     List<PiecewiseLinearConstraint *> _plConstraints;
 
+
+
     /*
       The ordered set of candidate PL constraints for splitting
     */
-    Set<PiecewiseLinearConstraint *> _candidatePlConstraints;
+    PiecewiseLinearConstraint::OrderedPLConstraintSet _candidatePlConstraints;
 
     /*
       Piecewise linear constraints that are currently violated.

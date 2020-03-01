@@ -24,7 +24,6 @@
 #include "MStringf.h"
 #include "MalformedBasisException.h"
 #include "MarabouError.h"
-#include "PiecewiseLinearConstraint.h"
 #include "Preprocessor.h"
 #include "TableauRow.h"
 #include "TimeUtils.h"
@@ -1956,6 +1955,7 @@ void Engine::updateScores()
         {
             double min = _tableau->getLowerBound( input );
             double max = _tableau->getUpperBound( input );
+            std::cout << input << " " << min << " " << max << "\n";
             auto interval = new IntervalConstraint( input, min, max );
             interval->updateScore();
             _candidatePlConstraints.insert( interval );

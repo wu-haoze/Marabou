@@ -173,6 +173,6 @@ void IntervalConstraint::updateScore()
     if ( GlobalConfiguration::SPLITTING_HEURISTICS ==
          DivideStrategy::LargestInterval )
     {
-        _score = _upperBound - _lowerBound;
+        _score = 1 / ( _upperBound - _lowerBound );
     }
 }

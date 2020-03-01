@@ -57,6 +57,23 @@ public:
         double _value;
     };
 
+    struct ConstraintPtrComp
+    {
+        bool operator()( const PiecewiseLinearConstraint* lhs,
+                         const PiecewiseLinearConstraint* rhs ) const
+        {
+            if ( lhs && rhs )
+                return *lhs < *rhs;
+            else if ( rhs )
+                return true;
+            else
+                return false;
+        }
+    };
+
+    typedef std::set<PiecewiseLinearConstraint *, ConstraintPtrComp>
+        OrderedPLConstraintSet;
+
     PiecewiseLinearConstraint();
     virtual ~PiecewiseLinearConstraint() {}
 
