@@ -13,17 +13,16 @@
 
  **/
 
-#include "AcasParser.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
 #include "DnCManager.h"
 #include "DnCWorker.h"
 #include "GetCPUData.h"
+#include "GlobalConfiguration.h"
 #include "LargestIntervalDivider.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "PiecewiseLinearCaseSplit.h"
-#include "PropertyParser.h"
 #include "QueryDivider.h"
 #include "TimeUtils.h"
 #include "Vector.h"
@@ -54,28 +53,6 @@ void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
-                        String networkFilePath, String propertyFilePath,
-                        unsigned verbosity )
-    : _numWorkers( numWorkers )
-    , _initialDivides( initialDivides )
-    , _initialTimeout( initialTimeout )
-    , _onlineDivides( onlineDivides )
-    , _timeoutFactor( timeoutFactor )
-    , _divideStrategy( divideStrategy )
-    , _networkFilePath( networkFilePath )
-    , _propertyFilePath( propertyFilePath )
-    , _baseInputQuery( NULL )
-    , _exitCode( DnCManager::NOT_DONE )
-    , _workload( NULL )
-    , _timeoutReached( false )
-    , _numUnsolvedSubQueries( 0 )
-    , _verbosity( verbosity )
-{
-}
-
-DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
-                        unsigned initialTimeout, unsigned onlineDivides,
-                        float timeoutFactor, DivideStrategy divideStrategy,
                         InputQuery *inputQuery, unsigned verbosity )
     : _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
@@ -83,14 +60,13 @@ DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
     , _divideStrategy( divideStrategy )
-    , _networkFilePath( "" )
-    , _propertyFilePath( "" )
     , _baseInputQuery( inputQuery )
     , _exitCode( DnCManager::NOT_DONE )
     , _workload( NULL )
     , _timeoutReached( false )
     , _numUnsolvedSubQueries( 0 )
     , _verbosity( verbosity )
+    , _constraintViolationThreshold( GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD )
 {
 }
 
@@ -103,7 +79,7 @@ void DnCManager::freeMemoryIfNeeded()
 {
     if ( _workload )
     {
-        SubQuery *subQuery;
+        SubQuery *subQuery = NULL;
         while ( !_workload->empty() )
         {
             _workload->pop( subQuery );
@@ -295,13 +271,19 @@ void DnCManager::printResult()
             inputs[i] = inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) );
         }
 
-        _engineWithSATAssignment->getInputQuery()->getNetworkLevelReasoner()
-            ->evaluate( inputs, outputs );
+        NetworkLevelReasoner *nlr = inputQuery->getNetworkLevelReasoner();
+        if ( nlr )
+            nlr->evaluate( inputs, outputs );
 
         printf( "\n" );
         printf( "Output:\n" );
         for ( unsigned i = 0; i < inputQuery->getNumOutputVariables(); ++i )
-            printf( "\ty%u = %lf\n", i, outputs[i] );
+        {
+            if ( nlr )
+                printf( "\tnlr y%u = %lf\n", i, outputs[i] );
+            else
+                printf( "\ty%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->outputVariableByIndex( i ) ) );            
+        }
         printf( "\n" );
         break;
     }
@@ -332,16 +314,7 @@ bool DnCManager::createEngines()
 
     InputQuery *baseInputQuery = new InputQuery();
 
-    if ( _baseInputQuery )
-        *baseInputQuery = *_baseInputQuery;
-    else
-    {
-        // InputQuery is owned by engine
-        AcasParser acasParser( _networkFilePath );
-        acasParser.generateQuery( *baseInputQuery );
-        if ( _propertyFilePath != "" )
-            PropertyParser().parse( _propertyFilePath, *baseInputQuery );
-    }
+    *baseInputQuery = *_baseInputQuery;
 
     if ( !_baseEngine->processInputQuery( *baseInputQuery ) )
         // Solved by preprocessing, we are done!
@@ -354,6 +327,7 @@ bool DnCManager::createEngines()
         InputQuery *inputQuery = new InputQuery();
         *inputQuery = *baseInputQuery;
         engine->processInputQuery( *inputQuery );
+        engine->setConstraintViolationThreshold( _constraintViolationThreshold );
         _engines.append( engine );
     }
 
@@ -376,7 +350,7 @@ void DnCManager::initialDivide( SubQueries &subQueries )
             ( new LargestIntervalDivider( inputVariables ) );
     }
 
-    String queryId = "";
+    String queryId;
     // Create a new case split
     QueryDivider::InputRegion initialRegion;
     InputQuery *inputQuery = _baseEngine->getInputQuery();
@@ -420,6 +394,11 @@ void DnCManager::log( const String &message )
 {
     if ( GlobalConfiguration::DNC_MANAGER_LOGGING )
         printf( "DnCManager: %s\n", message.ascii() );
+}
+
+void DnCManager::setConstraintViolationThreshold( unsigned threshold )
+{
+    _constraintViolationThreshold = threshold;
 }
 
 //

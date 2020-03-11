@@ -41,11 +41,6 @@ public:
 
     DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
-                DivideStrategy divideStrategy, String networkFilePath,
-                String propertyFilePath, unsigned verbosity );
-
-    DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
-                initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, InputQuery *inputQuery,
                 unsigned verbosity );
 
@@ -77,6 +72,8 @@ public:
       Store the solution into the map
     */
     void getSolution( std::map<int, double> &ret );
+
+    void setConstraintViolationThreshold( unsigned threshold );
 
 private:
     /*
@@ -164,12 +161,6 @@ private:
     DivideStrategy _divideStrategy;
 
     /*
-      Path to the network and property files
-    */
-    String _networkFilePath;
-    String _propertyFilePath;
-
-    /*
       Alternatively, we could construct the DnCManager by directly providing the
       inputQuery instead of the network and property filepaths.
     */
@@ -199,6 +190,12 @@ private:
       The level of verbosity
     */
     unsigned _verbosity;
+
+    /*
+      The constraint violation threshold for each worker engine
+    */
+    unsigned _constraintViolationThreshold;
+
 };
 
 #endif // __DnCManager_h__
