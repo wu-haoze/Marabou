@@ -23,6 +23,8 @@ set(MARABOU_TEST_LIB MarabouHelperTest)
 set(MARABOU_EXE Marabou${CMAKE_EXECUTABLE_SUFFIX})
 set(MARABOU_PY MarabouCore)
 
+
+set(DEPS_DIR "${PROJECT_SOURCE_DIR}/deps")
 set(TOOLS_DIR "${PROJECT_SOURCE_DIR}/tools")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(PYTHON_API_DIR "${PROJECT_SOURCE_DIR}/maraboupy")
@@ -34,7 +36,12 @@ set(PYBIND11_DIR "${TOOLS_DIR}/pybind11-2.3.0")
 set(BOOST_DIR "${TOOLS_DIR}/boost_1_68_0")
 set(COMMON_DIR "${SRC_DIR}/common")
 set(BASIS_DIR "${SRC_DIR}/basis_factorization")
+set(CVC4_DIR "${DEPS_DIR}/CVC4")
 
+set(CONTEXT_DIR "${CVC4_DIR}/context")
+set(CVC4BASE_DIR "${CVC4_DIR}/base")
+file(GLOB DEPS_CVC4_CONTEXT "${CONTEXT_DIR}/*.cpp")
+file(GLOB DEPS_CVC4_BASE "${CVC4BASE_DIR}/*.cpp")
 
 set(BIN_DIR "${CMAKE_BINARY_DIR}/bin")
 
@@ -53,6 +60,7 @@ set(ACAS_PARSER acas)
 set(BERKELEY_PARSER berkeley)
 set(INPUT_PARSERS_DIR input_parsers)
 
+
 #-----------------------------------------------------------------------------#
 # Determine number of threads available, used to configure (default) parallel
 # execution of custom test targets (can be overriden with ARGS=-jN).
@@ -66,7 +74,7 @@ endif()
 
 # We build a static library that is the core of the project, the link it to the
 # API's (executable and python at the moment)
-add_library(${MARABOU_LIB} ${SRCS_COMMON_REAL} ${SRCS_ENGINE_REAL})
+add_library(${MARABOU_LIB} ${SRCS_COMMON_REAL} ${SRCS_ENGINE_REAL} ${DEPS_CVC4_CONTEXT} ${DEPS_CVC4_BASE})
 add_executable(${MARABOU_EXE} "${ENGINE_DIR}/main.cpp")
 set(MARABOU_EXE_PATH "${BIN_DIR}/${MARABOU_EXE}")
 add_custom_command(TARGET ${MARABOU_EXE} POST_BUILD
@@ -223,7 +231,7 @@ if(CXXTEST_FOUND)
 endif()
 
 target_link_libraries(${MARABOU_TEST_LIB} ${LIBS})
-target_include_directories(${MARABOU_TEST_LIB} PRIVATE ${LIBS_INCLUDES})
+target_include_directories(${MARABOU_TEST_LIB} PRIVATE ${LIBS_INCLUDES} )
 target_compile_options(${MARABOU_TEST_LIB} PRIVATE ${CXXTEST_FLAGS})
 
 
