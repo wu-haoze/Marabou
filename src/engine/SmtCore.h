@@ -16,6 +16,7 @@
 #ifndef __SmtCore_h__
 #define __SmtCore_h__
 
+#include "context/context.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearConstraint.h"
 #include "Stack.h"
@@ -28,7 +29,7 @@ class String;
 class SmtCore
 {
 public:
-    SmtCore( IEngine *engine );
+    SmtCore( IEngine *engine, CVC4::context::Context &context );
     ~SmtCore();
 
     /*
@@ -134,6 +135,12 @@ private:
       Collect and print various statistics.
     */
     Statistics *_statistics;
+
+
+    /*
+      CVC4 Context, constructed in Engine
+    */
+    CVC4::context::Context& _context;
 
     /*
       The case-split stack.
