@@ -90,6 +90,7 @@ void SmtCore::performSplit()
     ASSERT( _needToSplit );
 
     // Maybe the constraint has already become inactive - if so, ignore
+    // TODO: Ideally we will not ever reach this point
     if ( !_constraintForSplitting->isActive() )
     {
         _needToSplit = false;
@@ -139,6 +140,8 @@ void SmtCore::performSplit()
     }
 
     _stack.append( stackEntry );
+    _context.push();
+
     if ( _statistics )
     {
         _statistics->setCurrentStackDepth( getStackDepth() );
@@ -149,6 +152,7 @@ void SmtCore::performSplit()
 
 unsigned SmtCore::getStackDepth() const
 {
+    ASSERT( _stack.size() == static_cast<unsigned>( _context.getLevel() ) );
     return _stack.size();
 }
 
@@ -156,6 +160,7 @@ bool SmtCore::popSplit()
 {
     log( "Performing a pop" );
 
+    // TODO: We do not want to reach this point
     if ( _stack.empty() )
         return false;
 
@@ -183,7 +188,7 @@ bool SmtCore::popSplit()
         delete _stack.back()->_engineState;
         delete _stack.back();
         _stack.popBack();
-
+        _context.pop(); 
         if ( _stack.empty() )
             return false;
     }
@@ -209,6 +214,9 @@ bool SmtCore::popSplit()
     stackEntry->_impliedValidSplits.clear();
 
     log( "\tApplying new split..." );
+    // At this point this is an implication rather than a decision
+    // TODO: _context.pop()
+    // To keep generality in mind, if this is not an implication we need to _context.push()
     _engine->applySplit( *split );
     log( "\tApplying new split - DONE" );
 
