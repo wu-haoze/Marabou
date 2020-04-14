@@ -18,6 +18,7 @@
 
 #include "CommonError.h"
 
+#include <stdio.h>
 #include <list>
 
 template<class T>
@@ -37,6 +38,7 @@ public:
 
     List<T>( const std::initializer_list<T> &initializerList ) : _container( initializerList )
     {
+        printf("Copied!\n");
     }
 
     void append( const List<T> &other )

@@ -29,7 +29,7 @@ using namespace CVC4::context;
 SmtCore::SmtCore( IEngine *engine, Context &ctx )
     : _statistics( NULL )
     , _context( ctx )
-    , _trail( &_context )
+    , _trail( &_context, true )
     , _engine( engine )
     , _needToSplit( false )
     , _constraintForSplitting( NULL )

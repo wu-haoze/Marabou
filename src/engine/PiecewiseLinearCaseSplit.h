@@ -43,6 +43,16 @@ public:
     void dump() const;
     void dump( String &output ) const;
 
+    PiecewiseLinearCaseSplit()
+    {
+    };
+
+    PiecewiseLinearCaseSplit( const PiecewiseLinearCaseSplit &other )
+    {
+        _equations = other._equations;
+        _bounds = other._bounds;
+    }
+
     /*
       Equality operator.
     */
