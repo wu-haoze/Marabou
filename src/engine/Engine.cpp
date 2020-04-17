@@ -532,7 +532,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 _smtCore.performSplit();
                 do
                 {
-                    performSymbolicBoundTightening( false );
+                    performSymbolicBoundTightening( true );
                 }
                 while ( applyAllValidConstraintCaseSplits() );
                 continue;
@@ -584,7 +584,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 checkBoundCompliancyWithDebugSolution();
 
                 while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening( false );
+                    performSymbolicBoundTightening( true );
 
                 continue;
             }
@@ -2369,7 +2369,7 @@ void Engine::getEstimates( Map <unsigned, double> &balanceEstimates,
             double sum = currentLb + currentUb;
             double balance = ( sum > 0 ? sum : -sum ) / width;
             balanceEstimates[plConstraint->getId()] = balance;
-            runtimeEstimates[plConstraint->getId()] = width;
+            runtimeEstimates[plConstraint->getId()] = plConstraint->getId();
         }
     }
 

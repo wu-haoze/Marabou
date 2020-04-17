@@ -273,6 +273,7 @@ class MarabouNetwork:
         if options == None:
             options = MarabouCore.Options()
         outputDict = MarabouCore.solve(ipq, options, "", "", filename)
+        return outputDict
         outputValues = outputVars.reshape(-1).astype(np.float64)
         for i in range(len(outputValues)):
             outputValues[i] = (outputDict[0])[outputValues[i]]
