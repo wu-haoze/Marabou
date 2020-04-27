@@ -170,7 +170,10 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, Marab
             case DnCManager::SAT:
             {
                 retStats = Statistics();
-                dncManager->getSolution( ret );
+                std::map<int, double> retAll;
+                dncManager->getSolution( retAll );
+                for(unsigned int i=0; i<inputQuery.getNumberOfVariables(); ++i)
+                  ret[i] = retAll[i];
                 break;
             }
             case DnCManager::TIMEOUT:
