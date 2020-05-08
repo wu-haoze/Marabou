@@ -234,15 +234,15 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed )
 
     if ( result == Engine::UNSAT )
     {
-        resultString = "UNSAT";
-        printf( "UNSAT\n" );
+        resultString = "unsat";
+        printf( "unsat\n" );
         if ( _ggOutput )
             createEmptySubproblemOutputs();
     }
     else if ( result == Engine::SAT )
     {
-        resultString = "SAT";
-        printf( "SAT\n" );
+        resultString = "sat";
+        printf( "sat\n" );
 
         assignment << "Input assignment:\n";
         for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
