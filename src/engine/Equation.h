@@ -17,6 +17,8 @@
 #define __Equation_h__
 
 #include "List.h"
+#include "MString.h"
+#include "Set.h"
 
 /*
    A class representing a single equation.
@@ -68,6 +70,12 @@ public:
     */
     bool isVariableMergingEquation( unsigned &x1, unsigned &x2 ) const;
 
+    /*
+      Get the set of indices of all variables that participate in this
+      equation.
+    */
+    Set<unsigned> getParticipatingVariables() const;
+
     List<Addend> _addends;
     double _scalar;
     EquationType _type;
@@ -76,6 +84,7 @@ public:
     bool equivalent( const Equation &other ) const;
 
     void dump() const;
+    void dump( String &output ) const;
 };
 
 #endif // __Equation_h__

@@ -77,12 +77,20 @@ private:
     bool processIdenticalVariables();
 
     /*
-      Collect all variables whose lower and upper bounds are equal
+      Collect all variables whose lower and upper bounds are equal, or
+      which do not appear anywhere in the input query.
     */
     void collectFixedValues();
 
     /*
-      Eliminate any variables that have become fixed or merged with an identical variable
+      Separate the sets of merged and fixed variables. If x1 is merged into
+      x2 and x2 is fixed, just mark x1 as fixed (instead of as merged).
+    */
+    void separateMergedAndFixed();
+
+    /*
+      Eliminate any variables that have become fixed or merged with an
+      identical variable
 	*/
 	void eliminateVariables();
 

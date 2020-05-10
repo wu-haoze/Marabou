@@ -19,6 +19,7 @@
 #Marabou File
 from .MarabouNetworkNNet import *
 from .MarabouNetworkTF import *
+from .MarabouCore import *
 
 def read_nnet(filename, sbt=False):
     """
@@ -50,6 +51,79 @@ def read_tf(filename, inputName=None, outputName=None, savedModel=False, savedMo
     return MarabouNetworkTF(filename, inputName, outputName, savedModel, savedModelTags)
 
 
+def load_query(filename):
+    """
+    Load the serialized inputQuery from the given filename
+    Arguments:
+        filename: (string) file to read for loading inputQuery
+    Returns:
+        MarabouCore.InputQuery object
+    """
+    return MarabouCore.loadQuery(filename)
 
-def load_query(filename, verbose=True, timeout=0):
-    MarabouNetwork.loadQuery(filename, verbose, timeout=0)
+
+def solve_query(ipq, filename="", verbose=True, timeout=0, verbosity=2,
+                preprocesser_summary=""):
+    """
+    Function to solve query represented by this network
+    Arguments:
+        ipq: (MarabouCore.InputQuery) InputQuery object, which can be obtained from 
+                MarabouNetwork.getInputQuery or load_query
+        filename: (string) path to redirect output to
+        timeout: (int) time in seconds when Marabou will time out
+        verbose: (bool) whether to print out solution after solve finishes
+        verbosity: (int) determines how much Marabou prints during solving
+                0: print out minimal information
+                1: print out statistics only in the beginning and the end
+                2: print out statistics during solving
+    Returns:
+        vals: (dict: int->float) empty if UNSAT, else SATisfying solution
+        stats: (Statistics) a Statistics object as defined in Marabou,
+                it has multiple methods that provide information related
+                to how an input query was solved.
+    """
+    options = createOptions(timeoutInSeconds=timeout, verbosity=verbosity)
+    vals, stats = MarabouCore.solve(ipq, options, filename, "", "")
+    if verbose:
+        if stats.hasTimedOut():
+            print ("TIMEOUT")
+        elif len(vals)==0:
+            print("unsat")
+        else:
+            print("sat")
+            for i in range(ipq.getNumInputVariables()):
+                print("input {} = {}".format(i, vals[ipq.inputVariableByIndex(i)]))
+            for i in range(ipq.getNumOutputVariables()):
+                print("output {} = {}".format(i, vals[ipq.outputVariableByIndex(i)]))
+
+    return [vals, stats]
+
+def createOptions( numWorkers=4, initialTimeout=-1, initialDivides=0,
+                   onlineDivides=2, timeoutInSeconds=0, focusLayer=0,
+                   timeoutFactor=1.5, verbosity=2, dnc=False,
+                   restoreTreeStates=False, lookAheadPreprocessing=False,
+                   preprocessOnly=False, divideStrategy="auto",
+                   biasStrategy="estimate", maxDepth=5, maxTreeDepth=10,
+                   splitThreshold=20):
+    """
+    Create an option object
+    """
+    options = Options()
+    options._numWorkers = numWorkers
+    options._initialTimeout = initialTimeout
+    options._initialDivides = initialDivides
+    options._onlineDivides = onlineDivides
+    options._timeoutInSeconds = timeoutInSeconds
+    options._focusLayer = focusLayer
+    options._timeoutFactor = timeoutFactor
+    options._verbosity = verbosity
+    options._dnc = dnc
+    options._restoreTreeStates = restoreTreeStates
+    options._lookAheadPreprocessing = lookAheadPreprocessing
+    options._preprocessOnly = preprocessOnly
+    options._divideStrategy = divideStrategy
+    options._biasStrategy = biasStrategy
+    options._maxDepth = maxDepth
+    options._maxTreeDepth = maxTreeDepth
+    options._splitThreshold = splitThreshold
+    return options

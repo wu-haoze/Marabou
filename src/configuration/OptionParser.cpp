@@ -42,18 +42,48 @@ void OptionParser::initialize()
         ( "pl-aux-eq",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS]) ),
           "PL constraints generate auxiliary equations" )
+        ( "split-threshold",
+          boost::program_options::value<int>( &((*_intOptions)[Options::SPLIT_THRESHOLD]) ),
+          "Max number of tries to repair a relu before splitting" )
         ( "dnc",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
+        ( "split-only",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::SPLIT_ONLY]) ),
+          "Only split the property" )
+        ( "restore-tree-states",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::RESTORE_TREE_STATES]) ),
+          "Restore tree states in dnc mode" )
+        ( "look-ahead-preprocessing",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::LOOK_AHEAD_PREPROCESSING]) ),
+          "Look ahead preprocessing" )
+        ( "preprocess-only",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::PREPROCESS_ONLY]) ),
+          "Look ahead preprocessing" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )
         ( "property",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::PROPERTY_FILE_PATH]) ),
           "Property file" )
+        ( "fixed-relu",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::FIXED_RELU_PATH]) ),
+          "Fixed relus file" )
+        ( "input-query",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_QUERY_FILE_PATH]) ),
+          "Input Query file" )
         ( "summary-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SUMMARY_FILE]) ),
           "Summary file" )
+        ( "divide-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::DIVIDE_STRATEGY]) ),
+          "(DNC) Strategy for dividing a query into subqueries (split-relu/largest-interval/activationPattern)" )
+        ( "bias-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::BIAS_STRATEGY]) ),
+          "(DNC) Strategy for biasing the fix (centroid/sampling/random)" )
+        ( "subproperty-prefix",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::SUBPROPERTY_PREFIX]) ),
+          "(Split only) Prefix of filenames to output subproperties to" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )
@@ -69,6 +99,15 @@ void OptionParser::initialize()
         ( "timeout",
           boost::program_options::value<int>( &((*_intOptions)[Options::TIMEOUT]) ),
           "Global timeout" )
+        ( "focus-layer",
+          boost::program_options::value<int>( &((*_intOptions)[Options::FOCUS_LAYER]) ),
+          "Layer to focus the search on." )
+        ( "max-depth",
+          boost::program_options::value<int>( &((*_intOptions)[Options::MAX_DEPTH]) ),
+          "The deepest level that the DnC can have." )
+	( "max-tree-depth",
+          boost::program_options::value<int>( &((*_intOptions)[Options::MAX_TREE_DEPTH]) ),
+          "The deepest level that the look ahead can be." )
         ( "verbosity",
           boost::program_options::value<int>( &((*_intOptions)[Options::VERBOSITY]) ),
           "Verbosity of engine::solve(). 0: does not print anything (for DnC), 1: print"

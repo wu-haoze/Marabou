@@ -18,6 +18,7 @@
 
 #include "DivideStrategy.h"
 #include "Engine.h"
+#include "InputQuery.h"
 #include "SubQuery.h"
 #include "Vector.h"
 
@@ -40,8 +41,9 @@ public:
 
     DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
-                DivideStrategy divideStrategy, String networkFilePath,
-                String propertyFilePath, unsigned verbosity );
+                DivideStrategy divideStrategy, InputQuery *inputQuery,
+                unsigned verbosity, Map<unsigned, unsigned> idToPhase,
+                unsigned biasedLayer, BiasStrategy strategy, unsigned maxDepth );
 
     ~DnCManager();
 
@@ -50,7 +52,12 @@ public:
     /*
       Perform the Divide-and-conquer solving
     */
-    void solve( unsigned timeoutInSeconds );
+    void solve( unsigned timeoutInSeconds, bool restoreTreeStates );
+
+    /*
+      Perform the initial division for DnC solving, output it, and exit
+    */
+    void splitOnly( const String& propertyFilePath, const String& subpropertyPrefix );
 
     /*
       Return the DnCExitCode of the DnCManager
@@ -62,12 +69,47 @@ public:
     */
     String getResultString();
 
+    /*
+      Print the result of DnC solving
+    */
+    void printResult();
+
+    /*
+      Store the solution into the map
+    */
+    void getSolution( std::map<int, double> &ret );
+
+    /*
+      The exit code of the DnCManager.
+    */
+    DnCExitCode _exitCode;
+
+    void setConstraintViolationThreshold( unsigned threshold );
+
 private:
+    /*
+      Create and run a DnCWorker
+    */
+    static void dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
+                          std::shared_ptr<Engine> engine,
+                          std::atomic_uint &numUnsolvedSubQueries,
+                          std::atomic_bool &shouldQuitSolving,
+                          unsigned threadId, unsigned onlineDivides,
+                          float timeoutFactor, DivideStrategy divideStrategy,
+                          bool restoreTreeStates, Map<unsigned, unsigned> idToPhase,
+                          unsigned biasedLayer, BiasStrategy strategy,
+                          unsigned maxDepth );
+
     /*
       Create the base engine from the network and property files,
       and if necessary, create engines for workers
     */
     bool createEngines();
+
+    /*
+      Create the base engine from the network and property files.
+    */
+    void createBaseEngine();
 
     /*
       Divide up the input region and store them in subqueries
@@ -81,15 +123,12 @@ private:
     void updateDnCExitCode();
 
     /*
-      Print the result of DnC solving
-    */
-    void printResult();
-
-    /*
       Set _timeoutReached to true if timeout has been reached
     */
     void updateTimeoutReached( timespec startTime,
                                unsigned long long timeoutInMicroSeconds );
+
+    static void log( const String &message );
 
     /*
       The base engine that is used to perform the initial divides
@@ -100,6 +139,11 @@ private:
       The engines that are run in different threads
     */
     Vector<std::shared_ptr<Engine>> _engines;
+
+    /*
+      The engine with the satisfying assignment
+    */
+    std::shared_ptr<Engine> _engineWithSATAssignment;
 
     /*
       Hyperparameters of the DnC algorithm
@@ -137,20 +181,15 @@ private:
     DivideStrategy _divideStrategy;
 
     /*
-      Path to the network and property files
+      Alternatively, we could construct the DnCManager by directly providing the
+      inputQuery instead of the network and property filepaths.
     */
-    String _networkFilePath;
-    String _propertyFilePath;
-
-    /*
-      The exit code of the DnCManager.
-    */
-    DnCExitCode _exitCode;
+    InputQuery *_baseInputQuery;
 
     /*
       Set of subQueries to be solved by workers
     */
-    WorkerQueue *_workload;
+    WorkerQueue *_workload = nullptr;
 
     /*
       Whether the timeout has been reached
@@ -166,6 +205,20 @@ private:
       The level of verbosity
     */
     unsigned _verbosity;
+
+    Map<unsigned, unsigned> _idToPhase;
+
+    unsigned _biasedLayer;
+
+    BiasStrategy _biasStrategy;
+
+    unsigned _maxDepth;
+
+    /*
+      The constraint violation threshold for each worker engine
+    */
+    unsigned _constraintViolationThreshold;
+
 };
 
 #endif // __DnCManager_h__

@@ -16,8 +16,11 @@
 #ifndef __DnCMarabou_h__
 #define __DnCMarabou_h__
 
+#include "BiasStrategy.h"
+#include "DivideStrategy.h"
 #include "DnCManager.h"
 #include "Options.h"
+#include "InputQuery.h"
 
 class DnCMarabou
 {
@@ -30,12 +33,28 @@ public:
     void run();
 
 private:
+    std::shared_ptr<Engine> _baseEngine;
+
     std::unique_ptr<DnCManager> _dncManager;
+
+    bool lookAheadPreprocessing( Map<unsigned, unsigned> &idToPhase, unsigned splitThreshold );
+
+    InputQuery _inputQuery;
 
     /*
       Display the results
     */
     void displayResults( unsigned long long microSecondsElapsed ) const;
+
+    /*
+      Set the bias strategy according to the command line argument
+    */
+    BiasStrategy setBiasStrategyFromOptions( const String strategy );
+
+    /*
+      Set the divide strategy according to the command line argument
+    */
+    DivideStrategy setDivideStrategyFromOptions( const String strategy );
 };
 
 #endif // __DnCMarabou_h__

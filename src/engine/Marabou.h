@@ -23,7 +23,7 @@
 class Marabou
 {
 public:
-    Marabou();
+    Marabou( unsigned verbosity = 2 );
     ~Marabou();
 
     /*
@@ -45,10 +45,14 @@ private:
     */
     void solveQuery();
 
+    bool lookAheadPreprocessing();
+
     /*
       Display the results
     */
     void displayResults( unsigned long long microSecondsElapsed ) const;
+
+    BiasStrategy setBiasStrategyFromOptions( const String strategy );
 
     /*
       ACAS network parser

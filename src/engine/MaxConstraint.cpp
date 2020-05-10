@@ -26,8 +26,24 @@
 #include "Statistics.h"
 #include <algorithm>
 
+#ifdef _WIN32
+#undef max
+#undef min
+#endif
+
+MaxConstraint::MaxConstraint( unsigned f, unsigned id, const Set<unsigned> &elements )
+    : _id( id )
+    , _f( f )
+    , _elements( elements )
+    , _maxIndexSet( false )
+    , _maxLowerBound( FloatUtils::negativeInfinity() )
+    , _obsolete( false )
+{
+}
+
 MaxConstraint::MaxConstraint( unsigned f, const Set<unsigned> &elements )
-    : _f( f )
+    : _id( 0 )
+    , _f( f )
     , _elements( elements )
     , _maxIndexSet( false )
     , _maxLowerBound( FloatUtils::negativeInfinity() )
@@ -62,7 +78,7 @@ MaxConstraint::~MaxConstraint()
 
 PiecewiseLinearConstraint *MaxConstraint::duplicateConstraint() const
 {
-    MaxConstraint *clone = new MaxConstraint( _f, _elements );
+    MaxConstraint *clone = new MaxConstraint( _f, _id, _elements );
     *clone = *this;
     return clone;
 }
@@ -450,6 +466,12 @@ String MaxConstraint::serializeToString() const
         output += Stringf( ",%u", element );
     return output;
 }
+
+unsigned MaxConstraint::getId() const
+{
+    return _id;
+}
+
 
 //
 // Local Variables:

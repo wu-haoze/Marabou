@@ -14,24 +14,32 @@
  ** [[ Add lengthier description here ]]
  **/
 
+#include "ActivationPatternSampler.h"
 #include "AutoConstraintMatrixAnalyzer.h"
 #include "Debug.h"
 #include "Engine.h"
 #include "EngineState.h"
+#include "GlobalConfiguration.h"
 #include "InfeasibleQueryException.h"
 #include "InputQuery.h"
 #include "MStringf.h"
 #include "MalformedBasisException.h"
+#include "MarabouError.h"
 #include "PiecewiseLinearConstraint.h"
 #include "Preprocessor.h"
-#include "MarabouError.h"
 #include "TableauRow.h"
 #include "TimeUtils.h"
 
+#include "Vector.h"
+
+#include <random>
+
 Engine::Engine( unsigned verbosity )
-    : _rowBoundTightener( *_tableau )
-    , _symbolicBoundTightener( NULL )
+    : _exitCode( Engine::NOT_DONE )
     , _smtCore( this )
+    , _processed( false )
+    , _rowBoundTightener( *_tableau )
+    , _symbolicBoundTightener( NULL )
     , _numPlConstraintsDisabledByValidSplits( 0 )
     , _preprocessingEnabled( false )
     , _initialStateStored( false )
@@ -40,11 +48,13 @@ Engine::Engine( unsigned verbosity )
     , _basisRestorationPerformed( Engine::NO_RESTORATION_PERFORMED )
     , _costFunctionManager( _tableau )
     , _quitRequested( false )
-    , _exitCode( Engine::NOT_DONE )
     , _constraintBoundTightener( *_tableau )
     , _numVisitedStatesAtPreviousRestoration( 0 )
     , _networkLevelReasoner( NULL )
     , _verbosity( verbosity )
+    , _lastNumVisitedStates( 0 )
+    , _lastIterationWithProgress( 0 )
+    , _constraintViolationThreshold( GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -65,18 +75,11 @@ Engine::~Engine()
         delete[] _work;
         _work = NULL;
     }
+}
 
-    if ( _symbolicBoundTightener )
-    {
-        delete _symbolicBoundTightener;
-        _symbolicBoundTightener = NULL;
-    }
-
-    if ( _networkLevelReasoner )
-    {
-        delete _networkLevelReasoner;
-        _networkLevelReasoner = NULL;
-    }
+void Engine::setVerbosity( unsigned verbosity )
+{
+    _verbosity = verbosity;
 }
 
 void Engine::adjustWorkMemorySize()
@@ -92,6 +95,183 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
+void Engine::numberOfActive()
+{
+    unsigned numActive = 0;
+    for ( const auto &plConstraint : _plConstraints )
+        {
+            if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+                ++numActive;
+        }
+    std::cout << numActive  << " Active Constraints" << std::endl;
+}
+
+void Engine::applySplits( const Map<unsigned, unsigned> &idToPhase )
+{
+    for ( const auto entry : idToPhase )
+    {
+        unsigned id = entry.first;
+        ReluConstraint * constraint = ( ReluConstraint *) _idToConstraint[id];
+        if ( constraint->isActive() )
+        {
+            if ( entry.second == ReluConstraint::PHASE_ACTIVE )
+            {
+                auto activeSplit = constraint->getActiveSplit();
+                auto splitToApply = PiecewiseLinearCaseSplit();
+                for ( const auto &bound : activeSplit.getBoundTightenings() )
+                    splitToApply.storeBoundTightening( bound );
+                applySplit( splitToApply );
+            }
+            else
+                applySplit( constraint->getInactiveSplit() );
+        }
+
+    }
+    propagate();
+}
+
+void Engine::setBiasedPhases( unsigned biasedLayer, BiasStrategy strategy )
+{
+    if ( biasedLayer == 0 )
+        return;
+    if ( !_networkLevelReasoner )
+    {
+        if ( strategy == BiasStrategy::Estimate )
+        {
+            Map<unsigned, double> balanceEstimates;
+            Map<unsigned, double> runtimeEstimates;
+            getEstimatesReal( balanceEstimates, runtimeEstimates );
+            for ( const auto &constraint : _plConstraints )
+            {
+                auto reluConstraint = (ReluConstraint *) constraint;
+                if ( reluConstraint->_direction != -1 )
+                {
+                    unsigned direction =
+                        ( balanceEstimates[constraint->getId()] > 0 ?
+                          1 : 0 );
+                    reluConstraint->setDirection( direction );
+                }
+            }
+        }
+        else if ( strategy == BiasStrategy::Random )
+        {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dis( 0, 1 );
+            for ( const auto &constraint : _plConstraints )
+            {
+                auto reluConstraint = (ReluConstraint *) constraint;
+                if ( reluConstraint->_direction != -1 )
+                {
+                    unsigned direction = dis( gen );
+                    reluConstraint->setDirection( direction );
+                }
+            }
+        }
+        return;
+    }
+    if ( _networkLevelReasoner->_layerToIds.size() < biasedLayer )
+    {
+        biasedLayer = _networkLevelReasoner->_layerToIds.size();
+    }
+    if ( biasedLayer == 0 )
+    {
+        return;
+    }
+
+    if ( strategy == BiasStrategy::Centroid )
+    {
+        auto pattern = NetworkLevelReasoner::ActivationPattern();
+        Vector<double> centroid;
+        getCentroid( centroid );
+        _networkLevelReasoner->getActivationPattern( centroid, pattern );
+        for ( unsigned layer = 1; layer < biasedLayer + 1; ++layer )
+        {
+            auto ids = _networkLevelReasoner->_layerToIds[layer];
+            for ( const auto id : ids )
+            {
+                auto constraint = (ReluConstraint *) getConstraintFromId( id );
+                if ( constraint )
+                    constraint->setDirection( pattern[id] );
+            }
+        }
+    }
+    else if ( strategy == BiasStrategy::Sampling )
+    {
+        auto inputVariables = getInputVariables();
+        ActivationPatternSampler sampler( inputVariables,
+                                          _networkLevelReasoner );
+        ActivationPatternSampler::InputRegion initialRegion;
+        for ( const auto &variable : inputVariables )
+        {
+            initialRegion._lowerBounds[variable] =
+                _tableau->getLowerBound( variable );
+            initialRegion._upperBounds[variable] =
+                _tableau->getUpperBound( variable );
+        }
+        sampler.samplePoints( initialRegion, 10000 );
+        sampler.computeActivationPatterns();
+        sampler.updatePhaseEstimate();
+        auto idToPhaseStatusEstimate = sampler.getIdToPhaseStatusEstimate();
+        for ( unsigned layer = 1; layer < biasedLayer + 1; ++layer )
+        {
+            auto ids = _networkLevelReasoner->_layerToIds[layer];
+            for ( const auto id : ids )
+            {
+                auto constraint = (ReluConstraint *) getConstraintFromId( id );
+                if ( constraint )
+                {
+                    auto phase = idToPhaseStatusEstimate[id];
+                    if ( phase == ReluConstraint::PHASE_ACTIVE )
+                        constraint->setDirection( 1 );
+                    else if ( phase == ReluConstraint::PHASE_INACTIVE )
+                        constraint->setDirection( 0 );
+                }
+            }
+        }
+    }
+    else if ( strategy == BiasStrategy::Estimate )
+    {
+        Map<unsigned, double> balanceEstimates;
+        Map<unsigned, double> runtimeEstimates;
+        getEstimatesReal( balanceEstimates, runtimeEstimates );
+        for ( unsigned layer = 1; layer < biasedLayer + 1; ++layer )
+        {
+            auto ids = _networkLevelReasoner->_layerToIds[layer];
+            for ( const auto id : ids )
+            {
+                auto constraint = (ReluConstraint *) getConstraintFromId( id );
+                if ( constraint )
+                {
+
+                    unsigned direction = ( balanceEstimates[constraint->getId()] > 0 ?
+                                           1 : 0 );
+                    constraint->setDirection( direction );
+                }
+            }
+        }
+    }
+    else // random
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis( 0, 1 );
+        for ( unsigned layer = 1; layer < biasedLayer + 1; ++layer )
+        {
+            auto ids = _networkLevelReasoner->_layerToIds[layer];
+            for ( const auto id : ids )
+            {
+                auto constraint = (ReluConstraint *) getConstraintFromId( id );
+                if ( constraint )
+                {
+                    unsigned direction = dis( gen );
+                    constraint->setDirection( direction );
+                }
+            }
+        }
+    }
+}
+
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
@@ -102,11 +282,18 @@ bool Engine::solve( unsigned timeoutInSeconds )
     if ( _verbosity > 0 )
     {
         printf( "\nEngine::solve: Initial statistics\n" );
-        mainLoopStatistics();
+	printf( "Constraint violation threshold: %d\n", _constraintViolationThreshold);
+        mainLoopStatistics( 2 );
         printf( "\n---\n" );
+    }
+    else
+    {
+        mainLoopStatistics( 0 );
     }
 
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
+    bool performSBT = getInputVariables().size() < 30;
+    printf("Perform SBT %d", performSBT);
     while ( true )
     {
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
@@ -144,8 +331,10 @@ bool Engine::solve( unsigned timeoutInSeconds )
         {
             DEBUG( _tableau->verifyInvariants() );
 
-            if ( _verbosity > 1 )
-                mainLoopStatistics();
+            mainLoopStatistics( _verbosity );
+
+            // Check whether progress has been made recently
+            checkOverallProgress();
 
             // If the basis has become malformed, we need to restore it
             if ( basisRestorationNeeded() )
@@ -183,10 +372,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( _smtCore.needToSplit() )
             {
                 _smtCore.performSplit();
-
                 do
                 {
-                    performSymbolicBoundTightening();
+                    performSymbolicBoundTightening( performSBT );
                 }
                 while ( applyAllValidConstraintCaseSplits() );
                 continue;
@@ -210,14 +398,17 @@ bool Engine::solve( unsigned timeoutInSeconds )
                     if ( _tableau->getBasicAssignmentStatus() !=
                          ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )
                     {
-                        printf( "Before declaring SAT, recomputing...\n" );
+                        if ( _verbosity > 0 )
+                        {
+                            printf( "Before declaring sat, recomputing...\n" );
+                        }
                         // Make sure that the assignment is precise before declaring success
                         _tableau->computeAssignment();
                         continue;
                     }
                     if ( _verbosity > 0 )
                     {
-                        printf( "\nEngine::solve: SAT assignment found\n" );
+                        printf( "\nEngine::solve: sat assignment found\n" );
                         _statistics.print();
                     }
                     _exitCode = Engine::SAT;
@@ -235,13 +426,14 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 checkBoundCompliancyWithDebugSolution();
 
                 while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening();
+                    performSymbolicBoundTightening( performSBT );
 
                 continue;
             }
 
             // We have out-of-bounds variables.
             performSimplexStep();
+
             continue;
         }
         catch ( const MalformedBasisException & )
@@ -295,7 +487,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
     }
 }
 
-void Engine::mainLoopStatistics()
+void Engine::mainLoopStatistics( unsigned verbosity )
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -309,7 +501,7 @@ void Engine::mainLoopStatistics()
     _statistics.setNumPlSMTSplits( _plConstraints.size() -
                                    activeConstraints - _numPlConstraintsDisabledByValidSplits );
 
-    if ( _statistics.getNumMainLoopIterations() % GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
+    if ( verbosity > 1 && _statistics.getNumMainLoopIterations() % GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
         _statistics.print();
 
     _statistics.incNumMainLoopIterations();
@@ -1011,13 +1203,16 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
 
     // Register the constraint bound tightener to all the PL constraints
     for ( auto &plConstraint : _preprocessedQuery.getPiecewiseLinearConstraints() )
+    {
         plConstraint->registerConstraintBoundTightener( _constraintBoundTightener );
+    }
 
     _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
     for ( const auto &constraint : _plConstraints )
     {
         constraint->registerAsWatcher( _tableau );
         constraint->setStatistics( &_statistics );
+        _idToConstraint[constraint->getId()] = constraint;
     }
 
     _tableau->initializeTableau( initialBasis );
@@ -1041,12 +1236,15 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 {
     log( "processInputQuery starting\n" );
 
+    _processed = true;
     struct timespec start = TimeUtils::sampleMicro();
 
     try
     {
         informConstraintsOfInitialBounds( inputQuery );
+
         invokePreprocessor( inputQuery, preprocess );
+
         if ( _verbosity > 0 )
             printInputBounds( inputQuery );
 
@@ -1059,7 +1257,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
         List<unsigned> initialBasis;
         List<unsigned> basicRows;
-        selectInitialVariablesForBasis( constraintMatrix, initialBasis, basicRows ); // HERE
+        selectInitialVariablesForBasis( constraintMatrix, initialBasis, basicRows );
         addAuxiliaryVariables();
         augmentInitialBasisIfNeeded( initialBasis, basicRows );
 
@@ -1069,8 +1267,11 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         delete[] constraintMatrix;
         constraintMatrix = createConstraintMatrix();
 
-        initializeTableau( constraintMatrix, initialBasis );
         initializeNetworkLevelReasoning();
+        initializeTableau( constraintMatrix, initialBasis );
+
+        if ( GlobalConfiguration::WARM_START )
+            warmStart();
 
         delete[] constraintMatrix;
 
@@ -1154,6 +1355,24 @@ void Engine::selectViolatedPlConstraint()
 
     ASSERT( _plConstraintToFix );
 }
+
+//void Engine::selectBranchingPlConstraint()
+//{
+//   Map<PiecewiseLinearConstraint *, double> balanceEstimates;
+//    Map<PiecewiseLinearConstraint *, double> runtimeEstimates;
+//    getEstimates( balanceEstimates, runtimeEstimates );
+//    PiecewiseLinearConstraint *best = NULL;
+//    double bestRank = balanceEstimates.size();
+//    for ( const auto &entry : balanceEstimates ){
+//        double newRank = entry.second + runtimeEstimates[entry.first];
+//        if ( newRank < bestRank )
+//       {
+//            best = entry.first;
+//            bestRank = newRank;
+//        }
+//    }
+//    _smtCore.reportViolatedConstraintPrep( best );
+//}
 
 void Engine::reportPlViolation()
 {
@@ -1498,6 +1717,7 @@ bool Engine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constrain
         constraint->setActiveConstraint( false );
         PiecewiseLinearCaseSplit validSplit = constraint->getValidCaseSplit();
         _smtCore.recordImpliedValidSplit( validSplit );
+        _smtCore.recordImpliedIdToPhase( constraint->getId(), ((ReluConstraint *) constraint)->getPhaseStatus() );
         applySplit( validSplit );
         ++_numPlConstraintsDisabledByValidSplits;
 
@@ -1707,9 +1927,10 @@ List<unsigned> Engine::getInputVariables() const
     return _preprocessedQuery.getInputVariables();
 }
 
-void Engine::performSymbolicBoundTightening()
+void Engine::performSymbolicBoundTightening( bool performSbt )
 {
-    if ( ( !GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING ) ||
+    if ( ( !performSbt ) ||
+         ( !GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING ) ||
          ( !_symbolicBoundTightener ) )
         return;
 
@@ -1795,19 +2016,29 @@ bool Engine::shouldExitDueToTimeout( unsigned timeout ) const
     return _statistics.getTotalTime() / MILLISECONDS_TO_SECONDS > timeout;
 }
 
-
-void Engine::resetStatistics( const Statistics &statistics )
+void Engine::reset()
 {
+    clearViolatedPLConstraints();
+    resetSmtCore();
+    resetBoundTighteners();
+    resetExitCode();
+    resetStatistics();
+    setConstraintViolationThreshold( _constraintViolationThreshold );
+}
+
+void Engine::resetStatistics()
+{
+    Statistics statistics;
     _statistics = statistics;
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
     _rowBoundTightener->setStatistics( &_statistics );
     _constraintBoundTightener->setStatistics( &_statistics );
     _preprocessor.setStatistics( &_statistics );
-    _activeEntryStrategy = _projectedSteepestEdgeRule;
     _activeEntryStrategy->setStatistics( &_statistics );
 
     _statistics.stampStartingTime();
+    _statistics.setPreprocessingTime( 0 );
 }
 
 void Engine::clearViolatedPLConstraints()
@@ -1831,6 +2062,261 @@ void Engine::resetBoundTighteners()
 {
     _constraintBoundTightener->resetBounds();
     _rowBoundTightener->resetBounds();
+}
+
+void Engine::warmStart()
+{
+    // An NLR is required for a warm start
+    if ( !_networkLevelReasoner )
+        return;
+
+    // First, choose an arbitrary assignment for the input variables
+    unsigned numInputVariables = _preprocessedQuery.getNumInputVariables();
+    unsigned numOutputVariables = _preprocessedQuery.getNumOutputVariables();
+
+    if ( numInputVariables == 0 )
+    {
+        // Trivial case: all inputs are fixed, nothing to evaluate
+        return;
+    }
+
+    double *inputAssignment = new double[numInputVariables];
+    double *outputAssignment = new double[numOutputVariables];
+
+    for ( unsigned i = 0; i < numInputVariables; ++i )
+    {
+        unsigned variable = _preprocessedQuery.inputVariableByIndex( i );
+        inputAssignment[i] = _tableau->getLowerBound( variable );
+    }
+
+    // Evaluate the network for this assignment
+    _networkLevelReasoner->evaluate( inputAssignment, outputAssignment );
+
+    // Try to update as many variables as possible to match their assignment
+    for ( const auto &assignment : _networkLevelReasoner->getIndexToWeightedSumAssignment() )
+    {
+        unsigned variable = _networkLevelReasoner->getWeightedSumVariable( assignment.first._layer, assignment.first._neuron );
+
+        if ( !_tableau->isBasic( variable ) )
+            _tableau->setNonBasicAssignment( variable, assignment.second, false );
+    }
+
+    for ( const auto &assignment : _networkLevelReasoner->getIndexToActivationResultAssignment() )
+    {
+        unsigned variable = _networkLevelReasoner->getActivationResultVariable( assignment.first._layer, assignment.first._neuron );
+
+        if ( !_tableau->isBasic( variable ) )
+            _tableau->setNonBasicAssignment( variable, assignment.second, false );
+    }
+
+    // We did what we could for the non-basics; now let the tableau compute
+    // the basic assignment
+    _tableau->computeAssignment();
+
+    delete[] outputAssignment;
+    delete[] inputAssignment;
+}
+
+void Engine::checkOverallProgress()
+{
+    // Get fresh statistics
+    unsigned numVisitedStates = _statistics.getNumVisitedTreeStates();
+    unsigned long long currentIteration = _statistics.getNumMainLoopIterations();
+
+    if ( numVisitedStates > _lastNumVisitedStates )
+    {
+        // Progress has been made
+        _lastNumVisitedStates = numVisitedStates;
+        _lastIterationWithProgress = _statistics.getNumMainLoopIterations();
+    }
+    else
+    {
+        // No progress has been made. If it's been too long, request a restoration
+        if ( currentIteration >
+             _lastIterationWithProgress +
+             GlobalConfiguration::MAX_ITERATIONS_WITHOUT_PROGRESS )
+        {
+            log( "checkOverallProgress detected cycling. Requesting a precision restoration" );
+            _basisRestorationRequired = Engine::STRONG_RESTORATION_NEEDED;
+            _lastIterationWithProgress = currentIteration;
+        }
+    }
+}
+
+bool Engine::propagate()
+{
+    try
+    {
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+	bool performSBT = getInputVariables().size() < 30;
+        do
+            {
+                performSymbolicBoundTightening( performSBT );
+            }
+        while ( applyAllValidConstraintCaseSplits() );
+        return true;
+        }
+    catch ( const InfeasibleQueryException & )
+    {
+        return false;
+    }
+}
+
+void Engine::getEstimatesReal( Map <unsigned, double> &balanceEstimates,
+                               Map <unsigned, double> &runtimeEstimates )
+{
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            unsigned b = ( ( ReluConstraint * ) plConstraint )->getB();
+            double currentLb = _tableau->getLowerBound( b );
+            double currentUb = _tableau->getUpperBound( b );
+            double width = currentUb - currentLb;
+            double sum = currentLb + currentUb;
+            double balance = sum / width;
+            balanceEstimates[plConstraint->getId()] = balance;
+            runtimeEstimates[plConstraint->getId()] = width;
+        }
+    }
+
+    // Sort the map
+    Map<double, unsigned> temp1;
+    for ( const auto& entry : runtimeEstimates )
+        temp1[entry.second] = entry.first;
+
+    double index = 1;
+    for ( const auto& entry : temp1 )
+        runtimeEstimates[entry.second] = index++;
+    Map<double, unsigned> temp2;
+    for ( const auto& entry : balanceEstimates )
+        temp2[entry.second] = entry.first;
+    for ( const auto& entry : temp2 )
+        balanceEstimates[entry.second] = entry.first;
+
+
+    return;
+}
+
+void Engine::getEstimates( Map <unsigned, double> &balanceEstimates,
+                           Map <unsigned, double> &runtimeEstimates )
+{
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            unsigned b = ( ( ReluConstraint * ) plConstraint )->getB();
+            double currentLb = _tableau->getLowerBound( b );
+            double currentUb = _tableau->getUpperBound( b );
+            double width = currentUb - currentLb;
+            double sum = currentLb + currentUb;
+            double balance = ( sum > 0 ? sum : -sum ) / width;
+            balanceEstimates[plConstraint->getId()] = balance;
+            runtimeEstimates[plConstraint->getId()] = plConstraint->getId();
+        }
+    }
+
+    // Sort the map
+    Map<double, unsigned> temp1;
+    for ( const auto& entry : runtimeEstimates )
+        temp1[entry.second] = entry.first;
+
+    double index = 1;
+    for ( const auto& entry : temp1 )
+        runtimeEstimates[entry.second] = index++;
+    Map<double, unsigned> temp2;
+    for ( const auto& entry : balanceEstimates )
+        temp2[entry.second] = entry.first;
+    index = 1;
+    for ( const auto& entry : temp2 )
+        balanceEstimates[entry.second] = index++;
+
+
+    return;
+}
+
+bool Engine::restoreSmtState( SmtState &smtState )
+{
+    try
+    {
+	bool performSBT = getInputVariables().size() < 30;
+        // Step 1: all implied valid splits at root
+        for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
+        {
+            applySplit( validSplit );
+            _smtCore.recordImpliedValidSplit( validSplit );
+        }
+
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        // For debugging purposes
+        checkBoundCompliancyWithDebugSolution();
+        do
+            performSymbolicBoundTightening( performSBT );
+        while ( applyAllValidConstraintCaseSplits() );
+
+        // Step 2: replay the stack
+        for ( auto &stackEntry : smtState._stack )
+        {
+            _smtCore.replayStackEntry( stackEntry );
+            // Do all the bound propagation, and set ReLU constraints to inactive (at
+            // least the one corresponding to the _activeSplit applied above.
+            tightenBoundsOnConstraintMatrix();
+            applyAllBoundTightenings();
+        }
+    }
+    catch ( const InfeasibleQueryException & )
+    {
+        // The current query is unsat, and we need to pop.
+        // If we're at level 0, the whole query is unsat.
+        if ( !_smtCore.popSplit() )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\nEngine::solve: UNSAT query\n" );
+                _statistics.print();
+            }
+            _exitCode = Engine::UNSAT;
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+  Store the stack of the timed-out query
+*/
+void Engine::storeSmtState( SmtState &smtState )
+{
+    _smtCore.storeSmtState( smtState );
+}
+
+PiecewiseLinearConstraint *Engine::getConstraintFromId( unsigned id )
+{
+    return _idToConstraint[id];
+}
+
+void Engine::getCentroid( Vector<double> &centroid )
+{
+    const List<unsigned> inputVariables = getInputVariables();
+    ASSERT( inputVariables.size() == _preprocessedQuery.getNumInputVariables() );
+    // Assuming that the order of the inputVariables is consistent with the
+    // network topology in the _networklevelreasoner
+    for ( auto const &var : inputVariables )
+        centroid.append( ( _tableau->getLowerBound( var ) +
+                           _tableau->getUpperBound( var ) ) / 2 );
+}
+
+unsigned Engine::numberOfConstraints()
+{
+    return _plConstraints.size();
+}
+
+void Engine::setConstraintViolationThreshold( unsigned threshold )
+{
+    _constraintViolationThreshold = threshold;
+    _smtCore.setConstraintViolationThreshold( threshold );
 }
 
 //

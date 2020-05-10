@@ -24,8 +24,25 @@
 #include "Statistics.h"
 #include "TableauRow.h"
 
+#ifdef _WIN32
+#define __attribute__(x)
+#endif
+
+ReluConstraint::ReluConstraint( unsigned b, unsigned f, unsigned id )
+    : _direction( -1 )
+    , _id( id )
+    , _b( b )
+    , _f( f )
+    , _auxVarInUse( false )
+    , _haveEliminatedVariables( false )
+{
+    setPhaseStatus( PhaseStatus::PHASE_NOT_FIXED );
+}
+
 ReluConstraint::ReluConstraint( unsigned b, unsigned f )
-    : _b( b )
+    : _direction( -1 )
+    , _id( 0 )
+    , _b( b )
     , _f( f )
     , _auxVarInUse( false )
     , _haveEliminatedVariables( false )
@@ -71,7 +88,7 @@ ReluConstraint::ReluConstraint( const String &serializedRelu )
 
 PiecewiseLinearConstraint *ReluConstraint::duplicateConstraint() const
 {
-    ReluConstraint *clone = new ReluConstraint( _b, _f );
+    ReluConstraint *clone = new ReluConstraint( _b, _f, _id );
     *clone = *this;
     return clone;
 }
@@ -271,14 +288,30 @@ List<PiecewiseLinearConstraint::Fix> ReluConstraint::getPossibleFixes() const
         }
         else
         {
-            fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
-            fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+            if ( _direction == 0 )
+            {
+                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
+            } else
+            {
+                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
+                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
+            }
+
         }
     }
     else
     {
-        fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
-        fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+        if ( _direction == 1 )
+        {
+            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
+
+        } else
+        {
+            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
+            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
+        }
     }
 
     return fixes;
@@ -404,12 +437,30 @@ List<PiecewiseLinearConstraint::Fix> ReluConstraint::getSmartFixes( ITableau *ta
     return fixes;
 }
 
+void ReluConstraint::setDirection( int direction )
+{
+    _direction = direction;
+}
+
 List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
 {
     if ( _phaseStatus != PhaseStatus::PHASE_NOT_FIXED )
         throw MarabouError( MarabouError::REQUESTED_CASE_SPLITS_FROM_FIXED_CONSTRAINT );
 
     List<PiecewiseLinearCaseSplit> splits;
+
+    if ( _direction == 0 )
+    {
+        splits.append( getInactiveSplit() );
+        splits.append( getActiveSplit() );
+        return splits;
+    }
+    else if ( _direction == 1 )
+    {
+        splits.append( getActiveSplit() );
+        splits.append( getInactiveSplit() );
+        return splits;
+    }
 
     // If we have existing knowledge about the assignment, use it to
     // influence the order of splits
@@ -451,11 +502,19 @@ PiecewiseLinearCaseSplit ReluConstraint::getActiveSplit() const
     // Active phase: b >= 0, b - f = 0
     PiecewiseLinearCaseSplit activePhase;
     activePhase.storeBoundTightening( Tightening( _b, 0.0, Tightening::LB ) );
-    Equation activeEquation( Equation::EQ );
-    activeEquation.addAddend( 1, _b );
-    activeEquation.addAddend( -1, _f );
-    activeEquation.setScalar( 0 );
-    activePhase.addEquation( activeEquation );
+
+    if ( _auxVarInUse )
+    {
+        activePhase.storeBoundTightening( Tightening( _aux, 0.0, Tightening::UB ) );
+    }
+    else
+    {
+        Equation activeEquation( Equation::EQ );
+        activeEquation.addAddend( 1, _b );
+        activeEquation.addAddend( -1, _f );
+        activeEquation.setScalar( 0 );
+        activePhase.addEquation( activeEquation );
+    }
     return activePhase;
 }
 
@@ -476,17 +535,27 @@ PiecewiseLinearCaseSplit ReluConstraint::getValidCaseSplit() const
 
 void ReluConstraint::dump( String &output ) const
 {
-    output = Stringf( "ReluConstraint: x%u = ReLU( x%u ). Active? %s. PhaseStatus = %u (%s). "
-                      "b in [%lf, %lf]. f in [%lf, %lf]",
+    output = Stringf( "ReluConstraint: x%u = ReLU( x%u ). Active? %s. PhaseStatus = %u (%s).\n",
                       _f, _b,
                       _constraintActive ? "Yes" : "No",
-                      _phaseStatus, phaseToString( _phaseStatus ).ascii(),
-                      _lowerBounds[_b], _upperBounds[_b], _lowerBounds[_f], _upperBounds[_f]
+                      _phaseStatus, phaseToString( _phaseStatus ).ascii()
                       );
 
+    output += Stringf( "b in [%s, %s], ",
+                       _lowerBounds.exists( _b ) ? Stringf( "%lf", _lowerBounds[_b] ).ascii() : "-inf",
+                       _upperBounds.exists( _b ) ? Stringf( "%lf", _upperBounds[_b] ).ascii() : "inf" );
+
+    output += Stringf( "f in [%s, %s]",
+                       _lowerBounds.exists( _f ) ? Stringf( "%lf", _lowerBounds[_f] ).ascii() : "-inf",
+                       _upperBounds.exists( _f ) ? Stringf( "%lf", _upperBounds[_f] ).ascii() : "inf" );
+
     if ( _auxVarInUse )
-        output += Stringf( ". Aux var: %u. Range: [%lf, %lf]\n",
-                           _aux, _lowerBounds[_aux], _upperBounds[_aux] );
+    {
+        output += Stringf( ". Aux var: %u. Range: [%s, %s]\n",
+                           _aux,
+                           _lowerBounds.exists( _aux ) ? Stringf( "%lf", _lowerBounds[_aux] ).ascii() : "-inf",
+                           _upperBounds.exists( _aux ) ? Stringf( "%lf", _upperBounds[_aux] ).ascii() : "inf" );
+    }
 }
 
 void ReluConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
@@ -710,7 +779,12 @@ void ReluConstraint::addAuxiliaryEquations( InputQuery &inputQuery )
     // Adjust the bounds for the new variable
     ASSERT( _lowerBounds.exists( _b ) );
     inputQuery.setLowerBound( _aux, 0 );
-    inputQuery.setUpperBound( _aux, -_lowerBounds[_b] );
+
+    // Generally, aux.ub = -b.lb. However, if b.lb is positive (active
+    // phase), then aux.ub needs to be 0
+    double auxUpperBound =
+        _lowerBounds[_b] > 0 ? 0 : -_lowerBounds[_b];
+    inputQuery.setUpperBound( _aux, auxUpperBound );
 
     // We now care about the auxiliary variable, as well
     _auxVarInUse = true;
@@ -808,6 +882,11 @@ bool ReluConstraint::auxVariableInUse() const
 unsigned ReluConstraint::getAux() const
 {
     return _aux;
+}
+
+unsigned ReluConstraint::getId() const
+{
+    return _id;
 }
 
 //

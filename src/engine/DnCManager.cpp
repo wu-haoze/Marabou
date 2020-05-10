@@ -13,54 +13,80 @@
 
  **/
 
-#include "AcasParser.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
 #include "DnCManager.h"
 #include "DnCWorker.h"
+#include "GetCPUData.h"
+#include "GlobalConfiguration.h"
 #include "LargestIntervalDivider.h"
 #include "MStringf.h"
-#include "PiecewiseLinearCaseSplit.h"
-#include "PropertyParser.h"
-#include "QueryDivider.h"
 #include "MarabouError.h"
+#include "PiecewiseLinearCaseSplit.h"
+#include "QueryDivider.h"
+#include "ReluDivider.h"
 #include "TimeUtils.h"
-
+#include "Vector.h"
 #include <atomic>
+#include <fstream>
 #include <chrono>
 #include <cmath>
 #include <thread>
 
-static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
-                      std::atomic_uint &numUnsolvedSubQueries,
-                      std::atomic_bool &shouldQuitSolving,
-                      unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy )
+#include "Map.h"
+
+void DnCManager::dncSolve( WorkerQueue *workload, InputQuery *inputQuery,
+                           std::shared_ptr<Engine> engine,
+                           std::atomic_uint &numUnsolvedSubQueries,
+                           std::atomic_bool &shouldQuitSolving,
+                           unsigned threadId, unsigned onlineDivides,
+                           float timeoutFactor, DivideStrategy divideStrategy,
+                           bool restoreTreeStates, Map<unsigned, unsigned>
+                           idToPhase, unsigned biasedLayer,
+                           BiasStrategy biasStrategy, unsigned maxDepth )
 {
+    unsigned cpuId = 0;
+    getCPUId( cpuId );
+    log( Stringf( "Thread #%u on CPU %u", threadId, cpuId ) );
+
+    engine->processInputQuery( *inputQuery, false );
+    engine->applySplits( idToPhase );
+    engine->propagate();
+    engine->setBiasedPhases( biasedLayer, biasStrategy );
+    engine->numberOfActive();
+
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
-                      timeoutFactor, divideStrategy );
-    worker.run();
+                      timeoutFactor, divideStrategy, maxDepth );
+    while ( !shouldQuitSolving.load() )
+    {
+        worker.popOneSubQueryAndSolve( restoreTreeStates, biasedLayer,
+                                       biasStrategy );
+    }
 }
 
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
-                        String networkFilePath, String propertyFilePath,
-                        unsigned verbosity )
-    : _numWorkers( numWorkers )
+                        InputQuery *inputQuery, unsigned verbosity,
+                        Map<unsigned, unsigned> idToPhase, unsigned biasedLayer,
+                        BiasStrategy biasStrategy, unsigned maxDepth )
+    : _exitCode( DnCManager::NOT_DONE )
+    , _numWorkers( numWorkers )
     , _initialDivides( initialDivides )
     , _initialTimeout( initialTimeout )
     , _onlineDivides( onlineDivides )
     , _timeoutFactor( timeoutFactor )
     , _divideStrategy( divideStrategy )
-    , _networkFilePath( networkFilePath )
-    , _propertyFilePath( propertyFilePath )
-    , _exitCode( DnCManager::NOT_DONE )
-    , _workload( NULL )
+    , _baseInputQuery( inputQuery )
     , _timeoutReached( false )
     , _numUnsolvedSubQueries( 0 )
     , _verbosity( verbosity )
+    , _idToPhase( idToPhase )
+    , _biasedLayer( biasedLayer )
+    , _biasStrategy( biasStrategy )
+    , _maxDepth( maxDepth )
+    , _constraintViolationThreshold( GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD )
 {
 }
 
@@ -73,19 +99,19 @@ void DnCManager::freeMemoryIfNeeded()
 {
     if ( _workload )
     {
-        SubQuery *subQuery;
+        SubQuery *subQuery = nullptr;
         while ( !_workload->empty() )
         {
             _workload->pop( subQuery );
-            delete subQuery;
+            if ( subQuery ) {
+              delete subQuery;
+            }
         }
-
         delete _workload;
-        _workload = NULL;
     }
 }
 
-void DnCManager::solve( unsigned timeoutInSeconds )
+void DnCManager::solve( unsigned timeoutInSeconds, bool restoreTreeStates )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -98,7 +124,6 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     if ( !createEngines() )
     {
         _exitCode = DnCManager::UNSAT;
-        printResult();
         return;
     }
 
@@ -109,20 +134,17 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     // Partition the input query into initial subqueries, and place these
     // queries in the queue
-    _workload = new WorkerQueue( 0 );
-    if ( !_workload )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DnCManager::workload" );
-
     SubQueries subQueries;
     initialDivide( subQueries );
 
     // Create objects shared across workers
     _numUnsolvedSubQueries = subQueries.size();
     std::atomic_bool shouldQuitSolving( false );
-    WorkerQueue *workload = new WorkerQueue( 0 );
+
+    _workload = new WorkerQueue( 0 );
     for ( auto &subQuery : subQueries )
     {
-        if ( !workload->push( subQuery ) )
+        if ( !_workload->push( subQuery ) )
         {
             // This should never happen
             ASSERT( false );
@@ -133,23 +155,30 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     std::list<std::thread> threads;
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
     {
-        threads.push_back( std::thread( dncSolve, workload,
-                                        _engines[ threadId ],
+        InputQuery *inputQuery = new InputQuery();
+        *inputQuery = *_baseInputQuery;
+        threads.push_back( std::thread( dncSolve, _workload,
+                                        inputQuery, _engines[ threadId ],
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy ) );
+                                        _timeoutFactor, _divideStrategy,
+                                        restoreTreeStates, _idToPhase,
+                                        _biasedLayer, _biasStrategy,
+                                        _maxDepth ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is
     // found by some worker
-    while ( _numUnsolvedSubQueries.load() > 0 &&
-            !shouldQuitSolving.load() &&
-            !_timeoutReached )
+    while ( !shouldQuitSolving.load() )
     {
         updateTimeoutReached( startTime, timeoutInMicroSeconds );
-        std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
+        if ( _timeoutReached )
+            shouldQuitSolving = true;
+        else
+            std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
     }
+
 
     // Now that we are done, tell all workers to quit
     for ( auto &quitThread : quitThreads )
@@ -159,8 +188,43 @@ void DnCManager::solve( unsigned timeoutInSeconds )
         thread.join();
 
     updateDnCExitCode();
-    printResult();
     return;
+}
+
+void DnCManager::splitOnly( const String& propertyFilePath, const String& subpropertyPrefix )
+{
+    // Create the base engine
+    createBaseEngine();
+
+    // Partition the input query into initial subqueries, and place these
+    // queries in the queue
+    SubQueries subQueries;
+    initialDivide( subQueries );
+
+    size_t subQi = 0;
+    for (const SubQuery* subQueryPointer : subQueries) {
+        const SubQuery &subQuery = *subQueryPointer;
+        const std::string subpropFilePath = subpropertyPrefix.ascii() + std::to_string(subQi);
+
+        // Emit subproblem property file
+        {
+            std::ifstream oldFile{ propertyFilePath.ascii() };
+            std::ofstream propFile{ subpropFilePath };
+            propFile << oldFile.rdbuf();
+            const auto& split = subQuery._split;
+            auto bounds = split->getBoundTightenings();
+            for ( const auto bound : bounds )
+            {
+                propFile << "x"
+                         << bound._variable
+                         << (bound._type == Tightening::LB ? " >= " : " <= ")
+                         << bound._value
+                         << "\n";
+            }
+        }
+        ++subQi;
+    }
+
 }
 
 DnCManager::DnCExitCode DnCManager::getExitCode() const
@@ -178,6 +242,7 @@ void DnCManager::updateDnCExitCode()
         Engine::ExitCode result = engine->getExitCode();
         if ( result == Engine::SAT )
         {
+            _engineWithSATAssignment = engine;
             hasSat = true;
             break;
         }
@@ -208,9 +273,9 @@ String DnCManager::getResultString()
     switch ( _exitCode )
     {
     case DnCManager::SAT:
-        return "SAT";
+        return "sat";
     case DnCManager::UNSAT:
-        return "UNSAT";
+        return "unsat";
     case DnCManager::ERROR:
         return "ERROR";
     case DnCManager::NOT_DONE:
@@ -225,57 +290,98 @@ String DnCManager::getResultString()
     }
 }
 
+void DnCManager::getSolution( std::map<int, double> &ret )
+{
+    ASSERT( _engineWithSATAssignment != nullptr );
+
+    InputQuery *inputQuery = _engineWithSATAssignment->getInputQuery();
+    _engineWithSATAssignment->extractSolution( *( inputQuery ) );
+
+    for ( unsigned i = 0; i < inputQuery->getNumberOfVariables(); ++i )
+        ret[i] = inputQuery->getSolutionValue( i );
+
+    return;
+}
+
 void DnCManager::printResult()
 {
+    std::cout << std::endl;
     switch ( _exitCode )
     {
     case DnCManager::SAT:
-        std::cout << "DnCManager::solve SAT query" << std::endl;
+    {
+        std::cout << "sat\n" << std::endl;
+
+        ASSERT( _engineWithSATAssignment != nullptr );
+
+        InputQuery *inputQuery = _engineWithSATAssignment->getInputQuery();
+        _engineWithSATAssignment->extractSolution( *( inputQuery ) );
+
+        Vector<double> inputVector( inputQuery->getNumInputVariables() );
+        Vector<double> outputVector( inputQuery->getNumOutputVariables() );
+        double *inputs( inputVector.data() );
+        double *outputs( outputVector.data() );
+
+        printf( "Input assignment:\n" );
+        for ( unsigned i = 0; i < inputQuery->getNumInputVariables(); ++i )
+        {
+            printf( "\tx%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) ) );
+            inputs[i] = inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) );
+        }
+
+        NetworkLevelReasoner *nlr = inputQuery->getNetworkLevelReasoner();
+        if ( nlr )
+            nlr->evaluate( inputs, outputs );
+
+        printf( "\n" );
+        printf( "Output:\n" );
+        for ( unsigned i = 0; i < inputQuery->getNumOutputVariables(); ++i )
+        {
+            if ( nlr )
+                printf( "\tnlr y%u = %lf\n", i, outputs[i] );
+            else
+                printf( "\ty%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->outputVariableByIndex( i ) ) );            
+        }
+        printf( "\n" );
         break;
+    }
     case DnCManager::UNSAT:
-        std::cout << "DnCManager::solve UNSAT query" << std::endl;
+        std::cout << "unsat" << std::endl;
         break;
     case DnCManager::ERROR:
-        std::cout << "DnCManager::solve ERROR" << std::endl;
+        std::cout << "ERROR" << std::endl;
         break;
     case DnCManager::NOT_DONE:
-        std::cout << "DnCManager::solve NOT_DONE" << std::endl;
+        std::cout << "NOT_DONE" << std::endl;
         break;
     case DnCManager::QUIT_REQUESTED:
-        std::cout << "DnCManager::solve QUIT_REQUESTED" << std::endl;
+        std::cout << "QUIT_REQUESTED" << std::endl;
         break;
     case DnCManager::TIMEOUT:
-        std::cout << "DnCManager::solve TIMEOUT" << std::endl;
+        std::cout << "TIMEOUT" << std::endl;
         break;
     default:
         ASSERT( false );
     }
 }
 
-bool DnCManager::createEngines()
+void DnCManager::createBaseEngine()
 {
     // Create the base engine
-    _baseEngine = std::make_shared<Engine>();
-    InputQuery *baseInputQuery = new InputQuery();
+    _baseEngine = std::make_shared<Engine>( _verbosity );
+    _baseEngine->processInputQuery( *_baseInputQuery, false );
+    _baseEngine->applySplits( _idToPhase );
+}
 
-    // InputQuery is owned by engine
-    AcasParser acasParser( _networkFilePath );
-    acasParser.generateQuery( *baseInputQuery );
-
-    if ( _propertyFilePath != "" )
-        PropertyParser().parse( _propertyFilePath, *baseInputQuery );
-
-    if ( !_baseEngine->processInputQuery( *baseInputQuery ) )
-        // Solved by preprocessing, we are done!
-        return false;
+bool DnCManager::createEngines()
+{
+    createBaseEngine();
 
     // Create engines for each thread
     for ( unsigned i = 0; i < _numWorkers; ++i )
     {
         auto engine = std::make_shared<Engine>( _verbosity );
-        InputQuery *inputQuery = new InputQuery();
-        *inputQuery = *baseInputQuery;
-        engine->processInputQuery( *inputQuery );
+	engine->setConstraintViolationThreshold( _constraintViolationThreshold );
         _engines.append( engine );
     }
 
@@ -284,44 +390,44 @@ bool DnCManager::createEngines()
 
 void DnCManager::initialDivide( SubQueries &subQueries )
 {
+    String queryId = "";
+    auto split = std::unique_ptr<PiecewiseLinearCaseSplit>
+        ( new PiecewiseLinearCaseSplit() );
+
     const List<unsigned> inputVariables( _baseEngine->getInputVariables() );
     std::unique_ptr<QueryDivider> queryDivider = nullptr;
     if ( _divideStrategy == DivideStrategy::LargestInterval )
     {
         queryDivider = std::unique_ptr<QueryDivider>
             ( new LargestIntervalDivider( inputVariables ) );
+
+        // If we are dividing the input region, we add all the original bounds
+        QueryDivider::InputRegion initialRegion;
+        InputQuery *inputQuery = _baseEngine->getInputQuery();
+        for ( const auto &variable : inputVariables )
+        {
+            initialRegion._lowerBounds[variable] =
+                inputQuery->getLowerBounds()[variable];
+            initialRegion._upperBounds[variable] =
+                inputQuery->getUpperBounds()[variable];
+        }
+
+        // Add bound as equations for each input variable
+        for ( const auto &variable : inputVariables )
+        {
+            double lb = initialRegion._lowerBounds[variable];
+            double ub = initialRegion._upperBounds[variable];
+            split->storeBoundTightening( Tightening( variable, lb,
+                                                     Tightening::LB ) );
+            split->storeBoundTightening( Tightening( variable, ub,
+                                                     Tightening::UB ) );
+        }
     }
     else
     {
         // Default
         queryDivider = std::unique_ptr<QueryDivider>
-            ( new LargestIntervalDivider( inputVariables ) );
-    }
-
-    String queryId = "";
-    // Create a new case split
-    QueryDivider::InputRegion initialRegion;
-    InputQuery *inputQuery = _baseEngine->getInputQuery();
-    for ( const auto &variable : inputVariables )
-    {
-        initialRegion._lowerBounds[variable] =
-            inputQuery->getLowerBounds()[variable];
-        initialRegion._upperBounds[variable] =
-            inputQuery->getUpperBounds()[variable];
-    }
-
-    auto split = std::unique_ptr<PiecewiseLinearCaseSplit>
-        ( new PiecewiseLinearCaseSplit() );
-
-    // Add bound as equations for each input variable
-    for ( const auto &variable : inputVariables )
-    {
-        double lb = initialRegion._lowerBounds[variable];
-        double ub = initialRegion._upperBounds[variable];
-        split->storeBoundTightening( Tightening( variable, lb,
-                                                 Tightening::LB ) );
-        split->storeBoundTightening( Tightening( variable, ub,
-                                                 Tightening::UB ) );
+            ( new ReluDivider( _baseEngine ) );
     }
 
     queryDivider->createSubQueries( pow( 2, _initialDivides ), queryId,
@@ -336,6 +442,17 @@ void DnCManager::updateTimeoutReached( timespec startTime, unsigned long long
     struct timespec now = TimeUtils::sampleMicro();
     _timeoutReached = TimeUtils::timePassed( startTime, now ) >=
         timeoutInMicroSeconds;
+}
+
+void DnCManager::log( const String &message )
+{
+    if ( GlobalConfiguration::DNC_MANAGER_LOGGING )
+        printf( "DnCManager: %s\n", message.ascii() );
+}
+
+void DnCManager::setConstraintViolationThreshold( unsigned threshold )
+{
+    _constraintViolationThreshold = threshold;
 }
 
 //

@@ -16,6 +16,7 @@
 #ifndef __DnCWorker_h__
 #define __DnCWorker_h__
 
+#include "BiasStrategy.h"
 #include "DivideStrategy.h"
 #include "Engine.h"
 #include "PiecewiseLinearCaseSplit.h"
@@ -26,16 +27,19 @@
 class DnCWorker
 {
 public:
-    DnCWorker( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+    DnCWorker( WorkerQueue *workload, std::shared_ptr<IEngine> engine,
                std::atomic_uint &numUnsolvedSubqueries,
                std::atomic_bool &shouldQuitSolving, unsigned threadId,
                unsigned onlineDivides, float timeoutFactor,
-               DivideStrategy divideStrategy );
+               DivideStrategy divideStrategy, unsigned maxDepth );
 
     /*
-      Repeatedly handling subQueries from the input worker queue
+      Pop one subQuery, solve it and handle the result
+      Return true if the DnCWorker should continue running
     */
-    void run();
+    void popOneSubQueryAndSolve( bool restoreTreeStates = false, unsigned
+                                 biasedLayer=0,
+                                 BiasStrategy biasStrategy=BiasStrategy::Centroid );
 
 private:
     /*
@@ -46,18 +50,18 @@ private:
     /*
       Convert the exitCode to string
     */
-    static String exitCodeToString( Engine::ExitCode result );
+    static String exitCodeToString( IEngine::ExitCode result );
 
     /*
       Print the current progress
     */
-    void printProgress( String queryId, Engine::ExitCode result ) const;
+    void printProgress( String queryId, IEngine::ExitCode result ) const;
 
     /*
       The queue of subqueries (shared across threads)
     */
     WorkerQueue *_workload;
-    std::shared_ptr<Engine> _engine;
+    std::shared_ptr<IEngine> _engine;
 
     /*
       The number of unsolved subqueries
@@ -79,6 +83,12 @@ private:
     unsigned _threadId;
     unsigned _onlineDivides;
     float _timeoutFactor;
+
+    unsigned _biasedLayer;
+    BiasStrategy _biasStrategy;
+
+    unsigned _maxDepth;
+
 };
 
 #endif // __DnCWorker_h__

@@ -42,17 +42,24 @@ void Options::initializeDefaultValues()
       Bool options
     */
     _boolOptions[DNC_MODE] = false;
+    _boolOptions[SPLIT_ONLY] = false;
     _boolOptions[PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS] = false;
-
+    _boolOptions[RESTORE_TREE_STATES] = false;
+    _boolOptions[LOOK_AHEAD_PREPROCESSING] = false;
+    _boolOptions[PREPROCESS_ONLY] = false;
     /*
       Int options
     */
     _intOptions[NUM_WORKERS] = 4;
-    _intOptions[NUM_INITIAL_DIVIDES] = 0;
+    _intOptions[NUM_INITIAL_DIVIDES] = 2;
     _intOptions[NUM_ONLINE_DIVIDES] = 2;
-    _intOptions[INITIAL_TIMEOUT] = 5;
+    _intOptions[INITIAL_TIMEOUT] = -1;
     _intOptions[VERBOSITY] = 2;
     _intOptions[TIMEOUT] = 0;
+    _intOptions[FOCUS_LAYER] = 0;
+    _intOptions[MAX_DEPTH] = 4;
+    _intOptions[MAX_TREE_DEPTH] = 10;
+    _intOptions[SPLIT_THRESHOLD] = 1;
 
     /*
       Float options
@@ -64,7 +71,12 @@ void Options::initializeDefaultValues()
     */
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
+    _stringOptions[FIXED_RELU_PATH] = "";
+    _stringOptions[INPUT_QUERY_FILE_PATH] = "";
     _stringOptions[SUMMARY_FILE] = "";
+    _stringOptions[DIVIDE_STRATEGY] = "auto";
+    _stringOptions[BIAS_STRATEGY] = "";
+    _stringOptions[SUBPROPERTY_PREFIX] = "subproperty";
 }
 
 void Options::parseOptions( int argc, char **argv )

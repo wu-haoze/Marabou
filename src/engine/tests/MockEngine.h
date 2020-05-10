@@ -19,6 +19,7 @@
 #include "IEngine.h"
 #include "List.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "PiecewiseLinearConstraint.h"
 
 class MockEngine : public IEngine
 {
@@ -30,7 +31,7 @@ public:
 
         lastStoredState = NULL;
     }
-
+    
     ~MockEngine()
     {
     }
@@ -103,6 +104,98 @@ public:
     void setNumPlConstraintsDisabledByValidSplits( unsigned /* numConstraints */ )
     {
     }
+
+    unsigned _timeToSolve;
+    IEngine::ExitCode _exitCode;
+    bool solve( unsigned timeoutInSeconds )
+    {
+        if ( timeoutInSeconds >= _timeToSolve )
+            _exitCode = IEngine::TIMEOUT;
+        return _exitCode == IEngine::SAT;
+    }
+
+    void setTimeToSolve( unsigned timeToSolve )
+    {
+        _timeToSolve = timeToSolve;
+    }
+
+    void setExitCode( IEngine::ExitCode exitCode )
+    {
+        _exitCode = exitCode;
+    }
+
+    IEngine::ExitCode getExitCode() const
+    {
+        return _exitCode;
+    }
+
+    void reset()
+    {
+    }
+
+    List<unsigned> _inputVariables;
+    void setInputVariables( List<unsigned> &inputVariables )
+    {
+        _inputVariables = inputVariables;
+    }
+
+    List<unsigned> getInputVariables() const
+    {
+        return _inputVariables;
+    }
+
+    bool propagate()
+    {
+        return true;
+    }
+
+    void getEstimatesReal( Map <unsigned, double>
+                           &balanceEstimates,
+                           Map <unsigned, double>
+                           &runtimeEstimates )
+    {
+        balanceEstimates.clear();
+        runtimeEstimates.clear();
+    }
+
+    void getEstimates( Map <unsigned, double>
+                       &balanceEstimates,
+                       Map <unsigned, double>
+                       &runtimeEstimates )
+    {
+        balanceEstimates.clear();
+        runtimeEstimates.clear();
+    }
+
+    mutable SmtState *lastRestoredSmtState;
+    bool restoreSmtState( SmtState &smtState )
+    {
+        lastRestoredSmtState = &smtState;
+        return true;
+    }
+
+    mutable SmtState *lastStoredSmtState;
+    void storeSmtState( SmtState &smtState )
+    {
+        lastStoredSmtState = &smtState;
+    }
+
+    PiecewiseLinearConstraint *getConstraintFromId( unsigned id )
+    {
+        std::cout << id << std::endl;
+        return NULL;
+    }
+
+    unsigned numberOfConstraints()
+    {
+	return 0;
+    }
+    
+    void setBiasedPhases( unsigned biasedLayer, BiasStrategy strategy )
+    {
+        std::cout << biasedLayer << " " << strategy << std::endl;
+    }
+
 };
 
 #endif // __MockEngine_h__

@@ -21,6 +21,7 @@
 #include "AutoProjectedSteepestEdge.h"
 #include "AutoRowBoundTightener.h"
 #include "AutoTableau.h"
+#include "BiasStrategy.h"
 #include "BlandsRule.h"
 #include "DantzigsRule.h"
 #include "DegradationChecker.h"
@@ -35,6 +36,10 @@
 
 #include <atomic>
 
+#ifdef _WIN32
+#undef ERROR
+#endif
+
 class EngineState;
 class InputQuery;
 class PiecewiseLinearConstraint;
@@ -46,15 +51,9 @@ public:
     Engine( unsigned verbosity = 2 );
     ~Engine();
 
-    enum ExitCode {
-        UNSAT = 0,
-        SAT = 1,
-        ERROR = 2,
-        TIMEOUT = 3,
-        QUIT_REQUESTED = 4,
+    void applySplits( const Map<unsigned, unsigned> &idToPhase );
 
-        NOT_DONE = 999,
-    };
+    void setBiasedPhases( unsigned biasedLayer, BiasStrategy strategy );
 
     /*
       Attempt to find a feasible solution for the input within a time limit
@@ -113,9 +112,15 @@ public:
     void applySplit( const PiecewiseLinearCaseSplit &split );
 
     /*
+      Reset the state of the engine, before solving a new query
+      (as part of DnC mode).
+    */
+    void reset();
+
+    /*
       Reset the statistics object
     */
-    void resetStatistics( const Statistics &statistics );
+    void resetStatistics();
 
     /*
       Clear the violated PL constraints
@@ -123,16 +128,93 @@ public:
     void clearViolatedPLConstraints();
 
     /*
+      Set the Engine's level of verbosity
+    */
+    void setVerbosity( unsigned verbosity );
+
+    /*
+      Set the constraint violation threshold of SmtCore
+    */
+    void setConstraintViolationThreshold( unsigned threshold );
+
+
+    /*
       PSA: The following two methods are for DnC only and should be used very
-      cauciously.
+      cautiously.
      */
     void resetSmtCore();
-
     void resetExitCode();
-
     void resetBoundTighteners();
 
-private:
+    /*
+      Apply the stack to the newly created SmtCore, returns false if UNSAT is
+      found in this process.
+    */
+    bool restoreSmtState( SmtState &smtState );
+
+    /*
+      Store the stack of the timed-out query
+    */
+    void storeSmtState( SmtState &smtState );
+
+
+    bool propagate();
+
+    void getEstimatesReal( Map <unsigned, double> &balanceEstimates,
+                           Map <unsigned, double> &runtimeEstimates );
+
+    void getEstimates( Map <unsigned, double> &balanceEstimates,
+                       Map <unsigned, double> &runtimeEstimates );
+
+    bool lookAheadPropagate( Map<unsigned, unsigned> &allSplits, bool sbtOnly );
+
+    void numberOfActive();
+
+    /*
+      A code indicating how the run terminated.
+    */
+    ExitCode _exitCode;
+
+    /*
+      The SMT engine is in charge of case splitting.
+    */
+    SmtCore _smtCore;
+
+    bool _processed;
+
+    bool applyAllValidConstraintCaseSplits();
+
+    PiecewiseLinearConstraint *getConstraintFromId( unsigned id );
+
+    /*
+      Get the centroid of the input region
+    */
+    void getCentroid( Vector<double> &centroid );
+
+    /*
+      Mapping id to PiecewiseLinearConstraint
+    */
+    Map<unsigned, PiecewiseLinearConstraint *> _idToConstraint;
+
+    /*
+      Perform a round of symbolic bound tightening, taking into
+      account the current state of the piecewise linear constraints.
+    */
+    void performSymbolicBoundTightening( bool performSbt = true );
+
+    /*
+      Collect and print various statistics.
+    */
+    Statistics _statistics;
+
+    void storeInitialEngineState();
+
+    unsigned numberOfConstraints();
+    
+ private:
+
+    float _biasedRatio;
+
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
         STRONG_RESTORATION_NEEDED = 1,
@@ -151,11 +233,6 @@ private:
       access to the explicit basis matrix.
     */
     void explicitBasisBoundTightening();
-
-    /*
-      Collect and print various statistics.
-    */
-    Statistics _statistics;
 
     /*
       The tableau object maintains the equations, assignments and bounds.
@@ -199,11 +276,6 @@ private:
       Symbolic bound tightnere.
     */
     SymbolicBoundTightener *_symbolicBoundTightener;
-
-    /*
-      The SMT engine is in charge of case splitting.
-    */
-    SmtCore _smtCore;
 
     /*
       Number of pl constraints disabled by valid splits.
@@ -257,11 +329,6 @@ private:
     std::atomic_bool _quitRequested;
 
     /*
-      A code indicating how the run terminated.
-    */
-    ExitCode _exitCode;
-
-    /*
       An object in charge of managing bound tightenings
       proposed by the PiecewiseLinearConstriants.
     */
@@ -288,6 +355,18 @@ private:
       2: print out statistics during solving
     */
     unsigned _verbosity;
+
+    /*
+      Records for checking whether the solution process is, overall,
+      making progress. _lastNumVisitedStates stores the previous number
+      of visited tree states, and _lastIterationWithProgress stores the
+      last iteration number where the number of visited tree states was
+      observed to increase.
+    */
+    unsigned _lastNumVisitedStates;
+    unsigned long long _lastIterationWithProgress;
+
+    unsigned _constraintViolationThreshold;
 
     /*
       Perform a simplex step: compute the cost function, pick the
@@ -326,6 +405,8 @@ private:
     */
     void selectViolatedPlConstraint();
 
+    //void selectBranchingPlConstraint();
+
     /*
       Report the violated PL constraint to the SMT engine.
     */
@@ -351,13 +432,12 @@ private:
       Apply all valid case splits proposed by the constraints.
       Return true if a valid case split has been applied.
     */
-    bool applyAllValidConstraintCaseSplits();
     bool applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constraint );
 
     /*
       Update statitstics, print them if needed.
     */
-    void mainLoopStatistics();
+    void mainLoopStatistics( unsigned verbosity = 2 );
 
     /*
       Check if the current degradation is high
@@ -379,7 +459,6 @@ private:
       Store the original engine state within the precision restorer.
       Restore the tableau from the original version.
     */
-    void storeInitialEngineState();
     void performPrecisionRestoration( PrecisionRestorer::RestoreBasics restoreBasics );
     bool basisRestorationNeeded() const;
 
@@ -401,15 +480,22 @@ private:
     bool attemptToMergeVariables( unsigned x1, unsigned x2 );
 
     /*
-      Perform a round of symbolic bound tightening, taking into
-      account the current state of the piecewise linear constraints.
-    */
-    void performSymbolicBoundTightening();
-
-    /*
       Check whether a timeout value has been provided and exceeded.
     */
     bool shouldExitDueToTimeout( unsigned timeout ) const;
+
+    /*
+      Evaluate the network on legal inputs; obtain the assignment
+      for as many intermediate nodes as possible; and then try
+      to assign these values to the corresponding variables.
+    */
+    void warmStart();
+
+    /*
+      Check whether the number of visited tree states has increased
+      recently. If not, request a precision restoration.
+    */
+    void checkOverallProgress();
 
     /*
       Helper functions for input query preprocessing

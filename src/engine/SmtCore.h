@@ -18,7 +18,9 @@
 
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearConstraint.h"
+#include "SmtState.h"
 #include "Stack.h"
+#include "StackEntry.h"
 #include "Statistics.h"
 
 class EngineState;
@@ -35,6 +37,8 @@ public:
       Clear the stack.
     */
     void freeMemory();
+
+    void reportViolatedConstraintPrep( PiecewiseLinearConstraint *constraint );
 
     /*
       Inform the SMT core that a PL constraint is violated.
@@ -79,6 +83,8 @@ public:
     */
     void recordImpliedValidSplit( PiecewiseLinearCaseSplit &validSplit );
 
+    void recordImpliedIdToPhase( unsigned id, unsigned phaseStatus );
+
     /*
       Return a list of all splits performed so far, both SMT-originating and valid ones,
       in the correct order.
@@ -103,25 +109,30 @@ public:
     bool checkSkewFromDebuggingSolution();
     bool splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, String &error ) const;
 
-private:
+    void setConstraintViolationThreshold( unsigned threshold );
+
     /*
-      A stack entry consists of the engine state before the split,
-      the active split, the alternative splits (in case of backtrack),
-      and also any implied splits that were discovered subsequently.
+      Replay a stackEntry
     */
-    struct StackEntry
-    {
-    public:
-        PiecewiseLinearCaseSplit _activeSplit;
-        List<PiecewiseLinearCaseSplit> _impliedValidSplits;
-        List<PiecewiseLinearCaseSplit> _alternativeSplits;
-        EngineState *_engineState;
-    };
+    void replayStackEntry( StackEntry *stackEntry );
+
+    /*
+      Store the stack of the timed-out query
+    */
+    void storeSmtState( SmtState &smtState );
 
     /*
       Valid splits that were implied by level 0 of the stack.
     */
     List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;
+
+    Map<unsigned, unsigned> _impliedIdToPhaseAtRoot;
+
+private:
+    /*
+      duplicate StackEntry
+    */
+    StackEntry *duplicateStackEntry( const StackEntry &stackEntry );
 
     /*
       Collect and print various statistics.
@@ -161,6 +172,11 @@ private:
       debugging purposes.
     */
     unsigned _stateId;
+
+    /*
+      Split when some relu has been violated for this many times
+    */
+    unsigned _constraintViolationThreshold;
 };
 
 #endif // __SmtCore_h__

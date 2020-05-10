@@ -21,6 +21,13 @@ class GlobalConfiguration
 public:
     static void print();
 
+    // The stack depth for quick solve in look-ahead preprocessing.
+    static const unsigned QUICK_SOLVE_STACK_DEPTH_THRESHOLD;
+    static const unsigned CONSTRAINT_VIOLATION_THRESHOLD_QUICK;
+
+    // The number of Relus to be considered in relusplitting heuristics
+    static const unsigned RUNTIME_ESTIMATE_THRESHOLD;
+
     // The default epsilon used for comparing doubles
     static const double DEFAULT_EPSILON_FOR_COMPARISONS;
 
@@ -75,6 +82,14 @@ public:
     // If the difference between a variable's lower and upper bounds is smaller than this
     // threshold, the preprocessor will treat it as fixed.
     static const double PREPROCESSOR_ALMOST_FIXED_THRESHOLD;
+
+    // Try to set the initial tableau assignment to an assignment that is legal with
+    // respect to the input network.
+    static const bool WARM_START;
+
+    // The maximal number of iterations without new tree states being visited, before
+    // the engine performs a precision restoration.
+    static const unsigned MAX_ITERATIONS_WITHOUT_PROGRESS;
 
     // How often should the main loop check the current degradation?
     static const unsigned DEGRADATION_CHECKING_FREQUENCY;
@@ -187,6 +202,7 @@ public:
     /*
       Logging options
     */
+    static const bool DNC_MANAGER_LOGGING;
     static const bool ENGINE_LOGGING;
     static const bool TABLEAU_LOGGING;
     static const bool SMT_CORE_LOGGING;

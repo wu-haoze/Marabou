@@ -50,6 +50,8 @@ public:
     void removeEquationsByIndex( const Set<unsigned> indices );
 
     void addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint );
+    void setDirection( unsigned id, int direction );
+
     const List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints() const;
 	List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints();
 
@@ -58,11 +60,14 @@ public:
     */
     void markInputVariable( unsigned variable, unsigned inputIndex );
     void markOutputVariable( unsigned variable, unsigned inputIndex );
+    void markIdToPiecewiseLinearConstriant( unsigned id,
+                                            PiecewiseLinearConstraint *relu );
     unsigned inputVariableByIndex( unsigned index ) const;
     unsigned outputVariableByIndex( unsigned index ) const;
     unsigned getNumInputVariables() const;
     unsigned getNumOutputVariables() const;
     List<unsigned> getInputVariables() const;
+    List<unsigned> getOutputVariables() const;
 
     /*
       Methods for setting and getting the solution.
@@ -116,6 +121,7 @@ public:
       Print input and output bounds
     */
     void printInputOutputBounds() const;
+    void dump() const;
 
     /*
       Adjsut the input/output variable mappings because variables have been merged
@@ -137,19 +143,14 @@ private:
     Map<unsigned, double> _upperBounds;
     List<PiecewiseLinearConstraint *> _plConstraints;
 
+    Map<unsigned, ReluConstraint *> _idToConstraint;
+
     Map<unsigned, double> _solution;
 
     /*
       Free any stored pl constraints.
     */
     void freeConstraintsIfNeeded();
-
-    /*
-      An object that knows the topology of the network being checked,
-      and can be used for various operations such as network
-      evaluation of topology-based bound tightening.
-     */
-    NetworkLevelReasoner *_networkLevelReasoner;
 
 public:
     /*
@@ -161,6 +162,16 @@ public:
     Map<unsigned, unsigned> _variableToOutputIndex;
     Map<unsigned, unsigned> _outputIndexToVariable;
 
+    /*
+      An object that knows the topology of the network being checked,
+      and can be used for various operations such as network
+      evaluation of topology-based bound tightening.
+     */
+    NetworkLevelReasoner *_networkLevelReasoner;
+
+    /*
+      Symbolic bound tightener.
+    */
     SymbolicBoundTightener *_sbt;
 };
 
