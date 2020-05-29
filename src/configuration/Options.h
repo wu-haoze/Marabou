@@ -39,6 +39,8 @@ public:
 
         // Version flag
         VERSION,
+
+        LINEAR_RELAXATION,
     };
 
     enum IntOptions {

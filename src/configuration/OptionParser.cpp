@@ -45,6 +45,9 @@ void OptionParser::initialize()
         ( "dnc",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
+        ( "lrx",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::LINEAR_RELAXATION]) ),
+          "Use linear relaxation" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

@@ -116,6 +116,9 @@ void Marabou::prepareInputQuery()
             splitThreshold = GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD;
         }
         _engine.setConstraintViolationThreshold( splitThreshold );
+
+        bool linearRelaxation = Options::get()->getBool( Options::LINEAR_RELAXATION );
+        _engine._linearRelaxation = linearRelaxation;
     }
 }
 

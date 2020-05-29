@@ -151,6 +151,8 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
+    bool _linearRelaxation;
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,

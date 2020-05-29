@@ -30,7 +30,8 @@
 #include "TimeUtils.h"
 
 Engine::Engine( unsigned verbosity )
-    : _rowBoundTightener( *_tableau )
+    : _linearRelaxation( false )
+    , _rowBoundTightener( *_tableau )
     , _smtCore( this )
     , _numPlConstraintsDisabledByValidSplits( 0 )
     , _preprocessingEnabled( false )
@@ -130,15 +131,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     bool splitJustPerformed = true;
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
-
-    // Presolve and add some more info
-    do
-    {
-        performSymbolicBoundTightening();
-    }
-    while ( applyAllValidConstraintCaseSplits() );
-
-    augmentTableauWithLinearRelaxation();
 
     while ( true )
     {
@@ -1143,6 +1135,18 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
     log( "processInputQuery done\n" );
 
     _smtCore.storeDebuggingSolution( _preprocessedQuery._debuggingSolution );
+
+    // Augment the tableaus with linear relaxation
+    if ( _linearRelaxation )
+    {
+        do
+        {
+            performSymbolicBoundTightening();
+        }
+        while ( applyAllValidConstraintCaseSplits() );
+        augmentTableauWithLinearRelaxation();
+    }
+
     return true;
 }
 
