@@ -156,6 +156,11 @@ public:
     unsigned getB() const;
 
     /*
+      Get the index of the F variable.
+    */
+    unsigned getF() const;
+
+    /*
       Get the current phase status.
     */
     PhaseStatus getPhaseStatus() const;

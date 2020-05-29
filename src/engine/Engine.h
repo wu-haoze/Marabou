@@ -473,6 +473,9 @@ private:
       to handle case splits
     */
     void updateDirections();
+
+    void augmentTableauWithLinearRelaxation();
+
 };
 
 #endif // __Engine_h__

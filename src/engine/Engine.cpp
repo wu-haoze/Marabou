@@ -25,6 +25,7 @@
 #include "MarabouError.h"
 #include "PiecewiseLinearConstraint.h"
 #include "Preprocessor.h"
+#include "ReluConstraint.h"
 #include "TableauRow.h"
 #include "TimeUtils.h"
 
@@ -86,6 +87,32 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
+void Engine::augmentTableauWithLinearRelaxation()
+{
+    for ( const auto &constraint : _plConstraints )
+    {
+        if ( constraint->isActive() && !constraint->phaseFixed() )
+        {
+            ReluConstraint *relu = (ReluConstraint *)constraint;
+            unsigned b = relu->getB();
+            unsigned f = relu->getF();
+            double l = _tableau->getLowerBound( b );
+            double u = _tableau->getUpperBound( f );
+            // Encoding y <= u / (u - l) * x + u * l / (l - u)
+            double range = u - l;
+            double A = u / range;
+            double B = - u * l / range;
+            PiecewiseLinearCaseSplit split;
+            Equation linRelax( Equation::LE );
+            linRelax.addAddend( 1.0, b );
+            linRelax.addAddend( -A, f );
+            linRelax.setScalar( B );
+            split.addEquation( linRelax );
+            applySplit( split );
+        }
+    }
+}
+
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
@@ -103,6 +130,16 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     bool splitJustPerformed = true;
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
+
+    // Presolve and add some more info
+    do
+    {
+        performSymbolicBoundTightening();
+    }
+    while ( applyAllValidConstraintCaseSplits() );
+
+    augmentTableauWithLinearRelaxation();
+
     while ( true )
     {
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
