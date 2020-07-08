@@ -87,7 +87,7 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
-bool Engine::solve( unsigned timeoutInSeconds )
+bool Engine::solve( unsigned timeoutInSeconds, unsigned numAdversarials )
 {
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
@@ -103,6 +103,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
         printf( "\n---\n" );
     }
 
+    unsigned numAdversarialsFound = 0;
     bool splitJustPerformed = true;
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( true )
@@ -232,7 +233,25 @@ bool Engine::solve( unsigned timeoutInSeconds )
                         _statistics.print();
                     }
                     _exitCode = Engine::SAT;
-                    return true;
+                    extractSolution( _preprocessedQuery );
+                    printf( "Input assignment:\n" );
+                    for ( unsigned i = 0; i < _preprocessedQuery.getNumInputVariables(); ++i )
+                        printf( "\tx%u = %lf\n", i, _preprocessedQuery.getSolutionValue
+                                ( _preprocessedQuery.inputVariableByIndex( i ) ) );
+
+                    printf( "\n" );
+                    printf( "Output:\n" );
+                    for ( unsigned i = 0; i < _preprocessedQuery.getNumOutputVariables(); ++i )
+                        printf( "\ty%u = %lf\n", i, _preprocessedQuery.getSolutionValue
+                                ( _preprocessedQuery.outputVariableByIndex( i ) ) );
+                    printf( "\n" );
+                    if ( numAdversarials == numAdversarialsFound )
+                        return true;
+                    else
+                    {
+                        ++numAdversarialsFound;
+                        throw InfeasibleQueryException();
+                    }
                 }
 
                 // We have violated piecewise-linear constraints.

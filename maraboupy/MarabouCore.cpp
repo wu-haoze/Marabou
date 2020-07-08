@@ -118,6 +118,7 @@ struct MarabouOptions {
         , _timeoutInSeconds( 0 )
         , _timeoutFactor( 1.5 )
         , _verbosity( 2 )
+        , _numAdversarials( 1 )
         , _dnc( false )
     {};
 
@@ -128,6 +129,7 @@ struct MarabouOptions {
     unsigned _timeoutInSeconds;
     float _timeoutFactor;
     unsigned _verbosity;
+    unsigned _numAdversarials;
     bool _dnc;
 };
 
@@ -145,6 +147,7 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, Marab
     try{
         bool verbosity = options._verbosity;
         unsigned timeoutInSeconds = options._timeoutInSeconds;
+        unsigned numAdversarials = options._numAdversarials;
         bool dnc = options._dnc;
 
         Engine engine;
@@ -184,7 +187,7 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, Marab
             }
         } else
         {
-            if(!engine.solve(timeoutInSeconds)) return std::make_pair(ret, *(engine.getStatistics()));
+          if(!engine.solve(timeoutInSeconds, numAdversarials)) return std::make_pair(ret, *(engine.getStatistics()));
 
             if (engine.getExitCode() == Engine::SAT)
                 engine.extractSolution(inputQuery);
@@ -246,6 +249,7 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def_readwrite("_timeoutInSeconds", &MarabouOptions::_timeoutInSeconds)
         .def_readwrite("_timeoutFactor", &MarabouOptions::_timeoutFactor)
         .def_readwrite("_verbosity", &MarabouOptions::_verbosity)
+        .def_readwrite("_numAdversarials", &MarabouOptions::_numAdversarials)
         .def_readwrite("_dnc", &MarabouOptions::_dnc);
     py::enum_<PiecewiseLinearFunctionType>(m, "PiecewiseLinearFunctionType")
         .value("ReLU", PiecewiseLinearFunctionType::RELU)

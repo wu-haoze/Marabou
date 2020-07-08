@@ -122,9 +122,9 @@ def solve_query(ipq, filename="", verbose=True, options=None):
     return [vals, stats]
 
 def createOptions( numWorkers=4, initialTimeout=5, initialDivides=0, onlineDivides=2,
-                   timeoutInSeconds=0, timeoutFactor=1.5, verbosity=2, dnc=False):
-    """
-    Create an option object
+                   timeoutInSeconds=0, timeoutFactor=1.5, verbosity=2,
+                   numAdversarials=1, dnc=False ):
+    """Create an options object for how Marabou should solve the query
     """
     options = Options()
     options._numWorkers = numWorkers
@@ -134,5 +134,6 @@ def createOptions( numWorkers=4, initialTimeout=5, initialDivides=0, onlineDivid
     options._timeoutInSeconds = timeoutInSeconds
     options._timeoutFactor = timeoutFactor
     options._verbosity = verbosity
+    options._numAdversarials = numAdversarials
     options._dnc = dnc
     return options

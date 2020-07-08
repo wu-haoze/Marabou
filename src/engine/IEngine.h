@@ -56,7 +56,7 @@ public:
     /*
       Solve the encoded query.
     */
-    virtual bool solve( unsigned timeoutInSeconds ) = 0;
+    virtual bool solve( unsigned timeoutInSeconds, unsigned numAdversarials ) = 0;
 
     /*
       Retrieve the exit code.

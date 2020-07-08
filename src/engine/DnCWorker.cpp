@@ -83,7 +83,7 @@ void DnCWorker::popOneSubQueryAndSolve()
 
         // Apply the split and solve
         _engine->applySplit( *split );
-        _engine->solve( timeoutInSeconds );
+        _engine->solve( timeoutInSeconds, 1 );
 
         IEngine::ExitCode result = _engine->getExitCode();
         printProgress( queryId, result );
