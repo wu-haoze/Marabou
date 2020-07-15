@@ -1728,11 +1728,6 @@ List<unsigned> Engine::getInputVariables() const
     return _preprocessedQuery.getInputVariables();
 }
 
-unsigned Engine::getOuputVariableByIndex( unsigned ) const
-{
-    return _preprocessedQuery.getOuputVariables();
-}
-
 void Engine::performSymbolicBoundTightening()
 {
     if ( ( !GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING ) ||

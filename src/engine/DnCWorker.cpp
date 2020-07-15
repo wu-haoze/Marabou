@@ -175,56 +175,47 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
         String queryId = subQuery->_queryId;
         auto split = std::move( subQuery->_split );
         unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
-	auto targetsToCheck = subQuery->_targetsToCheck;
+        auto targetsToCheck = subQuery->_targetsToCheck;
 
-	List<unsigned> targetsYetToCheck = targetsToCheck;
-	for ( const auto& target : targetsToCheck )
-	{
-	    // Reset the engine state
-	    _engine->restoreState( *_initialState );
-	    _engine->reset();
+        List<unsigned> targetsYetToCheck = targetsToCheck;
+        IEngine::ExitCode result = IEngine::NOT_DONE;
 
-	    // Apply the split and solve
-	    _engine->applySplit( *split );
+        for ( const auto& target : targetsToCheck )
+        {
+            // Reset the engine state
+            _engine->restoreState( *_initialState );
+            _engine->reset();
 
-	    // Apply the output relation
-	    PiecewiseLinearCaseSplit outputRelation;
-	    targetVar = _engine->getOutputVariableByIndex( target );
-	    labelVar = _engine->getOutputVariableByIndex( label );	 
-	    Equation equation( Equation::EQ );
-	    eq.addAddend( 1, targetVar );
-	    eq.addAddend( -1, labelVar );
-	    eq.setScalar( 0 );
-	    outputRelation.addEquation( eq );
-	    _engine->applySplit( eq );
-	    
-	    _engine->solve( timeoutInSeconds );
-	    IEngine::ExitCode result = _engine->getExitCode();
-	    if ( result == IEngine::UNSAT )
-	    {
-		targetsYetToCheck.remove( result );
-		continue;
-	    }
-	    else if ( result == IEngine::SAT && volumeThresholdReached( *split ) )
-	    {
-		auto splitDup = new PiecewiseLinearCaseSplit();
-		*splitDup = *split; 
-		if ( !unrobustRegions->push( splitDup ) )
-		    throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH,
-					"DnCWorker::unrobustRegions" );
-		break;
-	    }
-	    else if ( result == IEngine::TIMEOUT ||
-		      result == IEngine::SAT )
-	    {
-		
-	    }
-	}
+            // Apply the split and solve
+            _engine->applySplit( *split );
 
-        IEngine::ExitCode result = _engine->getExitCode();
+            // Apply the output relation
+            PiecewiseLinearCaseSplit outputRelation;
+            unsigned targetVar = _engine->getInputQuery()->outputVariableByIndex( target );
+            unsigned labelVar = _engine->getInputQuery()->outputVariableByIndex( label );
+            Equation eq( Equation::EQ );
+            eq.addAddend( 1, targetVar );
+            eq.addAddend( -1, labelVar );
+            eq.setScalar( 0 );
+            outputRelation.addEquation( eq );
+            _engine->applySplit( outputRelation );
+
+            _engine->solve( timeoutInSeconds );
+            result = _engine->getExitCode();
+            if ( result == IEngine::UNSAT )
+            {
+                targetsYetToCheck.erase( result );
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+
         printProgress( queryId, result );
         // Switch on the result
-        if ( result == IEngine::UNSAT )
+        if ( result == IEngine::UNSAT  && targetsYetToCheck.empty() )
         {
             // If UNSAT, continue to solve
             *_numUnsolvedSubQueries -= 1;
@@ -232,17 +223,20 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
                 *_shouldQuitSolving = true;
             delete subQuery;
         }
-	else if ( result == IEngine::SAT && volumeThresholdReached( *split ) )
+        else if ( result == IEngine::SAT && volumeThresholdReached( *split ) )
         {
-	    // case SAT and volumeThreshold is reached
-	    // we add the hypercube to unrobustRegions
-
-	    *_numUnsolvedSubQueries -= 1;
-	    if ( _numUnsolvedSubQueries->load() == 0 )
+            // case SAT and volumeThreshold is reached
+            // we add the hypercube to unrobustRegions
+            auto splitDup = new PiecewiseLinearCaseSplit();
+            *splitDup = *split;
+            if ( !unrobustRegions->push( splitDup ) )
+                throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH,
+                                    "DnCWorker::unrobustRegions" );
+            *_numUnsolvedSubQueries -= 1;
+            if ( _numUnsolvedSubQueries->load() == 0 )
                 *_shouldQuitSolving = true;
-
-	    delete subQuery;
-	}
+            delete subQuery;
+        }
 
         else if ( result == IEngine::TIMEOUT ||
 		  result == IEngine::SAT )
@@ -256,6 +250,7 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
                                              _timeoutFactor, subQueries );
             for ( auto &newSubQuery : subQueries )
             {
+                newSubQuery->_targetsToCheck = targetsYetToCheck;
                 if ( !_workload->push( std::move( newSubQuery ) ) )
                 {
                     throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH );

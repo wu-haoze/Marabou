@@ -26,6 +26,7 @@ class EngineState;
 class Equation;
 class PiecewiseLinearCaseSplit;
 class PiecewiseLinearConstraint;
+class InputQuery;
 class IEngine
 {
 public:
@@ -77,6 +78,10 @@ public:
     */
     virtual PiecewiseLinearConstraint *pickSplitPLConstraint() = 0;
 
+    virtual InputQuery *getInputQuery()
+    {
+        return NULL;
+    }
 };
 
 #endif // __IEngine_h__

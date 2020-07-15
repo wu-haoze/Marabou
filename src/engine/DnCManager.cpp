@@ -239,8 +239,18 @@ double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label 
     _numUnsolvedSubQueries = subQueries.size();
     std::atomic_bool shouldQuitSolving( false );
     WorkerQueue *workload = new WorkerQueue( 0 );
+
+    // Get output variable indices that act as targets
+    List<unsigned> targetsToCheck;
+    for ( unsigned i = 0; i < _baseEngine->getInputQuery()->
+              getOutputVariables().size(); ++i )
+        if ( i != label )
+            targetsToCheck.append( i );
+
+    // Append to subQueries
     for ( auto &subQuery : subQueries )
     {
+        subQuery->_targetsToCheck = targetsToCheck;
         if ( !workload->push( subQuery ) )
         {
             // This should never happen
