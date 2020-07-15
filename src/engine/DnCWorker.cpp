@@ -169,9 +169,12 @@ bool DnCWorker::volumeThresholdReached( PiecewiseLinearCaseSplit &split )
         else
             ubs[bound._variable] = bound._value;
     for ( unsigned i = 0; i < _engine->getInputQuery()->getInputVariables().size(); ++i )
-        if ( ( ubs[i] - lbs[i] ) * GlobalConfiguration::INTERVAL_WIDTH_THRESHOLD >
-             _engine->getFullInputRanges( i ) )
-            return false;
+        {
+            std::cout << "range " << i << " " << _engine->getInputQuery()->getInputDimensionRange( i ) << std::endl;
+            if ( ( ubs[i] - lbs[i] ) * GlobalConfiguration::INTERVAL_WIDTH_THRESHOLD >
+                 _engine->getInputQuery()->getInputDimensionRange( i ) )
+                return false;
+        }
     return true;
 }
 

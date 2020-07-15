@@ -35,6 +35,8 @@ public:
     void setNumberOfVariables( unsigned numberOfVariables );
     void setLowerBound( unsigned variable, double bound );
     void setUpperBound( unsigned variable, double bound );
+    void setInputDimensionRange( unsigned variable, double range );
+    double getInputDimensionRange( unsigned variable );
 
     void addEquation( const Equation &equation );
 
@@ -132,6 +134,7 @@ private:
     List<Equation> _equations;
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
+    Map<unsigned, double> _dimensionRanges;
     List<PiecewiseLinearConstraint *> _plConstraints;
 
     Map<unsigned, double> _solution;

@@ -82,6 +82,7 @@ void DnCMarabou::run()
 
         AcasParser acasParser( networkFilePath );
         acasParser.generateQuery( _inputQuery );
+
         if ( propertyFilePath != "" )
             PropertyParser().parse( propertyFilePath, _inputQuery );
     }
