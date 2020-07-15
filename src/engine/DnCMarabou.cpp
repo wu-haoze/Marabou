@@ -116,16 +116,59 @@ void DnCMarabou::run()
                         verbosity ) );
     _dncManager->setConstraintViolationThreshold( splitThreshold );
 
-    struct timespec start = TimeUtils::sampleMicro();
-
     if ( robustLabel == -1 )
-	_dncManager->solve( timeoutInSeconds );
+    {
+        struct timespec start = TimeUtils::sampleMicro();
+        _dncManager->solve( timeoutInSeconds );
+        struct timespec end = TimeUtils::sampleMicro();
+        unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+        displayResults( totalElapsed );
+    }
     else
-	_dncManager->computeRobustness( timeoutInSeconds, robustLabel );
-    struct timespec end = TimeUtils::sampleMicro();
+    {
+        struct timespec start = TimeUtils::sampleMicro();
+        List<PiecewiseLinearCaseSplit> unrobustRegions = _dncManager->
+            computeRobustness( timeoutInSeconds, robustLabel );
+        struct timespec end = TimeUtils::sampleMicro();
+        unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+        displayUnrobustRegions( totalElapsed, unrobustRegions );
 
-    unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
-    displayResults( totalElapsed );
+
+    }
+}
+
+void DnCMarabou::displayUnrobustRegions( unsigned long long microSecondsElapsed,
+                                         List<PiecewiseLinearCaseSplit>
+                                         &unrobustRegions ) const
+{
+    std::cout << "Total Time: " << microSecondsElapsed / 1000000 << std::endl;
+    String resultString = _dncManager->getResultString();
+    // Create a summary file, if requested
+    String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
+    if ( summaryFilePath != "" )
+    {
+        File summaryFile( summaryFilePath );
+        summaryFile.open( File::MODE_WRITE_TRUNCATE );
+
+
+        // Field #1: result
+        summaryFile.write( resultString );
+        // Field #2: total elapsed time
+        summaryFile.write( Stringf( " %u ", microSecondsElapsed / 1000000 ) );
+        // Field #3: number of unrobustRegions
+        summaryFile.write( Stringf( "%u\n", unrobustRegions.size() ) );
+
+        for ( const auto &region : unrobustRegions )
+        {
+            summaryFile.write( "Region: \n");
+            for ( const auto &bound : region.getBoundTightenings() )
+                summaryFile.write( Stringf( "x%d %s %f\n", bound._variable,
+                                            ( bound._type == Tightening::UB ?
+                                              "<=" : ">=" ),
+                                            bound._value ) );
+            summaryFile.write( "\n" );
+        }
+    }
 }
 
 void DnCMarabou::displayResults( unsigned long long microSecondsElapsed ) const

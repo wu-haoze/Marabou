@@ -57,7 +57,8 @@ public:
        Get the percentage of input volumes that is robustness with respect to 
        the constraints defined in the inputQuery and the target 
     */
-    double computeRobustness( unsigned timeoutInSeconds, unsigned target );
+    List<PiecewiseLinearCaseSplit> computeRobustness( unsigned timeoutInSeconds,
+                                                      unsigned target );
     
     /*
       Return the DnCExitCode of the DnCManager

@@ -201,7 +201,7 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     return;
 }
 
-double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label )
+List<PiecewiseLinearCaseSplit> DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -214,7 +214,8 @@ double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label 
     if ( !createEngines() )
     {
         _exitCode = DnCManager::UNSAT;
-        return 0;
+        List<PiecewiseLinearCaseSplit> empty;
+        return empty;
     }
 
     // Prepare the mechanism through which we can ask the engines to quit
@@ -293,7 +294,17 @@ double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label 
         thread.join();
 
     updateDnCExitCode();
-    return 0;
+
+
+    List<PiecewiseLinearCaseSplit> unrobustRegionsList;
+    PiecewiseLinearCaseSplit *unrobustRegion = NULL;
+    while ( !unrobustRegions->empty() )
+    {
+        unrobustRegions->pop( unrobustRegion );
+        unrobustRegionsList.append( *unrobustRegion );
+        delete unrobustRegion;
+    }
+    return unrobustRegionsList;
 }
 
 DnCManager::DnCExitCode DnCManager::getExitCode() const

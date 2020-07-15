@@ -37,6 +37,11 @@ private:
       Display the results
     */
     void displayResults( unsigned long long microSecondsElapsed ) const;
+
+    void displayUnrobustRegions( unsigned long long microSecondsElapsed,
+                                 List<PiecewiseLinearCaseSplit>
+                                 &unrobustRegions ) const;
+
 };
 
 #endif // __DnCMarabou_h__
