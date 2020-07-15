@@ -37,9 +37,19 @@ struct SubQuery
     {
     }
 
+SubQuery( const String &queryId, std::unique_ptr<PiecewiseLinearCaseSplit> &split, unsigned timeoutInSeconds, List<unsigned> &targetsToCheck )
+        : _queryId( queryId )
+        , _split( std::move( split ) )
+        , _timeoutInSeconds( timeoutInSeconds )
+	, _targetsToCheck( targetsToCheck )
+    {
+    }
+
+    
     String _queryId;
     std::unique_ptr<PiecewiseLinearCaseSplit> _split;
     unsigned _timeoutInSeconds;
+    List<unsigned> _targetsToCheck;
 };
 
 // Synchronized Queue containing the Sub-Queries shared by workers

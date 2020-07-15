@@ -166,8 +166,6 @@ bool DnCWorker::volumeThresholdReached( PiecewiseLinearCaseSplit &split )
 
 void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *unrobustRegions )
 {
-    std::cout << unrobustRegions << std::endl;
-    std::cout << label << std::endl;
     SubQuery *subQuery = NULL;
     // Boost queue stores the next element into the passed-in pointer
     // and returns true if the pop is successful (aka, the queue is not empty
@@ -177,18 +175,51 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
         String queryId = subQuery->_queryId;
         auto split = std::move( subQuery->_split );
         unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
+	auto targetsToCheck = subQuery->_targetsToCheck;
 
-        // Reset the engine state
-        _engine->restoreState( *_initialState );
-        _engine->reset();
+	List<unsigned> targetsYetToCheck = targetsToCheck;
+	for ( const auto& target : targetsToCheck )
+	{
+	    // Reset the engine state
+	    _engine->restoreState( *_initialState );
+	    _engine->reset();
 
-        // TODO: each worker is going to keep a map from *CaseSplit to an
-        // object of class DnCStatistics, which contains some basic
-        // statistics. The maps are owned by the DnCManager.
+	    // Apply the split and solve
+	    _engine->applySplit( *split );
 
-        // Apply the split and solve
-        _engine->applySplit( *split );
-        _engine->solve( timeoutInSeconds );
+	    // Apply the output relation
+	    PiecewiseLinearCaseSplit outputRelation;
+	    targetVar = _engine->getOutputVariableByIndex( target );
+	    labelVar = _engine->getOutputVariableByIndex( label );	 
+	    Equation equation( Equation::EQ );
+	    eq.addAddend( 1, targetVar );
+	    eq.addAddend( -1, labelVar );
+	    eq.setScalar( 0 );
+	    outputRelation.addEquation( eq );
+	    _engine->applySplit( eq );
+	    
+	    _engine->solve( timeoutInSeconds );
+	    IEngine::ExitCode result = _engine->getExitCode();
+	    if ( result == IEngine::UNSAT )
+	    {
+		targetsYetToCheck.remove( result );
+		continue;
+	    }
+	    else if ( result == IEngine::SAT && volumeThresholdReached( *split ) )
+	    {
+		auto splitDup = new PiecewiseLinearCaseSplit();
+		*splitDup = *split; 
+		if ( !unrobustRegions->push( splitDup ) )
+		    throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH,
+					"DnCWorker::unrobustRegions" );
+		break;
+	    }
+	    else if ( result == IEngine::TIMEOUT ||
+		      result == IEngine::SAT )
+	    {
+		
+	    }
+	}
 
         IEngine::ExitCode result = _engine->getExitCode();
         printProgress( queryId, result );
@@ -201,8 +232,20 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
                 *_shouldQuitSolving = true;
             delete subQuery;
         }
+	else if ( result == IEngine::SAT && volumeThresholdReached( *split ) )
+        {
+	    // case SAT and volumeThreshold is reached
+	    // we add the hypercube to unrobustRegions
+
+	    *_numUnsolvedSubQueries -= 1;
+	    if ( _numUnsolvedSubQueries->load() == 0 )
+                *_shouldQuitSolving = true;
+
+	    delete subQuery;
+	}
+
         else if ( result == IEngine::TIMEOUT ||
-		  ( result == IEngine::SAT && !volumeThresholdReached( *split ) ) )
+		  result == IEngine::SAT )
         {
             // If TIMEOUT, split the current input region and add the
             // new subQueries to the current queue
@@ -223,18 +266,6 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
             *_numUnsolvedSubQueries -= 1;
             delete subQuery;
         }
-	else if ( result == IEngine::SAT )
-        {
-	    // case SAT and volumeThreshold is reached
-	    // we add the hypercube to unrobustRegions
-	    auto splitDup = new PiecewiseLinearCaseSplit();
-	    *splitDup = *split; 
-	    if ( !unrobustRegions->push( splitDup ) )
-		throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH,
-				    "DnCWorker::unrobustRegions" );
-	    *_numUnsolvedSubQueries -= 1;
-	    delete subQuery;
-	}
         else if ( result == IEngine::QUIT_REQUESTED )
         {
             // If engine was asked to quit, quit
