@@ -86,7 +86,7 @@ public:
     virtual double getFullInputRanges( unsigned index )
     {
         std::cout << "Getting range for x" <<  index << std::endl;
-        return 0;
+        return 100000000000;
     }
 };
 

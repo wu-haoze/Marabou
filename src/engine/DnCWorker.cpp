@@ -204,7 +204,10 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
             PiecewiseLinearCaseSplit outputRelation;
             unsigned targetVar = _engine->getInputQuery()->outputVariableByIndex( target );
             unsigned labelVar = _engine->getInputQuery()->outputVariableByIndex( label );
-            Equation eq( Equation::EQ );
+            printf( "Target: %d, Target var: %d\n", target, targetVar );
+            printf( "Label: %d, Label var: %d\n", label, labelVar );
+
+            Equation eq( Equation::LE );
             eq.addAddend( 1, targetVar );
             eq.addAddend( -1, labelVar );
             eq.setScalar( 0 );
