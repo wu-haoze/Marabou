@@ -46,7 +46,7 @@ void OptionParser::initialize()
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
 	( "robust-label",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::ROBUST_LABEL]) ),
+	  boost::program_options::value<int>( &((*_intOptions)[Options::ROBUST_LABEL]) ),
           "The label to check robustness against" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
