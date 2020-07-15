@@ -82,6 +82,12 @@ public:
     {
         return NULL;
     }
+
+    virtual double getFullInputRanges( unsigned index )
+    {
+        std::cout << "Getting range for x" <<  index << std::endl;
+        return 0;
+    }
 };
 
 #endif // __IEngine_h__

@@ -21,6 +21,13 @@ class GlobalConfiguration
 public:
     static void print();
 
+    // If the range of each input dimension is less than
+    // INTERVAL_WIDTH_THRESHOLD * maxInputDimension
+    // (the latter is defined by the .nnet file)
+    // then checkRobustness do not further split the input region where a SAT
+    // answer is found
+    static const double INTERVAL_WIDTH_THRESHOLD;
+
     static const bool USE_POLARITY_BASED_DIRECTION_HEURISTICS;
 
     // The default epsilon used for comparing doubles

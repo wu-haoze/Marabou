@@ -18,6 +18,7 @@
 #include "DnCWorker.h"
 #include "IEngine.h"
 #include "EngineState.h"
+#include "GlobalConfiguration.h"
 #include "LargestIntervalDivider.h"
 #include "MarabouError.h"
 #include "MStringf.h"
@@ -160,7 +161,17 @@ void DnCWorker::popOneSubQueryAndSolve()
 
 bool DnCWorker::volumeThresholdReached( PiecewiseLinearCaseSplit &split )
 {
-    split.dump();
+    Map<unsigned, double> lbs;
+    Map<unsigned, double> ubs;
+    for ( const auto&bound : split.getBoundTightenings() )
+        if ( bound._type == Tightening::LB )
+            lbs[bound._variable] = bound._value;
+        else
+            ubs[bound._variable] = bound._value;
+    for ( unsigned i = 0; i < _engine->getInputQuery()->getInputVariables().size(); ++i )
+        if ( ( ubs[i] - lbs[i] ) * GlobalConfiguration::INTERVAL_WIDTH_THRESHOLD >
+             _engine->getFullInputRanges( i ) )
+            return false;
     return true;
 }
 
