@@ -64,21 +64,6 @@ void InputQuery::setUpperBound( unsigned variable, double bound )
     _upperBounds[variable] = bound;
 }
 
-void InputQuery::setInputDimensionRange( unsigned variable, double range )
-{
-    if ( variable >=  getInputVariables().size() )
-    {
-        throw MarabouError( MarabouError::VARIABLE_INDEX_OUT_OF_RANGE,
-                            "InputQuery::setInputDimensionRange" );
-    }
-    _dimensionRanges[variable] = range;
-}
-
-double InputQuery::getInputDimensionRange( unsigned variable )
-{
-    return _dimensionRanges[variable];
-}
-
 void InputQuery::addEquation( const Equation &equation )
 {
     _equations.append( equation );

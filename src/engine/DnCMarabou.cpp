@@ -109,6 +109,7 @@ void DnCMarabou::run()
     }
 
     int robustLabel = Options::get()->getInt( Options::ROBUST_LABEL );
+    double splitWidthThreshold = Options::get()->getFloat( Options::SPLIT_WIDTH_THRESHOLD );
     
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
@@ -129,7 +130,7 @@ void DnCMarabou::run()
     {
         struct timespec start = TimeUtils::sampleMicro();
         List<PiecewiseLinearCaseSplit> unrobustRegions = _dncManager->
-            computeRobustness( timeoutInSeconds, robustLabel );
+            computeRobustness( timeoutInSeconds, robustLabel, splitWidthThreshold );
         struct timespec end = TimeUtils::sampleMicro();
         unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
         displayUnrobustRegions( totalElapsed, unrobustRegions );

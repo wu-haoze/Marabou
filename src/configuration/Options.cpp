@@ -60,6 +60,7 @@ void Options::initializeDefaultValues()
       Float options
     */
     _floatOptions[TIMEOUT_FACTOR] = 1.5;
+    _floatOptions[SPLIT_WIDTH_THRESHOLD] = 0.05;
 
     /*
       String options

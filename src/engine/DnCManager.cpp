@@ -55,13 +55,13 @@ void DnCManager::dncSolve( WorkerQueue *workload,
 }
 
 void DnCManager::dncSolveRobustness( WorkerQueue *workload, Hypercubes *unrobustRegions,
-				     std::shared_ptr<Engine> engine,
-				     std::unique_ptr<InputQuery> inputQuery,
-				     std::atomic_uint &numUnsolvedSubQueries,
-				     std::atomic_bool &shouldQuitSolving,
-				     unsigned threadId, unsigned onlineDivides,
-				     float timeoutFactor, DivideStrategy divideStrategy,
-				     unsigned label )
+                                     std::shared_ptr<Engine> engine,
+                                     std::unique_ptr<InputQuery> inputQuery,
+                                     std::atomic_uint &numUnsolvedSubQueries,
+                                     std::atomic_bool &shouldQuitSolving,
+                                     unsigned threadId, unsigned onlineDivides,
+                                     float timeoutFactor, DivideStrategy divideStrategy,
+                                     unsigned label, double splitWidthThreshold )
 {
     unsigned cpuId = 0;
     getCPUId( cpuId );
@@ -75,7 +75,8 @@ void DnCManager::dncSolveRobustness( WorkerQueue *workload, Hypercubes *unrobust
                       timeoutFactor, divideStrategy );
     while ( !shouldQuitSolving.load() )
     {
-        worker.popOneHypercubeAndCheckRobustness( label, unrobustRegions );
+        worker.popOneHypercubeAndCheckRobustness( label, unrobustRegions,
+                                                  splitWidthThreshold );
     }
 }
 
@@ -201,7 +202,9 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     return;
 }
 
-List<PiecewiseLinearCaseSplit> DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label )
+List<PiecewiseLinearCaseSplit> DnCManager::computeRobustness( unsigned timeoutInSeconds,
+                                                              unsigned label,
+                                                              double splitWidthThreshold )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -271,7 +274,8 @@ List<PiecewiseLinearCaseSplit> DnCManager::computeRobustness( unsigned timeoutIn
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy, label ) );
+                                        _timeoutFactor, _divideStrategy, label,
+                                        splitWidthThreshold ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is

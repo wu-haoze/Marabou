@@ -39,10 +39,12 @@ public:
     void popOneSubQueryAndSolve();
 
     void popOneHypercubeAndCheckRobustness( unsigned label,
-					    Hypercubes *unrobustRegions );
+                                            Hypercubes *unrobustRegions,
+                                            double splitWidthThreshold );
     
 private:
-    bool volumeThresholdReached( PiecewiseLinearCaseSplit &split );
+    bool volumeThresholdReached( PiecewiseLinearCaseSplit &split,
+                                 double splitWidthThreshold );
 
     /*
       Initiate the query-divider object
@@ -58,6 +60,9 @@ private:
       Print the current progress
     */
     void printProgress( String queryId, IEngine::ExitCode result ) const;
+
+    void printProgress( String queryId, IEngine::ExitCode result,
+                        List<unsigned> targetsChecked ) const;
 
     /*
       The queue of subqueries (shared across threads)

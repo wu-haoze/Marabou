@@ -58,7 +58,8 @@ public:
        the constraints defined in the inputQuery and the target 
     */
     List<PiecewiseLinearCaseSplit> computeRobustness( unsigned timeoutInSeconds,
-                                                      unsigned target );
+                                                      unsigned target,
+                                                      double splitWidthThreshold );
     
     /*
       Return the DnCExitCode of the DnCManager
@@ -94,14 +95,15 @@ private:
                           float timeoutFactor, DivideStrategy divideStrategy );
 
     static void dncSolveRobustness( WorkerQueue *workload,
-				    Hypercubes *unrobustRegions, 
-				    std::shared_ptr<Engine>
-				    engine, std::unique_ptr<InputQuery> inputQuery,
-				    std::atomic_uint &numUnsolvedSubQueries,
-				    std::atomic_bool &shouldQuitSolving,
-				    unsigned threadId, unsigned onlineDivides,
-				    float timeoutFactor, DivideStrategy
-				    divideStrategy, unsigned label );
+                                    Hypercubes *unrobustRegions,
+                                    std::shared_ptr<Engine>
+                                    engine, std::unique_ptr<InputQuery> inputQuery,
+                                    std::atomic_uint &numUnsolvedSubQueries,
+                                    std::atomic_bool &shouldQuitSolving,
+                                    unsigned threadId, unsigned onlineDivides,
+                                    float timeoutFactor, DivideStrategy
+                                    divideStrategy, unsigned label,
+                                    double splitWidthThreshold );
 
     /*
       Create the base engine from the network and property files,

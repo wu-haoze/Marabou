@@ -99,7 +99,6 @@ void AcasParser::generateQuery( InputQuery &inputQuery )
 
         inputQuery.setLowerBound( _nodeToF[NodeIndex(0, i)], min );
         inputQuery.setUpperBound( _nodeToF[NodeIndex(0, i)], max );
-        inputQuery.setInputDimensionRange( i, max - min );
     }
 
     for ( const auto &fNode : _nodeToF )

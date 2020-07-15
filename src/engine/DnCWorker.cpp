@@ -159,7 +159,8 @@ void DnCWorker::popOneSubQueryAndSolve()
     }
 }
 
-bool DnCWorker::volumeThresholdReached( PiecewiseLinearCaseSplit &split )
+bool DnCWorker::volumeThresholdReached( PiecewiseLinearCaseSplit &split,
+                                        double splitWidthThreshold )
 {
     Map<unsigned, double> lbs;
     Map<unsigned, double> ubs;
@@ -169,16 +170,15 @@ bool DnCWorker::volumeThresholdReached( PiecewiseLinearCaseSplit &split )
         else
             ubs[bound._variable] = bound._value;
     for ( unsigned i = 0; i < _engine->getInputQuery()->getInputVariables().size(); ++i )
-        {
-            std::cout << "range " << i << " " << _engine->getInputQuery()->getInputDimensionRange( i ) << std::endl;
-            if ( ( ubs[i] - lbs[i] ) * GlobalConfiguration::INTERVAL_WIDTH_THRESHOLD >
-                 _engine->getInputQuery()->getInputDimensionRange( i ) )
-                return false;
-        }
+    {
+        if ( ( ubs[i] - lbs[i] ) > splitWidthThreshold )
+            return false;
+    }
     return true;
 }
 
-void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *unrobustRegions )
+void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *unrobustRegions,
+                                                   double splitWidthThreshold )
 {
     SubQuery *subQuery = NULL;
     // Boost queue stores the next element into the passed-in pointer
@@ -192,7 +192,9 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
         auto targetsToCheck = subQuery->_targetsToCheck;
 
         List<unsigned> targetsYetToCheck = targetsToCheck;
+        List<unsigned> targetsChecked;
         IEngine::ExitCode result = IEngine::NOT_DONE;
+
 
         for ( const auto& target : targetsToCheck )
         {
@@ -207,8 +209,6 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
             PiecewiseLinearCaseSplit outputRelation;
             unsigned targetVar = _engine->getInputQuery()->outputVariableByIndex( target );
             unsigned labelVar = _engine->getInputQuery()->outputVariableByIndex( label );
-            printf( "Target: %d, Target var: %d\n", target, targetVar );
-            printf( "Label: %d, Label var: %d\n", label, labelVar );
 
             Equation eq( Equation::LE );
             eq.addAddend( 1, targetVar );
@@ -221,16 +221,14 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
             result = _engine->getExitCode();
             if ( result == IEngine::UNSAT )
             {
-                targetsYetToCheck.erase( result );
-                continue;
+                targetsYetToCheck.erase( target );
+                targetsChecked.append( target );
             }
             else
-            {
                 break;
-            }
         }
 
-        printProgress( queryId, result );
+        printProgress( queryId, result, targetsChecked );
         // Switch on the result
         if ( result == IEngine::UNSAT  && targetsYetToCheck.empty() )
         {
@@ -240,7 +238,8 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
                 *_shouldQuitSolving = true;
             delete subQuery;
         }
-        else if ( result == IEngine::SAT && volumeThresholdReached( *split ) )
+        else if ( result == IEngine::SAT && volumeThresholdReached
+                  ( *split, splitWidthThreshold ) )
         {
             // case SAT and volumeThreshold is reached
             // we add the hypercube to unrobustRegions
@@ -317,6 +316,19 @@ void DnCWorker::printProgress( String queryId, IEngine::ExitCode result ) const
 {
     printf( "Worker %d: Query %s %s, %d tasks remaining\n", _threadId,
             queryId.ascii(), exitCodeToString( result ).ascii(),
+            _numUnsolvedSubQueries->load() );
+}
+
+void DnCWorker::printProgress( String queryId, IEngine::ExitCode result,
+                               List<unsigned> targetsChecked ) const
+{
+    String targetsCheckedStr;
+    for ( const auto&ele : targetsChecked )
+    {
+        targetsCheckedStr += Stringf( "%u ", ele );
+    }
+    printf( "Worker %d: Query %s %s, robust targets: { %s}, %d tasks remaining\n", _threadId,
+            queryId.ascii(), exitCodeToString( result ).ascii(), targetsCheckedStr.ascii(),
             _numUnsolvedSubQueries->load() );
 }
 

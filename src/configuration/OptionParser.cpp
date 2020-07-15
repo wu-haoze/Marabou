@@ -45,9 +45,12 @@ void OptionParser::initialize()
         ( "dnc",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DNC_MODE]) ),
           "Use the divide-and-conquer solving mode" )
-	( "robust-label",
-	  boost::program_options::value<int>( &((*_intOptions)[Options::ROBUST_LABEL]) ),
+        ( "robust-label",
+          boost::program_options::value<int>( &((*_intOptions)[Options::ROBUST_LABEL]) ),
           "The label to check robustness against" )
+        ( "max-cube-width",
+          boost::program_options::value<float>( &((*_floatOptions)[Options::SPLIT_WIDTH_THRESHOLD]) ),
+          "The maximum width along any dimension for a dumped unrobust hypercube." )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

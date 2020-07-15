@@ -56,12 +56,13 @@ public:
 
         SPLIT_THRESHOLD,
 
-	ROBUST_LABEL,
+        ROBUST_LABEL,
     };
 
     enum FloatOptions{
         // DNC options
         TIMEOUT_FACTOR,
+        SPLIT_WIDTH_THRESHOLD,
     };
 
     enum StringOptions {

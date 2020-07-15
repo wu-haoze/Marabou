@@ -35,8 +35,6 @@ public:
     void setNumberOfVariables( unsigned numberOfVariables );
     void setLowerBound( unsigned variable, double bound );
     void setUpperBound( unsigned variable, double bound );
-    void setInputDimensionRange( unsigned variable, double range );
-    double getInputDimensionRange( unsigned variable );
 
     void addEquation( const Equation &equation );
 
