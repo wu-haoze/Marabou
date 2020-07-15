@@ -38,6 +38,8 @@ public:
     */
     void popOneSubQueryAndSolve();
 
+    void popOneHypercubeAndCheckRobustness( unsigned target );
+    
 private:
     /*
       Initiate the query-divider object

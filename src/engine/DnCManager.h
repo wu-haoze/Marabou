@@ -53,6 +53,12 @@ public:
     */
     void solve( unsigned timeoutInSeconds );
 
+    /* 
+       Get the percentage of input volumes that is robustness with respect to 
+       the constraints defined in the inputQuery and the target 
+    */
+    double computeRobustness( unsigned timeoutInSeconds, unsigned target );
+    
     /*
       Return the DnCExitCode of the DnCManager
     */
@@ -85,6 +91,14 @@ private:
                           std::atomic_bool &shouldQuitSolving,
                           unsigned threadId, unsigned onlineDivides,
                           float timeoutFactor, DivideStrategy divideStrategy );
+
+    static void dncSolveRobustness( WorkerQueue *workload, std::shared_ptr<Engine>
+				    engine, std::unique_ptr<InputQuery> inputQuery,
+				    std::atomic_uint &numUnsolvedSubQueries,
+				    std::atomic_bool &shouldQuitSolving,
+				    unsigned threadId, unsigned onlineDivides,
+				    float timeoutFactor, DivideStrategy
+				    divideStrategy, unsigned target );
 
     /*
       Create the base engine from the network and property files,

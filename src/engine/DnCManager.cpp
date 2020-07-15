@@ -53,6 +53,29 @@ void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine
     }
 }
 
+void DnCManager::dncSolveRobustness( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+				     std::unique_ptr<InputQuery> inputQuery,
+				     std::atomic_uint &numUnsolvedSubQueries,
+				     std::atomic_bool &shouldQuitSolving,
+				     unsigned threadId, unsigned onlineDivides,
+				     float timeoutFactor, DivideStrategy divideStrategy,
+				     unsigned target )
+{
+    unsigned cpuId = 0;
+    getCPUId( cpuId );
+    log( Stringf( "Thread #%u on CPU %u", threadId, cpuId ) );
+
+    engine->processInputQuery( *inputQuery, false );
+
+    DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
+                      std::ref( shouldQuitSolving ), threadId, onlineDivides,
+                      timeoutFactor, divideStrategy );
+    while ( !shouldQuitSolving.load() )
+    {
+        worker.popOneHypercubeAndCheckRobustness( target );
+    }
+}
+
 DnCManager::DnCManager( unsigned numWorkers, unsigned initialDivides,
                         unsigned initialTimeout, unsigned onlineDivides,
                         float timeoutFactor, DivideStrategy divideStrategy,
@@ -173,6 +196,87 @@ void DnCManager::solve( unsigned timeoutInSeconds )
 
     updateDnCExitCode();
     return;
+}
+
+double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned target )
+{
+    enum {
+        MICROSECONDS_IN_SECOND = 1000000
+    };
+
+    unsigned long long timeoutInMicroSeconds = timeoutInSeconds * MICROSECONDS_IN_SECOND;
+    struct timespec startTime = TimeUtils::sampleMicro();
+
+    // Preprocess the input query and create an engine for each of the threads
+    if ( !createEngines() )
+    {
+        _exitCode = DnCManager::UNSAT;
+        return 0;
+    }
+
+    // Prepare the mechanism through which we can ask the engines to quit
+    List<std::atomic_bool *> quitThreads;
+    for ( unsigned i = 0; i < _numWorkers; ++i )
+        quitThreads.append( _engines[i]->getQuitRequested() );
+
+    // Partition the input query into initial subqueries, and place these
+    // queries in the queue
+    _workload = new WorkerQueue( 0 );
+    if ( !_workload )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DnCManager::workload" );
+
+    SubQueries subQueries;
+    initialDivide( subQueries );
+
+    // Create objects shared across workers
+    _numUnsolvedSubQueries = subQueries.size();
+    std::atomic_bool shouldQuitSolving( false );
+    WorkerQueue *workload = new WorkerQueue( 0 );
+    for ( auto &subQuery : subQueries )
+    {
+        if ( !workload->push( subQuery ) )
+        {
+            // This should never happen
+            ASSERT( false );
+        }
+    }
+
+    // Spawn threads and start solving
+    std::list<std::thread> threads;
+    for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
+    {
+        // Get the processed input query from the base engine
+        auto inputQuery = std::unique_ptr<InputQuery>
+            ( new InputQuery( *( _baseEngine->getInputQuery() ) ) );
+        threads.push_back( std::thread( dncSolveRobustness, workload, _engines[ threadId ],
+                                        std::move( inputQuery ),
+                                        std::ref( _numUnsolvedSubQueries ),
+                                        std::ref( shouldQuitSolving ),
+                                        threadId, _onlineDivides,
+                                        _timeoutFactor, _divideStrategy, target ) );
+    }
+
+    // Wait until either all subQueries are solved or a satisfying assignment is
+    // found by some worker
+    while ( !shouldQuitSolving.load() )
+    {
+        updateTimeoutReached( startTime, timeoutInMicroSeconds );
+        if ( _timeoutReached )
+            shouldQuitSolving = true;
+        else
+            std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
+    }
+
+
+    // Now that we are done, tell all workers to quit
+    for ( auto &quitThread : quitThreads )
+        *quitThread = true;
+
+    for ( auto &thread : threads )
+        thread.join();
+
+    updateDnCExitCode();
+    return 0;
 }
 
 DnCManager::DnCExitCode DnCManager::getExitCode() const
