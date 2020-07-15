@@ -158,8 +158,15 @@ void DnCWorker::popOneSubQueryAndSolve()
     }
 }
 
-void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label )
+bool DnCWorker::volumeThresholdReached( PiecewiseLinearCaseSplit &split )
 {
+    split.dump();
+    return true;
+}
+
+void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *unrobustRegions )
+{
+    std::cout << unrobustRegions << std::endl;
     std::cout << label << std::endl;
     SubQuery *subQuery = NULL;
     // Boost queue stores the next element into the passed-in pointer
@@ -194,7 +201,8 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label )
                 *_shouldQuitSolving = true;
             delete subQuery;
         }
-        else if ( result == IEngine::TIMEOUT )
+        else if ( result == IEngine::TIMEOUT ||
+		  ( result == IEngine::SAT && !volumeThresholdReached( *split ) ) )
         {
             // If TIMEOUT, split the current input region and add the
             // new subQueries to the current queue
@@ -215,6 +223,18 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label )
             *_numUnsolvedSubQueries -= 1;
             delete subQuery;
         }
+	else if ( result == IEngine::SAT )
+        {
+	    // case SAT and volumeThreshold is reached
+	    // we add the hypercube to unrobustRegions
+	    auto splitDup = new PiecewiseLinearCaseSplit();
+	    *splitDup = *split; 
+	    if ( !unrobustRegions->push( splitDup ) )
+		throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH,
+				    "DnCWorker::unrobustRegions" );
+	    *_numUnsolvedSubQueries -= 1;
+	    delete subQuery;
+	}
         else if ( result == IEngine::QUIT_REQUESTED )
         {
             // If engine was asked to quit, quit
@@ -228,13 +248,7 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label )
             // TIMEOUT. This way, the DnCManager will kill all the DnCWorkers.
 
             *_shouldQuitSolving = true;
-            if ( result == IEngine::SAT )
-            {
-                // case SAT
-                *_numUnsolvedSubQueries -= 1;
-                delete subQuery;
-            }
-            else if ( result == IEngine::ERROR )
+            if ( result == IEngine::ERROR )
             {
                 // case ERROR
                 std::cout << "Error!" << std::endl;

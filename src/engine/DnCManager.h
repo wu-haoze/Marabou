@@ -38,7 +38,7 @@ public:
 
             NOT_DONE = 999,
         };
-
+    
     DnCManager( unsigned numWorkers, unsigned initialDivides, unsigned
                 initialTimeout, unsigned onlineDivides, float timeoutFactor,
                 DivideStrategy divideStrategy, InputQuery *inputQuery,
@@ -92,7 +92,9 @@ private:
                           unsigned threadId, unsigned onlineDivides,
                           float timeoutFactor, DivideStrategy divideStrategy );
 
-    static void dncSolveRobustness( WorkerQueue *workload, std::shared_ptr<Engine>
+    static void dncSolveRobustness( WorkerQueue *workload,
+				    Hypercubes *unrobustRegions, 
+				    std::shared_ptr<Engine>
 				    engine, std::unique_ptr<InputQuery> inputQuery,
 				    std::atomic_uint &numUnsolvedSubQueries,
 				    std::atomic_bool &shouldQuitSolving,

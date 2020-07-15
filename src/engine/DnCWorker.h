@@ -38,9 +38,12 @@ public:
     */
     void popOneSubQueryAndSolve();
 
-    void popOneHypercubeAndCheckRobustness( unsigned label );
+    void popOneHypercubeAndCheckRobustness( unsigned label,
+					    Hypercubes *unrobustRegions );
     
 private:
+    bool volumeThresholdReached( PiecewiseLinearCaseSplit &split );
+
     /*
       Initiate the query-divider object
     */

@@ -31,7 +31,8 @@
 #include <cmath>
 #include <thread>
 
-void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+void DnCManager::dncSolve( WorkerQueue *workload,
+			   std::shared_ptr<Engine> engine,
                            std::unique_ptr<InputQuery> inputQuery,
                            std::atomic_uint &numUnsolvedSubQueries,
                            std::atomic_bool &shouldQuitSolving,
@@ -53,7 +54,8 @@ void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine
     }
 }
 
-void DnCManager::dncSolveRobustness( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+void DnCManager::dncSolveRobustness( WorkerQueue *workload, Hypercubes *unrobustRegions,
+				     std::shared_ptr<Engine> engine,
 				     std::unique_ptr<InputQuery> inputQuery,
 				     std::atomic_uint &numUnsolvedSubQueries,
 				     std::atomic_bool &shouldQuitSolving,
@@ -67,12 +69,13 @@ void DnCManager::dncSolveRobustness( WorkerQueue *workload, std::shared_ptr<Engi
 
     engine->processInputQuery( *inputQuery, false );
 
-    DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
+    DnCWorker worker( workload, engine,
+		      std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy );
     while ( !shouldQuitSolving.load() )
     {
-        worker.popOneHypercubeAndCheckRobustness( label );
+        worker.popOneHypercubeAndCheckRobustness( label, unrobustRegions );
     }
 }
 
@@ -219,6 +222,10 @@ double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label 
     for ( unsigned i = 0; i < _numWorkers; ++i )
         quitThreads.append( _engines[i]->getQuitRequested() );
 
+    Hypercubes *unrobustRegions = new Hypercubes( 0 );
+    if ( !unrobustRegions )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DnCManager::unrobustRegions" );
+    
     // Partition the input query into initial subqueries, and place these
     // queries in the queue
     _workload = new WorkerQueue( 0 );
@@ -248,8 +255,8 @@ double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label 
         // Get the processed input query from the base engine
         auto inputQuery = std::unique_ptr<InputQuery>
             ( new InputQuery( *( _baseEngine->getInputQuery() ) ) );
-        threads.push_back( std::thread( dncSolveRobustness, workload, _engines[ threadId ],
-                                        std::move( inputQuery ),
+        threads.push_back( std::thread( dncSolveRobustness, workload, unrobustRegions,
+					_engines[ threadId ], std::move( inputQuery ),
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
