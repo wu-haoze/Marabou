@@ -38,7 +38,7 @@ public:
     */
     void popOneSubQueryAndSolve();
 
-    void popOneHypercubeAndCheckRobustness( unsigned target );
+    void popOneHypercubeAndCheckRobustness( unsigned label );
     
 private:
     /*

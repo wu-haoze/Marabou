@@ -55,6 +55,8 @@ public:
         TIMEOUT,
 
         SPLIT_THRESHOLD,
+
+	ROBUST_LABEL,
     };
 
     enum FloatOptions{

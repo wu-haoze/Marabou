@@ -54,6 +54,7 @@ void Options::initializeDefaultValues()
     _intOptions[VERBOSITY] = 2;
     _intOptions[TIMEOUT] = 0;
     _intOptions[SPLIT_THRESHOLD] = 20;
+    _intOptions[ROBUST_LABEL] = -1;
 
     /*
       Float options

@@ -98,7 +98,7 @@ private:
 				    std::atomic_bool &shouldQuitSolving,
 				    unsigned threadId, unsigned onlineDivides,
 				    float timeoutFactor, DivideStrategy
-				    divideStrategy, unsigned target );
+				    divideStrategy, unsigned label );
 
     /*
       Create the base engine from the network and property files,

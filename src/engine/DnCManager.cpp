@@ -59,7 +59,7 @@ void DnCManager::dncSolveRobustness( WorkerQueue *workload, std::shared_ptr<Engi
 				     std::atomic_bool &shouldQuitSolving,
 				     unsigned threadId, unsigned onlineDivides,
 				     float timeoutFactor, DivideStrategy divideStrategy,
-				     unsigned target )
+				     unsigned label )
 {
     unsigned cpuId = 0;
     getCPUId( cpuId );
@@ -72,7 +72,7 @@ void DnCManager::dncSolveRobustness( WorkerQueue *workload, std::shared_ptr<Engi
                       timeoutFactor, divideStrategy );
     while ( !shouldQuitSolving.load() )
     {
-        worker.popOneHypercubeAndCheckRobustness( target );
+        worker.popOneHypercubeAndCheckRobustness( label );
     }
 }
 
@@ -198,7 +198,7 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     return;
 }
 
-double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned target )
+double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned label )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -253,7 +253,7 @@ double DnCManager::computeRobustness( unsigned timeoutInSeconds, unsigned target
                                         std::ref( _numUnsolvedSubQueries ),
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
-                                        _timeoutFactor, _divideStrategy, target ) );
+                                        _timeoutFactor, _divideStrategy, label ) );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is

@@ -107,6 +107,8 @@ void DnCMarabou::run()
         splitThreshold = GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD;
     }
 
+    int robustLabel = Options::get()->getInt( Options::ROBUST_LABEL );
+    
     _dncManager = std::unique_ptr<DnCManager>
       ( new DnCManager( numWorkers, initialDivides, initialTimeout,
                         onlineDivides, timeoutFactor,
@@ -116,8 +118,10 @@ void DnCMarabou::run()
 
     struct timespec start = TimeUtils::sampleMicro();
 
-    _dncManager->solve( timeoutInSeconds );
-
+    if ( robustLabel == -1 )
+	_dncManager->solve( timeoutInSeconds );
+    else
+	_dncManager->computeRobustness( timeoutInSeconds, robustLabel );
     struct timespec end = TimeUtils::sampleMicro();
 
     unsigned long long totalElapsed = TimeUtils::timePassed( start, end );

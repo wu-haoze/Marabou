@@ -158,9 +158,9 @@ void DnCWorker::popOneSubQueryAndSolve()
     }
 }
 
-void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned target )
+void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label )
 {
-    std::cout << target << std::endl;
+    std::cout << label << std::endl;
     SubQuery *subQuery = NULL;
     // Boost queue stores the next element into the passed-in pointer
     // and returns true if the pop is successful (aka, the queue is not empty
