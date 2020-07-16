@@ -202,9 +202,9 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     return;
 }
 
-List<PiecewiseLinearCaseSplit> DnCManager::computeRobustness( unsigned timeoutInSeconds,
-                                                              unsigned label,
-                                                              double splitWidthThreshold )
+List<Hypercube> DnCManager::computeRobustness( unsigned timeoutInSeconds,
+                                               unsigned label,
+                                               double splitWidthThreshold )
 {
     enum {
         MICROSECONDS_IN_SECOND = 1000000
@@ -217,7 +217,7 @@ List<PiecewiseLinearCaseSplit> DnCManager::computeRobustness( unsigned timeoutIn
     if ( !createEngines() )
     {
         _exitCode = DnCManager::UNSAT;
-        List<PiecewiseLinearCaseSplit> empty;
+        List<Hypercube> empty;
         return empty;
     }
 
@@ -300,8 +300,8 @@ List<PiecewiseLinearCaseSplit> DnCManager::computeRobustness( unsigned timeoutIn
     updateDnCExitCode();
 
 
-    List<PiecewiseLinearCaseSplit> unrobustRegionsList;
-    PiecewiseLinearCaseSplit *unrobustRegion = NULL;
+    List<Hypercube> unrobustRegionsList;
+    Hypercube *unrobustRegion = NULL;
     while ( !unrobustRegions->empty() )
     {
         unrobustRegions->pop( unrobustRegion );

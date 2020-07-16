@@ -88,6 +88,11 @@ public:
         std::cout << "Getting range for x" <<  index << std::endl;
         return 100000000000;
     }
+
+    virtual void extractSolution( InputQuery &/**/ )
+    {
+    }
+
 };
 
 #endif // __IEngine_h__

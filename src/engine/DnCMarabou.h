@@ -39,8 +39,7 @@ private:
     void displayResults( unsigned long long microSecondsElapsed ) const;
 
     void displayUnrobustRegions( unsigned long long microSecondsElapsed,
-                                 List<PiecewiseLinearCaseSplit>
-                                 &unrobustRegions ) const;
+                                 List<Hypercube> &unrobustRegions ) const;
 
 };
 

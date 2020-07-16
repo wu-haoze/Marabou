@@ -243,9 +243,17 @@ void DnCWorker::popOneHypercubeAndCheckRobustness( unsigned label, Hypercubes *u
         {
             // case SAT and volumeThreshold is reached
             // we add the hypercube to unrobustRegions
-            auto splitDup = new PiecewiseLinearCaseSplit();
-            *splitDup = *split;
-            if ( !unrobustRegions->push( splitDup ) )
+            PiecewiseLinearCaseSplit splitDup = *split;
+            _engine->extractSolution( *(_engine->getInputQuery()) );
+            Map<unsigned, double> assignment;
+            for ( unsigned i = 0; i < _engine->getInputQuery()->getNumInputVariables(); ++i )
+                assignment[_engine->getInputQuery()->inputVariableByIndex( i )] = _engine->getInputQuery()->getSolutionValue
+                    ( _engine->getInputQuery()->inputVariableByIndex( i ) );
+            for ( unsigned i = 0; i < _engine->getInputQuery()->getNumOutputVariables(); ++i )
+                assignment[_engine->getInputQuery()->outputVariableByIndex( i )] = _engine->getInputQuery()->getSolutionValue
+                    ( _engine->getInputQuery()->outputVariableByIndex( i ) );
+            Hypercube *hc = new Hypercube( splitDup, assignment );
+            if ( !unrobustRegions->push( hc ) )
                 throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH,
                                     "DnCWorker::unrobustRegions" );
             *_numUnsolvedSubQueries -= 1;

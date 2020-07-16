@@ -61,7 +61,24 @@ typedef boost::lockfree::queue<SubQuery *, boost::lockfree::
 // Guy: consider using our wrapper class Vector instead of std::vector
 typedef List<SubQuery *> SubQueries;
 
-typedef boost::lockfree::queue<PiecewiseLinearCaseSplit *, boost::lockfree::
+
+struct Hypercube
+{
+    Hypercube()
+    {
+    }
+
+Hypercube( PiecewiseLinearCaseSplit &split, Map<unsigned, double> &assignment )
+    : _split( split )
+    , _assignment( assignment )
+    {
+    }
+
+    PiecewiseLinearCaseSplit _split;
+    Map<unsigned, double> _assignment;
+};
+
+typedef boost::lockfree::queue<Hypercube *, boost::lockfree::
     fixed_sized<false>> Hypercubes;
 
 #endif // __SubQuery_h__

@@ -129,7 +129,7 @@ void DnCMarabou::run()
     else
     {
         struct timespec start = TimeUtils::sampleMicro();
-        List<PiecewiseLinearCaseSplit> unrobustRegions = _dncManager->
+        List<Hypercube> unrobustRegions = _dncManager->
             computeRobustness( timeoutInSeconds, robustLabel, splitWidthThreshold );
         struct timespec end = TimeUtils::sampleMicro();
         unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
@@ -140,8 +140,7 @@ void DnCMarabou::run()
 }
 
 void DnCMarabou::displayUnrobustRegions( unsigned long long microSecondsElapsed,
-                                         List<PiecewiseLinearCaseSplit>
-                                         &unrobustRegions ) const
+                                         List<Hypercube> &unrobustRegions ) const
 {
     std::cout << "Total Time: " << microSecondsElapsed / 1000000 << std::endl;
     String resultString = _dncManager->getResultString();
@@ -163,11 +162,15 @@ void DnCMarabou::displayUnrobustRegions( unsigned long long microSecondsElapsed,
         for ( const auto &region : unrobustRegions )
         {
             summaryFile.write( "Region: \n");
-            for ( const auto &bound : region.getBoundTightenings() )
+            for ( const auto &bound : region._split.getBoundTightenings() )
                 summaryFile.write( Stringf( "x%d %s %f\n", bound._variable,
                                             ( bound._type == Tightening::UB ?
                                               "<=" : ">=" ),
                                             bound._value ) );
+            summaryFile.write( "\n" );
+            for ( const auto entry : region._assignment )
+                summaryFile.write( Stringf( "x%d = %f\n", entry.first, entry.second ) );
+
             summaryFile.write( "\n" );
         }
     }
