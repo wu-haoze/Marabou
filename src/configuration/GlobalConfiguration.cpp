@@ -22,53 +22,53 @@
 // and how to repair a ReLU constraint.
 const bool GlobalConfiguration::USE_POLARITY_BASED_DIRECTION_HEURISTICS = true;
 
-const double GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS = 0.0000000001;
-const unsigned GlobalConfiguration::DEFAULT_DOUBLE_TO_STRING_PRECISION = 10;
+const double GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS = 0.0000000000001;
+const unsigned GlobalConfiguration::DEFAULT_DOUBLE_TO_STRING_PRECISION = 15;
 const unsigned GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY = 10000;
-const double GlobalConfiguration::BOUND_COMPARISON_ADDITIVE_TOLERANCE = 0.0000001;
-const double GlobalConfiguration::BOUND_COMPARISON_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000001;
-const double GlobalConfiguration::PIVOT_CHANGE_COLUMN_TOLERANCE = 0.000000001;
-const double GlobalConfiguration::PIVOT_ROW_AND_COLUMN_TOLERANCE = 0.01;
-const double GlobalConfiguration::ENTRY_ELIGIBILITY_TOLERANCE = 0.00000001;
-const double GlobalConfiguration::RATIO_CONSTRAINT_ADDITIVE_TOLERANCE = 0.0000001 * 0.3;
-const double GlobalConfiguration::RATIO_CONSTRAINT_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000001 * 0.3;
-const double GlobalConfiguration::HARRIS_RATIO_CONSTRAINT_ADDITIVE_TOLERANCE = 0.0000001 * 0.5;
-const double GlobalConfiguration::HARRIS_RATIO_CONSTRAINT_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000001 * 0.5;
-const double GlobalConfiguration::BASIC_COSTS_ADDITIVE_TOLERANCE = 0.0000001;
-const double GlobalConfiguration::BASIC_COSTS_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000001;
-const double GlobalConfiguration::SPARSE_FORREST_TOMLIN_DIAGONAL_ELEMENT_TOLERANCE = 0.00001;
-const unsigned GlobalConfiguration::DEGRADATION_CHECKING_FREQUENCY = 100;
-const double GlobalConfiguration::DEGRADATION_THRESHOLD = 0.1;
-const double GlobalConfiguration::ACCEPTABLE_SIMPLEX_PIVOT_THRESHOLD = 0.0001;
+const double GlobalConfiguration::BOUND_COMPARISON_ADDITIVE_TOLERANCE = 0.0000000001;
+const double GlobalConfiguration::BOUND_COMPARISON_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000000001;
+const double GlobalConfiguration::PIVOT_CHANGE_COLUMN_TOLERANCE = 0.000000000001;
+const double GlobalConfiguration::PIVOT_ROW_AND_COLUMN_TOLERANCE = 0.00001;
+const double GlobalConfiguration::ENTRY_ELIGIBILITY_TOLERANCE = 0.00000000001;
+const double GlobalConfiguration::RATIO_CONSTRAINT_ADDITIVE_TOLERANCE = 0.0000000001 * 0.3;
+const double GlobalConfiguration::RATIO_CONSTRAINT_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000000001 * 0.3;
+const double GlobalConfiguration::HARRIS_RATIO_CONSTRAINT_ADDITIVE_TOLERANCE = 0.0000000001 * 0.5;
+const double GlobalConfiguration::HARRIS_RATIO_CONSTRAINT_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000000001 * 0.5;
+const double GlobalConfiguration::BASIC_COSTS_ADDITIVE_TOLERANCE = 0.0000000001;
+const double GlobalConfiguration::BASIC_COSTS_MULTIPLICATIVE_TOLERANCE = 0.001 * 0.0000000001;
+const double GlobalConfiguration::SPARSE_FORREST_TOMLIN_DIAGONAL_ELEMENT_TOLERANCE = 0.00000001;
+const unsigned GlobalConfiguration::DEGRADATION_CHECKING_FREQUENCY = 50;
+const double GlobalConfiguration::DEGRADATION_THRESHOLD = 0.0001;
+const double GlobalConfiguration::ACCEPTABLE_SIMPLEX_PIVOT_THRESHOLD = 0.0000001;
 const bool GlobalConfiguration::USE_COLUMN_MERGING_EQUATIONS = false;
-const double GlobalConfiguration::GAUSSIAN_ELIMINATION_PIVOT_SCALE_THRESHOLD = 0.1;
+const double GlobalConfiguration::GAUSSIAN_ELIMINATION_PIVOT_SCALE_THRESHOLD = 0.0001;
 const unsigned GlobalConfiguration::MAX_SIMPLEX_PIVOT_SEARCH_ITERATIONS = 5;
 const unsigned GlobalConfiguration::CONSTRAINT_VIOLATION_THRESHOLD = 20;
 const unsigned GlobalConfiguration::SPLITTING_HEURISTICS = DivideStrategy::ReLUViolation;
 const unsigned GlobalConfiguration::BOUND_TIGHTING_ON_CONSTRAINT_MATRIX_FREQUENCY = 100;
 const unsigned GlobalConfiguration::ROW_BOUND_TIGHTENER_SATURATION_ITERATIONS = 20;
-const double GlobalConfiguration::COST_FUNCTION_ERROR_THRESHOLD = 0.0000000001;
+const double GlobalConfiguration::COST_FUNCTION_ERROR_THRESHOLD = 0.0000000000001;
 
 const bool GlobalConfiguration::USE_HARRIS_RATIO_TEST = true;
 
 const bool GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING = true;
-const double GlobalConfiguration::SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT = 0.00000005;
+const double GlobalConfiguration::SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT = 0.00000000005;
 
 const bool GlobalConfiguration::PREPROCESS_INPUT_QUERY = true;
 const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;
 const bool GlobalConfiguration::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS = true;
-const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 0.00001;
+const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 0.00000001;
 
 const bool GlobalConfiguration::WARM_START = false;
 
 const unsigned GlobalConfiguration::MAX_ITERATIONS_WITHOUT_PROGRESS = 10000;
 
 const unsigned GlobalConfiguration::PSE_ITERATIONS_BEFORE_RESET = 1000;
-const double GlobalConfiguration::PSE_GAMMA_ERROR_THRESHOLD = 0.001;
-const double GlobalConfiguration::PSE_GAMMA_UPDATE_TOLERANCE = 0.000000001;
+const double GlobalConfiguration::PSE_GAMMA_ERROR_THRESHOLD = 0.000001;
+const double GlobalConfiguration::PSE_GAMMA_UPDATE_TOLERANCE = 0.000000000001;
 
-const double GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE = 0.001;
-const double GlobalConfiguration::ABS_CONSTRAINT_COMPARISON_TOLERANCE = 0.001;
+const double GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE = 0.000001;
+const double GlobalConfiguration::ABS_CONSTRAINT_COMPARISON_TOLERANCE = 0.000001;
 
 const bool GlobalConfiguration::ONLY_AUX_INITIAL_BASIS = false;
 
