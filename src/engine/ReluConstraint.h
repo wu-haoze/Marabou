@@ -155,7 +155,6 @@ public:
       Get the index of the B variable.
     */
     unsigned getB() const;
-    unsigned getF() const;
 
     /*
       Get the index of the F variable.
