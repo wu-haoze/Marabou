@@ -100,11 +100,9 @@ private:
     void addPlAuxiliaryEquations();
 
     /*
-      Attempt to figure out the network topology and construct a
-      network level reasoner. Return true iff the construction was
-      successful
+      All input/output variables
     */
-    bool constructNetworkLevelReasoner();
+    Set<unsigned> _inputOutputVariables;
 
     /*
       The preprocessed query
@@ -138,9 +136,6 @@ private:
       For debugging only
     */
     void dumpAllBounds( const String &message );
-
-    static void log( const String &message );
-
 };
 
 #endif // __Preprocessor_h__
