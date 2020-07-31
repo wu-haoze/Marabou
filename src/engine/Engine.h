@@ -161,8 +161,6 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
-		void setDivideStrategy(DivideStrategy divideStrategy);
-
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
@@ -337,11 +335,6 @@ private:
     */
     unsigned _lastNumVisitedStates;
     unsigned long long _lastIterationWithProgress;
-
-		/*
-     Divide strategy enum if set in the input query - otherwise it will be NULL and should be drawn from GlobalConfiguration.cpp
-     */
-     DivideStrategy _divideStrategy = DivideStrategy::None;
 
     /*
       Perform a simplex step: compute the cost function, pick the

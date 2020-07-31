@@ -1479,7 +1479,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
     _costFunctionManager->setOptimizationVariable(_preprocessedQuery.getOptimizationVariable());
     // Set the divide strategy - it will default to DivideStrategy::None
     _smtCore.setDivideStrategy(_preprocessedQuery.getDivideStrategy());
-    setDivideStrategy(_preprocessedQuery.getDivideStrategy());
 
     ENGINE_LOG( "processInputQuery done\n" );
 
@@ -2385,7 +2384,7 @@ void Engine::updateDirections()
 
 void Engine::updateScores()
 {
-    DivideStrategy _strategyToUse = (_divideStrategy == DivideStrategy::None) ? GlobalConfiguration::SPLITTING_HEURISTICS : _divideStrategy;
+    DivideStrategy _strategyToUse = (_preprocessedQuery.getDivideStrategy() == DivideStrategy::None) ? GlobalConfiguration::SPLITTING_HEURISTICS : _preprocessedQuery.getDivideStrategy();
 
     if ( _networkLevelReasoner &&
          _strategyToUse == DivideStrategy::Polarity )
@@ -2451,26 +2450,6 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
 void Engine::setConstraintViolationThreshold( unsigned threshold )
 {
     _smtCore.setConstraintViolationThreshold( threshold );
-}
-
-void Engine::setDivideStrategy(DivideStrategy divideStrategy)
-{
-    switch(divideStrategy) {
-        case DivideStrategy::EarliestReLU:
-            _divideStrategy = DivideStrategy::EarliestReLU;
-            break;
-        case DivideStrategy::ReLUViolation:
-            _divideStrategy = DivideStrategy::ReLUViolation;
-            break;
-        case DivideStrategy::Polarity:
-            _divideStrategy = DivideStrategy::Polarity;
-            break;
-        case DivideStrategy::LargestInterval:
-            return;  // This shouldn't be sent, decides input splitting
-        case DivideStrategy::None:
-            _divideStrategy = DivideStrategy::None;
-            break;
-    }
 }
 
 //
