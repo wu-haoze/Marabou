@@ -40,6 +40,8 @@
 #undef ERROR
 #endif
 
+#define ENGINE_LOG(x, ...) LOG(GlobalConfiguration::ENGINE_LOGGING, "Engine: %s\n", x)
+
 class EngineState;
 class InputQuery;
 class PiecewiseLinearConstraint;
@@ -80,6 +82,8 @@ public:
     /*
       Methods for storing and restoring the state of the engine.
     */
+    void storeTableauState( TableauState &state ) const;
+    void restoreTableauState( const TableauState &state );
     void storeState( EngineState &state, bool storeAlsoTableauState ) const;
     void restoreState( const EngineState &state );
     void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints );
@@ -156,6 +160,8 @@ public:
     void resetSmtCore();
     void resetExitCode();
     void resetBoundTighteners();
+
+		void setDivideStrategy(DivideStrategy divideStrategy);
 
 private:
     enum BasisRestorationRequired {
@@ -312,7 +318,7 @@ private:
       and can be used for various operations such as network
       evaluation of topology-based bound tightening.
      */
-    NetworkLevelReasoner *_networkLevelReasoner;
+    NLR::NetworkLevelReasoner *_networkLevelReasoner;
 
     /*
       Verbosity level:
@@ -331,6 +337,11 @@ private:
     */
     unsigned _lastNumVisitedStates;
     unsigned long long _lastIterationWithProgress;
+
+		/*
+     Divide strategy enum if set in the input query - otherwise it will be NULL and should be drawn from GlobalConfiguration.cpp
+     */
+     DivideStrategy _divideStrategy = DivideStrategy::None;
 
     /*
       Perform a simplex step: compute the cost function, pick the
@@ -426,8 +437,6 @@ private:
     void performPrecisionRestoration( PrecisionRestorer::RestoreBasics restoreBasics );
     bool basisRestorationNeeded() const;
 
-    static void log( const String &message );
-
     /*
       For debugging purposes:
       Check that the current lower and upper bounds are consistent
@@ -481,6 +490,7 @@ private:
     double *createConstraintMatrix();
     void addAuxiliaryVariables();
     void augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, const List<unsigned> &basicRows );
+    void performMILPSolverBoundedTightening();
 
     /*
       Update the preferred direction to perform fixes and the preferred order

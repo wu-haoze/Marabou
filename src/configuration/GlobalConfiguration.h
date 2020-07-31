@@ -160,6 +160,26 @@ public:
     static const bool EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION;
 
     /*
+      MILP solver bound tighening options
+    */
+    enum MILPSolverBoundTighteningType {
+        // Only encode pure linear constraints in the underlying
+        // solver, in a way that over-approximates the query
+        LP_RELAXATION = 0,
+        LP_RELAXATION_INCREMENTAL = 1,
+        // Encode linear and integer constraints in the underlying
+        // solver, in a way that completely captures the query but is
+        // more expensive to solve
+        MILP_ENCODING = 2,
+        MILP_ENCODING_INCREMENTAL = 3,
+    };
+
+    static const MILPSolverBoundTighteningType MILP_SOLVER_BOUND_TIGHTENING_TYPE;
+
+    // The timeout value for an individual query of the MILP solver
+    static const unsigned MILPSolverTimeoutValueInSeconds;
+
+    /*
       Symbolic bound tightening options
     */
 
@@ -199,6 +219,11 @@ public:
     };
     static const BasisFactorizationType BASIS_FACTORIZATION_TYPE;
 
+    /* In the polarity-based branching heuristics, only this many earliest nodes
+       are considered to branch on.
+    */
+    static const unsigned RUNTIME_ESTIMATE_THRESHOLD;
+
     /*
       Logging options
     */
@@ -208,11 +233,14 @@ public:
     static const bool SMT_CORE_LOGGING;
     static const bool DANTZIGS_RULE_LOGGING;
     static const bool BASIS_FACTORIZATION_LOGGING;
+    static const bool PREPROCESSOR_LOGGING;
+    static const bool INPUT_QUERY_LOGGING;
     static const bool PROJECTED_STEEPEST_EDGE_LOGGING;
     static const bool GAUSSIAN_ELIMINATION_LOGGING;
     static const bool QUERY_LOADER_LOGGING;
     static const bool SYMBOLIC_BOUND_TIGHTENER_LOGGING;
     static const bool NETWORK_LEVEL_REASONER_LOGGING;
+    static const bool MPS_PARSER_LOGGING;
 };
 
 #endif // __GlobalConfiguration_h__

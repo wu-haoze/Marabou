@@ -65,12 +65,11 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
 
         DivideStrategy _strategyToUse = (_divideStrategy == DivideStrategy::None) ? GlobalConfiguration::SPLITTING_HEURISTICS : _divideStrategy;
 
-        if ( _strategyToUse == DivideStrategy::ReLUViolation ) {
+        if ( _strategyToUse ==
+             DivideStrategy::ReLUViolation || !pickSplitPLConstraint() )
+            // If pickSplitConstraint failed to pick one, use the native
+            // relu-violation based splitting heuristic.
             _constraintForSplitting = constraint;
-        }
-        else {
-            pickSplitPLConstraint();
-        }
     }
 }
 
@@ -158,7 +157,7 @@ unsigned SmtCore::getStackDepth() const
 
 bool SmtCore::popSplit()
 {
-    log( "Performing a pop" );
+    SMT_LOG( "Performing a pop" );
 
     // erasing a split is what is relevant! this is the node we're working on currently though, how to get the one we just finished?
     // can I get that info from the previously active split?
@@ -168,7 +167,7 @@ bool SmtCore::popSplit()
     {
         _statistics->incPercentDone(getStackDepth());
     }
-    
+
     if ( _stack.empty() )
         return false;
 
@@ -211,9 +210,9 @@ bool SmtCore::popSplit()
     StackEntry *stackEntry = _stack.back();
 
     // Restore the state of the engine
-    log( "\tRestoring engine state..." );
+    SMT_LOG( "\tRestoring engine state..." );
     _engine->restoreState( *(stackEntry->_engineState) );
-    log( "\tRestoring engine state - DONE" );
+    SMT_LOG( "\tRestoring engine state - DONE" );
 
     // Apply the new split and erase it from the list
     auto split = stackEntry->_alternativeSplits.begin();
@@ -221,9 +220,9 @@ bool SmtCore::popSplit()
     // Erase any valid splits that were learned using the split we just popped
     stackEntry->_impliedValidSplits.clear();
 
-    log( "\tApplying new split..." );
+    SMT_LOG( "\tApplying new split..." );
     _engine->applySplit( *split );
-    log( "\tApplying new split - DONE" );
+    SMT_LOG( "\tApplying new split - DONE" );
 
     stackEntry->_activeSplit = *split;
     stackEntry->_alternativeSplits.erase( split );
@@ -276,12 +275,6 @@ void SmtCore::allSplitsSoFar( List<PiecewiseLinearCaseSplit> &result ) const
 void SmtCore::setStatistics( Statistics *statistics )
 {
     _statistics = statistics;
-}
-
-void SmtCore::log( const String &message )
-{
-    if ( GlobalConfiguration::SMT_CORE_LOGGING )
-        printf( "SmtCore: %s\n", message.ascii() );
 }
 
 void SmtCore::storeDebuggingSolution( const Map<unsigned, double> &debuggingSolution )
@@ -390,16 +383,19 @@ void SmtCore::setConstraintViolationThreshold( unsigned threshold )
 void SmtCore::setDivideStrategy(DivideStrategy divideStrategy)
 {
     switch(divideStrategy) {
-        case DivideStrategy::EarliestReLU: 
-            _divideStrategy = DivideStrategy::EarliestReLU; 
+        case DivideStrategy::EarliestReLU:
+            _divideStrategy = DivideStrategy::EarliestReLU;
             break;
-        case DivideStrategy::ReLUViolation: 
-            _divideStrategy = DivideStrategy::ReLUViolation; 
+        case DivideStrategy::ReLUViolation:
+            _divideStrategy = DivideStrategy::ReLUViolation;
             break;
-        case DivideStrategy::LargestInterval: 
+        case DivideStrategy::Polarity:
+            _divideStrategy = DivideStrategy::Polarity;
+            break;
+        case DivideStrategy::LargestInterval:
             return;  // This shouldn't be sent, decides input splitting
-        case DivideStrategy::None: 
-            _divideStrategy = DivideStrategy::None; 
+        case DivideStrategy::None:
+            _divideStrategy = DivideStrategy::None;
             break;
     }
 }
@@ -437,12 +433,11 @@ PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<Piec
     return candidate;
 }
 
-void SmtCore::pickSplitPLConstraint()
+bool SmtCore::pickSplitPLConstraint()
 {
-    if ( _needToSplit && !_constraintForSplitting )
-    {
+    if ( _needToSplit )
         _constraintForSplitting = _engine->pickSplitPLConstraint();
-    }
+    return _constraintForSplitting != NULL;
 }
 
 //
