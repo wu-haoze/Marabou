@@ -151,6 +151,8 @@ void CostFunctionManager::computeCoreCostFunction()
       updateLinearSolved();
     }
 
+    printf("Linear solved: %d\n", _linearSolved);
+
     std::fill( _costFunction, _costFunction + _n - _m, 0.0 );
 
     // Phase I - find a feasible solution
@@ -168,7 +170,7 @@ void CostFunctionManager::computeCoreCostFunction()
       //printf("Value of opt var: %f\n", _tableau->getValue(_optimizationVariable));
       //printf("Val via basic assignment: %f\n", _tableau->getBasicAssignment( _tableau->variableToIndex(_optimizationVariable) ));
       //printf("Our opt variable is basic: %d\n", _tableau->isBasic(_optimizationVariable));
-      
+
       std::fill( _basicCosts, _basicCosts + _m, 0.0 );
       _basicCosts[_tableau->variableToIndex(_optimizationVariable)] = -1.0;
       computeMultipliers();
@@ -196,6 +198,7 @@ void CostFunctionManager::adjustBasicCostAccuracy()
     // fix this eventually? only need compute 1 thing so probably can just compute every time?
     if (_linearSolved)
     {
+      printf("In adjust basic cost accuracy for pivot with linear solved\n");
       computeCoreCostFunction();
       return;
     }
@@ -384,9 +387,10 @@ double CostFunctionManager::updateCostFunctionForPivot( unsigned enteringVariabl
       // FOR NOW JUST THROW THIS TO THE GENERAL COMPUTE IT ALL FUNCTION
       if (_linearSolved)
       {
+        printf("In update cost function for pivot with linear solved\n");
         computeCoreCostFunction();
         return -1.0;
-      }      
+      }
 
 
     /*

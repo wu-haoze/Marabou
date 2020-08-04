@@ -1539,6 +1539,8 @@ void Engine::performMILPSolverBoundedTightening()
         case GlobalConfiguration::MILP_ENCODING_INCREMENTAL:
             _networkLevelReasoner->MILPPropagation();
             break;
+        case GlobalConfiguration::NONE:
+            return;
         }
 
         List<Tightening> tightenings;

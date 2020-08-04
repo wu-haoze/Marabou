@@ -780,7 +780,7 @@ void Tableau::performPivot()
     //_costFunctionManager->dumpCostFunction();
     //dumpAssignment();
 
-    /*
+    
     printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
                   _nonBasicIndexToVariable[_enteringVariable],
                   _basicIndexToVariable[_leavingVariable] );
@@ -796,7 +796,7 @@ void Tableau::performPivot()
                   _nonBasicAssignment[_enteringVariable],
                   _lowerBounds[currentNonBasic], _upperBounds[currentNonBasic] );
     printf("Change ratio is: %.15lf\n", _changeRatio );
-    */
+
 
     TABLEAU_LOG( Stringf( "Tableau performing pivot. Entering: %u, Leaving: %u",
                   _nonBasicIndexToVariable[_enteringVariable],
