@@ -219,6 +219,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 }
                 while ( applyAllValidConstraintCaseSplits() );
                 splitJustPerformed = false;
+                augmentTableauWithLinearRelaxation();
             }
 
             // Perform any SmtCore-initiated case splits
