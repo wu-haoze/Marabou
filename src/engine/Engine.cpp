@@ -219,7 +219,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 }
                 while ( applyAllValidConstraintCaseSplits() );
                 splitJustPerformed = false;
-                augmentTableauWithLinearRelaxation();
+                if ( _linearRelaxation )
+                    augmentTableauWithLinearRelaxation();
             }
 
             // Perform any SmtCore-initiated case splits
@@ -1141,16 +1142,14 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
     _smtCore.storeDebuggingSolution( _preprocessedQuery._debuggingSolution );
 
     // Augment the tableaus with linear relaxation
-    if ( _linearRelaxation )
+    do
     {
-        do
-        {
-            performSymbolicBoundTightening();
-        }
-        while ( applyAllValidConstraintCaseSplits() );
-        augmentTableauWithLinearRelaxation();
+        performSymbolicBoundTightening();
     }
+    while ( applyAllValidConstraintCaseSplits() );
 
+    if ( _linearRelaxation )
+        augmentTableauWithLinearRelaxation();
     return true;
 }
 
@@ -2051,7 +2050,7 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
     else
     {
         auto constraint = *_candidatePlConstraints.begin();
-        ENGINE_LOG( Stringf( "Picked..." ).ascii() );
+        ENGINE_LOG( Stringf( "Picked %u...", ((ReluConstraint *) constraint)->getB() ).ascii() );
         return constraint;
     }
 }
