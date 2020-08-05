@@ -209,8 +209,10 @@ bool Engine::solve( unsigned timeoutInSeconds )
             }
 
             if ( _tableau->basisMatrixAvailable() )
+            {
+                std::cout << "Performing Row Bound Tightening" << std::endl;
                 explicitBasisBoundTightening();
-
+            }
             if ( splitJustPerformed )
             {
                 do
@@ -1141,17 +1143,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
     _smtCore.storeDebuggingSolution( _preprocessedQuery._debuggingSolution );
 
-    // Augment the tableaus with linear relaxation
-    do
-    {
-        performSymbolicBoundTightening();
-    }
-    while ( applyAllValidConstraintCaseSplits() );
-
-    if ( _linearRelaxation )
-        augmentTableauWithLinearRelaxation();
-    return true;
-}
+    return true;}
 
 void Engine::performMILPSolverBoundedTightening()
 {
