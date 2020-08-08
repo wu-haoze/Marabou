@@ -151,7 +151,7 @@ void CostFunctionManager::computeCoreCostFunction()
       updateLinearSolved();
     }
 
-    printf("Linear solved: %d\n", _linearSolved);
+    //printf("Linear solved: %d\n", _linearSolved);
 
     std::fill( _costFunction, _costFunction + _n - _m, 0.0 );
 

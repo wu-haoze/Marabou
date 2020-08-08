@@ -734,6 +734,13 @@ bool Tableau::performingFakePivot() const
 
 void Tableau::performPivot()
 {
+    printf("-----------------------------------------------\n");
+    bool solvedBefore = !existsBasicOutOfBounds();
+    printf("Linear solved START of pivot: %d \n", solvedBefore);
+    printf("ASSIGNMENT BEFORE PIVOT\n");
+    //dumpEquations();
+    //dumpAssignment();
+
 
     bool decrease;
     unsigned  nonBasic;
@@ -778,9 +785,7 @@ void Tableau::performPivot()
 
 
     //_costFunctionManager->dumpCostFunction();
-    //dumpAssignment();
 
-    
     printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
                   _nonBasicIndexToVariable[_enteringVariable],
                   _basicIndexToVariable[_leavingVariable] );
@@ -819,11 +824,7 @@ void Tableau::performPivot()
     double pivotEntryByRow = _pivotRow->_row[_enteringVariable]._coefficient;
     if ( !FloatUtils::isZero( pivotEntryByRow - pivotEntryByColumn, GlobalConfiguration::PIVOT_ROW_AND_COLUMN_TOLERANCE ) )
         throw MalformedBasisException();
-/*
 
-    printf("ASSIGNMENT AFTER PIVOT");
-    dumpAssignment();
-*/
 
     updateAssignmentForPivot();
     updateCostFunctionForPivot();
@@ -855,6 +856,19 @@ void Tableau::performPivot()
         struct timespec pivotEnd = TimeUtils::sampleMicro();
         _statistics->addTimePivots( TimeUtils::timePassed( pivotStart, pivotEnd ) );
     }
+
+    bool solvedAfter = !existsBasicOutOfBounds();
+    printf("Linear solved END of pivot: %d\n", solvedAfter);
+
+    if (solvedAfter == false && solvedBefore == true)
+    {
+        printf("!!!!!!!!!!!!!!!!!!!!! SWITCHED FROM LINEAR SOLVED TO NOT SOLVED");
+        printf("ASSIGNMENT AFTER PIVOT");
+        //dumpEquations();
+        //dumpAssignment();
+        //throw MarabouError( MarabouError::FAILURE_TO_ADD_NEW_EQUATION );
+    }
+
 }
 
 void Tableau::performDegeneratePivot()
