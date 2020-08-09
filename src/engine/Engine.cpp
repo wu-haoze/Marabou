@@ -1090,6 +1090,12 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
         delete[] constraintMatrix;
 
+        do
+            {
+                performSymbolicBoundTightening();
+            }
+        while ( applyAllValidConstraintCaseSplits() );
+
         performMILPSolverBoundedTightening();
 
         struct timespec end = TimeUtils::sampleMicro();
