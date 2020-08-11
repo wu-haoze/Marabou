@@ -189,6 +189,14 @@ void NetworkLevelReasoner::obtainCurrentBounds()
         layer.second->obtainCurrentBounds();
 }
 
+void NetworkLevelReasoner::setInputBound( unsigned index, double lb, double ub )
+{
+    auto layer = _layerIndexToLayer[0];
+    ASSERT( layer->getLayerType() == Layer::INPUT );
+    layer->setLb( index, lb );
+    layer->setUb( index, ub );
+}
+
 void NetworkLevelReasoner::setTableau( const ITableau *tableau )
 {
     _tableau = tableau;

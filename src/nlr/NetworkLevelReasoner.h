@@ -101,6 +101,7 @@ public:
     void setTableau( const ITableau *tableau );
     const ITableau *getTableau() const;
 
+    void setInputBound( unsigned index, double lb, double ub );
     void obtainCurrentBounds();
     void intervalArithmeticBoundPropagation();
     void symbolicBoundPropagation();

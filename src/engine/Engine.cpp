@@ -679,14 +679,6 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
                 "%u equations, %u variables\n\n",
                 _preprocessedQuery.getEquations().size(),
                 _preprocessedQuery.getNumberOfVariables() );
-
-    unsigned infiniteBounds = _preprocessedQuery.countInfiniteBounds();
-    if ( infiniteBounds != 0 )
-    {
-        _exitCode = Engine::ERROR;
-        throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
-                             Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
-    }
 }
 
 void Engine::printInputBounds( const InputQuery &inputQuery ) const
@@ -1099,6 +1091,15 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             warmStart();
 
         delete[] constraintMatrix;
+
+
+        unsigned infiniteBounds = _preprocessedQuery.countInfiniteBounds();
+        if ( infiniteBounds != 0 )
+        {
+            _exitCode = Engine::ERROR;
+            throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
+                                Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
+        }
 
         performMILPSolverBoundedTightening();
 

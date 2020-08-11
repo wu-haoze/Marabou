@@ -14,6 +14,7 @@
  **/
 
 #include "Layer.h"
+#include "FloatUtils.h"
 
 namespace NLR {
 
@@ -60,8 +61,8 @@ void Layer::allocateMemory()
     _lb = new double[_size];
     _ub = new double[_size];
 
-    std::fill_n( _lb, _size, 0 );
-    std::fill_n( _ub, _size, 0 );
+    std::fill_n( _lb, _size, FloatUtils::negativeInfinity() );
+    std::fill_n( _ub, _size, FloatUtils::infinity() );
 
     _assignment = new double[_size];
 
