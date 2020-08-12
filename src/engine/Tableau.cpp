@@ -740,9 +740,9 @@ bool Tableau::performingFakePivot() const
 
 void Tableau::performPivot()
 {
-    printf("-----------------------------------------------\n");
+    //printf("-----------------------------------------------\n");
     bool solvedBefore = !existsBasicOutOfBounds();
-    printf("Linear solved START of pivot: %d \n", solvedBefore);
+    //printf("Linear solved START of pivot: %d \n", solvedBefore);
 
 
     bool decrease;
@@ -789,21 +789,21 @@ void Tableau::performPivot()
 
     //_costFunctionManager->dumpCostFunction();
 
-    printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
-                  _nonBasicIndexToVariable[_enteringVariable],
-                  _basicIndexToVariable[_leavingVariable] );
-
-    printf("Leaving variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
-                  _leavingVariableIncreases ? "increases" : "decreases",
-                  _basicAssignment[_leavingVariable],
-                  _lowerBounds[currentBasic], _upperBounds[currentBasic] );
-
-    printf("Entering variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
-                  FloatUtils::isNegative( _costFunctionManager->getCostFunction()[_enteringVariable] ) ?
-                  "increases" : "decreases",
-                  _nonBasicAssignment[_enteringVariable],
-                  _lowerBounds[currentNonBasic], _upperBounds[currentNonBasic] );
-    printf("Change ratio is: %.15lf\n", _changeRatio );
+    // printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
+    //               _nonBasicIndexToVariable[_enteringVariable],
+    //               _basicIndexToVariable[_leavingVariable] );
+    //
+    // printf("Leaving variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
+    //               _leavingVariableIncreases ? "increases" : "decreases",
+    //               _basicAssignment[_leavingVariable],
+    //               _lowerBounds[currentBasic], _upperBounds[currentBasic] );
+    //
+    // printf("Entering variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
+    //               FloatUtils::isNegative( _costFunctionManager->getCostFunction()[_enteringVariable] ) ?
+    //               "increases" : "decreases",
+    //               _nonBasicAssignment[_enteringVariable],
+    //               _lowerBounds[currentNonBasic], _upperBounds[currentNonBasic] );
+    // printf("Change ratio is: %.15lf\n", _changeRatio );
 
 
     TABLEAU_LOG( Stringf( "Tableau performing pivot. Entering: %u, Leaving: %u",
@@ -861,7 +861,8 @@ void Tableau::performPivot()
     }
 
     bool solvedAfter = !existsBasicOutOfBounds();
-    printf("Linear solved END of pivot: %d\n", solvedAfter);
+    //printf("Linear solved END of pivot: %d\n", solvedAfter);
+
 
     if (solvedAfter == false && solvedBefore == true)
     {
@@ -869,6 +870,9 @@ void Tableau::performPivot()
         dumpAssignment();
         throw MarabouError( MarabouError::DEBUGGING_ERROR );
     }
+
+    // We should never leave the feasible region from a pivot
+    ASSERT (!(solvedAfter == false && solvedBefore == true));
 
 }
 
@@ -940,7 +944,14 @@ double Tableau::ratioConstraintPerBasic( unsigned basicIndex, double coefficient
     {
         // Basic variable is decreasing
         double actualLowerBound;
-        if ( basicCost > 0 )
+        // If optimizing and the linear portion is solved, then all are within their bounds
+        // even if they have a non-zero basicCost. The only one with a non-zero basic cost
+        // should be the optimization variable.
+        if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+        {
+            actualLowerBound = _lowerBounds[basic];
+        }
+        else if ( basicCost > 0 )
         {
             actualLowerBound = _upperBounds[basic];
         }
@@ -973,7 +984,14 @@ double Tableau::ratioConstraintPerBasic( unsigned basicIndex, double coefficient
     {
         // Basic variable is increasing
         double actualUpperBound;
-        if ( basicCost < 0 )
+        // If optimizing and the linear portion is solved, then all are within their bounds
+        // even if they have a non-zero basicCost. The only one with a non-zero basic cost
+        // should be the optimization variable.
+        if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+        {
+            actualUpperBound = _upperBounds[basic];
+        }
+        else if ( basicCost < 0 )
         {
             actualUpperBound = _lowerBounds[basic];
         }
