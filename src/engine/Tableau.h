@@ -208,7 +208,7 @@ public:
       Picks the entering variable.
     */
     bool eligibleForEntry( unsigned nonBasic, const double *costFunction ) const;
-    bool eligibleForLeaving( unsigned i ) const;
+    bool eligibleForLeaving( ) const;
 
     unsigned getEnteringVariable() const;
     unsigned getEnteringVariableIndex() const;

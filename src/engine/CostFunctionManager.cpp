@@ -153,6 +153,7 @@ void CostFunctionManager::computeCoreCostFunction()
 
     //printf("Linear solved: %d\n", _linearSolved);
 
+    // fill the cost function with zeros
     std::fill( _costFunction, _costFunction + _n - _m, 0.0 );
 
     // Phase I - find a feasible solution
@@ -172,9 +173,23 @@ void CostFunctionManager::computeCoreCostFunction()
       //printf("Our opt variable is basic: %d\n", _tableau->isBasic(_optimizationVariable));
 
       std::fill( _basicCosts, _basicCosts + _m, 0.0 );
-      _basicCosts[_tableau->variableToIndex(_optimizationVariable)] = -1.0;
-      computeMultipliers();
-      computeReducedCosts();
+      if (_tableau->isBasic(_optimizationVariable))
+      {
+          _basicCosts[_tableau->variableToIndex(_optimizationVariable)] = -1.0;
+          computeMultipliers();
+          computeReducedCosts();
+      }
+      // If non-basic, then it's just itself
+      else
+      {
+          printf("CALCULATING COST FUNCTION FOR NONBASIC OPTIMIZATION VARIABLE!!!!!!!!!!!!!!");
+          //throw MarabouError( MarabouError::FAILURE_TO_ADD_NEW_EQUATION );
+          // _basicCosts should be all 0 since no basics are in the equation
+          // The cost function is just given by the negative optimization variable
+          // (assuming we are trying to maximize the original variable)
+          _costFunction[_tableau->variableToIndex(_optimizationVariable)] = -1.0;
+      }
+
     }
 
     _costFunctionStatus = ICostFunctionManager::COST_FUNCTION_JUST_COMPUTED;

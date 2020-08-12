@@ -625,20 +625,26 @@ void Tableau::getLeavingCandidates( List<unsigned> &candidates) const
     candidates.clear();
     for (unsigned i = 0; i < _m; ++i)
     {
-        if ( eligibleForLeaving( i ) )
+        if ( eligibleForLeaving() )
         {
             candidates.append( i );
         }
     }
 }
-bool Tableau::eligibleForLeaving( unsigned i) const
+bool Tableau::eligibleForLeaving() const
 {
     // For now, the only one excluded from leaving corresponds to a variable
     // Representing the cost function to optimize
     // We only exclude any when optimizing
-    bool eligible = (basicIndexToVariable(i) != _costFunctionManager->getOptimizationVariable())
-        || !(_costFunctionManager->getOptimize());
-    return eligible;
+    // bool eligible = (basicIndexToVariable(i) != _costFunctionManager->getOptimizationVariable())
+    //     || !(_costFunctionManager->getOptimize());
+    // return eligible;
+
+    // if the optimization variable is ever chosen to leave it must be pushed to a bound.
+    // All steps will be nonincreasing on the objective (assuming the goal is to minimize the objective),
+    // so the opt. variable will be pushed to its bound lower (optimum) bound, and thus achieve its optimum
+    // (note) this is flipped from me picturing it as maximization.
+    return true;
 }
 
 void Tableau::setEnteringVariableIndex( unsigned nonBasic )
@@ -737,9 +743,6 @@ void Tableau::performPivot()
     printf("-----------------------------------------------\n");
     bool solvedBefore = !existsBasicOutOfBounds();
     printf("Linear solved START of pivot: %d \n", solvedBefore);
-    printf("ASSIGNMENT BEFORE PIVOT\n");
-    //dumpEquations();
-    //dumpAssignment();
 
 
     bool decrease;
@@ -862,11 +865,9 @@ void Tableau::performPivot()
 
     if (solvedAfter == false && solvedBefore == true)
     {
-        printf("!!!!!!!!!!!!!!!!!!!!! SWITCHED FROM LINEAR SOLVED TO NOT SOLVED");
-        printf("ASSIGNMENT AFTER PIVOT");
-        //dumpEquations();
-        //dumpAssignment();
-        //throw MarabouError( MarabouError::FAILURE_TO_ADD_NEW_EQUATION );
+        printf("!!!!!!!!!!!!!!!!!!!!! SWITCHED FROM LINEAR SOLVED TO NOT SOLVED !!!!!!!!!!!!!!!!!!!!");
+        dumpAssignment();
+        throw MarabouError( MarabouError::DEBUGGING_ERROR );
     }
 
 }
@@ -1011,7 +1012,8 @@ void Tableau::pickLeavingVariable()
 {
     pickLeavingVariable( _changeColumn );
     // Assert that if we're optimizing, the leaving variable cant be equal to the optimization variable since it has to stay in the basis.
-    ASSERT(_costFunctionManager->getOptimize() ? (_leavingVariable != variableToIndex(_costFunctionManager->getOptimizationVariable())) : true);
+    // We no longer have to have it stay in the basis
+    //ASSERT(_costFunctionManager->getOptimize() ? (_leavingVariable != variableToIndex(_costFunctionManager->getOptimizationVariable())) : true);
 }
 
 void Tableau::pickLeavingVariable( double *changeColumn )
@@ -1047,7 +1049,6 @@ void Tableau::standardRatioTest( double *changeColumn )
     // A marker to show that no leaving variable has been selected
     _leavingVariable = _m;
 
-    printf("Leaving variable start: %d\n", _leavingVariable);
     // Possible leaving variables to consider - not the variable index, but their index in terms of
     // numbering each of the basic variables
     List<unsigned> leavingVariableCandidates;
@@ -1078,8 +1079,6 @@ void Tableau::standardRatioTest( double *changeColumn )
                     _changeRatio = ratio;
                     _leavingVariable = i;
                     largestPivot = FloatUtils::abs( changeColumn[i] );
-                    printf("setting leaving variable to: %d\n", _leavingVariable);
-
                 }
             }
         }
@@ -1112,8 +1111,6 @@ void Tableau::standardRatioTest( double *changeColumn )
                     _changeRatio = ratio;
                     _leavingVariable = i;
                     largestPivot = FloatUtils::abs( changeColumn[i] );
-                    printf("setting leaving variable to: %d\n", _leavingVariable);
-
                 }
             }
         }
@@ -1181,7 +1178,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
         // variable and see if any of them imposes a tighter
         // constraint.
         double ratioConstraintPerBasic;
-        for ( unsigned i :  leavingVariableCandidates )
+        for ( unsigned i = 0; i < _m; ++i )
         {
             unsigned basic = _basicIndexToVariable[i];
             double basicCost = _costFunctionManager->getBasicCost( i );
@@ -1245,7 +1242,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
         // variable and see if any of them imposes a tighter
         // constraint.
         double ratioConstraintPerBasic;
-        for ( unsigned i :  leavingVariableCandidates )
+        for ( unsigned i = 0; i < _m; ++i )
         {
             unsigned basic = _basicIndexToVariable[i];
             double basicCost = _costFunctionManager->getBasicCost( i );
