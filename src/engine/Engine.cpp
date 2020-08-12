@@ -351,8 +351,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
 
         if (_tableau->getUpperBound(_costFunctionManager->getOptimizationVariable()) <= _bestOptValSoFar)
         {
-            printf("!!!!!!!!!!!!!!!!!!!!!The upper bound matches are best so far - so we could trim this!!!!!!!!!!!!!\n");
-            printf( "\n Trimming this branch \n" );
+            printf( "\n Trimming this branch because of upper bound \n" );
             _noEnteringCandidatesLeft = false;
             if ( !_smtCore.popSplit() )
             {
@@ -575,7 +574,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
                 // The query is infeasible if there's no more options but we're not within bounds yet.
                 else
                 {
-                    printf("\n Infeasible query!!!!!!!\n");
+                    printf("\n Trimming infeasible query\n");
                     _noEnteringCandidatesLeft = false;
                     if( !_smtCore.popSplit() )
                     {
