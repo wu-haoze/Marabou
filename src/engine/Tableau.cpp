@@ -740,9 +740,9 @@ bool Tableau::performingFakePivot() const
 
 void Tableau::performPivot()
 {
-    printf("-----------------------------------------------\n");
+    //printf("-----------------------------------------------\n");
     bool solvedBefore = !existsBasicOutOfBounds();
-    printf("Linear solved START of pivot: %d \n", solvedBefore);
+    //printf("Linear solved START of pivot: %d \n", solvedBefore);
 
 
     bool decrease;
@@ -789,21 +789,21 @@ void Tableau::performPivot()
 
     //_costFunctionManager->dumpCostFunction();
 
-    printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
-                  _nonBasicIndexToVariable[_enteringVariable],
-                  _basicIndexToVariable[_leavingVariable] );
-
-    printf("Leaving variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
-                  _leavingVariableIncreases ? "increases" : "decreases",
-                  _basicAssignment[_leavingVariable],
-                  _lowerBounds[currentBasic], _upperBounds[currentBasic] );
-
-    printf("Entering variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
-                  FloatUtils::isNegative( _costFunctionManager->getCostFunction()[_enteringVariable] ) ?
-                  "increases" : "decreases",
-                  _nonBasicAssignment[_enteringVariable],
-                  _lowerBounds[currentNonBasic], _upperBounds[currentNonBasic] );
-    printf("Change ratio is: %.15lf\n", _changeRatio );
+    // printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
+    //               _nonBasicIndexToVariable[_enteringVariable],
+    //               _basicIndexToVariable[_leavingVariable] );
+    //
+    // printf("Leaving variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
+    //               _leavingVariableIncreases ? "increases" : "decreases",
+    //               _basicAssignment[_leavingVariable],
+    //               _lowerBounds[currentBasic], _upperBounds[currentBasic] );
+    //
+    // printf("Entering variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
+    //               FloatUtils::isNegative( _costFunctionManager->getCostFunction()[_enteringVariable] ) ?
+    //               "increases" : "decreases",
+    //               _nonBasicAssignment[_enteringVariable],
+    //               _lowerBounds[currentNonBasic], _upperBounds[currentNonBasic] );
+    // printf("Change ratio is: %.15lf\n", _changeRatio );
 
 
     TABLEAU_LOG( Stringf( "Tableau performing pivot. Entering: %u, Leaving: %u",
@@ -861,7 +861,7 @@ void Tableau::performPivot()
     }
 
     bool solvedAfter = !existsBasicOutOfBounds();
-    printf("Linear solved END of pivot: %d\n", solvedAfter);
+    //printf("Linear solved END of pivot: %d\n", solvedAfter);
 
 
 
@@ -2511,17 +2511,25 @@ void Tableau::updateAssignmentForPivot()
                 basicGoingToUpperBound = false;
         }
 
+        bool linearSolved = !existsBasicOutOfBounds();
+
         if ( basicGoingToUpperBound )
         {
             basicDelta = _upperBounds[currentBasic] - currentBasicValue;
-            if ( basicDelta < 0 )
+            if ( basicDelta < 0 && linearSolved )
+            {
+                printf("Special delta if 1\n");
                 basicDelta = 0;
+            }
         }
         else
         {
             basicDelta = _lowerBounds[currentBasic] - currentBasicValue;
-            if ( basicDelta > 0 )
+            if ( basicDelta > 0 && linearSolved )
+            {
+                printf("Special delta if 2\n");
                 basicDelta = 0;
+            }
         }
 
         // Now that we know by how much the leaving variable changes,

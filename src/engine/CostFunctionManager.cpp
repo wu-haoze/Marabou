@@ -459,17 +459,29 @@ double CostFunctionManager::updateCostFunctionForPivot( unsigned enteringVariabl
 
     // If we're in stage II, then we can have a basic cost without an out of bounds
     // variable, which means we won't need this extra update.
-    if (!(_linearSolved && _optimize))
+    if (_linearSolved && _optimize)
+    {
+        // If the entering variable is the optimization variable, set the basic cost to -1.0
+        // The reduced cost shoould already have been updated appropriately
+        if(_tableau->nonBasicIndexToVariable(enteringVariableIndex) == _optimizationVariable)
+        {
+            _basicCosts[leavingVariableIndex] = -1.0;
+        }
+        else
+        {
+            _basicCosts[leavingVariableIndex] = 0.0;
+        }
+    }
+    else
     {
         /*
           The leaving variable might have contributed to the cost function, but it will
           soon be made within bounds. So, we adjust the reduced costs accordingly.
         */
         _costFunction[enteringVariableIndex] -= _basicCosts[leavingVariableIndex];
+        // The entering varibale is non-basic, so it is within bounds.
+        _basicCosts[leavingVariableIndex] = 0;
     }
-
-    // The entering varibale is non-basic, so it is within bounds.
-    _basicCosts[leavingVariableIndex] = 0;
 
     _costFunctionStatus = ICostFunctionManager::COST_FUNCTION_UPDATED;
 
