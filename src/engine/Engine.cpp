@@ -315,7 +315,6 @@ bool Engine::optimize( unsigned timeoutInSeconds )
     storeInitialEngineState();
 
     printf("Engine::Solving Optimization Problem!!!!!!\n");
-    printf("Reached here!!\n");
     mainLoopStatistics();
 
     if ( _verbosity > 0 )

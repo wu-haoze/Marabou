@@ -61,7 +61,6 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
     if ( _constraintToViolationCount[constraint] >=
          _constraintViolationThreshold )
     {
-        printf("Splitting!!!!! \n");
         _needToSplit = true;
 
         DivideStrategy _strategyToUse = (_divideStrategy == DivideStrategy::None) ? GlobalConfiguration::SPLITTING_HEURISTICS : _divideStrategy;
