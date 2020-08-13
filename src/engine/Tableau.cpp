@@ -1516,7 +1516,6 @@ void Tableau::harrisRatioTest( double *changeColumn )
                   between assignment and bound, due to some minor degeneracy. Assume that
                   assignment = bound, and set the cosntraint to 0.
                 */
-                printf("Setting to 0 in is negative\n");
                 ratioConstraintPerBasic = 0;
             }
 
