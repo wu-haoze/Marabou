@@ -740,9 +740,9 @@ bool Tableau::performingFakePivot() const
 
 void Tableau::performPivot()
 {
-    //printf("-----------------------------------------------\n");
+    printf("-----------------------------------------------\n");
     bool solvedBefore = !existsBasicOutOfBounds();
-    // printf("Linear solved START of pivot: %d \n", solvedBefore);
+    printf("Linear solved START of pivot: %d \n", solvedBefore);
 
 
     bool decrease;
@@ -789,21 +789,21 @@ void Tableau::performPivot()
 
     //_costFunctionManager->dumpCostFunction();
 
-    // printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
-    //               _nonBasicIndexToVariable[_enteringVariable],
-    //               _basicIndexToVariable[_leavingVariable] );
-    //
-    // printf("Leaving variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
-    //               _leavingVariableIncreases ? "increases" : "decreases",
-    //               _basicAssignment[_leavingVariable],
-    //               _lowerBounds[currentBasic], _upperBounds[currentBasic] );
-    //
-    // printf("Entering variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
-    //               FloatUtils::isNegative( _costFunctionManager->getCostFunction()[_enteringVariable] ) ?
-    //               "increases" : "decreases",
-    //               _nonBasicAssignment[_enteringVariable],
-    //               _lowerBounds[currentNonBasic], _upperBounds[currentNonBasic] );
-    // printf("Change ratio is: %.15lf\n", _changeRatio );
+    printf("Tableau performing pivot. Entering: %u, Leaving: %u\n",
+                  _nonBasicIndexToVariable[_enteringVariable],
+                  _basicIndexToVariable[_leavingVariable] );
+
+    printf("Leaving variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
+                  _leavingVariableIncreases ? "increases" : "decreases",
+                  _basicAssignment[_leavingVariable],
+                  _lowerBounds[currentBasic], _upperBounds[currentBasic] );
+
+    printf("Entering variable %s. Current value: %.15lf. Range: [%.15lf, %.15lf]\n",
+                  FloatUtils::isNegative( _costFunctionManager->getCostFunction()[_enteringVariable] ) ?
+                  "increases" : "decreases",
+                  _nonBasicAssignment[_enteringVariable],
+                  _lowerBounds[currentNonBasic], _upperBounds[currentNonBasic] );
+    printf("Change ratio is: %.15lf\n", _changeRatio );
 
 
     TABLEAU_LOG( Stringf( "Tableau performing pivot. Entering: %u, Leaving: %u",
@@ -861,7 +861,8 @@ void Tableau::performPivot()
     }
 
     bool solvedAfter = !existsBasicOutOfBounds();
-    //printf("Linear solved END of pivot: %d\n", solvedAfter);
+    printf("Linear solved END of pivot: %d\n", solvedAfter);
+
 
 
     if (solvedAfter == false && solvedBefore == true)
@@ -1155,6 +1156,13 @@ void Tableau::harrisRatioTest( double *changeColumn )
 
     ASSERT( !FloatUtils::isZero( _costFunctionManager->getCostFunction()[_enteringVariable] ) );
 
+    bool linearSolved = !existsBasicOutOfBounds();
+    // Possible leaving variables to consider - not the variable index, but their index in terms of
+    // numbering each of the basic variables
+    List<unsigned> leavingVariableCandidates;
+    getLeavingCandidates(leavingVariableCandidates);
+
+
     // Is the entering variable decreasing?
     bool enteringDecreases = FloatUtils::isPositive( _costFunctionManager->getCostFunction()[_enteringVariable] );
 
@@ -1170,11 +1178,6 @@ void Tableau::harrisRatioTest( double *changeColumn )
                          "Error! Entering variable needs to increase but is at its upper bound" );
             }
         });
-
-    // Possible leaving variables to consider - not the variable index, but their index in terms of
-    // numbering each of the basic variables
-    List<unsigned> leavingVariableCandidates;
-    getLeavingCandidates(leavingVariableCandidates);
 
     /*
       Alfa:
@@ -1207,7 +1210,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualUpperBound = _upperBounds[basic];
                 }
@@ -1233,7 +1236,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualLowerBound = _lowerBounds[basic];
                 }
@@ -1285,7 +1288,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualLowerBound = _lowerBounds[basic];
                 }
@@ -1311,7 +1314,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualUpperBound = _upperBounds[basic];
                 }
@@ -1386,7 +1389,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualUpperBound = _upperBounds[basic];
                 }
@@ -1406,9 +1409,13 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualLowerBound = _lowerBounds[basic];
+                    if (_basicIndexToVariable[i] == 610)
+                    {
+                        printf("Setting lower bound to: %.10f\n", actualLowerBound);
+                    }
                 }
                 else if ( basicCost < 0 )
                     continue;
@@ -1462,7 +1469,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualLowerBound = _lowerBounds[basic];
                 }
@@ -1482,7 +1489,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                 // If optimizing and the linear portion is solved, then all are within their bounds
                 // even if they have a non-zero basicCost. The only one with a non-zero basic cost
                 // should be the optimization variable.
-                if ( _costFunctionManager->getOptimize() && !existsBasicOutOfBounds())
+                if ( _costFunctionManager->getOptimize() && linearSolved )
                 {
                     actualUpperBound = _upperBounds[basic];
                 }
@@ -1509,6 +1516,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
                   between assignment and bound, due to some minor degeneracy. Assume that
                   assignment = bound, and set the cosntraint to 0.
                 */
+                printf("Setting to 0 in is negative\n");
                 ratioConstraintPerBasic = 0;
             }
 
