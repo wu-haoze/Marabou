@@ -741,7 +741,7 @@ bool Tableau::performingFakePivot() const
 void Tableau::performPivot()
 {
     //printf("-----------------------------------------------\n");
-    bool solvedBefore = !existsBasicOutOfBounds();
+    //bool solvedBefore = !existsBasicOutOfBounds();
     //printf("Linear solved START of pivot: %d \n", solvedBefore);
 
 
@@ -860,20 +860,20 @@ void Tableau::performPivot()
         _statistics->addTimePivots( TimeUtils::timePassed( pivotStart, pivotEnd ) );
     }
 
-    bool solvedAfter = !existsBasicOutOfBounds();
+    //bool solvedAfter = !existsBasicOutOfBounds();
     //printf("Linear solved END of pivot: %d\n", solvedAfter);
 
 
 
-    if (solvedAfter == false && solvedBefore == true)
-    {
-        printf("!!!!!!!!!!!!!!!!!!!!! SWITCHED FROM LINEAR SOLVED TO NOT SOLVED !!!!!!!!!!!!!!!!!!!!");
-        dumpAssignment();
-        throw MarabouError( MarabouError::DEBUGGING_ERROR );
-    }
-
-    // We should never leave the feasible region from a pivot
-    ASSERT (!(solvedAfter == false && solvedBefore == true));
+    // if (solvedAfter == false && solvedBefore == true)
+    // {
+    //     printf("!!!!!!!!!!!!!!!!!!!!! SWITCHED FROM LINEAR SOLVED TO NOT SOLVED !!!!!!!!!!!!!!!!!!!!");
+    //     dumpAssignment();
+    //     throw MarabouError( MarabouError::DEBUGGING_ERROR );
+    // }
+    //
+    // // We should never leave the feasible region from a pivot
+    // ASSERT (!(solvedAfter == false && solvedBefore == true));
 
 }
 
@@ -1156,7 +1156,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
 
     ASSERT( !FloatUtils::isZero( _costFunctionManager->getCostFunction()[_enteringVariable] ) );
 
-    bool linearSolved = !existsBasicOutOfBounds();
+    bool linearSolved = _costFunctionManager->getLinearSolved();
     // Possible leaving variables to consider - not the variable index, but their index in terms of
     // numbering each of the basic variables
     List<unsigned> leavingVariableCandidates;
@@ -2511,14 +2511,13 @@ void Tableau::updateAssignmentForPivot()
                 basicGoingToUpperBound = false;
         }
 
-        bool linearSolved = !existsBasicOutOfBounds();
+        bool linearSolved = _costFunctionManager->getLinearSolved();
 
         if ( basicGoingToUpperBound )
         {
             basicDelta = _upperBounds[currentBasic] - currentBasicValue;
             if ( basicDelta < 0 && linearSolved )
             {
-                printf("Special delta if 1\n");
                 basicDelta = 0;
             }
         }
@@ -2527,7 +2526,6 @@ void Tableau::updateAssignmentForPivot()
             basicDelta = _lowerBounds[currentBasic] - currentBasicValue;
             if ( basicDelta > 0 && linearSolved )
             {
-                printf("Special delta if 2\n");
                 basicDelta = 0;
             }
         }

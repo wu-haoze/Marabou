@@ -389,6 +389,10 @@ unsigned CostFunctionManager::getOptimizationVariable()
 {
     return _optimizationVariable;
 }
+bool CostFunctionManager::getLinearSolved()
+{
+    return _linearSolved;
+}
 
 double CostFunctionManager::updateCostFunctionForPivot( unsigned enteringVariableIndex,
                                                         unsigned leavingVariableIndex,
@@ -457,12 +461,17 @@ double CostFunctionManager::updateCostFunctionForPivot( unsigned enteringVariabl
             _costFunction[i] -= (*pivotRow)[i] * _costFunction[enteringVariableIndex];
     }
 
+    if (!(_linearSolved && _optimize))
+    {
+        _costFunction[enteringVariableIndex] -= _basicCosts[leavingVariableIndex];
+    }
+
     // If we're in stage II, then we can have a basic cost without an out of bounds
     // variable, which means we won't need this extra update.
     if (_linearSolved && _optimize)
     {
         // If the entering variable is the optimization variable, set the basic cost to -1.0
-        // The reduced cost shoould already have been updated appropriately
+        // The reduced cost should already have been updated appropriately
         if(_tableau->nonBasicIndexToVariable(enteringVariableIndex) == _optimizationVariable)
         {
             _basicCosts[leavingVariableIndex] = -1.0;
