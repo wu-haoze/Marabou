@@ -48,6 +48,9 @@ void OptionParser::initialize()
         ( "lrx",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::LINEAR_RELAXATION]) ),
           "Use linear relaxation" )
+        ( "restore-tree-states",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::RESTORE_TREE_STATES]) ),
+          "Restore tree states in dnc mode" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

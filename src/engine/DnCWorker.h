@@ -30,13 +30,13 @@ public:
                std::atomic_uint &numUnsolvedSubqueries,
                std::atomic_bool &shouldQuitSolving, unsigned threadId,
                unsigned onlineDivides, float timeoutFactor,
-               DivideStrategy divideStrategy );
+               DivideStrategy divideStrategy, unsigned verbosity );
 
     /*
       Pop one subQuery, solve it and handle the result
       Return true if the DnCWorker should continue running
     */
-    void popOneSubQueryAndSolve();
+    void popOneSubQueryAndSolve( bool restoreTreeStates = false );
 
 private:
     /*
@@ -80,6 +80,7 @@ private:
     unsigned _threadId;
     unsigned _onlineDivides;
     float _timeoutFactor;
+    unsigned _verbosity;
 };
 
 #endif // __DnCWorker_h__

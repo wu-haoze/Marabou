@@ -76,6 +76,8 @@ public:
     /*
       Methods for storing and restoring the state of the engine.
     */
+    void storeTableauState( TableauState &state ) const;
+    void restoreTableauState( const TableauState &state );
     void storeState( EngineState &state, bool storeAlsoTableauState ) const;
     void restoreState( const EngineState &state );
     void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints );
@@ -129,6 +131,17 @@ public:
       Set the Engine's level of verbosity
     */
     void setVerbosity( unsigned verbosity );
+
+    /*
+      Apply the stack to the newly created SmtCore, returns false if UNSAT is
+      found in this process.
+    */
+    bool restoreSmtState( SmtState &smtState );
+
+    /*
+      Store the current stack of the smtCore into smtState
+    */
+    void storeSmtState( SmtState &smtState );
 
     /*
       Pick the piecewise linear constraint for splitting

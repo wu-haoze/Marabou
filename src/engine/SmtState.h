@@ -1,8 +1,8 @@
 /*********************                                                        */
-/*! \file Engine.h
+/*! \file SmtState.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Guy Katz
+ **   Guy Katz, Duligur Ibeling
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -13,18 +13,35 @@
 
  **/
 
-#ifndef __PiecewiseLinearFunctionType_h__
-#define __PiecewiseLinearFunctionType_h__
+#ifndef __SmtState_h__
+#define __SmtState_h__
 
-enum PiecewiseLinearFunctionType {
-    RELU = 0,
-    ABSOLUTE_VALUE = 1,
-    MAX = 2,
-    DISJUNCTION = 3,
-    SIGN = 4,
+#include "List.h"
+#include "Map.h"
+#include "PiecewiseLinearConstraint.h"
+#include "SmtStackEntry.h"
+
+class SmtState
+{
+public:
+    /*
+      Valid splits that were implied by level 0 of the stack.
+    */
+    List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;
+
+    /*
+      The stack.
+    */
+    List<SmtStackEntry *> _stack;
+
+    /*
+      A unique ID allocated to every state that is stored, for
+      debugging purposes.
+    */
+    unsigned _stateId;
 };
 
-#endif // __PiecewiseLinearFunctionType_h__
+#endif // __SmtState_h__
 
 //
 // Local Variables:

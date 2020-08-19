@@ -53,7 +53,7 @@ public:
     /*
       Perform the Divide-and-conquer solving
     */
-    void solve( unsigned timeoutInSeconds );
+    void solve( unsigned timeoutInSeconds, bool restoreTreeStates = false );
 
     /*
       Return the DnCExitCode of the DnCManager
@@ -73,7 +73,7 @@ public:
     /*
       Store the solution into the map
     */
-    void getSolution( std::map<int, double> &ret );
+    void getSolution( std::map<int, double> &ret, InputQuery &inputQuery );
 
     void setConstraintViolationThreshold( unsigned threshold );
 
@@ -86,7 +86,8 @@ private:
                           std::atomic_uint &numUnsolvedSubQueries,
                           std::atomic_bool &shouldQuitSolving,
                           unsigned threadId, unsigned onlineDivides,
-                          float timeoutFactor, DivideStrategy divideStrategy );
+                          float timeoutFactor, DivideStrategy divideStrategy,
+                          bool restoreTreeStates, unsigned verbosity );
 
     /*
       Create the base engine from the network and property files,

@@ -67,8 +67,8 @@ const unsigned GlobalConfiguration::PSE_ITERATIONS_BEFORE_RESET = 1000;
 const double GlobalConfiguration::PSE_GAMMA_ERROR_THRESHOLD = 0.001;
 const double GlobalConfiguration::PSE_GAMMA_UPDATE_TOLERANCE = 0.000000001;
 
-const double GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE = 0.001;
-const double GlobalConfiguration::ABS_CONSTRAINT_COMPARISON_TOLERANCE = 0.001;
+const double GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE = 0.00001;
+const double GlobalConfiguration::ABS_CONSTRAINT_COMPARISON_TOLERANCE = 0.00001;
 
 const bool GlobalConfiguration::ONLY_AUX_INITIAL_BASIS = false;
 
@@ -86,6 +86,10 @@ const GlobalConfiguration::BasisFactorizationType GlobalConfiguration::BASIS_FAC
     GlobalConfiguration::SPARSE_FORREST_TOMLIN_FACTORIZATION;
 
 const unsigned GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD = 5;
+
+#ifdef ENABLE_GUROBI
+const unsigned GlobalConfiguration::GUROBI_NUMBER_OF_THREADS = 1;
+#endif // ENABLE_GUROBI
 
 // Logging - note that it is enabled only in Debug mode
 const bool GlobalConfiguration::DNC_MANAGER_LOGGING = false;

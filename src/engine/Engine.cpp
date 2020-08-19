@@ -91,6 +91,8 @@ void Engine::adjustWorkMemorySize()
 
 void Engine::augmentTableauWithLinearRelaxation()
 {
+    std::cout << "Here!" << std::endl;
+    PiecewiseLinearCaseSplit split;
     for ( const auto &constraint : _plConstraints )
     {
         if ( constraint->isActive() && !constraint->phaseFixed() )
@@ -104,15 +106,19 @@ void Engine::augmentTableauWithLinearRelaxation()
             double range = u - l;
             double A = u / range;
             double B = - u * l / range;
-            PiecewiseLinearCaseSplit split;
             Equation linRelax( Equation::LE );
             linRelax.addAddend( 1.0, b );
             linRelax.addAddend( -A, f );
             linRelax.setScalar( B );
             split.addEquation( linRelax );
-            applySplit( split );
         }
     }
+    applySplit( split );
+    std::cout << "Here again!" << std::endl;
+    ASSERT( _tableau->basisMatrixAvailable() );
+    explicitBasisBoundTightening();
+    applyAllBoundTightenings();
+    applyAllValidConstraintCaseSplits();
 }
 
 bool Engine::solve( unsigned timeoutInSeconds )
@@ -130,6 +136,11 @@ bool Engine::solve( unsigned timeoutInSeconds )
         _statistics.print();
         printf( "\n---\n" );
     }
+
+    applyAllValidConstraintCaseSplits();
+
+    if ( _linearRelaxation )
+        augmentTableauWithLinearRelaxation();
 
     bool splitJustPerformed = true;
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
@@ -210,19 +221,20 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
             if ( _tableau->basisMatrixAvailable() )
             {
-                std::cout << "Performing Row Bound Tightening" << std::endl;
                 explicitBasisBoundTightening();
+                applyAllBoundTightenings();
+                applyAllValidConstraintCaseSplits();
             }
+
             if ( splitJustPerformed )
             {
+                splitJustPerformed = false;
                 do
                 {
                     performSymbolicBoundTightening();
                 }
                 while ( applyAllValidConstraintCaseSplits() );
-                splitJustPerformed = false;
-                if ( _linearRelaxation )
-                    augmentTableauWithLinearRelaxation();
+
             }
 
             // Perform any SmtCore-initiated case splits
@@ -1141,6 +1153,14 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
     ENGINE_LOG( "processInputQuery done\n" );
 
+    DEBUG({
+            // Initially, all constraints should be active
+            for ( const auto &plc : _plConstraints )
+                {
+                    ASSERT( plc->isActive() );
+                }
+        });
+
     _smtCore.storeDebuggingSolution( _preprocessedQuery._debuggingSolution );
 
     return true;}
@@ -1162,6 +1182,8 @@ void Engine::performMILPSolverBoundedTightening()
         case GlobalConfiguration::MILP_ENCODING_INCREMENTAL:
             _networkLevelReasoner->MILPPropagation();
             break;
+        case GlobalConfiguration::NONE:
+            return;
         }
 
         List<Tightening> tightenings;
@@ -1175,8 +1197,6 @@ void Engine::performMILPSolverBoundedTightening()
             else if ( tightening._type == Tightening::UB )
                 _tableau->tightenUpperBound( tightening._variable, tightening._value );
         }
-
-        applyAllValidConstraintCaseSplits();
     }
 }
 
@@ -1250,6 +1270,17 @@ void Engine::selectViolatedPlConstraint()
 void Engine::reportPlViolation()
 {
     _smtCore.reportViolatedConstraint( _plConstraintToFix );
+}
+
+void Engine::storeTableauState( TableauState &state ) const
+{
+    _tableau->storeState( state );
+}
+
+void Engine::restoreTableauState( const TableauState &state )
+{
+    ENGINE_LOG( "\tRestoring tableau state" );
+    _tableau->restoreState( state );
 }
 
 void Engine::storeState( EngineState &state, bool storeAlsoTableauState ) const
@@ -1585,7 +1616,7 @@ bool Engine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constrain
         String constraintString;
         constraint->dump( constraintString );
         ENGINE_LOG( Stringf( "A constraint has become valid. Dumping constraint: %s",
-                      constraintString.ascii() ).ascii() );
+                             constraintString.ascii() ).ascii() );
 
         constraint->setActiveConstraint( false );
         PiecewiseLinearCaseSplit validSplit = constraint->getValidCaseSplit();
@@ -1982,6 +2013,68 @@ void Engine::updateDirections()
             if ( constraint->supportPolarity() &&
                  constraint->isActive() && !constraint->phaseFixed() )
                 constraint->updateDirection();
+}
+
+bool Engine::restoreSmtState( SmtState & smtState )
+{
+    try
+    {
+        ASSERT( _smtCore.getStackDepth() == 0 );
+
+        // Step 1: all implied valid splits at root
+        for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
+        {
+            applySplit( validSplit );
+            _smtCore.recordImpliedValidSplit( validSplit );
+        }
+
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        // For debugging purposes
+        checkBoundCompliancyWithDebugSolution();
+        do
+            performSymbolicBoundTightening();
+        while ( applyAllValidConstraintCaseSplits() );
+
+        // Step 2: replay the stack
+        for ( auto &stackEntry : smtState._stack )
+        {
+            _smtCore.replaySmtStackEntry( stackEntry );
+            // Do all the bound propagation, and set ReLU constraints to inactive (at
+            // least the one corresponding to the _activeSplit applied above.
+            tightenBoundsOnConstraintMatrix();
+            applyAllBoundTightenings();
+            // For debugging purposes
+            checkBoundCompliancyWithDebugSolution();
+            do
+                performSymbolicBoundTightening();
+            while ( applyAllValidConstraintCaseSplits() );
+
+        }
+    }
+    catch ( const InfeasibleQueryException & )
+    {
+        // The current query is unsat, and we need to pop.
+        // If we're at level 0, the whole query is unsat.
+        if ( !_smtCore.popSplit() )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\nEngine::solve: UNSAT query\n" );
+                _statistics.print();
+            }
+            _exitCode = Engine::UNSAT;
+            for ( PiecewiseLinearConstraint *p : _plConstraints )
+                p->setActiveConstraint( true );
+            return false;
+        }
+    }
+    return true;
+}
+
+void Engine::storeSmtState( SmtState & smtState )
+{
+    _smtCore.storeSmtState( smtState );
 }
 
 void Engine::updateScores()
