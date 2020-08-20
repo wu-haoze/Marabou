@@ -137,13 +137,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     applyAllValidConstraintCaseSplits();
 
-    if ( _tableau->basisMatrixAvailable() )
-        {
-            explicitBasisBoundTightening();
-            applyAllBoundTightenings();
-            applyAllValidConstraintCaseSplits();
-        }
-
     do
         {
             performSymbolicBoundTightening();
