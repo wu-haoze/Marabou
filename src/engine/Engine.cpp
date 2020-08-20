@@ -91,7 +91,6 @@ void Engine::adjustWorkMemorySize()
 
 void Engine::augmentTableauWithLinearRelaxation()
 {
-    std::cout << "Here!" << std::endl;
     PiecewiseLinearCaseSplit split;
     for ( const auto &constraint : _plConstraints )
     {
@@ -100,8 +99,8 @@ void Engine::augmentTableauWithLinearRelaxation()
             ReluConstraint *relu = (ReluConstraint *)constraint;
             unsigned b = relu->getB();
             unsigned f = relu->getF();
-            double l = _tableau->getLowerBound( b );
-            double u = _tableau->getUpperBound( f );
+            double l = _preprocessedQuery.getLowerBound( b );
+            double u = _preprocessedQuery.getUpperBound( f );
             // Encoding y <= u / (u - l) * x + u * l / (l - u)
             double range = u - l;
             double A = u / range;
@@ -114,7 +113,6 @@ void Engine::augmentTableauWithLinearRelaxation()
         }
     }
     applySplit( split );
-    std::cout << "Here again!" << std::endl;
     ASSERT( _tableau->basisMatrixAvailable() );
     explicitBasisBoundTightening();
     applyAllBoundTightenings();
@@ -147,6 +145,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     while ( true )
     {
+        std::cout <<  _statistics.getNumMainLoopIterations() << std::endl;
+
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
         _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
         mainLoopStart = mainLoopEnd;
@@ -240,6 +240,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
             // Perform any SmtCore-initiated case splits
             if ( _smtCore.needToSplit() )
             {
+                for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+                    std::cout << _tableau->getLowerBound( i ) << " <= x" << i << " <= " << _tableau->getUpperBound( i ) << std::endl;
                 _smtCore.performSplit();
                 splitJustPerformed = true;
                 continue;
