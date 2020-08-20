@@ -99,8 +99,8 @@ void Engine::augmentTableauWithLinearRelaxation()
             ReluConstraint *relu = (ReluConstraint *)constraint;
             unsigned b = relu->getB();
             unsigned f = relu->getF();
-            double l = _preprocessedQuery.getLowerBound( b );
-            double u = _preprocessedQuery.getUpperBound( f );
+            double l = _tableau->getLowerBound( b );
+            double u = _tableau->getUpperBound( f );
             // Encoding y <= u / (u - l) * x + u * l / (l - u)
             double range = u - l;
             double A = u / range;
@@ -138,15 +138,28 @@ bool Engine::solve( unsigned timeoutInSeconds )
     applyAllValidConstraintCaseSplits();
 
     if ( _linearRelaxation )
+    {
+        if ( _tableau->basisMatrixAvailable() )
+            {
+                explicitBasisBoundTightening();
+                applyAllBoundTightenings();
+                applyAllValidConstraintCaseSplits();
+            }
+
+        do
+            {
+                performSymbolicBoundTightening();
+            }
+        while ( applyAllValidConstraintCaseSplits() );
+
         augmentTableauWithLinearRelaxation();
+    }
 
     bool splitJustPerformed = true;
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
 
     while ( true )
     {
-        std::cout <<  _statistics.getNumMainLoopIterations() << std::endl;
-
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
         _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
         mainLoopStart = mainLoopEnd;
@@ -234,14 +247,13 @@ bool Engine::solve( unsigned timeoutInSeconds )
                     performSymbolicBoundTightening();
                 }
                 while ( applyAllValidConstraintCaseSplits() );
-
             }
 
             // Perform any SmtCore-initiated case splits
             if ( _smtCore.needToSplit() )
             {
-                for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
-                    std::cout << _tableau->getLowerBound( i ) << " <= x" << i << " <= " << _tableau->getUpperBound( i ) << std::endl;
+                //for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+                //    std::cout << _tableau->getLowerBound( i ) << " <= x" << i << " <= " << _tableau->getUpperBound( i ) << std::endl;
                 _smtCore.performSplit();
                 splitJustPerformed = true;
                 continue;
