@@ -78,15 +78,19 @@ const GlobalConfiguration::ExplicitBasisBoundTighteningType GlobalConfiguration:
 const bool GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION = false;
 
 const GlobalConfiguration::MILPSolverBoundTighteningType GlobalConfiguration::MILP_SOLVER_BOUND_TIGHTENING_TYPE =
-    GlobalConfiguration::LP_RELAXATION;
+    GlobalConfiguration::MILP_ENCODING;
 
-const unsigned GlobalConfiguration::MILPSolverTimeoutValueInSeconds = 1;
+const unsigned GlobalConfiguration::MILPSolverTimeoutValueInSeconds = 10;
 
 const unsigned GlobalConfiguration::REFACTORIZATION_THRESHOLD = 100;
 const GlobalConfiguration::BasisFactorizationType GlobalConfiguration::BASIS_FACTORIZATION_TYPE =
     GlobalConfiguration::SPARSE_FORREST_TOMLIN_FACTORIZATION;
 
 const unsigned GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD = 5;
+
+#ifdef ENABLE_GUROBI
+const unsigned GlobalConfiguration::GUROBI_NUMBER_OF_THREADS = 1;
+#endif // ENABLE_GUROBI
 
 // Logging - note that it is enabled only in Debug mode
 const bool GlobalConfiguration::DNC_MANAGER_LOGGING = false;
