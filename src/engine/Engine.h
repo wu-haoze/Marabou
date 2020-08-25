@@ -1,3 +1,4 @@
+
 /*********************                                                        */
 /*! \file Engine.h
  ** \verbatim
@@ -175,7 +176,7 @@ private:
     };
 
     bool _noEnteringCandidatesLeft = false;
-    double _bestOptValSoFar = -100000000000;
+    double _bestOptValSoFar = -FloatUtils::infinity();
     Map<unsigned, double> _bestSolutionSoFar;
 
     // Store the current assignment of input variables into _bestSolutionSoFar

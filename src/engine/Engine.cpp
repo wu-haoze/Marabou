@@ -190,7 +190,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( _smtCore.needToSplit() )
             {
                 _smtCore.performSplit();
-
+                // update the lower bound for the optimization variable
+                _tableau->tightenLowerBound( _costFunctionManager->getOptimizationVariable(), _bestOptValSoFar );
                 do
                 {
                     performSymbolicBoundTightening();
@@ -444,6 +445,8 @@ bool Engine::optimize( unsigned timeoutInSeconds )
 
             if ( splitJustPerformed )
             {
+                // update the lower bound for the optimization variable
+                _tableau->tightenLowerBound( _costFunctionManager->getOptimizationVariable(), _bestOptValSoFar );
                 do
                 {
                     performSymbolicBoundTightening();
@@ -533,6 +536,9 @@ bool Engine::optimize( unsigned timeoutInSeconds )
                     if (_bestOptValSoFar < curOptValue)
                     {
                         _bestOptValSoFar = curOptValue;
+
+                        // update the lower bound for the optimization variable
+                        _tableau->tightenLowerBound( _costFunctionManager->getOptimizationVariable(), _bestOptValSoFar );
 
                         // Update the best input we've seen so far
                         updateBestSolutionSoFar();
