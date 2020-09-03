@@ -23,8 +23,8 @@
 #include "ICostFunctionManager.h"
 #include "MStringf.h"
 #include "MalformedBasisException.h"
-#include "PiecewiseLinearCaseSplit.h"
 #include "MarabouError.h"
+#include "PiecewiseLinearCaseSplit.h"
 #include "Tableau.h"
 #include "TableauRow.h"
 #include "TableauState.h"
@@ -2028,7 +2028,7 @@ unsigned Tableau::addEquation( const Equation &equation )
     else
     {
         ConstraintMatrixAnalyzer analyzer;
-        analyzer.analyze( _A, _m, _n );
+        analyzer.analyze( (const SparseUnsortedList **)_sparseRowsOfA, _m, _n );
         List<unsigned> independentColumns = analyzer.getIndependentColumns();
 
         try
