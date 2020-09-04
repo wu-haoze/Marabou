@@ -32,12 +32,15 @@
 #include "MarabouError.h"
 #include "MString.h"
 #include "MaxConstraint.h"
+#include "Options.h"
 #include "PiecewiseLinearConstraint.h"
 #include "PropertyParser.h"
 #include "QueryLoader.h"
 #include "ReluConstraint.h"
 #include "Set.h"
 #include "DivideStrategy.h"
+#include "SnCDivideStrategy.h"
+#include "SignConstraint.h"
 
 #ifdef _WIN32
 #define STDOUT_FILENO 1
@@ -89,6 +92,11 @@ void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
     ipq.addPiecewiseLinearConstraint(r);
 }
 
+void addSignConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
+    PiecewiseLinearConstraint* r = new SignConstraint(var1, var2);
+    ipq.addPiecewiseLinearConstraint(r);
+}
+
 void addMaxConstraint(InputQuery& ipq, std::set<unsigned> elements, unsigned v){
     Set<unsigned> e;
     for(unsigned var: elements)
@@ -126,6 +134,7 @@ struct MarabouOptions {
         , _dnc( false )
         , _optimize( false )
         , _divideStrategy( DivideStrategy::None )
+        , _snCDivideStrategyString( "auto" )
     {};
 
     unsigned _numWorkers;
@@ -138,6 +147,17 @@ struct MarabouOptions {
     bool _dnc;
     bool _optimize;
     DivideStrategy _divideStrategy;
+    std::string _snCDivideStrategyString;
+
+    SnCDivideStrategy getSnCDivideStrategyFromString() const
+    {
+      if ( _snCDivideStrategyString == "polarity" )
+        return SnCDivideStrategy::Polarity;
+      else if ( _snCDivideStrategyString == "largest-interval" )
+        return SnCDivideStrategy::LargestInterval;
+      else
+        return SnCDivideStrategy::Auto;
+    }
 };
 
 /* The default parameters here are just for readability, you should specify
@@ -171,7 +191,7 @@ std::pair<std::map<int, double>, Statistics> solve(InputQuery &inputQuery, Marab
 
             auto dncManager = std::unique_ptr<DnCManager>
                 ( new DnCManager( numWorkers, initialDivides, initialTimeout, onlineDivides,
-                                  timeoutFactor, DivideStrategy::LargestInterval,
+                                  timeoutFactor, options.getSnCDivideStrategyFromString(),
                                   &inputQuery, verbosity ) );
 
             dncManager->solve( timeoutInSeconds );
@@ -266,6 +286,15 @@ PYBIND11_MODULE(MarabouCore, m) {
             var2 (int): Output variable to Relu constraint
         )pbdoc",
         py::arg("inputQuery"), py::arg("var1"), py::arg("var2"));
+    m.def("addSignConstraint", &addSignConstraint, R"pbdoc(
+        Add a Sign constraint to the InputQuery
+
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            var1 (int): Input variable to Sign constraint
+            var2 (int): Output variable to Sign constraint
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("var1"), py::arg("var2"));
     m.def("addMaxConstraint", &addMaxConstraint, R"pbdoc(
         Add a Max constraint to the InputQuery
 
@@ -316,7 +345,8 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def_readwrite("_verbosity", &MarabouOptions::_verbosity)
         .def_readwrite("_dnc", &MarabouOptions::_dnc)
         .def_readwrite("_optimize", &MarabouOptions::_optimize)
-        .def_readwrite("_divideStrategy", &MarabouOptions::_divideStrategy);
+        .def_readwrite("_divideStrategy", &MarabouOptions::_divideStrategy)
+        .def_readwrite("_snCDivideStrategyString", &MarabouOptions::_snCDivideStrategyString);
     py::enum_<PiecewiseLinearFunctionType>(m, "PiecewiseLinearFunctionType")
         .value("ReLU", PiecewiseLinearFunctionType::RELU)
         .value("AbsoluteValue", PiecewiseLinearFunctionType::ABSOLUTE_VALUE)
@@ -324,7 +354,6 @@ PYBIND11_MODULE(MarabouCore, m) {
         .value("Disjunction", PiecewiseLinearFunctionType::DISJUNCTION)
         .export_values();
     py::enum_<DivideStrategy>(m, "DivideStrategy")
-        .value("LargestInterval", DivideStrategy::LargestInterval)
         .value("EarliestReLU", DivideStrategy::EarliestReLU)
         .value("ReLUViolation", DivideStrategy::ReLUViolation)
         .value("None", DivideStrategy::None)

@@ -325,6 +325,8 @@ bool Engine::optimize( unsigned timeoutInSeconds )
         printf( "\n---\n" );
     }
 
+    applyAllValidConstraintCaseSplits();
+
     bool splitJustPerformed = true;
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
 
@@ -427,7 +429,11 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             }
 
             if ( _tableau->basisMatrixAvailable() )
+            {
                 explicitBasisBoundTightening();
+                applyAllBoundTightenings();
+                applyAllValidConstraintCaseSplits();
+            }
 
             if ( splitJustPerformed )
             {
@@ -1123,7 +1129,7 @@ void Engine::removeRedundantEquations( const double *constraintMatrix )
     analyzer->analyze( constraintMatrix, m, n );
 
     ENGINE_LOG( Stringf( "Number of redundant rows: %u out of %u",
-                  analyzer->getRedundantRows().size(), m ).ascii() );
+                         analyzer->getRedundantRows().size(), m ).ascii() );
 
     // Step 2: remove any equations corresponding to redundant rows
     Set<unsigned> redundantRows = analyzer->getRedundantRows();
@@ -1486,6 +1492,14 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
     ENGINE_LOG( "processInputQuery done\n" );
 
+    DEBUG({
+            // Initially, all constraints should be active
+            for ( const auto &plc : _plConstraints )
+                {
+                    ASSERT( plc->isActive() );
+                }
+        });
+
     _smtCore.storeDebuggingSolution( _preprocessedQuery._debuggingSolution );
     return true;
 }
@@ -1558,8 +1572,6 @@ void Engine::performMILPSolverBoundedTightening()
             else if ( tightening._type == Tightening::UB )
                 _tableau->tightenUpperBound( tightening._variable, tightening._value );
         }
-
-        applyAllValidConstraintCaseSplits();
     }
 }
 void Engine::extractSolution( InputQuery &inputQuery )
@@ -2388,80 +2400,156 @@ void Engine::updateDirections()
                 constraint->updateDirection();
 }
 
-void Engine::updateScores()
+PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnPolarity()
 {
-    DivideStrategy _strategyToUse = (_preprocessedQuery.getDivideStrategy() == DivideStrategy::None) ? GlobalConfiguration::SPLITTING_HEURISTICS : _preprocessedQuery.getDivideStrategy();
+    ENGINE_LOG( Stringf( "Using Polarity-based heuristics..." ).ascii() );
 
-    if ( _networkLevelReasoner &&
-         _strategyToUse == DivideStrategy::Polarity )
+    if ( !_networkLevelReasoner )
+        throw MarabouError( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
+
+    List<PiecewiseLinearConstraint *> constraints =
+        _networkLevelReasoner->getConstraintsInTopologicalOrder();
+
+    Map<double, PiecewiseLinearConstraint *> scoreToConstraint;
+    for ( auto &plConstraint : constraints )
     {
-        // We find the earliest K ReLUs that have not been fixed, update
-        // their scores, and pop them to the _candidatePlConstraints
-        // K is equal to GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD
-        ENGINE_LOG( Stringf( "Using polarity heuristics..." ).ascii() );
-
-        List<PiecewiseLinearConstraint *> constraints =
-            _networkLevelReasoner->getConstraintsInTopologicalOrder();
-
-        for ( auto &plConstraint : constraints )
+        if ( plConstraint->supportPolarity() &&
+             plConstraint->isActive() && !plConstraint->phaseFixed() )
         {
-            if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
-            {
-                plConstraint->updateScore();
-                _candidatePlConstraints.insert( plConstraint );
-                if ( _candidatePlConstraints.size() >=
-                     GlobalConfiguration::RUNTIME_ESTIMATE_THRESHOLD )
-                    break;
-            }
+            plConstraint->updateScoreBasedOnPolarity();
+            scoreToConstraint[plConstraint->getScore()] = plConstraint;
+            if ( scoreToConstraint.size() >=
+                 GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD )
+                break;
         }
     }
-    else if ( _strategyToUse ==
-              DivideStrategy::EarliestReLU )
+    if ( scoreToConstraint.size() > 0 )
     {
-        for ( const auto plConstraint : _plConstraints )
-        {
-            if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
-            {
-                plConstraint->updateScore();
-                _candidatePlConstraints.insert( plConstraint );
-            }
-        }
+        ENGINE_LOG( Stringf( "Score of the picked ReLU: %f",
+                             ( *scoreToConstraint.begin() ).first ).ascii() );
+        return (*scoreToConstraint.begin()).second;
     }
     else
-    {
-        // Otherwise, we fall back to the constraint violation based
-        // splitting heuristic - nothing to do.
-    }
+        return NULL;
 }
 
-PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
+PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnTopology()
 {
-    _candidatePlConstraints.clear();
+    // We push the first unfixed ReLU in the topology order to the _candidatePlConstraints
+    ENGINE_LOG( Stringf( "Using EarliestReLU heuristics..." ).ascii() );
+
+    if ( !_networkLevelReasoner )
+        throw MarabouError( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
+
+    List<PiecewiseLinearConstraint *> constraints =
+        _networkLevelReasoner->getConstraintsInTopologicalOrder();
+
+    for ( auto &plConstraint : constraints )
+    {
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+            return plConstraint;
+    }
+    return NULL;
+}
+
+PiecewiseLinearConstraint *Engine::pickSplitPLConstraint( DivideStrategy strategy )
+{
     ENGINE_LOG( Stringf( "Picking a split PLConstraint..." ).ascii() );
-    updateScores();
+
+    DivideStrategy _strategyToUse = (_preprocessedQuery.getDivideStrategy() == DivideStrategy::None) ?
+      strategy : _preprocessedQuery.getDivideStrategy();
+
+    PiecewiseLinearConstraint *candidatePLConstraint = NULL;
+    if ( _strategyToUse == DivideStrategy::Polarity )
+        candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
+    else if ( _strategyToUse == DivideStrategy::EarliestReLU )
+        candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
+
     ENGINE_LOG( Stringf( "Done updating scores..." ).ascii() );
-    if ( _candidatePlConstraints.empty() )
+    ENGINE_LOG( Stringf( ( candidatePLConstraint ?
+                           "Unable to pick using the current strategy..." :
+                           "Picked..." ) ).ascii() );
+    return candidatePLConstraint;
+}
+
+PiecewiseLinearConstraint *Engine::pickSplitPLConstraintSnC( SnCDivideStrategy strategy )
+{
+    PiecewiseLinearConstraint *candidatePLConstraint = NULL;
+    if ( strategy == SnCDivideStrategy::Polarity )
+        candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
+    else if ( strategy == SnCDivideStrategy::EarliestReLU )
+        candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
+
+    ENGINE_LOG( Stringf( "Done updating scores..." ).ascii() );
+    ENGINE_LOG( Stringf( ( candidatePLConstraint ?
+                           "Unable to pick using the current strategy..." :
+                           "Picked..." ) ).ascii() );
+    return candidatePLConstraint;
+}
+
+bool Engine::restoreSmtState( SmtState & smtState )
+{
+    try
     {
-        ENGINE_LOG( Stringf( "Unable to pick using the current strategy..." ).ascii() );
-        return NULL;
+        ASSERT( _smtCore.getStackDepth() == 0 );
+
+        // Step 1: all implied valid splits at root
+        for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
+        {
+            applySplit( validSplit );
+            _smtCore.recordImpliedValidSplit( validSplit );
+        }
+
+        tightenBoundsOnConstraintMatrix();
+        applyAllBoundTightenings();
+        // For debugging purposes
+        checkBoundCompliancyWithDebugSolution();
+        do
+            performSymbolicBoundTightening();
+        while ( applyAllValidConstraintCaseSplits() );
+
+        // Step 2: replay the stack
+        for ( auto &stackEntry : smtState._stack )
+        {
+            _smtCore.replaySmtStackEntry( stackEntry );
+            // Do all the bound propagation, and set ReLU constraints to inactive (at
+            // least the one corresponding to the _activeSplit applied above.
+            tightenBoundsOnConstraintMatrix();
+            applyAllBoundTightenings();
+            // For debugging purposes
+            checkBoundCompliancyWithDebugSolution();
+            do
+                performSymbolicBoundTightening();
+            while ( applyAllValidConstraintCaseSplits() );
+
+        }
     }
-    else
+    catch ( const InfeasibleQueryException & )
     {
-        auto constraint = *_candidatePlConstraints.begin();
-        ENGINE_LOG( Stringf( "Picked..." ).ascii() );
-        return constraint;
+        // The current query is unsat, and we need to pop.
+        // If we're at level 0, the whole query is unsat.
+        if ( !_smtCore.popSplit() )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\nEngine::solve: UNSAT query\n" );
+                _statistics.print();
+            }
+            _exitCode = Engine::UNSAT;
+            for ( PiecewiseLinearConstraint *p : _plConstraints )
+                p->setActiveConstraint( true );
+            return false;
+        }
     }
+    return true;
+}
+
+void Engine::storeSmtState( SmtState & smtState )
+{
+    _smtCore.storeSmtState( smtState );
 }
 
 void Engine::setConstraintViolationThreshold( unsigned threshold )
 {
     _smtCore.setConstraintViolationThreshold( threshold );
 }
-
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
