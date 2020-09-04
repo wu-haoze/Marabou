@@ -89,7 +89,7 @@ void Engine::adjustWorkMemorySize()
 
 bool Engine::solve( unsigned timeoutInSeconds )
 {
-    printf("Optimize: %d\n", _costFunctionManager->getOptimize());
+    //printf("Optimize: %d\n", _costFunctionManager->getOptimize());
     if (_costFunctionManager->getOptimize())
     {
         return optimize(timeoutInSeconds);
@@ -399,7 +399,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             // If the basis has become malformed, we need to restore it
             if ( basisRestorationNeeded() )
             {
-                printf("Restoring basis\n");
+                //printf("Restoring basis\n");
                 if ( _basisRestorationRequired == Engine::STRONG_RESTORATION_NEEDED )
                 {
                     performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
@@ -422,7 +422,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             // Possible restoration due to preceision degradation
             if ( shouldCheckDegradation() && highDegradation() )
             {
-               printf("Performing precision restoration\n");
+                // printf("Performing precision restoration\n");
 
                 performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
                 continue;
@@ -450,7 +450,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             // Perform any SmtCore-initiated case splits
             if ( _smtCore.needToSplit() )
             {
-                printf("Splitting Cases\n");
+                //printf("Splitting Cases\n");
                 _smtCore.performSplit();
                 _noEnteringCandidatesLeft = false;
                 splitJustPerformed = true;
@@ -459,7 +459,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
 
             if ( !_tableau->allBoundsValid() )
             {
-                printf("Variable Bounds invalid, so unsat query\n");
+                //printf("Variable Bounds invalid, so unsat query\n");
 
                 // Some variable bounds are invalid, so the query is unsat
                 throw InfeasibleQueryException();
@@ -585,7 +585,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
                 // The query is infeasible if there's no more options but we're not within bounds yet.
                 else
                 {
-                    printf("\n Trimming infeasible query\n");
+                    //printf("\n Trimming infeasible query\n");
                     _noEnteringCandidatesLeft = false;
                     if( !_smtCore.popSplit() )
                     {
