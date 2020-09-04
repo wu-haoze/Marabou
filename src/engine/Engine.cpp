@@ -92,7 +92,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
     //printf("Optimize: %d\n", _costFunctionManager->getOptimize());
     if (_costFunctionManager->getOptimize())
     {
-        return optimize(timeoutInSeconds);
+        return optimize( timeoutInSeconds );
     }
 
 
@@ -315,6 +315,13 @@ bool Engine::optimize( unsigned timeoutInSeconds )
     updateDirections();
     storeInitialEngineState();
 
+    unsigned optimizationVariable = _costFunctionManager->getOptimizationVariable();
+    storeWatcherEquations( optimizationVariable );
+
+    for ( const auto& eq: _watcherEquations )
+        eq.dump();
+
+    return false;
     printf("Engine::Solving Optimization Problem!!!!!!\n");
     mainLoopStatistics();
 
@@ -351,26 +358,6 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             return false;
         }
 
-        if (_tableau->getUpperBound(_costFunctionManager->getOptimizationVariable()) <= _bestOptValSoFar)
-        {
-            printf( "\n Trimming this branch because of upper bound \n" );
-            _noEnteringCandidatesLeft = false;
-            if ( !_smtCore.popSplit() )
-            {
-                printf("\nWe've explored the full tree with opt val (print 1): %f\n", _bestOptValSoFar);
-                // TODO (Chris Strong): Rethink how we want to return
-                _exitCode = Engine::SAT;
-                _statistics.print();
-
-                return true;
-            }
-            else
-            {
-                splitJustPerformed = true;
-            }
-            continue; // SHOULD THIS BE HERE?
-        }
-
         if ( _quitRequested )
         {
             if ( _verbosity > 0 )
@@ -387,6 +374,12 @@ bool Engine::optimize( unsigned timeoutInSeconds )
         try
         {
             DEBUG( _tableau->verifyInvariants() );
+
+            if (_tableau->getUpperBound( optimizationVariable ) <= _bestOptValSoFar)
+            {
+                printf( "\n Trimming this branch because of upper bound \n" );
+                throw InfeasibleQueryException();
+            }
 
             mainLoopStatistics();
             if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
@@ -438,7 +431,8 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             if ( splitJustPerformed )
             {
                 // update the lower bound for the optimization variable
-                _tableau->tightenLowerBound( _costFunctionManager->getOptimizationVariable(), _bestOptValSoFar );
+                _tableau->tightenLowerBound( optimizationVariable, _bestOptValSoFar );
+                tightenBoundsOnWatcherEquations();
                 do
                 {
                     performSymbolicBoundTightening();
@@ -468,7 +462,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             if ( allVarsWithinBounds() && _noEnteringCandidatesLeft)
             {
                 //printf("Linear Portion Solved and reached optimum\n");
-                double curOptValue = _tableau->getValue(_costFunctionManager->getOptimizationVariable());
+                double curOptValue = _tableau->getValue( optimizationVariable );
                 //printf("Value of opt var: %f\n", curOptValue);
 
                 // Trim this branch if this value is less than the best we've seen so far
@@ -476,23 +470,10 @@ bool Engine::optimize( unsigned timeoutInSeconds )
                 if (curOptValue < _bestOptValSoFar)
                 {
                    //printf( "\n Trimming this branch \n" );
-                    _noEnteringCandidatesLeft = false;
-                    if ( !_smtCore.popSplit() )
-                    {
-                        printf("\nWe've explored the full tree with opt val (print 1): %f\n", _bestOptValSoFar);
-                        // TODO (Chris Strong): Rethink how we want to return
-                        _exitCode = Engine::SAT;
-                        _statistics.print();
-
-                        return true;
-                    }
-                    else
-                    {
-                        splitJustPerformed = true;
-                    }
-
-                    continue; // SHOULD THIS BE HERE?
+                    throw InfeasibleQueryException();
                 }
+
+                _tableau->setUpperBound( optimizationVariable, curOptValue );
 
                 //_costFunctionManager->computeCoreCostFunction();
 
@@ -530,31 +511,14 @@ bool Engine::optimize( unsigned timeoutInSeconds )
                         _bestOptValSoFar = curOptValue;
 
                         // update the lower bound for the optimization variable
-                        _tableau->tightenLowerBound( _costFunctionManager->getOptimizationVariable(), _bestOptValSoFar );
+                        _tableau->tightenLowerBound( optimizationVariable, _bestOptValSoFar );
 
                         // Update the best input we've seen so far
                         updateBestSolutionSoFar();
 
                     }
-                    // Now, pop one to keep the search going
-                    _noEnteringCandidatesLeft = false;
-                    if( !_smtCore.popSplit() )
-                    {
-                        printf("\nWe've explored the full tree with opt val (print 2): %f\n", _bestOptValSoFar);
-                        // TODO (Chris Strong): Rethink how we want to return
-                        _exitCode = Engine::SAT;
-                        _statistics.print();
 
-                        return true;
-                    }
-                    else
-                    {
-                        splitJustPerformed = true;
-
-                    }
-
-                    continue;
-
+                    throw InfeasibleQueryException();
                 }
 
                 // We have violated piecewise-linear constraints.
@@ -602,7 +566,6 @@ bool Engine::optimize( unsigned timeoutInSeconds )
                     }
                 }
             }
-
             continue;
         }
         catch ( const MalformedBasisException & )
@@ -1578,7 +1541,7 @@ void Engine::extractSolution( InputQuery &inputQuery )
 {
     // Set it using the best solution found so far
     if (_costFunctionManager->getOptimize()) {
-        printf("Preprocessing is %d\n", _preprocessingEnabled);
+        //printf("Preprocessing is %d\n", _preprocessingEnabled);
 
         for (unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i) {
             inputQuery.setSolutionValue(i, _bestSolutionSoFar.get(i));
@@ -2552,4 +2515,98 @@ void Engine::storeSmtState( SmtState & smtState )
 void Engine::setConstraintViolationThreshold( unsigned threshold )
 {
     _smtCore.setConstraintViolationThreshold( threshold );
+}
+
+void Engine::storeWatcherEquations( unsigned variable )
+{
+    for (  const Equation &eq : _preprocessedQuery.getEquations() )
+        if ( eq.getParticipatingVariables().exists( variable ) )
+            _watcherEquations.append( eq );
+}
+
+void Engine::tightenBoundsOnWatcherEquations()
+{
+    ENGINE_LOG( "Tightening bounds on watcher equations..." );
+    bool tightened = false;
+    do
+    {
+        for ( const auto &eq : _watcherEquations )
+            tightened = tightenBoundsOnEquation( eq ) || tightened;
+    } while ( tightened );
+    ENGINE_LOG( "Tightening bounds on watcher equations - done" );
+}
+
+bool Engine::tightenBoundsOnEquation( const Equation &equation )
+{
+    ENGINE_LOG( "Tightening bounds on equation..." );
+    DEBUG({
+            equation.dump();
+        });
+    bool tightened = false;
+    for ( const unsigned &variable : equation.getListParticipatingVariables() )
+        tightened = tightenVariableBoundOnEquation( equation, variable ) || tightened;
+    ENGINE_LOG( "Tightening bounds on equation - done" );
+    return tightened;
+}
+
+bool Engine::tightenVariableBoundOnEquation( const Equation &equation,
+                                             unsigned variable )
+{
+    ENGINE_LOG( Stringf( "Tightening bounds of x%u on equation...",
+                         variable ).ascii() );
+
+    bool tightened = false;
+    double oldLb = _tableau->getLowerBound( variable );
+    double oldUb = _tableau->getUpperBound( variable );
+
+    ENGINE_LOG( Stringf( "Variable lowerbound before tightening: %f",
+                         oldLb ).ascii() );
+    ENGINE_LOG( Stringf( "Variable upperbound before tightening: %f",
+                         oldUb ).ascii() );
+
+    // a v1 + b v2 + c variable = d
+    // -> a v1 + b v2 - d = -c variable
+    double factor = - equation.getCoefficient( variable ); // -c
+    if ( FloatUtils::isZero( factor ) )
+        throw MarabouError( MarabouError::DIVISION_BY_ZERO );
+
+    double lb = 0;
+    double ub = 0;
+    for ( const auto &addend : equation._addends )
+    {
+        if ( addend._variable != variable )
+        {
+            double coeff = addend._coefficient / factor;
+            if ( FloatUtils::isPositive( coeff ) )
+            {
+                lb += _tableau->getLowerBound( addend._variable );
+                ub += _tableau->getUpperBound( addend._variable );
+            } else
+            {
+                lb += _tableau->getUpperBound( addend._variable );
+                ub += _tableau->getLowerBound( addend._variable );
+            }
+        }
+    }
+    double scalar = equation._scalar / factor;
+    lb -= scalar;
+    ub -= scalar;
+
+    if ( FloatUtils::lt( ub, oldUb ) | FloatUtils::gt( lb, oldLb ) )
+    {
+        ENGINE_LOG( Stringf( "Variable lowerbound after tightening: %f",
+                             lb ).ascii() );
+        ENGINE_LOG( Stringf( "Variable upperbound after tightening: %f",
+                             ub ).ascii() );
+        tightened = true;
+    } else
+    {
+        ENGINE_LOG( Stringf( "Not tightened" ).ascii() );
+    }
+    _tableau->setLowerBound( variable, lb );
+    _tableau->setUpperBound( variable, ub );
+
+    ENGINE_LOG( Stringf( "Tightening bounds of x%u on equation - done",
+                         variable ).ascii() );
+    return tightened;
 }

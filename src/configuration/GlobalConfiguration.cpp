@@ -81,7 +81,7 @@ const bool GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION = fal
 const GlobalConfiguration::MILPSolverBoundTighteningType GlobalConfiguration::MILP_SOLVER_BOUND_TIGHTENING_TYPE =
     GlobalConfiguration::LP_RELAXATION;
 
-const unsigned GlobalConfiguration::MILPSolverTimeoutValueInSeconds = 10;
+const unsigned GlobalConfiguration::MILPSolverTimeoutValueInSeconds = 1;
 
 const unsigned GlobalConfiguration::REFACTORIZATION_THRESHOLD = 100;
 const GlobalConfiguration::BasisFactorizationType GlobalConfiguration::BASIS_FACTORIZATION_TYPE =
@@ -97,7 +97,7 @@ const unsigned GlobalConfiguration::GUROBI_NUMBER_OF_THREADS = 1;
 
 // Logging - note that it is enabled only in Debug mode
 const bool GlobalConfiguration::DNC_MANAGER_LOGGING = false;
-const bool GlobalConfiguration::ENGINE_LOGGING = false;
+const bool GlobalConfiguration::ENGINE_LOGGING = true;
 const bool GlobalConfiguration::TABLEAU_LOGGING = false;
 const bool GlobalConfiguration::SMT_CORE_LOGGING = false;
 const bool GlobalConfiguration::DANTZIGS_RULE_LOGGING = false;

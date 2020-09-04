@@ -193,17 +193,6 @@ private:
     double _bestOptValSoFar = -FloatUtils::infinity();
     Map<unsigned, double> _bestSolutionSoFar;
 
-    // Store the current assignment of input variables into _bestSolutionSoFar
-    // If preprocessing occurred, this backtracks to find which input variables
-    // the current set of variables corresponds to
-    void updateBestSolutionSoFar();
-
-    /*
-      Perform bound tightening operations that require
-      access to the explicit basis matrix.
-    */
-    void explicitBasisBoundTightening();
-
     /*
       Collect and print various statistics.
     */
@@ -345,6 +334,8 @@ private:
     */
     unsigned _lastNumVisitedStates;
     unsigned long long _lastIterationWithProgress;
+
+    List<Equation> _watcherEquations;
 
     /*
       Perform a simplex step: compute the cost function, pick the
@@ -511,6 +502,40 @@ private:
       Pick the first unfixed ReLU in the topological order
     */
     PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnTopology();
+
+    /*
+      Store a list of equations involving the variable as watchers
+    */
+    void storeWatcherEquations( unsigned variable );
+
+
+    void tightenBoundsOnEquation();
+
+    /*
+      Tighten the bounds of variables in the watcherEquations
+    */
+    void tightenBoundsOnWatcherEquations();
+
+    /*
+      Tighten the bound of each variable in a equation based on the bounds of other variables
+    */
+    bool tightenBoundsOnEquation( const Equation &equation );
+
+    /*
+      Tighten the bound of a variable in a equation based on the bounds of other variables
+    */
+    bool tightenVariableBoundOnEquation( const Equation &equation, unsigned variable );
+
+    // Store the current assignment of input variables into _bestSolutionSoFar
+    // If preprocessing occurred, this backtracks to find which input variables
+    // the current set of variables corresponds to
+    void updateBestSolutionSoFar();
+
+    /*
+      Perform bound tightening operations that require
+      access to the explicit basis matrix.
+    */
+    void explicitBasisBoundTightening();
 };
 
 #endif // __Engine_h__
