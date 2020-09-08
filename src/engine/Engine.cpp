@@ -432,7 +432,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             {
                 // update the lower bound for the optimization variable
                 _tableau->tightenLowerBound( optimizationVariable, _bestOptValSoFar );
-                tightenBoundsOnWatcherEquations();
+                //tightenBoundsOnWatcherEquations();
                 do
                 {
                     performSymbolicBoundTightening();
