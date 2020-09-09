@@ -53,7 +53,7 @@ class String;
 class Engine : public IEngine, public SignalHandler::Signalable
 {
 public:
-    Engine( unsigned verbosity = 2 );
+    Engine();
     ~Engine();
 
     /*
@@ -162,11 +162,6 @@ public:
       Pick the piecewise linear constraint for splitting
     */
     PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy strategy );
-
-    /*
-      Set the constraint violation threshold of SmtCore
-    */
-    void setConstraintViolationThreshold( unsigned threshold );
 
     /*
       PSA: The following two methods are for DnC only and should be used very
