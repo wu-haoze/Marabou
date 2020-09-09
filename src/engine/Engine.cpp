@@ -321,7 +321,6 @@ bool Engine::optimize( unsigned timeoutInSeconds )
     for ( const auto& eq: _watcherEquations )
         eq.dump();
 
-    return false;
     printf("Engine::Solving Optimization Problem!!!!!!\n");
     mainLoopStatistics();
 
@@ -432,7 +431,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
             {
                 // update the lower bound for the optimization variable
                 _tableau->tightenLowerBound( optimizationVariable, _bestOptValSoFar );
-                //tightenBoundsOnWatcherEquations();
+                tightenBoundsOnWatcherEquations();
                 do
                 {
                     performSymbolicBoundTightening();
@@ -473,7 +472,7 @@ bool Engine::optimize( unsigned timeoutInSeconds )
                     throw InfeasibleQueryException();
                 }
 
-                _tableau->setUpperBound( optimizationVariable, curOptValue );
+                _tableau->tightenUpperBound( optimizationVariable, curOptValue );
 
                 //_costFunctionManager->computeCoreCostFunction();
 
@@ -2530,6 +2529,7 @@ void Engine::tightenBoundsOnWatcherEquations()
     bool tightened = false;
     do
     {
+        tightened = false;
         for ( const auto &eq : _watcherEquations )
             tightened = tightenBoundsOnEquation( eq ) || tightened;
     } while ( tightened );
@@ -2579,12 +2579,12 @@ bool Engine::tightenVariableBoundOnEquation( const Equation &equation,
             double coeff = addend._coefficient / factor;
             if ( FloatUtils::isPositive( coeff ) )
             {
-                lb += _tableau->getLowerBound( addend._variable );
-                ub += _tableau->getUpperBound( addend._variable );
+                lb += coeff * _tableau->getLowerBound( addend._variable );
+                ub += coeff * _tableau->getUpperBound( addend._variable );
             } else
             {
-                lb += _tableau->getUpperBound( addend._variable );
-                ub += _tableau->getLowerBound( addend._variable );
+                lb += coeff * _tableau->getUpperBound( addend._variable );
+                ub += coeff * _tableau->getLowerBound( addend._variable );
             }
         }
     }
@@ -2592,19 +2592,24 @@ bool Engine::tightenVariableBoundOnEquation( const Equation &equation,
     lb -= scalar;
     ub -= scalar;
 
-    if ( FloatUtils::lt( ub, oldUb ) | FloatUtils::gt( lb, oldLb ) )
+    if ( FloatUtils::lt( ub, oldUb ) )
     {
-        ENGINE_LOG( Stringf( "Variable lowerbound after tightening: %f",
-                             lb ).ascii() );
         ENGINE_LOG( Stringf( "Variable upperbound after tightening: %f",
                              ub ).ascii() );
         tightened = true;
-    } else
+    }
+    if ( FloatUtils::gt( lb, oldLb ) )
+    {
+        ENGINE_LOG( Stringf( "Variable lowerbound after tightening: %f",
+                             lb ).ascii() );
+        tightened = true;
+    }
+    if ( !tightened )
     {
         ENGINE_LOG( Stringf( "Not tightened" ).ascii() );
     }
-    _tableau->setLowerBound( variable, lb );
-    _tableau->setUpperBound( variable, ub );
+    _tableau->tightenLowerBound( variable, lb );
+    _tableau->tightenUpperBound( variable, ub );
 
     ENGINE_LOG( Stringf( "Tightening bounds of x%u on equation - done",
                          variable ).ascii() );
