@@ -233,7 +233,6 @@ public:
         constraint.nextSplits.append( split2 );
         constraint.nextSplits.append( split3 );
 
-        engine->_nextSplitPLConstraint = &constraint;
         for ( unsigned i = 0; i < ( unsigned ) Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ); ++i )
             smtCore.reportViolatedConstraint( &constraint );
 
@@ -381,7 +380,6 @@ public:
         constraint.nextSplits.append( split2 );
         constraint.nextSplits.append( split3 );
 
-        engine->_nextSplitPLConstraint = &constraint;
         for ( unsigned i = 0; i < ( unsigned ) Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ); ++i )
             smtCore.reportViolatedConstraint( &constraint );
 
@@ -438,7 +436,6 @@ public:
         constraint.nextSplits.append( split1 );
         constraint.nextSplits.append( split2 );
 
-        engine->_nextSplitPLConstraint = &constraint;
         for ( unsigned i = 0; i < ( unsigned ) Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ); ++i )
             smtCore.reportViolatedConstraint( &constraint );
 
@@ -472,7 +469,6 @@ public:
         constraint2.nextSplits.append( split4 );
         constraint2.nextSplits.append( split5 );
 
-        engine->_nextSplitPLConstraint = &constraint2;
         for ( unsigned i = 0; i < ( unsigned ) Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ); ++i )
             smtCore.reportViolatedConstraint( &constraint2 );
 

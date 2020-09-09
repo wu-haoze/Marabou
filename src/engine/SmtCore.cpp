@@ -72,11 +72,7 @@ void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
          _constraintViolationThreshold )
     {
         _needToSplit = true;
-
-        DivideStrategy _strategyToUse = (_divideStrategy == DivideStrategy::None) ? GlobalConfiguration::SPLITTING_HEURISTICS : _divideStrategy;
-
-        if ( _strategyToUse ==
-             DivideStrategy::ReLUViolation || !pickSplitPLConstraint() )
+        if ( !pickSplitPLConstraint() )
             // If pickSplitConstraint failed to pick one, use the native
             // relu-violation based splitting heuristic.
             _constraintForSplitting = constraint;
@@ -157,6 +153,8 @@ void SmtCore::performSplit()
         _statistics->addTimeSmtCore( TimeUtils::timePassed( start, end ) );
     }
 
+    if ( _constraintForSplitting->temporary() )
+        delete _constraintForSplitting;
     _constraintForSplitting = NULL;
 }
 
@@ -385,26 +383,6 @@ bool SmtCore::splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, 
     return true;
 }
 
-void SmtCore::setDivideStrategy(DivideStrategy divideStrategy)
-{
-    switch(divideStrategy) {
-        case DivideStrategy::EarliestReLU:
-            _divideStrategy = DivideStrategy::EarliestReLU;
-            break;
-        case DivideStrategy::ReLUViolation:
-            _divideStrategy = DivideStrategy::ReLUViolation;
-            break;
-        case DivideStrategy::Polarity:
-            _divideStrategy = DivideStrategy::Polarity;
-            break;
-	    //case DivideStrategy::LargestInterval:
-            //return;  // This shouldn't be sent, decides input splitting
-        case DivideStrategy::None:
-            _divideStrategy = DivideStrategy::None;
-            break;
-    }
-}
-
 PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const
 {
     ASSERT( !_violatedPlConstraints.empty() );
@@ -483,8 +461,7 @@ void SmtCore::storeSmtState( SmtState &smtState )
 bool SmtCore::pickSplitPLConstraint()
 {
     if ( _needToSplit )
-        _constraintForSplitting = _engine->pickSplitPLConstraint
-            ( GlobalConfiguration::SPLITTING_HEURISTICS );
+        _constraintForSplitting = _engine->pickSplitPLConstraint();
     return _constraintForSplitting != NULL;
 }
 

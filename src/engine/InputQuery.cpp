@@ -58,9 +58,12 @@ void InputQuery::setDivideStrategy(DivideStrategy divideStrategy)
         case DivideStrategy::Polarity:
             _divideStrategy = DivideStrategy::Polarity;
             break;
-	    //case DivideStrategy::LargestInterval:
-            //return;
-            //break; // This shouldn't be sent, decides input splitting
+        case DivideStrategy::LargestInterval:
+            _divideStrategy = DivideStrategy::LargestInterval;
+            break; // This shouldn't be sent, decides input splitting
+        case DivideStrategy::Auto:
+            _divideStrategy = DivideStrategy::Auto;
+            break; // Auto
         case DivideStrategy::None:
             _divideStrategy = DivideStrategy::None;
             break;

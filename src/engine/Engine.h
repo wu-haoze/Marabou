@@ -142,6 +142,11 @@ public:
     void setVerbosity( unsigned verbosity );
 
     /*
+      Set the internal splitting strategy
+    */
+    void setSplittingStrategy( DivideStrategy strategy );
+
+    /*
       Apply the stack to the newly created SmtCore, returns false if UNSAT is
       found in this process.
     */
@@ -155,7 +160,7 @@ public:
     /*
       Pick the piecewise linear constraint for splitting
     */
-    PiecewiseLinearConstraint *pickSplitPLConstraint( DivideStrategy strategy );
+    PiecewiseLinearConstraint *pickSplitPLConstraint();
 
     /*
       Call-back from QueryDividers
@@ -331,6 +336,11 @@ private:
     unsigned long long _lastIterationWithProgress;
 
     List<Equation> _watcherEquations;
+
+    /*
+      Strategy used for internal splitting
+    */
+    DivideStrategy _splittingStrategy;
 
     /*
       Perform a simplex step: compute the cost function, pick the
@@ -531,6 +541,12 @@ private:
       access to the explicit basis matrix.
     */
     void explicitBasisBoundTightening();
+
+    /*
+      Pick the input variable with the largest interval
+    */
+    PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnIntervalWidth();
+
 };
 
 #endif // __Engine_h__

@@ -358,6 +358,8 @@ PYBIND11_MODULE(MarabouCore, m) {
     py::enum_<DivideStrategy>(m, "DivideStrategy")
         .value("EarliestReLU", DivideStrategy::EarliestReLU)
         .value("ReLUViolation", DivideStrategy::ReLUViolation)
+        .value("Auto", DivideStrategy::Auto)
+        .value("LargestInterval", DivideStrategy::LargestInterval)
         .value("None", DivideStrategy::None)
         .export_values();
     py::class_<Equation> eq(m, "Equation");

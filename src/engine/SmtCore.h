@@ -131,7 +131,7 @@ public:
     bool checkSkewFromDebuggingSolution();
     bool splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, String &error ) const;
 
-    void setDivideStrategy(DivideStrategy divideStrategy);
+    //void setDivideStrategy(DivideStrategy divideStrategy);
 
 private:
     /*
