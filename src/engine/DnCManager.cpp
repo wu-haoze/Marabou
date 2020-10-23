@@ -83,7 +83,8 @@ void DnCManager::freeMemoryIfNeeded()
 {
     if ( _workload )
     {
-        SubQuery *subQuery;
+        SubQuery temp;
+        SubQuery *subQuery = &temp;
         while ( !_workload->empty() )
         {
             _workload->pop( subQuery );
