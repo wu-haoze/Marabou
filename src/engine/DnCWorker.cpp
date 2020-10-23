@@ -146,13 +146,15 @@ void DnCWorker::run( unsigned depth )
                 }
                 *_numUnsolvedSubQueries -= 1;
                 std::cout << queryId.ascii()<< " "<< "pre-condition might not hold" << std::endl;
-                dump( queryId, *split, false );
+                if ( timeoutInSeconds != 0 )
+                    dump( queryId, *split, false );
                 delete subQuery;
             } else
             {
                 // pre-condition holds
                 std::cout << queryId.ascii()<< " "<< "pre-condition holds" << std::endl;
-                dump( queryId, *split, true );
+                if ( timeoutInSeconds != 0 )
+                    dump( queryId, *split, true );
                 *_numUnsolvedSubQueries -= 1;
             }
             if ( _engine->getExitCode() == Engine::QUIT_REQUESTED )

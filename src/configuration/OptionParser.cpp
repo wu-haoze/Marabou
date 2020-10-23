@@ -94,6 +94,10 @@ void OptionParser::initialize()
         ( "tree-depth",
           boost::program_options::value<int>( &((*_intOptions)[Options::TREE_DEPTH]) ),
           "DEPTH of the robustness check" )
+        ( "dump",
+          boost::program_options::value<int>( &((*_intOptions)[Options::TREE_DEPTH]) ),
+          "DEPTH of the robustness check" )
+
 
         ;
 
