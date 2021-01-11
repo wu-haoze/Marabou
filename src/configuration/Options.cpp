@@ -47,6 +47,7 @@ void Options::initializeDefaultValues()
     _boolOptions[RESTORE_TREE_STATES] = false;
     _boolOptions[ITERATIVE_PROPAGATION] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
+    _boolOptions[LOCAL_SEARCH] = false;
 
     /*
       Int options

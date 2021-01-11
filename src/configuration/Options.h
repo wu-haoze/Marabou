@@ -48,7 +48,10 @@ public:
         VERSION,
 
         // Solve the input query with a MILP solver
-        SOLVE_WITH_MILP
+        SOLVE_WITH_MILP,
+
+        // Using SOI-based local search
+        LOCAL_SEARCH
     };
 
     enum IntOptions {

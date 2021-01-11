@@ -51,6 +51,7 @@ Engine::Engine()
     , _lastIterationWithProgress( 0 )
     , _splittingStrategy( Options::get()->getDivideStrategy() )
     , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
+    , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
 {
@@ -93,6 +94,259 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
+void Engine::concretizeInputAssignment()
+{
+}
+
+bool Engine::concretizedInputAssignmentValid()
+{
+    return true;
+}
+
+void Engine::updateTableauAssignment( const Map<unsigned, double> &assignment )
+{
+    std::cout << assignment.size() << std::endl;
+}
+
+
+bool Engine::localSearch( unsigned timeoutInSeconds )
+{
+    SignalHandler::getInstance()->initialize();
+    SignalHandler::getInstance()->registerClient( this );
+
+    updateDirections();
+    storeInitialEngineState();
+
+    mainLoopStatistics();
+    if ( _verbosity > 0 )
+    {
+        printf( "\nEngine::solve: Initial statistics\n" );
+        _statistics.print();
+        printf( "\n---\n" );
+    }
+
+    applyAllValidConstraintCaseSplits();
+
+    bool splitJustPerformed = true;
+    struct timespec mainLoopStart = TimeUtils::sampleMicro();
+    while ( true )
+    {
+        struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+        _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+        mainLoopStart = mainLoopEnd;
+
+        if ( shouldExitDueToTimeout( timeoutInSeconds ) )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\n\nEngine: quitting due to timeout...\n\n" );
+                printf( "Final statistics:\n" );
+                _statistics.print();
+            }
+
+            _exitCode = Engine::TIMEOUT;
+            _statistics.timeout();
+            return false;
+        }
+
+        if ( _quitRequested )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\n\nEngine: quitting due to external request...\n\n" );
+                printf( "Final statistics:\n" );
+                _statistics.print();
+            }
+
+            _exitCode = Engine::QUIT_REQUESTED;
+            return false;
+        }
+
+        try
+        {
+            DEBUG( _tableau->verifyInvariants() );
+
+            mainLoopStatistics();
+            if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
+                 GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
+                _statistics.print();
+
+            // Check whether progress has been made recently
+            checkOverallProgress();
+
+            // If the basis has become malformed, we need to restore it
+            if ( basisRestorationNeeded() )
+            {
+                if ( _basisRestorationRequired == Engine::STRONG_RESTORATION_NEEDED )
+                {
+                    performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
+                    _basisRestorationPerformed = Engine::PERFORMED_STRONG_RESTORATION;
+                }
+                else
+                {
+                    performPrecisionRestoration( PrecisionRestorer::DO_NOT_RESTORE_BASICS );
+                    _basisRestorationPerformed = Engine::PERFORMED_WEAK_RESTORATION;
+                }
+
+                _numVisitedStatesAtPreviousRestoration = _statistics.getNumVisitedTreeStates();
+                _basisRestorationRequired = Engine::RESTORATION_NOT_NEEDED;
+                continue;
+            }
+
+            // Restoration is not required
+            _basisRestorationPerformed = Engine::NO_RESTORATION_PERFORMED;
+
+            // Possible restoration due to preceision degradation
+            if ( shouldCheckDegradation() && highDegradation() )
+            {
+                performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
+                continue;
+            }
+
+            if ( _tableau->basisMatrixAvailable() )
+            {
+                explicitBasisBoundTightening();
+                applyAllBoundTightenings();
+                applyAllValidConstraintCaseSplits();
+            }
+
+            if ( splitJustPerformed )
+            {
+                do
+                {
+                    performSymbolicBoundTightening();
+                }
+                while ( applyAllValidConstraintCaseSplits() );
+                splitJustPerformed = false;
+            }
+
+            // Perform any SmtCore-initiated case splits
+            if ( _smtCore.needToSplit() )
+            {
+                _smtCore.performSplit();
+                splitJustPerformed = true;
+                continue;
+            }
+
+            if ( !_tableau->allBoundsValid() )
+            {
+                // Some variable bounds are invalid, so the query is unsat
+                throw InfeasibleQueryException();
+            }
+
+            if ( allVarsWithinBounds() )
+            {
+                concretizeInputAssignment();
+                if ( concretizedInputAssignmentValid() )
+                {
+                    updateTableauAssignment( _concretizedInputAssignment );
+                }
+
+                // The linear portion of the problem has been solved.
+                // Check the status of the PL constraints
+                collectViolatedPlConstraints();
+
+                // If all constraints are satisfied, we are possibly done
+                if ( allPlConstraintsHold() )
+                {
+                    if ( _tableau->getBasicAssignmentStatus() !=
+                         ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )
+                    {
+                        if ( _verbosity > 0 )
+                        {
+                            printf( "Before declaring sat, recomputing...\n" );
+                        }
+                        // Make sure that the assignment is precise before declaring success
+                        _tableau->computeAssignment();
+                        continue;
+                    }
+                    if ( _verbosity > 0 )
+                    {
+                        printf( "\nEngine::solve: sat assignment found\n" );
+                        _statistics.print();
+                    }
+                    _exitCode = Engine::SAT;
+                    return true;
+                }
+
+                // We have violated piecewise-linear constraints.
+                performConstraintFixingStep();
+
+                // Finally, take this opporunity to tighten any bounds
+                // and perform any valid case splits.
+                tightenBoundsOnConstraintMatrix();
+                applyAllBoundTightenings();
+                // For debugging purposes
+                checkBoundCompliancyWithDebugSolution();
+
+                while ( applyAllValidConstraintCaseSplits() )
+                    performSymbolicBoundTightening();
+
+                continue;
+            }
+
+            // We have out-of-bounds variables.
+            performSimplexStep();
+            continue;
+        }
+        catch ( const MalformedBasisException & )
+        {
+            // Debug
+            printf( "MalformedBasisException caught!\n" );
+            //
+
+            if ( _basisRestorationPerformed == Engine::NO_RESTORATION_PERFORMED )
+            {
+                if ( _numVisitedStatesAtPreviousRestoration != _statistics.getNumVisitedTreeStates() )
+                {
+                    // We've tried a strong restoration before, and it didn't work. Do a weak restoration
+                    _basisRestorationRequired = Engine::WEAK_RESTORATION_NEEDED;
+                }
+                else
+                {
+                    _basisRestorationRequired = Engine::STRONG_RESTORATION_NEEDED;
+                }
+            }
+            else if ( _basisRestorationPerformed == Engine::PERFORMED_STRONG_RESTORATION )
+                _basisRestorationRequired = Engine::WEAK_RESTORATION_NEEDED;
+            else
+            {
+                printf( "Engine: Cannot restore tableau!\n" );
+                _exitCode = Engine::ERROR;
+                return false;
+            }
+        }
+        catch ( const InfeasibleQueryException & )
+        {
+            // The current query is unsat, and we need to pop.
+            // If we're at level 0, the whole query is unsat.
+            if ( !_smtCore.popSplit() )
+            {
+                if ( _verbosity > 0 )
+                {
+                    printf( "\nEngine::solve: unsat query\n" );
+                    _statistics.print();
+                }
+                _exitCode = Engine::UNSAT;
+                return false;
+            }
+            else
+            {
+                splitJustPerformed = true;
+            }
+
+        }
+        catch ( ... )
+        {
+            _exitCode = Engine::ERROR;
+            printf( "Engine: Unknown error!\n" );
+            return false;
+        }
+    }
+
+    return false;
+}
+
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
@@ -100,6 +354,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     if ( _solveWithMILP )
         return solveWithMILPEncoding( timeoutInSeconds );
+
+    if ( _localSearch )
+        return localSearch( timeoutInSeconds );
 
     updateDirections();
     storeInitialEngineState();

@@ -179,13 +179,6 @@ private:
         PERFORMED_WEAK_RESTORATION = 2,
     };
 
-
-    /*
-      Perform bound tightening operations that require
-      access to the explicit basis matrix.
-    */
-    void explicitBasisBoundTightening();
-
     /*
       Collect and print various statistics.
     */
@@ -344,6 +337,11 @@ private:
     bool _solveWithMILP;
 
     /*
+      Use simplex-based local search
+    */
+    bool _localSearch;
+
+    /*
       GurobiWrapper object
     */
     std::unique_ptr<GurobiWrapper> _gurobi;
@@ -352,6 +350,9 @@ private:
       MILPEncoder
     */
     std::unique_ptr<MILPEncoder> _milpEncoder;
+
+    Map<unsigned, double> _concretizedInputAssignment;
+
 
     /*
       Perform a simplex step: compute the cost function, pick the
@@ -533,6 +534,18 @@ private:
       Extract the satisfying assignment from the MILP solver
     */
     void extractSolutionFromGurobi( InputQuery &inputQuery );
+
+    bool localSearch( unsigned timeoutInSeconds );
+
+    void concretizeInputAssignment();
+    bool concretizedInputAssignmentValid();
+    void updateTableauAssignment( const Map<unsigned, double> &assignment );
+
+    /*
+      Perform bound tightening operations that require
+      access to the explicit basis matrix.
+    */
+    void explicitBasisBoundTightening();
 };
 
 #endif // __Engine_h__
