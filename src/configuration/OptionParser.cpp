@@ -51,6 +51,9 @@ void OptionParser::initialize()
         ( "local-search",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::LOCAL_SEARCH]) ),
           "Use SOI-based local search" )
+        ( "use-dynamic-constraints",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::ADD_DYNAMIC_CONSTRAINTS]) ),
+          "Add dynamic constraints" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

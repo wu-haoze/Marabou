@@ -51,7 +51,10 @@ public:
         SOLVE_WITH_MILP,
 
         // Using SOI-based local search
-        LOCAL_SEARCH
+        LOCAL_SEARCH,
+
+        // Add dynamic constraints
+        ADD_DYNAMIC_CONSTRAINTS
     };
 
     enum IntOptions {

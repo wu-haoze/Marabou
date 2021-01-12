@@ -79,6 +79,12 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
         addPlAuxiliaryEquations();
 
     /*
+      If needed, have the PL constraints add dynamic constraints to the pool
+    */
+    if ( Options::get()->getBool( Options::ADD_DYNAMIC_CONSTRAINTS ) )
+        addPlDynamicConstraints();
+
+    /*
       Set any missing bounds
     */
     setMissingBoundsToInfinity();
@@ -864,6 +870,15 @@ void Preprocessor::addPlAuxiliaryEquations()
 
     for ( const auto &constraint : plConstraints )
         constraint->addAuxiliaryEquations( _preprocessed );
+}
+
+void Preprocessor::addPlDynamicConstraints()
+{
+    const List<PiecewiseLinearConstraint *> &plConstraints
+        ( _preprocessed.getPiecewiseLinearConstraints() );
+
+    for ( const auto &constraint : plConstraints )
+        constraint->addDynamicConstraints( _preprocessed );
 }
 
 void Preprocessor::dumpAllBounds( const String &message )

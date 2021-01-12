@@ -48,6 +48,7 @@ void Options::initializeDefaultValues()
     _boolOptions[ITERATIVE_PROPAGATION] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
     _boolOptions[LOCAL_SEARCH] = false;
+    _boolOptions[ADD_DYNAMIC_CONSTRAINTS] = false;
 
     /*
       Int options
