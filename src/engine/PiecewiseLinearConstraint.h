@@ -31,6 +31,8 @@ class ITableau;
 class InputQuery;
 class String;
 
+#define PLConstraint_LOG(x, ...) LOG(GlobalConfiguration::PLCONSTRAINT_LOGGING, "PLConstraint: %s\n", x)
+
 enum PhaseStatus : unsigned {
     PHASE_NOT_FIXED = 0,
     RELU_PHASE_ACTIVE = 1,

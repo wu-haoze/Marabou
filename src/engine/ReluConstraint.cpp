@@ -782,7 +782,7 @@ void ReluConstraint::addDynamicConstraints( InputQuery &inputQuery )
     /*
       We additionally add the following constraint:
 
-      eq1: f <= z + t  ->  z + t - f - _aux1 = 0
+      eq1: z + t >= f  ->  z + t - f - _aux1 = 0
       eq2: z = u / (u - l) * b
 
       The first one becomes:
@@ -793,6 +793,21 @@ void ReluConstraint::addDynamicConstraints( InputQuery &inputQuery )
                        0 <= aux1 <= z.ub + t.ub - f.lb
 
     */
+    PLConstraint_LOG( "Adding dynamic constraint for ReLU...\n" );
+
+    double ub = _upperBounds[_b];
+    double lb = _lowerBounds[_b];
+    ASSERT( ub != FloatUtils::infinity() &&
+            lb != FloatUtils::negativeInfinity() );
+
+    if ( !FloatUtils::isNegative( lb ) || !FloatUtils::isPositive( ub ) )
+    {
+        PLConstraint_LOG( "ReLU fixed - no constraint added." );
+        PLConstraint_LOG( "Adding dynamic constraint for ReLU - done\n" );
+        return;
+    }
+
+    ASSERT( FloatUtils::isNegative( lb ) && FloatUtils::isPositive( ub ) );
     _z = inputQuery.getNumberOfVariables();
     inputQuery.setNumberOfVariables( _z + 1 );
     _t = inputQuery.getNumberOfVariables();
@@ -808,24 +823,39 @@ void ReluConstraint::addDynamicConstraints( InputQuery &inputQuery )
     equation1.setScalar( 0 );
     inputQuery.addEquation( equation1 );
 
-    double ub = _upperBounds[_b];
-    double lb = _lowerBounds[_b];
     double slope = ub / ( ub - lb );
+    ASSERT( FloatUtils::gt( slope, 0 ) );
     Equation equation2( Equation::EQ );
-    equation1.addAddend( 1.0, _z );
-    equation1.addAddend( -slope, _b );
-    equation1.setScalar( 0 );
+    equation2.addAddend( 1.0, _z );
+    equation2.addAddend( -slope, _b );
+    equation2.setScalar( 0 );
     inputQuery.addEquation( equation2 );
 
     inputQuery.setLowerBound( _z, slope * lb );
     inputQuery.setUpperBound( _z, slope * ub );
-    inputQuery.setLowerBound( _t, -lb * slope );
-    inputQuery.setUpperBound( _t, -lb * slope );
+    inputQuery.setLowerBound( _t, slope * -lb );
+    inputQuery.setUpperBound( _t, slope * -lb );
     inputQuery.setLowerBound( _aux1, 0 );
     inputQuery.setUpperBound( _aux1, ub - _lowerBounds[_f] );
 
+    DEBUG({
+            String s;
+            equation1.dump( s );
+            PLConstraint_LOG( Stringf( "\tEquation 1: %s", s.ascii() ).ascii() );
+            equation2.dump( s );
+            PLConstraint_LOG( Stringf( "\tEquation 2: %s", s.ascii() ).ascii() );
+
+            PLConstraint_LOG( Stringf( "\t%.2f <= x%u <= %.2f", inputQuery.getLowerBound( _z ), _z,
+                                       inputQuery.getUpperBound( _z ) ).ascii() );
+            PLConstraint_LOG( Stringf( "\t%.2f <= x%u <= %.2f", inputQuery.getLowerBound( _t ), _t,
+                                       inputQuery.getUpperBound( _t ) ).ascii() );
+            PLConstraint_LOG( Stringf( "\t%.2f <= x%u <= %.2f", inputQuery.getLowerBound( _aux1 ), _aux1,
+                                       inputQuery.getUpperBound( _aux1 ) ).ascii() );
+        });
+
     // We now care about z, t, and aux1 as well
     _dynamicConstraintsInUse = true;
+    PLConstraint_LOG( "Adding dynamic constraint for ReLU - done\n" );
 }
 
 void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost ) const

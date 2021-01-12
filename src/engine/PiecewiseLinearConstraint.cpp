@@ -13,6 +13,7 @@
 
 **/
 
+#include "GlobalConfiguration.h"
 #include "PiecewiseLinearConstraint.h"
 #include "Statistics.h"
 

@@ -79,12 +79,6 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
         addPlAuxiliaryEquations();
 
     /*
-      If needed, have the PL constraints add dynamic constraints to the pool
-    */
-    if ( Options::get()->getBool( Options::ADD_DYNAMIC_CONSTRAINTS ) )
-        addPlDynamicConstraints();
-
-    /*
       Set any missing bounds
     */
     setMissingBoundsToInfinity();
@@ -116,6 +110,12 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
 
     if ( attemptVariableElimination )
         eliminateVariables();
+
+    /*
+      If needed, have the PL constraints add dynamic constraints to the pool
+    */
+    if ( Options::get()->getBool( Options::ADD_DYNAMIC_CONSTRAINTS ) )
+        addPlDynamicConstraints();
 
     return _preprocessed;
 }
