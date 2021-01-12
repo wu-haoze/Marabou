@@ -34,6 +34,7 @@ ReluConstraint::ReluConstraint( unsigned b, unsigned f )
     : _b( b )
     , _f( f )
     , _auxVarInUse( false )
+    , _dynamicConstraintsInUse( false )
     , _direction( PHASE_NOT_FIXED )
     , _haveEliminatedVariables( false )
 {
@@ -773,6 +774,58 @@ void ReluConstraint::addAuxiliaryEquations( InputQuery &inputQuery )
 
     // We now care about the auxiliary variable, as well
     _auxVarInUse = true;
+
+}
+
+void ReluConstraint::addDynamicConstraints( InputQuery &inputQuery )
+{
+    /*
+      We additionally add the following constraint:
+
+      eq1: f <= z + t  ->  z + t - f - _aux1 = 0
+      eq2: z = u / (u - l) * b
+
+      The first one becomes:
+
+      where
+      u / (u - l) * b.lb <=   z  <= u / (u - l) * b.ub
+      -( u * l ) / u - l <=   t  <= -( u * l ) / u - l
+                       0 <= aux1 <= z.ub + t.ub - f.lb
+
+    */
+    _z = inputQuery.getNumberOfVariables();
+    inputQuery.setNumberOfVariables( _z + 1 );
+    _t = inputQuery.getNumberOfVariables();
+    inputQuery.setNumberOfVariables( _t + 1 );
+    _aux1 = inputQuery.getNumberOfVariables();
+    inputQuery.setNumberOfVariables( _aux1 + 1 );
+
+    Equation equation1( Equation::EQ );
+    equation1.addAddend( 1.0, _z );
+    equation1.addAddend( 1.0, _t );
+    equation1.addAddend( -1.0, _f );
+    equation1.addAddend( -1.0, _aux1 );
+    equation1.setScalar( 0 );
+    inputQuery.addEquation( equation1 );
+
+    double ub = _upperBounds[_b];
+    double lb = _lowerBounds[_b];
+    double slope = ub / ( ub - lb );
+    Equation equation2( Equation::EQ );
+    equation1.addAddend( 1.0, _z );
+    equation1.addAddend( -slope, _b );
+    equation1.setScalar( 0 );
+    inputQuery.addEquation( equation2 );
+
+    inputQuery.setLowerBound( _z, slope * lb );
+    inputQuery.setUpperBound( _z, slope * ub );
+    inputQuery.setLowerBound( _t, -lb * slope );
+    inputQuery.setUpperBound( _t, -lb * slope );
+    inputQuery.setLowerBound( _aux1, 0 );
+    inputQuery.setUpperBound( _aux1, ub - _lowerBounds[_f] );
+
+    // We now care about z, t, and aux1 as well
+    _dynamicConstraintsInUse = true;
 }
 
 void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost ) const
@@ -862,6 +915,11 @@ bool ReluConstraint::supportPolarity() const
 bool ReluConstraint::auxVariableInUse() const
 {
     return _auxVarInUse;
+}
+
+bool ReluConstraint::dynamicConstraintsInUse() const
+{
+    return _dynamicConstraintsInUse;
 }
 
 unsigned ReluConstraint::getAux() const

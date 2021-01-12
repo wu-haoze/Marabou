@@ -132,6 +132,8 @@ public:
     */
     void addAuxiliaryEquations( InputQuery &inputQuery );
 
+    void addDynamicConstraints( InputQuery &inputQuery );
+
     /*
       Ask the piecewise linear constraint to contribute a component to the cost
       function. If implemented, this component should be empty when the constraint is
@@ -156,6 +158,8 @@ public:
     */
     bool auxVariableInUse() const;
     unsigned getAux() const;
+
+    bool dynamicConstraintsInUse() const;
 
     bool supportPolarity() const;
 
@@ -186,6 +190,9 @@ private:
     unsigned _b, _f;
     bool _auxVarInUse;
     unsigned _aux;
+
+    bool _dynamicConstraintsInUse;
+    unsigned _z, _t, _aux1;
 
     /*
       Denotes which case split to handle first.

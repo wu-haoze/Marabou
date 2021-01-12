@@ -191,6 +191,8 @@ public:
     */
     virtual void addAuxiliaryEquations( InputQuery &/* inputQuery */ ) {}
 
+    virtual void addDynamicConstraints( InputQuery &/* inputQuery */ ) {}
+
     /*
       Ask the piecewise linear constraint to contribute a component to the cost
       function. If implemented, this component should be empty when the constraint is
