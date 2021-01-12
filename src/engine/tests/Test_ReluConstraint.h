@@ -1003,6 +1003,94 @@ public:
         TS_ASSERT_EQUALS( query2.getUpperBound( aux ), 0 );
     }
 
+    void test_add_dynamic_constraints()
+    {
+        ReluConstraint relu( 4, 6 );
+        InputQuery query;
+
+        query.setNumberOfVariables( 9 );
+
+        relu.notifyLowerBound( 4, -1 );
+        relu.notifyLowerBound( 6, 0 );
+
+        relu.notifyUpperBound( 4, 4 );
+        relu.notifyUpperBound( 6, 4 );
+
+        TS_ASSERT_THROWS_NOTHING( relu.addDynamicConstraints( query ) );
+
+        const List<Equation> &equations( query.getEquations() );
+
+        TS_ASSERT_EQUALS( equations.size(), 2U );
+        TS_ASSERT_EQUALS( query.getNumberOfVariables(), 12U );
+
+        unsigned b = 4;
+        unsigned f = 6;
+        unsigned z = 9;
+        unsigned t = 10;
+        unsigned aux = 11;
+        TS_ASSERT_EQUALS( query.getLowerBound( z ), -0.8 );
+        TS_ASSERT_EQUALS( query.getUpperBound( z ), 3.2 );
+        TS_ASSERT_EQUALS( query.getLowerBound( t ), 0.8 );
+        TS_ASSERT_EQUALS( query.getUpperBound( t ), 0.8 );
+        TS_ASSERT_EQUALS( query.getLowerBound( aux ), 0 );
+        TS_ASSERT_EQUALS( query.getUpperBound( aux ), 4 );
+
+        Equation eq = *equations.begin();
+
+        TS_ASSERT_EQUALS( eq._addends.size(), 4U );
+
+        auto it = eq._addends.begin();
+        TS_ASSERT_EQUALS( *it, Equation::Addend( 1, z ) );
+        ++it;
+        TS_ASSERT_EQUALS( *it, Equation::Addend( 1, t ) );
+        ++it;
+        TS_ASSERT_EQUALS( *it, Equation::Addend( -1, f ) );
+        ++it;
+        TS_ASSERT_EQUALS( *it, Equation::Addend( -1, aux ) );
+
+        TS_ASSERT_EQUALS( eq._scalar, 0 );
+
+        eq = *( ++equations.begin() );
+
+        TS_ASSERT_EQUALS( eq._addends.size(), 2U );
+
+        it = eq._addends.begin();
+        TS_ASSERT_EQUALS( *it, Equation::Addend( 1, z ) );
+        ++it;
+        TS_ASSERT_EQUALS( *it, Equation::Addend( -0.8, b ) );
+        ++it;
+        TS_ASSERT_EQUALS( eq._scalar, 0 );
+    }
+
+    void test_add_dynamic_constraints_for_fixed_relu()
+    {
+        // Do not add dynamic constraints to fixed ReLUs
+        ReluConstraint relu1( 4, 6 );
+        ReluConstraint relu2( 1, 3 );
+        InputQuery query;
+
+        query.setNumberOfVariables( 9 );
+
+        relu1.notifyLowerBound( 4, 3 );
+        relu1.notifyLowerBound( 6, 0 );
+
+        relu1.notifyUpperBound( 4, 15 );
+        relu1.notifyUpperBound( 6, 15 );
+
+        relu2.notifyLowerBound( 1, -2 );
+        relu2.notifyLowerBound( 3, 0 );
+
+        relu2.notifyUpperBound( 1, -1 );
+        relu2.notifyUpperBound( 3, 0 );
+
+        TS_ASSERT_THROWS_NOTHING( relu1.addDynamicConstraints( query ) );
+        TS_ASSERT_THROWS_NOTHING( relu2.addDynamicConstraints( query ) );
+
+        const List<Equation> &equations( query.getEquations() );
+        TS_ASSERT_EQUALS( equations.size(), 0U );
+        TS_ASSERT_EQUALS( query.getNumberOfVariables(), 9U );
+    }
+
     ReluConstraint prepareRelu( unsigned b, unsigned f, unsigned aux, IConstraintBoundTightener *tightener )
     {
         ReluConstraint relu( b, f );
