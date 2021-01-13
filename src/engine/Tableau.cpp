@@ -1716,6 +1716,11 @@ void Tableau::tightenLowerBound( unsigned variable, double value )
 
     setLowerBound( variable, value );
 
+    /*
+      Update dynamic constraints if necessary
+    */
+    updateDynamicConstraint( variable );
+
     // Ensure that non-basic variables are within bounds
     unsigned index = _variableToIndex[variable];
     if ( !_basicVariables.exists( variable ) )
@@ -1745,6 +1750,11 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
         _statistics->incNumTightenedBounds();
 
     setUpperBound( variable, value );
+
+    /*
+      Update the corresponding dynamic constraint if necessary
+    */
+    updateDynamicConstraint( variable );
 
     // Ensure that non-basic variables are within bounds
     unsigned index = _variableToIndex[variable];

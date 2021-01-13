@@ -20,6 +20,7 @@
 #include "ITableau.h"
 #include "MString.h"
 #include "Map.h"
+#include "PiecewiseLinearConstraint.h"
 #include "Set.h"
 #include "SparseColumnsOfBasis.h"
 #include "SparseMatrix.h"
