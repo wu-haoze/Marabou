@@ -115,6 +115,20 @@ void Engine::adjustWorkMemorySize()
 
 }
 
+bool Engine::concretizeAndCheckInputAssignment()
+{
+    if ( _localSearch )
+    {
+        concretizeInputAssignment();
+        if ( checkAssignmentFromNetworkLevelReasoner() )
+        {
+            ENGINE_LOG( "Input assignment valid!" );
+            return true;
+        }
+    }
+    return false;
+}
+
 void Engine::concretizeInputAssignment()
 {
     if ( !_networkLevelReasoner )
@@ -345,7 +359,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 collectViolatedPlConstraints();
 
                 // If all constraints are satisfied, we are possibly done
-                if ( allPlConstraintsHold() )
+                if ( allPlConstraintsHold() || concretizeAndCheckInputAssignment() )
                 {
                     if ( _tableau->getBasicAssignmentStatus() !=
                          ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )

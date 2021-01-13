@@ -544,6 +544,8 @@ private:
 
     bool localSearch( unsigned timeoutInSeconds );
 
+    bool concretizeAndCheckInputAssignment();
+
     /*
       Evaluate the input assignment in the tableau with the network-level reasoner.
     */
