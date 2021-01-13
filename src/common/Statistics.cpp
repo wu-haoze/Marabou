@@ -687,20 +687,8 @@ unsigned long long Statistics::getNumSimplexUnstablePivots() const
 unsigned long long Statistics::getTotalTime() const
 {
     unsigned long long total =
-        _timeSimplexStepsMicro +
-        _timeConstraintFixingStepsMicro +
-        _totalTimePerformingValidCaseSplitsMicro +
-        _totalTimeHandlingStatisticsMicro +
-        _totalTimeExplicitBasisBoundTighteningMicro +
-        _totalTimeDegradationChecking +
-        _totalTimePrecisionRestoration +
-        _totalTimeConstraintMatrixBoundTighteningMicro +
-        _totalTimeApplyingStoredTighteningsMicro +
-        _totalTimeSmtCoreMicro +
-        _totalTimePerformingSymbolicBoundTightening +
-        _totalTimeAssignmentCheck +
-        _totalTimeNetworkEvaluation +
-        _totalTimeUpdatingDynamicConstraints;
+        _preprocessingTimeMicro +
+        _timeMainLoopMicro;
 
     // Total is in micro seconds, and we need to return milliseconds
     return total / 1000;
