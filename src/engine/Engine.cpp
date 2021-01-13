@@ -116,6 +116,11 @@ void Engine::adjustWorkMemorySize()
 
 }
 
+bool Engine::performLocalSearch()
+{
+    return true;
+}
+
 bool Engine::concretizeAndCheckInputAssignment()
 {
     if ( !_localSearch )
@@ -346,47 +351,64 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
             if ( allVarsWithinBounds() )
             {
-                // The linear portion of the problem has been solved.
-                // Check the status of the PL constraints
-                collectViolatedPlConstraints();
-
-                // If all constraints are satisfied, we are possibly done
-                if ( allPlConstraintsHold() || concretizeAndCheckInputAssignment() )
+                if ( _localSearch )
                 {
-                    if ( _tableau->getBasicAssignmentStatus() !=
-                         ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )
+                    if ( performLocalSearch() )
                     {
+                        // Either throws InfeasibleQueryException,
+                        // or contains a satisfying assignment
+                        // or conclude that splitting is needed
+                        _exitCode = Engine::SAT;
+                        return true;
+                    }
+                    else
+                        continue;
+                }
+                else
+                {
+
+                    // The linear portion of the problem has been solved.
+                    // Check the status of the PL constraints
+                    collectViolatedPlConstraints();
+
+                    // If all constraints are satisfied, we are possibly done
+                    if ( allPlConstraintsHold() || concretizeAndCheckInputAssignment() )
+                    {
+                        if ( _tableau->getBasicAssignmentStatus() !=
+                             ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )
+                        {
+                            if ( _verbosity > 0 )
+                            {
+                                printf( "Before declaring sat, recomputing...\n" );
+                            }
+                            // Make sure that the assignment is precise before declaring success
+                            _tableau->computeAssignment();
+                            continue;
+                        }
                         if ( _verbosity > 0 )
                         {
-                            printf( "Before declaring sat, recomputing...\n" );
+                            printf( "\nEngine::solve: sat assignment found\n" );
+                            _statistics.print();
                         }
-                        // Make sure that the assignment is precise before declaring success
-                        _tableau->computeAssignment();
-                        continue;
+                        _exitCode = Engine::SAT;
+                        return true;
                     }
-                    if ( _verbosity > 0 )
-                    {
-                        printf( "\nEngine::solve: sat assignment found\n" );
-                        _statistics.print();
-                    }
-                    _exitCode = Engine::SAT;
-                    return true;
+
+                    // We have violated piecewise-linear constraints.
+                    performConstraintFixingStep();
+
+                    // Finally, take this opporunity to tighten any bounds
+                    // and perform any valid case splits.
+                    tightenBoundsOnConstraintMatrix();
+                    applyAllBoundTightenings();
+                    // For debugging purposes
+                    checkBoundCompliancyWithDebugSolution();
+
+                    while ( applyAllValidConstraintCaseSplits() )
+                        performSymbolicBoundTightening();
+
+                    continue;
                 }
-
-                // We have violated piecewise-linear constraints.
-                performConstraintFixingStep();
-
-                // Finally, take this opporunity to tighten any bounds
-                // and perform any valid case splits.
-                tightenBoundsOnConstraintMatrix();
-                applyAllBoundTightenings();
-                // For debugging purposes
-                checkBoundCompliancyWithDebugSolution();
-
-                while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening();
-
-                continue;
             }
 
             // We have out-of-bounds variables.

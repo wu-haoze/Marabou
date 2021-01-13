@@ -160,6 +160,14 @@ public:
     PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy strategy );
 
     /*
+      Performs local search at the search level.
+      Either throws InfeasibleQueryException,
+      or return false with _needToSplit set to true and a branching variable picked.
+      or return true with satisfying solution stored in the tableau.
+    */
+    bool performLocalSearch();
+
+    /*
       PSA: The following two methods are for DnC only and should be used very
       cautiously.
      */
