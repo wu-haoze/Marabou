@@ -50,6 +50,7 @@ Engine::Engine()
     , _lastNumVisitedStates( 0 )
     , _lastIterationWithProgress( 0 )
     , _splittingStrategy( Options::get()->getDivideStrategy() )
+    , _symbolicBoundTighteningType( Options::get()->getSymbolicBoundTighteningType() )
     , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
     , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
     , _gurobi( nullptr )
@@ -1364,7 +1365,13 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         delete[] constraintMatrix;
 
         if ( preprocess )
+        {
+            performSymbolicBoundTightening();
             performMILPSolverBoundedTightening();
+        }
+
+        if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
+            _networkLevelReasoner->dumpBounds();
 
         if ( _splittingStrategy == DivideStrategy::Auto )
         {
@@ -2074,7 +2081,7 @@ List<unsigned> Engine::getInputVariables() const
 
 void Engine::performSymbolicBoundTightening()
 {
-    if ( ( !GlobalConfiguration::USE_SYMBOLIC_BOUND_TIGHTENING ) ||
+    if ( _symbolicBoundTighteningType == SymbolicBoundTighteningType::NONE ||
          ( !_networkLevelReasoner ) )
         return;
 
@@ -2086,7 +2093,12 @@ void Engine::performSymbolicBoundTightening()
     _networkLevelReasoner->obtainCurrentBounds();
 
     // Step 2: perform SBT
-    _networkLevelReasoner->symbolicBoundPropagation();
+    if ( _symbolicBoundTighteningType ==
+         SymbolicBoundTighteningType::SYMBOLIC_BOUND_TIGHTENING )
+        _networkLevelReasoner->symbolicBoundPropagation();
+    else if ( _symbolicBoundTighteningType ==
+         SymbolicBoundTighteningType::DEEP_POLY )
+        _networkLevelReasoner->deepPolyPropagation();
 
     // Step 3: Extract the bounds
     List<Tightening> tightenings;

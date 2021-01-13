@@ -37,6 +37,7 @@
 #include "SignalHandler.h"
 #include "SmtCore.h"
 #include "Statistics.h"
+#include "SymbolicBoundTighteningType.h"
 
 #include <atomic>
 
@@ -327,6 +328,11 @@ private:
     DivideStrategy _splittingStrategy;
 
     /*
+      Type of symbolic bound tightening
+    */
+    SymbolicBoundTighteningType _symbolicBoundTighteningType;
+
+    /*
       Disjunction that is used for splitting but doesn't exist in the beginning
     */
     std::unique_ptr<PiecewiseLinearConstraint> _disjunctionForSplitting;
@@ -462,6 +468,8 @@ private:
       false otherwise.
     */
     bool attemptToMergeVariables( unsigned x1, unsigned x2 );
+
+    void performDeepPolyAnalysis();
 
     /*
       Perform a round of symbolic bound tightening, taking into
