@@ -117,14 +117,14 @@ void Engine::adjustWorkMemorySize()
 
 bool Engine::concretizeAndCheckInputAssignment()
 {
-    if ( _localSearch )
+    if ( !_localSearch )
+        return false;
+
+    concretizeInputAssignment();
+    if ( checkAssignmentFromNetworkLevelReasoner() )
     {
-        concretizeInputAssignment();
-        if ( checkAssignmentFromNetworkLevelReasoner() )
-        {
-            ENGINE_LOG( "Input assignment valid!" );
-            return true;
-        }
+        ENGINE_LOG( "Current tableau input assignment valid!" );
+        return true;
     }
     return false;
 }
