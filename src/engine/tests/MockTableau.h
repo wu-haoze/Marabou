@@ -595,6 +595,13 @@ public:
     {
         return 0;
     }
+
+    void setNonBasicAssignments( double * ){};
+
+    const double *getNonBasicAssignment() const
+    {
+        return NULL;
+    }
 };
 
 #endif // __MockTableau_h__

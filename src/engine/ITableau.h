@@ -130,6 +130,7 @@ public:
     virtual void performPivot() = 0;
     virtual double ratioConstraintPerBasic( unsigned basicIndex, double coefficient, bool decrease ) = 0;
     virtual bool isBasic( unsigned variable ) const = 0;
+    virtual void setNonBasicAssignments( double *nonBasicAssignment ) = 0;
     virtual void setNonBasicAssignment( unsigned variable, double value, bool updateBasics ) = 0;
     virtual void computeCostFunction() = 0;
     virtual void getEntryCandidates( List<unsigned> &candidates ) const = 0;
@@ -179,6 +180,7 @@ public:
     virtual void mergeColumns( unsigned x1, unsigned x2 ) = 0;
     virtual bool areLinearlyDependent( unsigned x1, unsigned x2, double &coefficient, double &inverseCoefficient ) = 0;
     virtual unsigned getVariableAfterMerging( unsigned variable ) const = 0;
+    virtual const double *getNonBasicAssignment() const = 0;
 };
 
 #endif // __ITableau_h__

@@ -1416,6 +1416,17 @@ bool Tableau::isBasic( unsigned variable ) const
     return _basicVariables.exists( variable );
 }
 
+void Tableau::setNonBasicAssignments( double *nonBasicAssignment )
+{
+    for ( unsigned i = 0; i < _n - _m; ++i )
+    {
+        double value = nonBasicAssignment[i];
+        _nonBasicAssignment[i] = value;
+        notifyVariableValue( _nonBasicIndexToVariable[i], value );
+    }
+    return;
+}
+
 void Tableau::setNonBasicAssignment( unsigned variable, double value, bool updateBasics )
 {
     ASSERT( !_basicVariables.exists( variable ) );
@@ -1719,7 +1730,7 @@ void Tableau::tightenLowerBound( unsigned variable, double value )
     /*
       Update dynamic constraints if necessary
     */
-    updateDynamicConstraint( variable );
+    //updateDynamicConstraint( variable );
 
     // Ensure that non-basic variables are within bounds
     unsigned index = _variableToIndex[variable];
@@ -1754,7 +1765,7 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
     /*
       Update the corresponding dynamic constraint if necessary
     */
-    updateDynamicConstraint( variable );
+    //updateDynamicConstraint( variable );
 
     // Ensure that non-basic variables are within bounds
     unsigned index = _variableToIndex[variable];
@@ -2488,6 +2499,11 @@ unsigned Tableau::getVariableAfterMerging( unsigned variable ) const
         answer = _mergedVariables[answer];
 
     return answer;
+}
+
+const double *Tableau::getNonBasicAssignment() const
+{
+    return _nonBasicAssignment;
 }
 
 void Tableau::mergeColumns( unsigned x1, unsigned x2 )

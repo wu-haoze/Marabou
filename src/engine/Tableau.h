@@ -260,6 +260,11 @@ public:
     bool isBasic( unsigned variable ) const;
 
     /*
+      Update the non-basic assignments without updating the basic assignments.
+    */
+    void setNonBasicAssignments( double *nonBasicAssignment );
+
+    /*
       Set the assignment of a non-basic variable to a given value.
       If updateBasics is true, also update any basic variables that depend on this non-basic.
     */
@@ -445,6 +450,8 @@ public:
       variable, after the merging has been applied.
      */
     unsigned getVariableAfterMerging( unsigned variable ) const;
+
+    const double *getNonBasicAssignment() const;
 
 private:
     /*

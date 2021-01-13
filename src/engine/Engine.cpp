@@ -31,6 +31,8 @@
 #include "TableauRow.h"
 #include "TimeUtils.h"
 
+#include <string.h>
+
 Engine::Engine()
     : _rowBoundTightener( *_tableau )
     , _smtCore( this )
@@ -55,6 +57,7 @@ Engine::Engine()
     , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
+    , _workNonBasicAssignment( NULL )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -75,6 +78,12 @@ Engine::~Engine()
         delete[] _work;
         _work = NULL;
     }
+
+    if ( _workNonBasicAssignment )
+    {
+        delete[] _workNonBasicAssignment;
+        _workNonBasicAssignment = NULL;
+    }
 }
 
 void Engine::setVerbosity( unsigned verbosity )
@@ -93,23 +102,93 @@ void Engine::adjustWorkMemorySize()
     _work = new double[_tableau->getM()];
     if ( !_work )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
+
+    if ( _workNonBasicAssignment )
+    {
+        delete[] _workNonBasicAssignment;
+        _workNonBasicAssignment = NULL;
+    }
+
+    _workNonBasicAssignment = new double[_tableau->getN() - _tableau->getM()];
+    if ( !_workNonBasicAssignment )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::workNonBasicAssignment" );
+
 }
 
 void Engine::concretizeInputAssignment()
 {
+    if ( !_networkLevelReasoner )
+        return;
 
+    unsigned numInputVariables = _preprocessedQuery.getNumInputVariables();
+    unsigned numOutputVariables = _preprocessedQuery.getNumOutputVariables();
+
+    if ( numInputVariables == 0 )
+    {
+        // Trivial case: all inputs are fixed, nothing to evaluate
+        return;
+    }
+
+    double *inputAssignment = new double[numInputVariables];
+    double *outputAssignment = new double[numOutputVariables];
+
+    for ( unsigned i = 0; i < numInputVariables; ++i )
+    {
+        unsigned variable = _preprocessedQuery.inputVariableByIndex( i );
+        inputAssignment[i] = _tableau->getValue( variable );
+    }
+
+    // Evaluate the network for this assignment
+    _networkLevelReasoner->evaluate( inputAssignment, outputAssignment );
+
+    delete[] outputAssignment;
+    delete[] inputAssignment;
 }
 
-bool Engine::concretizedInputAssignmentValid()
+bool Engine::checkAssignmentFromNetworkLevelReasoner()
 {
-    return true;
-}
+    if ( !_networkLevelReasoner )
+        return false;
 
-void Engine::updateTableauAssignment( const Map<unsigned, double> &assignment )
-{
-    std::cout << assignment.size() << std::endl;
-}
+    // Store the original non-basic assignment in the tableau, we might need
+    // to revert back to this.
+    memcpy( _workNonBasicAssignment, _tableau->getNonBasicAssignment(),
+            ( _tableau->getN() - _tableau->getM() ) * sizeof(double) );
 
+    // Try to update as many variables as possible to match their assignment
+    for ( unsigned i = 0; i < _networkLevelReasoner->getNumberOfLayers(); ++i )
+    {
+        const NLR::Layer *layer = _networkLevelReasoner->getLayer( i );
+        unsigned layerSize = layer->getSize();
+        const double *assignment = layer->getAssignment();
+
+        for ( unsigned j = 0; j < layerSize; ++j )
+        {
+            if ( layer->neuronHasVariable( j ) )
+            {
+                unsigned variable = layer->neuronToVariable( j );
+                if ( !_tableau->isBasic( variable ) )
+                    _tableau->setNonBasicAssignment( variable, assignment[j], false );
+            }
+        }
+    }
+
+    // We did what we could for the non-basics; now let the tableau compute
+    // the basic assignment
+    _tableau->computeAssignment();
+
+    if ( allVarsWithinBounds() )
+        return true;
+    else
+    {
+        // TODO: Get explanation where it fails.
+
+        // Revert back to the previous solution
+        _tableau->setNonBasicAssignments( _workNonBasicAssignment );
+        _tableau->computeAssignment();
+        return false;
+    }
+}
 
 bool Engine::localSearch( unsigned timeoutInSeconds )
 {

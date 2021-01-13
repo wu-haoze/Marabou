@@ -357,8 +357,7 @@ private:
     */
     std::unique_ptr<MILPEncoder> _milpEncoder;
 
-    Map<unsigned, double> _concretizedInputAssignment;
-
+    double *_workNonBasicAssignment;
 
     /*
       Perform a simplex step: compute the cost function, pick the
@@ -545,9 +544,16 @@ private:
 
     bool localSearch( unsigned timeoutInSeconds );
 
+    /*
+      Evaluate the input assignment in the tableau with the network-level reasoner.
+    */
     void concretizeInputAssignment();
-    bool concretizedInputAssignmentValid();
-    void updateTableauAssignment( const Map<unsigned, double> &assignment );
+
+    /*
+      Check whether the assignment from the network level reasoner is a valid one.
+      If so, store the assignment in the tableau.
+    */
+    bool checkAssignmentFromNetworkLevelReasoner();
 
     /*
       Perform bound tightening operations that require
