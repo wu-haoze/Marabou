@@ -120,6 +120,8 @@ void Engine::concretizeInputAssignment()
     if ( !_networkLevelReasoner )
         return;
 
+    struct timespec start = TimeUtils::sampleMicro();
+
     unsigned numInputVariables = _preprocessedQuery.getNumInputVariables();
     unsigned numOutputVariables = _preprocessedQuery.getNumOutputVariables();
 
@@ -143,12 +145,17 @@ void Engine::concretizeInputAssignment()
 
     delete[] outputAssignment;
     delete[] inputAssignment;
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.addTimeForNetworkEvaluation( TimeUtils::timePassed( start, end ) );
 }
 
 bool Engine::checkAssignmentFromNetworkLevelReasoner()
 {
     if ( !_networkLevelReasoner )
         return false;
+
+    struct timespec start = TimeUtils::sampleMicro();
 
     // Store the original non-basic assignment in the tableau, we might need
     // to revert back to this.
@@ -177,17 +184,21 @@ bool Engine::checkAssignmentFromNetworkLevelReasoner()
     // the basic assignment
     _tableau->computeAssignment();
 
-    if ( allVarsWithinBounds() )
-        return true;
-    else
+    bool assignmentValid = allVarsWithinBounds();
+
+    if ( !assignmentValid )
     {
         // TODO: Get explanation where it fails.
 
         // Revert back to the previous solution
         _tableau->setNonBasicAssignments( _workNonBasicAssignment );
         _tableau->computeAssignment();
-        return false;
     }
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.addTimeForAssignmentCheck( TimeUtils::timePassed( start, end ) );
+    _statistics.incNumAssignmentChecks();
+    return assignmentValid;
 }
 
 bool Engine::localSearch( unsigned timeoutInSeconds )

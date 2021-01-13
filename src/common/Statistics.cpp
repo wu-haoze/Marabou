@@ -58,6 +58,8 @@ Statistics::Statistics()
     , _numBoundTighteningsOnConstraintMatrix( 0 )
     , _numTighteningsFromConstraintMatrix( 0 )
     , _numBasisRefactorizations( 0 )
+    , _numAssignmentChecks( 0 )
+    ,  _numDynamicConstraintUpdates( 0 )
     , _pseNumIterations( 0 )
     , _pseNumResetReferenceSpace( 0 )
     , _ppNumEliminatedVars( 0 )
@@ -74,6 +76,9 @@ Statistics::Statistics()
     , _totalTimeConstraintMatrixBoundTighteningMicro( 0 )
     , _totalTimeApplyingStoredTighteningsMicro( 0 )
     , _totalTimeSmtCoreMicro( 0 )
+    , _totalTimeAssignmentCheck( 0 )
+    , _totalTimeNetworkEvaluation( 0 )
+    , _totalTimeUpdatingDynamicConstraints( 0 )
     , _timedOut( false )
 {
 }
@@ -163,7 +168,18 @@ void Statistics::print()
             , printPercents( _totalTimePerformingSymbolicBoundTightening, _timeMainLoopMicro )
             , _totalTimePerformingSymbolicBoundTightening / 1000
             );
-
+    printf( "\t\t[%.2lf%%] Network Evaluation: %llu milli\n"
+            , printPercents( _totalTimeNetworkEvaluation, _timeMainLoopMicro )
+            , _totalTimeNetworkEvaluation / 1000
+            );
+    printf( "\t\t[%.2lf%%] Validating Assignment: %llu milli\n"
+            , printPercents( _totalTimeAssignmentCheck, _timeMainLoopMicro )
+            , _totalTimeAssignmentCheck / 1000
+            );
+    printf( "\t\t[%.2lf%%] Updating dynamic constraints: %llu milli\n"
+            , printPercents( _totalTimeUpdatingDynamicConstraints, _timeMainLoopMicro )
+            , _totalTimeUpdatingDynamicConstraints / 1000
+            );
     unsigned long long total =
         _timeSimplexStepsMicro +
         _timeConstraintFixingStepsMicro +
@@ -175,7 +191,10 @@ void Statistics::print()
         _totalTimeConstraintMatrixBoundTighteningMicro +
         _totalTimeApplyingStoredTighteningsMicro +
         _totalTimeSmtCoreMicro +
-        _totalTimePerformingSymbolicBoundTightening;
+        _totalTimePerformingSymbolicBoundTightening +
+        _totalTimeNetworkEvaluation +
+        _totalTimeAssignmentCheck +
+        _totalTimeUpdatingDynamicConstraints;
 
     printf( "\t\t[%.2lf%%] Unaccounted for: %llu milli\n"
             , printPercents( _timeMainLoopMicro - total, _timeMainLoopMicro )
@@ -245,6 +264,7 @@ void Statistics::print()
     printf( "\tCurrent tableau dimensions: M = %u, N = %u\n"
             , _currentTableauM
             , _currentTableauN );
+    printf( "\tNumber of assignment validation: %llu\n", _numAssignmentChecks );
 
     printf( "\t--- SMT Core Statistics ---\n" );
     printf( "\tTotal depth is %u. Total visited states: %u. Number of splits: %u. Number of pops: %u\n"
@@ -287,6 +307,10 @@ void Statistics::print()
 
     printf( "\t--- SBT ---\n" );
     printf( "\tNumber of tightened bounds: %llu\n", _numTighteningsFromSymbolicBoundTightening );
+
+    printf( "\t--- Dynamic constraints ---\n" );
+    printf( "\tNumber of dynamic constraint updates: %llu\n", _numDynamicConstraintUpdates );
+
 }
 
 double Statistics::printPercents( unsigned long long part, unsigned long long total ) const
@@ -590,6 +614,21 @@ void Statistics::addTimeForApplyingStoredTightenings( unsigned long long time )
     _totalTimeApplyingStoredTighteningsMicro += time;
 }
 
+void Statistics::addTimeForAssignmentCheck( unsigned long long time )
+{
+    _totalTimeAssignmentCheck += time;
+}
+
+void Statistics::addTimeForNetworkEvaluation( unsigned long long time )
+{
+    _totalTimeNetworkEvaluation += time;
+}
+
+void Statistics::addTimeForUpdatingDynamicConstraints( unsigned long long time )
+{
+    _totalTimeUpdatingDynamicConstraints += time;
+}
+
 void Statistics::addTimeSmtCore( unsigned long long time )
 {
     _totalTimeSmtCoreMicro += time;
@@ -658,7 +697,10 @@ unsigned long long Statistics::getTotalTime() const
         _totalTimeConstraintMatrixBoundTighteningMicro +
         _totalTimeApplyingStoredTighteningsMicro +
         _totalTimeSmtCoreMicro +
-        _totalTimePerformingSymbolicBoundTightening;
+        _totalTimePerformingSymbolicBoundTightening +
+        _totalTimeAssignmentCheck +
+        _totalTimeNetworkEvaluation +
+        _totalTimeUpdatingDynamicConstraints;
 
     // Total is in micro seconds, and we need to return milliseconds
     return total / 1000;
@@ -683,6 +725,16 @@ void Statistics::printStartingIteration( unsigned long long iteration, String me
 void Statistics::incNumTighteningsFromSymbolicBoundTightening( unsigned increment )
 {
     _numTighteningsFromSymbolicBoundTightening += increment;
+}
+
+void Statistics::incNumAssignmentChecks()
+{
+    ++_numAssignmentChecks;
+}
+
+void Statistics::incNumDynamicConstraintUpdates( unsigned increment )
+{
+    _numDynamicConstraintUpdates += increment;
 }
 
 //
