@@ -51,6 +51,9 @@ void OptionParser::initialize()
         ( "local-search",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::LOCAL_SEARCH]) ),
           "Use SOI-based local search" )
+        ( "concretize-input",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::CONCRETIZE_INPUT]) ),
+          "Concretize inputs" )
         ( "use-dynamic-constraints",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::ADD_DYNAMIC_CONSTRAINTS]) ),
           "Add dynamic constraints" )

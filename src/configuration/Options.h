@@ -57,6 +57,9 @@ public:
         // Using SOI-based local search
         LOCAL_SEARCH,
 
+        // Concretize input
+        CONCRETIZE_INPUT,
+
         // Add dynamic constraints
         ADD_DYNAMIC_CONSTRAINTS
     };

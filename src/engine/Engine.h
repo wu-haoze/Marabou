@@ -348,6 +348,11 @@ private:
     bool _localSearch;
 
     /*
+      Concretize inputs.
+    */
+    bool _concretizeInput;
+
+    /*
       GurobiWrapper object
     */
     std::unique_ptr<GurobiWrapper> _gurobi;

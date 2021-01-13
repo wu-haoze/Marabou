@@ -48,6 +48,7 @@ void Options::initializeDefaultValues()
     _boolOptions[DUMP_BOUNDS] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
     _boolOptions[LOCAL_SEARCH] = false;
+    _boolOptions[CONCRETIZE_INPUT] = false;
     _boolOptions[ADD_DYNAMIC_CONSTRAINTS] = false;
 
     /*

@@ -184,6 +184,7 @@ struct MarabouOptions {
         , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
         , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
         , _addDynamicConstraints( Options::get()->getBool( Options::ADD_DYNAMIC_CONSTRAINTS ) )
+        , _concretizeInput( Options::get()->getBool( Options::CONCRETIZE_INPUT ) )
         , _dumpBounds( Options::get()->getBool( Options::DUMP_BOUNDS ) )
         , _numWorkers( Options::get()->getInt( Options::NUM_WORKERS ) )
         , _initialTimeout( Options::get()->getInt( Options::INITIAL_TIMEOUT ) )
@@ -206,6 +207,7 @@ struct MarabouOptions {
     Options::get()->setBool( Options::RESTORE_TREE_STATES, _restoreTreeStates );
     Options::get()->setBool( Options::SOLVE_WITH_MILP, _solveWithMILP );
     Options::get()->setBool( Options::LOCAL_SEARCH, _localSearch );
+    Options::get()->setBool( Options::CONCRETIZE_INPUT, _concretizeInput );
     Options::get()->setBool( Options::ADD_DYNAMIC_CONSTRAINTS, _addDynamicConstraints );
     Options::get()->setBool( Options::DUMP_BOUNDS, _dumpBounds );
 
@@ -233,6 +235,7 @@ struct MarabouOptions {
     bool _solveWithMILP;
     bool _localSearch;
     bool _addDynamicConstraints;
+    bool _concretizeInput;
     bool _dumpBounds;
     unsigned _numWorkers;
     unsigned _initialTimeout;
@@ -432,6 +435,7 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def_readwrite("_solveWithMILP", &MarabouOptions::_solveWithMILP)
         .def_readwrite("_addDynamicConstraints", &MarabouOptions::_addDynamicConstraints)
         .def_readwrite("_localSearch", &MarabouOptions::_localSearch)
+        .def_readwrite("_concretizeInput", &MarabouOptions::_concretizeInput)
         .def_readwrite("_dumpBounds", &MarabouOptions::_dumpBounds)
         .def_readwrite("_restoreTreeStates", &MarabouOptions::_restoreTreeStates)
         .def_readwrite("_splittingStrategy", &MarabouOptions::_splittingStrategyString)
