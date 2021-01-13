@@ -542,8 +542,6 @@ private:
     */
     void extractSolutionFromGurobi( InputQuery &inputQuery );
 
-    bool localSearch( unsigned timeoutInSeconds );
-
     bool concretizeAndCheckInputAssignment();
 
     /*

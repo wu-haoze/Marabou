@@ -215,12 +215,6 @@ bool Engine::checkAssignmentFromNetworkLevelReasoner()
     return assignmentValid;
 }
 
-bool Engine::localSearch( unsigned timeoutInSeconds )
-{
-    std::cout << "timeout " << timeoutInSeconds << std::endl;
-    return false;
-}
-
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
@@ -228,9 +222,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     if ( _solveWithMILP )
         return solveWithMILPEncoding( timeoutInSeconds );
-
-    if ( _localSearch )
-        return localSearch( timeoutInSeconds );
 
     updateDirections();
     storeInitialEngineState();
