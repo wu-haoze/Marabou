@@ -141,6 +141,7 @@ void NetworkLevelReasoner::deepPolyPropagation( unsigned beginIndex )
     if ( _deepPolyAnalysis == nullptr )
         _deepPolyAnalysis = std::unique_ptr<DeepPolyAnalysis>
             ( new DeepPolyAnalysis( this ) );
+    printf( "\nRunning DeepPoly Analysis starting from layer: %u", beginIndex );
     _deepPolyAnalysis->run( beginIndex );
 }
 
