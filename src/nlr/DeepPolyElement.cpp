@@ -100,6 +100,11 @@ double DeepPolyElement::getUpperBoundFromLayer( unsigned index ) const
     return _layer->getUb( index );
 }
 
+void DeepPolyElement::setBeginIndex( unsigned beginIndex )
+{
+    _beginIndex = beginIndex;
+}
+
 void DeepPolyElement::getConcreteBounds()
 {
     unsigned size = getSize();

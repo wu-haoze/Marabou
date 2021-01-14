@@ -105,10 +105,10 @@ public:
     void setTableau( const ITableau *tableau );
     const ITableau *getTableau() const;
 
-    void obtainCurrentBounds();
+    unsigned obtainCurrentBounds();
     void intervalArithmeticBoundPropagation();
     void symbolicBoundPropagation();
-    void deepPolyPropagation();
+    void deepPolyPropagation( unsigned beginIndex=0 );
     void lpRelaxationPropagation();
     void MILPPropagation();
     void iterativePropagation();

@@ -107,7 +107,8 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
     log( Stringf( "Computing symbolic bounds with respect to layer %u - done",
                   predecessorIndex ) );
 
-    while ( currentElement->hasPredecessor() )
+    while ( currentElement->hasPredecessor() &&
+            currentElement->getLayerIndex() > _beginIndex )
     {
         // We have the symbolic bounds in terms of the current abstract
         // element--currentElement, stored in _work1SymbolicLb,
@@ -192,7 +193,7 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
                                  _workSymbolicLowerBias, _workSymbolicUpperBias,
                                  currentElement, deepPolyElementsBefore );
     }
-    ASSERT( _residualLayerIndices.empty() );
+    ASSERT( _beginIndex > 0 || _residualLayerIndices.empty() );
     log( "Computing bounds with back substitution - done" );
 }
 

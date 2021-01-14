@@ -54,10 +54,10 @@ void DeepPolyMaxPoolElement::execute( const Map<unsigned, DeepPolyElement *>
         {
             DeepPolyElement *predecessor =
                 deepPolyElementsBefore[sourceIndex._layer];
-            double sourceLb = predecessor->getLowerBound
+            double sourceLb = predecessor->getLowerBoundFromLayer
                 ( sourceIndex._neuron );
             sourceLbs[sourceIndex] = sourceLb;
-            double sourceUb = predecessor->getUpperBound
+            double sourceUb = predecessor->getUpperBoundFromLayer
                 ( sourceIndex._neuron );
             sourceUbs[sourceIndex] = sourceUb;
 

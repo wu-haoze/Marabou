@@ -103,7 +103,7 @@ void DeepPolyAnalysis::freeMemoryIfNeeded()
     }
 }
 
-void DeepPolyAnalysis::run()
+void DeepPolyAnalysis::run( unsigned beginIndex )
 {
     struct timespec deepPolyStart;
     (void) deepPolyStart;
@@ -120,11 +120,15 @@ void DeepPolyAnalysis::run()
           the abstract element.
         */
         unsigned index = pair.first;
+        if ( index <= beginIndex )
+            continue;
+
         Layer *layer = pair.second;
 
         ASSERT( _deepPolyElements.exists( index ) );
         log( Stringf( "Running deeppoly analysis for layer %u...", index ) );
         DeepPolyElement *deepPolyElement = _deepPolyElements[index];
+        deepPolyElement->setBeginIndex( beginIndex );
         deepPolyElement->execute( _deepPolyElements );
 
         // Extract updated bounds

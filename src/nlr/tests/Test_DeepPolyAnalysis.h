@@ -111,6 +111,8 @@ public:
         // Very loose bounds for neurons except inputs
         double large = 1000000;
 
+        tableau.setLowerBound( 0, -large ); tableau.setUpperBound( 0, large );
+        tableau.setLowerBound( 1, -large ); tableau.setUpperBound( 1, large );
         tableau.setLowerBound( 2, -large ); tableau.setUpperBound( 2, large );
         tableau.setLowerBound( 3, -large ); tableau.setUpperBound( 3, large );
         tableau.setLowerBound( 4, -large ); tableau.setUpperBound( 4, large );
@@ -122,6 +124,109 @@ public:
         tableau.setLowerBound( 10, -large ); tableau.setUpperBound( 10, large );
         tableau.setLowerBound( 11, -large ); tableau.setUpperBound( 11, large );
     }
+
+    void test_deeppoly_different_begin_index1()
+    {
+        /*
+          Test using different begin index from the input layer's
+        */
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetwork( nlr, tableau );
+
+        TS_ASSERT_EQUALS( 0u, nlr.obtainCurrentBounds() );
+
+        tableau.setLowerBound( 2, -2 );
+        tableau.setUpperBound( 2, 2 );
+        tableau.setLowerBound( 3, -2 );
+        tableau.setUpperBound( 3, 2 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_EQUALS( 1u, nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation( 1 ) );
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( 16u, bounds.size() );
+        List<Tightening> expectedBounds
+            ({
+              Tightening( 10, 6, Tightening::UB )
+            });
+
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
+    void test_deeppoly_different_begin_index2()
+    {
+        /*
+          Test using different begin index from the input layer's
+        */
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetwork( nlr, tableau );
+
+        TS_ASSERT_EQUALS( 0u, nlr.obtainCurrentBounds() );
+
+        tableau.setLowerBound( 4, 0 );
+        tableau.setUpperBound( 4, 2 );
+        tableau.setLowerBound( 5, 0 );
+        tableau.setUpperBound( 5, 2 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation( 2 ) );
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( 12u, bounds.size() );
+        List<Tightening> expectedBounds
+            ({
+              Tightening( 10, 6, Tightening::UB )
+            });
+
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
+    void test_deeppoly_different_begin_index3()
+    {
+        /*
+          Test using different begin index from the input layer's
+        */
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetwork( nlr, tableau );
+
+        TS_ASSERT_EQUALS( 0u, nlr.obtainCurrentBounds() );
+
+        tableau.setLowerBound( 6, 0 );
+        tableau.setUpperBound( 6, 4 );
+        tableau.setLowerBound( 7, -2 );
+        tableau.setUpperBound( 7, 2 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_EQUALS( 3u, nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation( 3 ) );
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( 8u, bounds.size() );
+        List<Tightening> expectedBounds
+            ({
+              Tightening( 10, 7, Tightening::UB )
+            });
+
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
 
     void test_deeppoly_relus()
     {
@@ -421,9 +526,6 @@ public:
         List<Tightening> bounds;
         TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
 
-        for ( const auto &bound : bounds )
-            std::cout << "x" << bound._variable << (bound._type ? " <= " : " >= " ) << bound._value << std::endl;
-
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
             TS_ASSERT( bounds.exists( bound ) );
@@ -534,9 +636,6 @@ public:
         List<Tightening> bounds;
         TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
 
-        for ( const auto &bound : bounds )
-            std::cout << "x" << bound._variable << (bound._type ? " <= " : " >= " ) << bound._value << std::endl;
-
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
             TS_ASSERT( bounds.exists( bound ) );
@@ -583,9 +682,6 @@ public:
 
         List<Tightening> bounds;
         TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
-
-        for ( const auto &bound : bounds )
-            std::cout << "x" << bound._variable << (bound._type ? " <= " : " >= " ) << bound._value << std::endl;
 
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )

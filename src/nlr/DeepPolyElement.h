@@ -74,6 +74,8 @@ public:
     double getLowerBoundFromLayer( unsigned index ) const;
     double getUpperBoundFromLayer( unsigned index ) const;
 
+    void setBeginIndex( unsigned beginIndex );
+
 protected:
     Layer *_layer;
     unsigned _size;
@@ -97,6 +99,8 @@ protected:
     double * _work2SymbolicUb;
     double * _workSymbolicLowerBias;
     double * _workSymbolicUpperBias;
+
+    unsigned _beginIndex;
 
     void allocateMemory();
     void freeMemoryIfNeeded();

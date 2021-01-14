@@ -31,7 +31,7 @@ public:
     DeepPolyAnalysis( LayerOwner *layerOwner );
     ~DeepPolyAnalysis();
 
-    void run();
+    void run( unsigned beginIndex = 0 );
 
 private:
     LayerOwner *_layerOwner;

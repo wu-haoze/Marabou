@@ -115,7 +115,7 @@ public:
     double *getLbs() const;
     double *getUbs() const;
 
-    void obtainCurrentBounds();
+    bool obtainCurrentBounds();
     void computeSymbolicBounds();
     void computeIntervalArithmeticBounds();
 

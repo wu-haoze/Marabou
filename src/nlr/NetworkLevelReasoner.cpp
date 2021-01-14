@@ -136,12 +136,12 @@ void NetworkLevelReasoner::symbolicBoundPropagation()
         _layerIndexToLayer[i]->computeSymbolicBounds();
 }
 
-void NetworkLevelReasoner::deepPolyPropagation()
+void NetworkLevelReasoner::deepPolyPropagation( unsigned beginIndex )
 {
     if ( _deepPolyAnalysis == nullptr )
         _deepPolyAnalysis = std::unique_ptr<DeepPolyAnalysis>
             ( new DeepPolyAnalysis( this ) );
-    _deepPolyAnalysis->run();
+    _deepPolyAnalysis->run( beginIndex );
 }
 
 void NetworkLevelReasoner::lpRelaxationPropagation()
@@ -214,11 +214,17 @@ void NetworkLevelReasoner::updateVariableIndices( const Map<unsigned, unsigned> 
         layer.second->updateVariableIndices( oldIndexToNewIndex, mergedVariables );
 }
 
-void NetworkLevelReasoner::obtainCurrentBounds()
+unsigned NetworkLevelReasoner::obtainCurrentBounds()
 {
     ASSERT( _tableau );
+    unsigned indexOfFirstUpdatedLayer = _layerIndexToLayer.size();
     for ( const auto &layer : _layerIndexToLayer )
-        layer.second->obtainCurrentBounds();
+    {
+        if ( layer.second->obtainCurrentBounds() &&
+             layer.first < indexOfFirstUpdatedLayer )
+                indexOfFirstUpdatedLayer = layer.first;
+    }
+    return indexOfFirstUpdatedLayer;
 }
 
 void NetworkLevelReasoner::setTableau( const ITableau *tableau )

@@ -44,9 +44,9 @@ void DeepPolySignElement::execute( const Map<unsigned, DeepPolyElement *>
         NeuronIndex sourceIndex = *( _layer->getActivationSources( i ).begin() );
         DeepPolyElement *predecessor =
             deepPolyElementsBefore[sourceIndex._layer];
-        double sourceLb = predecessor->getLowerBound
+        double sourceLb = predecessor->getLowerBoundFromLayer
             ( sourceIndex._neuron );
-        double sourceUb = predecessor->getUpperBound
+        double sourceUb = predecessor->getUpperBoundFromLayer
             ( sourceIndex._neuron );
 
         if ( !FloatUtils::isNegative( sourceLb ) )

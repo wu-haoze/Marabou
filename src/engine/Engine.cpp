@@ -1832,7 +1832,7 @@ void Engine::performSymbolicBoundTightening()
     unsigned numTightenedBounds = 0;
 
     // Step 1: tell the NLR about the current bounds
-    _networkLevelReasoner->obtainCurrentBounds();
+    unsigned beginIndex = _networkLevelReasoner->obtainCurrentBounds();
 
     // Step 2: perform SBT
     if ( _symbolicBoundTighteningType ==
@@ -1840,7 +1840,7 @@ void Engine::performSymbolicBoundTightening()
         _networkLevelReasoner->symbolicBoundPropagation();
     else if ( _symbolicBoundTighteningType ==
          SymbolicBoundTighteningType::DEEP_POLY )
-        _networkLevelReasoner->deepPolyPropagation();
+        _networkLevelReasoner->deepPolyPropagation( beginIndex );
 
     // Step 3: Extract the bounds
     List<Tightening> tightenings;
