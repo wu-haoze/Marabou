@@ -23,6 +23,7 @@ PiecewiseLinearConstraint::PiecewiseLinearConstraint()
     , _score( FloatUtils::negativeInfinity() )
     , _constraintBoundTightener( NULL )
     , _statistics( NULL )
+    , _phaseAddedToCost( false )
 {
 }
 

@@ -266,6 +266,13 @@ public:
         return _upperBounds[i];
     }
 
+    bool PhaseAddedToCost()
+    {
+        return _phaseAddedToCost;
+    }
+
+    void addToCost( ITableau *tableau );
+
 protected:
     bool _constraintActive;
     PhaseStatus _phaseStatus;
@@ -286,6 +293,11 @@ protected:
       Statistics collection
     */
     Statistics *_statistics;
+
+    /*
+      Phase added to cost
+    */
+    bool _phaseAddedToCost;
 
     /*
       Set the phase status of the constraint. Uses the global PhaseStatus
