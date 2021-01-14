@@ -194,8 +194,11 @@ bool Engine::checkAssignmentFromNetworkLevelReasoner()
             if ( layer->neuronHasVariable( j ) )
             {
                 unsigned variable = layer->neuronToVariable( j );
-                if ( !_tableau->isBasic( variable ) )
-                    _tableau->setNonBasicAssignment( variable, assignment[j], false );
+                double value = assignment[j];
+                if ( !_tableau->isBasic( variable ) &&
+                     FloatUtils::gte( value, _tableau->getLowerBound( variable ) ) &&
+                     FloatUtils::lte( value, _tableau->getUpperBound( variable ) ) )
+                    _tableau->setNonBasicAssignment( variable, value, false );
             }
         }
     }
@@ -366,7 +369,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 }
                 else
                 {
-
                     // The linear portion of the problem has been solved.
                     // Check the status of the PL constraints
                     collectViolatedPlConstraints();
