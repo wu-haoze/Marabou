@@ -123,7 +123,7 @@ bool Engine::performLocalSearch()
 
 bool Engine::concretizeAndCheckInputAssignment()
 {
-    if ( !_localSearch )
+    if ( !_concretizeInput )
         return false;
 
     concretizeInputAssignment();
