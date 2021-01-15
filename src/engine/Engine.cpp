@@ -177,11 +177,7 @@ bool Engine::checkAssignmentFromNetworkLevelReasoner()
 
     struct timespec start = TimeUtils::sampleMicro();
 
-    // Store the original non-basic assignment in the tableau, we might need
-    // to revert back to this.
-    memcpy( _workNonBasicAssignment, _tableau->getNonBasicAssignment(),
-            ( _tableau->getN() - _tableau->getM() ) * sizeof(double) );
-
+    Map<unsigned, double> assignments;
     // Try to update as many variables as possible to match their assignment
     for ( unsigned i = 0; i < _networkLevelReasoner->getNumberOfLayers(); ++i )
     {
@@ -195,33 +191,102 @@ bool Engine::checkAssignmentFromNetworkLevelReasoner()
             {
                 unsigned variable = layer->neuronToVariable( j );
                 double value = assignment[j];
-                if ( !_tableau->isBasic( variable ) &&
-                     FloatUtils::gte( value, _tableau->getLowerBound( variable ) ) &&
-                     FloatUtils::lte( value, _tableau->getUpperBound( variable ) ) )
-                    _tableau->setNonBasicAssignment( variable, value, false );
+                assignments[variable] = value;
             }
         }
     }
 
-    // We did what we could for the non-basics; now let the tableau compute
-    // the basic assignment
-    _tableau->computeAssignment();
-
-    bool assignmentValid = allVarsWithinBounds();
+    bool assignmentValid = checkAssignment( _originalInputQuery, assignments );
 
     if ( !assignmentValid )
     {
         // TODO: Get explanation where it fails.
-
-        // Revert back to the previous solution
-        _tableau->setNonBasicAssignments( _workNonBasicAssignment );
-        _tableau->computeAssignment();
     }
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForAssignmentCheck( TimeUtils::timePassed( start, end ) );
     _statistics.incNumAssignmentChecks();
     return assignmentValid;
+}
+
+bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double> assignments )
+{
+    Map<unsigned, double> assignmentsWithCorrectIndices;
+    Set<unsigned> unassigned;
+
+    for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
+    {
+        if ( _preprocessingEnabled )
+        {
+            // Has the variable been merged into another?
+            unsigned variable = i;
+            while ( _preprocessor.variableIsMerged( variable ) )
+                variable = _preprocessor.getMergedIndex( variable );
+
+            // Fixed variables are easy: return the value they've been fixed to.
+            if ( _preprocessor.variableIsFixed( variable ) )
+            {
+                assignmentsWithCorrectIndices[i] = _preprocessor.getFixedValue( variable );
+                continue;
+            }
+
+            // We know which variable to look for, but it may have been assigned
+            // a new index, due to variable elimination
+            variable = _preprocessor.getNewIndex( variable );
+
+            if ( assignments.exists( variable ) )
+                assignmentsWithCorrectIndices[i] = assignments[variable];
+            else
+                unassigned.insert( i );
+        }
+        else
+        {
+            if ( assignments.exists( i ) )
+                assignmentsWithCorrectIndices[i] = assignments[i];
+            else
+                unassigned.insert( i );
+        }
+        if ( FloatUtils::gt( assignmentsWithCorrectIndices[i], inputQuery.getUpperBound( i ) ) ||
+             FloatUtils::lt( assignmentsWithCorrectIndices[i], inputQuery.getLowerBound( i ) ) )
+            return false;
+    }
+
+    for ( const auto &eq : inputQuery.getEquations() )
+    {
+        auto addends = eq._addends;
+        double scalar = eq._scalar;
+        auto type = eq._type;
+        double sum = 0;
+
+        bool hasUnassigned = false;
+        unsigned unassignedCoeff = 0;
+        unsigned unassignedVar = 0;
+
+        for ( const auto &addend : addends )
+        {
+            if ( unassigned.exists( addend._variable ) )
+            {
+                if ( hasUnassigned )
+                    return false;
+                hasUnassigned = true;
+                unassignedCoeff = addend._coefficient;
+                unassignedVar = addend._variable;
+            }
+            sum += addend._coefficient *  addend._variable;
+        }
+
+        if ( hasUnassigned )
+            assignmentsWithCorrectIndices[unassignedVar] = ( scalar - sum ) / unassignedCoeff;
+
+        if ( type == Equation::EQ && ( !FloatUtils::areEqual( sum, scalar ) ) )
+            return false;
+        if ( type == Equation::GE && ( !FloatUtils::gte( sum, scalar ) ) )
+            return false;
+        if ( type == Equation::LE && ( !FloatUtils::lte( sum, scalar ) ) )
+            return false;
+    }
+
+    return true;
 }
 
 bool Engine::solve( unsigned timeoutInSeconds )
@@ -1218,6 +1283,8 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
     struct timespec start = TimeUtils::sampleMicro();
 
+    _originalInputQuery = inputQuery;
+
     try
     {
         informConstraintsOfInitialBounds( inputQuery );
@@ -1366,8 +1433,10 @@ void Engine::extractSolution( InputQuery &inputQuery )
 
             // Finally, set the assigned value
             inputQuery.setSolutionValue( i, _tableau->getValue( variable ) );
-            inputQuery.setLowerBound( i, _tableau->getLowerBound( variable ) );
-            inputQuery.setUpperBound( i, _tableau->getUpperBound( variable ) );
+            ASSERT( inputQuery.getLowerBound( i ) <= _tableau->getValue( variable ) );
+            ASSERT( inputQuery.getUpperBound( i ) >= _tableau->getValue( variable ) );
+            //inputQuery.setLowerBound( i, _tableau->getLowerBound( variable ) );
+            //inputQuery.setUpperBound( i, _tableau->getUpperBound( variable ) );
         }
         else
         {
@@ -1375,6 +1444,26 @@ void Engine::extractSolution( InputQuery &inputQuery )
             inputQuery.setLowerBound( i, _tableau->getLowerBound( i ) );
             inputQuery.setUpperBound( i, _tableau->getUpperBound( i ) );
         }
+    }
+
+    for ( const auto &eq : inputQuery.getEquations() )
+    {
+        auto addends = eq._addends;
+        double scalar = eq._scalar;
+        auto type = eq._type;
+        double sum = 0;
+        for ( const auto &addend : addends )
+        {
+            sum += addend._coefficient * _tableau->getValue( addend._variable );
+        }
+        std::cout << "Checking equation: lhs is " << sum << std::endl;
+        eq.dump();
+        if ( type == Equation::EQ )
+            ASSERT( FloatUtils::areEqual( sum, scalar ) );
+        if ( type == Equation::GE )
+            ASSERT( FloatUtils::gte( sum, scalar ) );
+        if ( type == Equation::LE )
+            ASSERT( FloatUtils::lte( sum, scalar ) );
     }
 }
 

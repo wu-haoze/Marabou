@@ -372,6 +372,8 @@ private:
 
     double *_workNonBasicAssignment;
 
+    InputQuery _originalInputQuery;
+
     /*
       Perform a simplex step: compute the cost function, pick the
       entering and leaving variables and perform a pivot.
@@ -573,6 +575,9 @@ private:
       access to the explicit basis matrix.
     */
     void explicitBasisBoundTightening();
+
+    bool checkAssignment( InputQuery &inputQuery,
+                          const Map<unsigned, double> assignments );
 };
 
 #endif // __Engine_h__
