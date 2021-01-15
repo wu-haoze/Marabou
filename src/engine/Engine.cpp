@@ -59,6 +59,7 @@ Engine::Engine()
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
     , _workNonBasicAssignment( NULL )
+    , _solutionFoundAndStoredInOriginalQuery( false )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -286,6 +287,11 @@ bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double
             return false;
     }
 
+    ASSERT( assignmentsWithCorrectIndices.size() == inputQuery.getNumberOfVariables() );
+    for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
+        inputQuery.setSolutionValue( i, assignmentsWithCorrectIndices[i] );
+
+    _solutionFoundAndStoredInOriginalQuery = true;
     return true;
 }
 
@@ -1409,40 +1415,53 @@ void Engine::extractSolution( InputQuery &inputQuery )
         return;
     }
 
-    for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
+    if ( _solutionFoundAndStoredInOriginalQuery )
     {
-        if ( _preprocessingEnabled )
+        std::cout << "Solution found by concretizing input!" << std::endl;
+        for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
         {
-            // Has the variable been merged into another?
-            unsigned variable = i;
-            while ( _preprocessor.variableIsMerged( variable ) )
-                variable = _preprocessor.getMergedIndex( variable );
-
-            // Fixed variables are easy: return the value they've been fixed to.
-            if ( _preprocessor.variableIsFixed( variable ) )
-            {
-                inputQuery.setSolutionValue( i, _preprocessor.getFixedValue( variable ) );
-                inputQuery.setLowerBound( i, _preprocessor.getFixedValue( variable ) );
-                inputQuery.setUpperBound( i, _preprocessor.getFixedValue( variable ) );
-                continue;
-            }
-
-            // We know which variable to look for, but it may have been assigned
-            // a new index, due to variable elimination
-            variable = _preprocessor.getNewIndex( variable );
-
-            // Finally, set the assigned value
-            inputQuery.setSolutionValue( i, _tableau->getValue( variable ) );
-            ASSERT( inputQuery.getLowerBound( i ) <= _tableau->getValue( variable ) );
-            ASSERT( inputQuery.getUpperBound( i ) >= _tableau->getValue( variable ) );
-            //inputQuery.setLowerBound( i, _tableau->getLowerBound( variable ) );
-            //inputQuery.setUpperBound( i, _tableau->getUpperBound( variable ) );
+            inputQuery.setSolutionValue( i, _originalInputQuery.getSolutionValue( i ) );
+            inputQuery.setLowerBound( i, _originalInputQuery.getSolutionValue( i ) );
+            inputQuery.setUpperBound( i, _originalInputQuery.getSolutionValue( i ) );
         }
-        else
+    }
+    else
+    {
+        for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
         {
-            inputQuery.setSolutionValue( i, _tableau->getValue( i ) );
-            inputQuery.setLowerBound( i, _tableau->getLowerBound( i ) );
-            inputQuery.setUpperBound( i, _tableau->getUpperBound( i ) );
+            if ( _preprocessingEnabled )
+            {
+                // Has the variable been merged into another?
+                unsigned variable = i;
+                while ( _preprocessor.variableIsMerged( variable ) )
+                    variable = _preprocessor.getMergedIndex( variable );
+
+                // Fixed variables are easy: return the value they've been fixed to.
+                if ( _preprocessor.variableIsFixed( variable ) )
+                {
+                    inputQuery.setSolutionValue( i, _preprocessor.getFixedValue( variable ) );
+                    inputQuery.setLowerBound( i, _preprocessor.getFixedValue( variable ) );
+                    inputQuery.setUpperBound( i, _preprocessor.getFixedValue( variable ) );
+                    continue;
+                }
+
+                // We know which variable to look for, but it may have been assigned
+                // a new index, due to variable elimination
+                variable = _preprocessor.getNewIndex( variable );
+
+                // Finally, set the assigned value
+                inputQuery.setSolutionValue( i, _tableau->getValue( variable ) );
+                ASSERT( inputQuery.getLowerBound( i ) <= _tableau->getValue( variable ) );
+                ASSERT( inputQuery.getUpperBound( i ) >= _tableau->getValue( variable ) );
+                inputQuery.setLowerBound( i, _tableau->getLowerBound( variable ) );
+                inputQuery.setUpperBound( i, _tableau->getUpperBound( variable ) );
+            }
+            else
+            {
+                inputQuery.setSolutionValue( i, _tableau->getValue( i ) );
+                inputQuery.setLowerBound( i, _tableau->getLowerBound( i ) );
+                inputQuery.setUpperBound( i, _tableau->getUpperBound( i ) );
+            }
         }
     }
 
@@ -1454,10 +1473,9 @@ void Engine::extractSolution( InputQuery &inputQuery )
         double sum = 0;
         for ( const auto &addend : addends )
         {
-            sum += addend._coefficient * _tableau->getValue( addend._variable );
+            sum += addend._coefficient *
+                inputQuery.getSolutionValue( addend._variable );
         }
-        std::cout << "Checking equation: lhs is " << sum << std::endl;
-        eq.dump();
         if ( type == Equation::EQ )
             ASSERT( FloatUtils::areEqual( sum, scalar ) );
         if ( type == Equation::GE )

@@ -374,6 +374,8 @@ private:
 
     InputQuery _originalInputQuery;
 
+    bool _solutionFoundAndStoredInOriginalQuery;
+
     /*
       Perform a simplex step: compute the cost function, pick the
       entering and leaving variables and perform a pivot.
