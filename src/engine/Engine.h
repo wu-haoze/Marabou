@@ -370,10 +370,10 @@ private:
     */
     std::unique_ptr<MILPEncoder> _milpEncoder;
 
-    double *_workNonBasicAssignment;
-
+    /*
+      Copy of the original input query
+    */
     InputQuery _originalInputQuery;
-
     bool _solutionFoundAndStoredInOriginalQuery;
 
     /*
@@ -578,6 +578,9 @@ private:
     */
     void explicitBasisBoundTightening();
 
+    /*
+      Check whether the assignment is satisfying for the inputQuery.
+    */
     bool checkAssignment( InputQuery &inputQuery,
                           const Map<unsigned, double> assignments );
 };

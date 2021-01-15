@@ -58,7 +58,6 @@ Engine::Engine()
     , _concretizeInput( Options::get()->getBool( Options::CONCRETIZE_INPUT ) )
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
-    , _workNonBasicAssignment( NULL )
     , _solutionFoundAndStoredInOriginalQuery( false )
 {
     _smtCore.setStatistics( &_statistics );
@@ -80,12 +79,6 @@ Engine::~Engine()
         delete[] _work;
         _work = NULL;
     }
-
-    if ( _workNonBasicAssignment )
-    {
-        delete[] _workNonBasicAssignment;
-        _workNonBasicAssignment = NULL;
-    }
 }
 
 void Engine::setVerbosity( unsigned verbosity )
@@ -104,17 +97,6 @@ void Engine::adjustWorkMemorySize()
     _work = new double[_tableau->getM()];
     if ( !_work )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
-
-    if ( _workNonBasicAssignment )
-    {
-        delete[] _workNonBasicAssignment;
-        _workNonBasicAssignment = NULL;
-    }
-
-    _workNonBasicAssignment = new double[_tableau->getN() - _tableau->getM()];
-    if ( !_workNonBasicAssignment )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::workNonBasicAssignment" );
-
 }
 
 bool Engine::performLocalSearch()
