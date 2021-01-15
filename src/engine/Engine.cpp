@@ -101,7 +101,98 @@ void Engine::adjustWorkMemorySize()
 
 bool Engine::performLocalSearch()
 {
-    return true;
+    // All the linear constraints have been satisfied at this point.
+    // Update the cost function
+    updateCostFunctionForLocalSearch();
+
+    struct timespec mainLoopStart = TimeUtils::sampleMicro();
+    while ( true )
+    {
+        struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+        _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+        mainLoopStart = mainLoopEnd;
+
+        if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
+            return false;
+
+        DEBUG( _tableau->verifyInvariants() );
+
+        mainLoopStatistics();
+        if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
+             GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
+            _statistics.print();
+
+        // Check whether progress has been made recently
+        checkOverallProgress();
+
+        // If the basis has become malformed, we need to restore it
+        if ( basisRestorationNeeded() )
+        {
+            if ( _basisRestorationRequired == Engine::STRONG_RESTORATION_NEEDED )
+            {
+                performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
+                _basisRestorationPerformed = Engine::PERFORMED_STRONG_RESTORATION;
+            }
+            else
+            {
+                performPrecisionRestoration( PrecisionRestorer::DO_NOT_RESTORE_BASICS );
+                _basisRestorationPerformed = Engine::PERFORMED_WEAK_RESTORATION;
+            }
+
+            _numVisitedStatesAtPreviousRestoration = _statistics.getNumVisitedTreeStates();
+            _basisRestorationRequired = Engine::RESTORATION_NOT_NEEDED;
+            continue;
+        }
+
+        // Restoration is not required
+        _basisRestorationPerformed = Engine::NO_RESTORATION_PERFORMED;
+
+        // Possible restoration due to preceision degradation
+        if ( shouldCheckDegradation() && highDegradation() )
+        {
+            performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
+            continue;
+        }
+
+        if ( _tableau->basisMatrixAvailable() )
+        {
+            explicitBasisBoundTightening();
+            applyAllBoundTightenings();
+            applyAllValidConstraintCaseSplits();
+        }
+
+        if ( !_tableau->allBoundsValid() )
+        {
+            // Some variable bounds are invalid, so the query is unsat
+            throw InfeasibleQueryException();
+        }
+
+        // If a PLConstraint is satisfied but the cost term of the PLConstraint does not
+        // correspond to the phase the constraint in, fix this.
+        fixCostTerms();
+
+        if ( pickEnteringAndLeavingVariables() )
+        {
+            // Successfully picked a entering and leaving variable pair
+            // Perform the actual pivot
+            _activeEntryStrategy->prePivotHook( _tableau, fakePivot );
+            _tableau->performPivot();
+            _activeEntryStrategy->postPivotHook( _tableau, fakePivot );
+        }
+        else
+        {
+            // We are in global optimal, the tableau contains a satisfying assignment.
+            if ( FloatUtils::isZero( _costFunctionManager->getCost() ) )
+                return true;
+            else
+            {
+                // TODO: Conflict analysis here?
+                // we are stuck in a local optimal, flip the cost terms for a ReLU and proceed.
+                flipCostTerm();
+            }
+        }
+    }
+    return false;
 }
 
 bool Engine::concretizeAndCheckInputAssignment()
