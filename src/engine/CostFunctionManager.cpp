@@ -115,6 +115,9 @@ void CostFunctionManager::computeCostFunction( const Map<unsigned, double> &heur
     // Complete the calculation of the modified core cost function
     computeMultipliers();
     computeReducedCosts();
+
+    // So that it doesn't count as "fresh" for declaring UNSAT
+    _costFunctionStatus = ICostFunctionManager::COST_FUNCTION_UPDATED;
 }
 
 void CostFunctionManager::computeCoreCostFunction()

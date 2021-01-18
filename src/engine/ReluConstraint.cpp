@@ -1015,26 +1015,29 @@ void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost )
     double bValue = _assignment.get( _b );
     double fValue = _assignment.get( _f );
 
-    printf( "Relu constraint. b: %u, bValue: %.2lf. f: %u, fValue: %.2lf. ",
-            _b, bValue, _f, fValue );
+    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. f: %u, fValue: %.2lf. ",
+                               _b, bValue, _f, fValue ).ascii() );
 
-    // This should not be called for inactive constraints or when the linear part
-    // has not been satisfied
-    ASSERT( isActive() && !haveOutOfBoundVariables() );
-
-    // If the constraint is fixed, it contributes nothing
-    if ( phaseFixed() )
+    // If the constraint is not active or is fixed, it contributes nothing
+    if ( !isActive() && phaseFixed() )
         return;
 
+    // This should not be called when the linear part
+    // has not been satisfied
+    ASSERT( !haveOutOfBoundVariables() );
+
+    // Use a simple heuristic to decide which cost term to add.
     if ( !FloatUtils::isPositive( bValue ) )
     {
-        // Case 1: b is non-positive Cost: f
+        // Case 1: b is non-positive. Cost: f
+        PLConstraint_LOG( "Adding 1 * f to the cost" );
         getCostFunctionComponent( cost, RELU_PHASE_INACTIVE );
         return;
     }
     else
     {
-        // Case 2: b is positive Cost: f - b
+        // Case 2: b is positive. Cost: f - b
+        PLConstraint_LOG( "Adding 1 * f - 1 * b to the cost" );
         getCostFunctionComponent( cost, RELU_PHASE_ACTIVE );
         return;
     }
