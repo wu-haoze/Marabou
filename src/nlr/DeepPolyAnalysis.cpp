@@ -120,7 +120,7 @@ void DeepPolyAnalysis::run( unsigned beginIndex )
           the abstract element.
         */
         unsigned index = pair.first;
-        if ( index <= beginIndex )
+        if ( index < beginIndex )
             continue;
 
         Layer *layer = pair.second;

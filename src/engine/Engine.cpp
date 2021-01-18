@@ -1840,7 +1840,7 @@ void Engine::performSymbolicBoundTightening()
         _networkLevelReasoner->symbolicBoundPropagation();
     else if ( _symbolicBoundTighteningType ==
          SymbolicBoundTighteningType::DEEP_POLY )
-        _networkLevelReasoner->deepPolyPropagation( beginIndex );
+        _networkLevelReasoner->deepPolyPropagation( beginIndex == 0 ? 0 : beginIndex - 1 );
 
     // Step 3: Extract the bounds
     List<Tightening> tightenings;
