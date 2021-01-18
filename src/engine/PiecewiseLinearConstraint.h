@@ -268,10 +268,17 @@ public:
 
     bool PhaseAddedToCost()
     {
-        return _phaseAddedToCost;
+        return _costTerm == PHASE_NOT_FIXED;
     }
 
-    void addToCost( ITableau *tableau );
+    PhaseStatus getCostTerm()
+    {
+        return _costTerm;
+    }
+
+    virtual void getCostFunctionComponent( Map<unsigned, double> &, PhaseStatus ) {};
+
+    virtual void getCostFunctionComponent( Map<unsigned, double> & ) {};
 
 protected:
     bool _constraintActive;
@@ -295,9 +302,9 @@ protected:
     Statistics *_statistics;
 
     /*
-      Phase added to cost
+      Phase added to the cost
     */
-    bool _phaseAddedToCost;
+    PhaseStatus _costTerm;
 
     /*
       Set the phase status of the constraint. Uses the global PhaseStatus

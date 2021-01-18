@@ -983,6 +983,33 @@ void ReluConstraint::updateScoreBasedOnPolarity()
     _score = std::abs( computePolarity() );
 }
 
+void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &costTerms,
+                                               PhaseStatus phaseStatus )
+{
+    std::cout << costTerms.size() << std::endl;
+    ASSERT( phaseStatus == RELU_PHASE_ACTIVE ||
+            phaseStatus == RELU_PHASE_INACTIVE );
+    if ( _costTerm == PHASE_NOT_FIXED )
+    {
+        // If there is no cost associated with this ReLU in the cost function
+        if ( phaseStatus == RELU_PHASE_ACTIVE )
+        {
+
+        }
+        else if ( phaseStatus == RELU_PHASE_INACTIVE )
+        {
+        }
+    }
+}
+
+void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &costTerms )
+{
+    std::cout << costTerms.size() << std::endl;
+    // We use the current assignment as a heuristic to decide which cost term to add
+    // If x >= 0
+}
+
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

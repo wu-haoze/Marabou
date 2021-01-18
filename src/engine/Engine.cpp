@@ -99,12 +99,27 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
+void Engine::updateCostFunctionForLocalSearch()
+{
+    SOI_LOG( "Updating cost function for local search..." );
+
+    Map<unsigned, double> heuristicCost;
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        plConstraint->getCostFunctionComponent( heuristicCost );
+    }
+    SOI_LOG( "Updating cost function for local search - done" );
+}
+
+
 bool Engine::performLocalSearch()
 {
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
     updateCostFunctionForLocalSearch();
+    return false;
 
+    /*
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( true )
     {
@@ -193,6 +208,7 @@ bool Engine::performLocalSearch()
         }
     }
     return false;
+    */
 }
 
 bool Engine::concretizeAndCheckInputAssignment()

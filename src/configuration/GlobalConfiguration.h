@@ -240,6 +240,8 @@ public:
     static const bool NETWORK_LEVEL_REASONER_LOGGING;
     static const bool MPS_PARSER_LOGGING;
     static const bool PLCONSTRAINT_LOGGING;
+    static const bool LOCAL_SEARCH_LOGGING;
+
 };
 
 #endif // __GlobalConfiguration_h__

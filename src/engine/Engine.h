@@ -46,6 +46,7 @@
 #endif
 
 #define ENGINE_LOG(x, ...) LOG(GlobalConfiguration::ENGINE_LOGGING, "Engine: %s\n", x)
+#define SOI_LOG(x, ...) LOG(GlobalConfiguration::LOCAL_SEARCH_LOGGING, "Local search: %s\n", x)
 
 class EngineState;
 class InputQuery;
@@ -583,6 +584,11 @@ private:
     */
     bool checkAssignment( InputQuery &inputQuery,
                           const Map<unsigned, double> assignments );
+
+    /*
+      Add a cost term for each PLconstraint
+    */
+    void updateCostFunctionForLocalSearch();
 };
 
 #endif // __Engine_h__
