@@ -983,30 +983,61 @@ void ReluConstraint::updateScoreBasedOnPolarity()
     _score = std::abs( computePolarity() );
 }
 
-void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &costTerms,
+void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost,
                                                PhaseStatus phaseStatus )
 {
-    std::cout << costTerms.size() << std::endl;
     ASSERT( phaseStatus == RELU_PHASE_ACTIVE ||
             phaseStatus == RELU_PHASE_INACTIVE );
-    if ( _costTerm == PHASE_NOT_FIXED )
-    {
-        // If there is no cost associated with this ReLU in the cost function
-        if ( phaseStatus == RELU_PHASE_ACTIVE )
-        {
 
-        }
-        else if ( phaseStatus == RELU_PHASE_INACTIVE )
-        {
-        }
+    if ( phaseStatus == RELU_PHASE_INACTIVE )
+    {
+        // To force ReLU phase to be inactive, we add cost _f
+        if ( !cost.exists( _f ) )
+            cost[_f] = 0;
+        cost[_f] = cost[_f] + 1;
+        return;
+    }
+    else if ( phaseStatus == RELU_PHASE_ACTIVE )
+    {
+        // To force ReLU phase to be active, we add cost _f - _b
+        if ( !cost.exists( _f ) )
+            cost[_f] = 0;
+        if ( !cost.exists( _b ) )
+            cost[_b] = 0;
+        cost[_f] = cost[_f] + 1;
+        cost[_b] = cost[_b] - 1;
+        return;
     }
 }
 
-void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &costTerms )
+void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost )
 {
-    std::cout << costTerms.size() << std::endl;
-    // We use the current assignment as a heuristic to decide which cost term to add
-    // If x >= 0
+    double bValue = _assignment.get( _b );
+    double fValue = _assignment.get( _f );
+
+    printf( "Relu constraint. b: %u, bValue: %.2lf. f: %u, fValue: %.2lf. ",
+            _b, bValue, _f, fValue );
+
+    // This should not be called for inactive constraints or when the linear part
+    // has not been satisfied
+    ASSERT( isActive() && !haveOutOfBoundVariables() );
+
+    // If the constraint is fixed, it contributes nothing
+    if ( phaseFixed() )
+        return;
+
+    if ( !FloatUtils::isPositive( bValue ) )
+    {
+        // Case 1: b is non-positive Cost: f
+        getCostFunctionComponent( cost, RELU_PHASE_INACTIVE );
+        return;
+    }
+    else
+    {
+        // Case 2: b is positive Cost: f - b
+        getCostFunctionComponent( cost, RELU_PHASE_ACTIVE );
+        return;
+    }
 }
 
 
