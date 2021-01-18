@@ -1004,24 +1004,52 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
 
     if ( phaseStatus == RELU_PHASE_INACTIVE )
     {
-        // To force ReLU phase to be inactive, we add cost _f
-        if ( !cost.exists( _f ) )
-            cost[_f] = 0;
-        cost[_f] = cost[_f] + 1;
-        setAddedHeuristicCost( RELU_PHASE_INACTIVE );
-        return;
+        if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
+        {
+            return;
+        }
+        else if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+        {
+            ASSERT( cost.exists( _b ) );
+            cost[_b] = cost[_b] + 1;
+            setAddedHeuristicCost( RELU_PHASE_INACTIVE );
+            return;
+        }
+        else
+        {
+            // To force ReLU phase to be inactive, we add cost _f
+            if ( !cost.exists( _f ) )
+                cost[_f] = 0;
+            cost[_f] = cost[_f] + 1;
+            setAddedHeuristicCost( RELU_PHASE_INACTIVE );
+            return;
+        }
     }
     else if ( phaseStatus == RELU_PHASE_ACTIVE )
     {
-        // To force ReLU phase to be active, we add cost _f - _b
-        if ( !cost.exists( _f ) )
-            cost[_f] = 0;
-        if ( !cost.exists( _b ) )
-            cost[_b] = 0;
-        cost[_f] = cost[_f] + 1;
-        cost[_b] = cost[_b] - 1;
-        setAddedHeuristicCost( RELU_PHASE_ACTIVE );
-        return;
+        if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+        {
+            return;
+        }
+        else if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
+        {
+            ASSERT( cost.exists( _b ) );
+            cost[_b] = cost[_b] - 1;
+            setAddedHeuristicCost( RELU_PHASE_ACTIVE );
+            return;
+        }
+        else
+        {
+            // To force ReLU phase to be active, we add cost _f - _b
+            if ( !cost.exists( _f ) )
+                cost[_f] = 0;
+            if ( !cost.exists( _b ) )
+                cost[_b] = 0;
+            cost[_f] = cost[_f] + 1;
+            cost[_b] = cost[_b] - 1;
+            setAddedHeuristicCost( RELU_PHASE_ACTIVE );
+            return;
+        }
     }
 }
 
