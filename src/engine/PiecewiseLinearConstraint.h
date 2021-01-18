@@ -196,14 +196,6 @@ public:
     virtual void addDynamicConstraints( InputQuery &/* inputQuery */ ) {}
 
     /*
-      Ask the piecewise linear constraint to contribute a component to the cost
-      function. If implemented, this component should be empty when the constraint is
-      satisfied or inactive, and should be non-empty otherwise. Minimizing the returned
-      equation should then lead to the constraint being "closer to satisfied".
-    */
-    virtual void getCostFunctionComponent( Map<unsigned, double> &/* cost */ ) const {}
-
-    /*
       Produce string representation of the piecewise linear constraint.
       This representation contains only the information necessary to reproduce it
       but does not account for state or change in state during execution. Additionally
@@ -266,17 +258,14 @@ public:
         return _upperBounds[i];
     }
 
-    bool PhaseAddedToCost()
-    {
-        return _costTerm == PHASE_NOT_FIXED;
-    }
-
-    PhaseStatus getCostTerm()
-    {
-        return _costTerm;
-    }
-
     virtual void getCostFunctionComponent( Map<unsigned, double> &, PhaseStatus ) {};
+
+    /*
+      Ask the piecewise linear constraint to contribute a component to the cost
+      function. If implemented, this component should be empty when the constraint is
+      fixed or inactive, and should be non-empty otherwise. Minimizing the returned
+      equation should then lead to the constraint being "closer to satisfied".
+    */
 
     virtual void getCostFunctionComponent( Map<unsigned, double> & ) {};
 
@@ -300,11 +289,6 @@ protected:
       Statistics collection
     */
     Statistics *_statistics;
-
-    /*
-      Phase added to the cost
-    */
-    PhaseStatus _costTerm;
 
     /*
       Set the phase status of the constraint. Uses the global PhaseStatus
