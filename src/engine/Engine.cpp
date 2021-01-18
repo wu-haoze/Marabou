@@ -112,15 +112,17 @@ void Engine::updateCostFunctionForLocalSearch()
     _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
+double Engine::computeAndUpdatePLConstraintHeuristic()
+{
+    return 0;
+}
 
-bool Engine::performLocalSearch()
+bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 {
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
     updateCostFunctionForLocalSearch();
-    return false;
 
-    /*
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( true )
     {
@@ -183,33 +185,25 @@ bool Engine::performLocalSearch()
             throw InfeasibleQueryException();
         }
 
-        // If a PLConstraint is satisfied but the cost term of the PLConstraint does not
-        // correspond to the phase the constraint in, fix this.
-        fixCostTerms();
-
-        if ( pickEnteringAndLeavingVariables() )
+        bool localOptimaReached = performSimplexStep();
+        if ( localOptimaReached )
         {
-            // Successfully picked a entering and leaving variable pair
-            // Perform the actual pivot
-            _activeEntryStrategy->prePivotHook( _tableau, fakePivot );
-            _tableau->performPivot();
-            _activeEntryStrategy->postPivotHook( _tableau, fakePivot );
-        }
-        else
-        {
-            // We are in global optimal, the tableau contains a satisfying assignment.
-            if ( FloatUtils::isZero( _costFunctionManager->getCost() ) )
-                return true;
-            else
+            double cost = computeAndUpdatePLConstraintHeuristic();
+            if ( FloatUtils::isZero( cost ) )
             {
-                // TODO: Conflict analysis here?
-                // we are stuck in a local optimal, flip the cost terms for a ReLU and proceed.
-                flipCostTerm();
+                // We found a satisfying assignment!
+                DEBUG({
+                        collectViolatedPlConstraints();
+                        ASSERT( _violatedPlConstraints.empty() );
+                    });
+                SOI_LOG( "Satisfying assignment found!" );
+                return true;
             }
+            continue;
         }
+        continue;
     }
     return false;
-    */
 }
 
 bool Engine::concretizeAndCheckInputAssignment()
@@ -517,7 +511,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
             {
                 if ( _localSearch )
                 {
-                    if ( performLocalSearch() )
+                    if ( performLocalSearch( timeoutInSeconds ) )
                     {
                         // Either throws InfeasibleQueryException,
                         // or contains a satisfying assignment
@@ -673,7 +667,7 @@ void Engine::performConstraintFixingStep()
     _statistics.addTimeConstraintFixingSteps( TimeUtils::timePassed( start, end ) );
 }
 
-void Engine::performSimplexStep( bool localSearch )
+bool Engine::performSimplexStep( bool localSearch )
 {
     // Statistics
     _statistics.incNumSimplexSteps();
@@ -800,7 +794,7 @@ void Engine::performSimplexStep( bool localSearch )
             _tableau->computeAssignment();
             struct timespec end = TimeUtils::sampleMicro();
             _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
-            return;
+            return false;
         }
         else if ( !_costFunctionManager->costFunctionJustComputed() )
         {
@@ -810,14 +804,26 @@ void Engine::performSimplexStep( bool localSearch )
             _costFunctionManager->invalidateCostFunction();
             struct timespec end = TimeUtils::sampleMicro();
             _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
-            return;
+            return false;
         }
         else
         {
             // Cost function is fresh --- failure is real.
             struct timespec end = TimeUtils::sampleMicro();
             _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
-            throw InfeasibleQueryException();
+            if ( localSearch )
+            {
+                // If we are performing local search, then the fact that we cannot
+                // improve does not mean that the query is unsatisfiable. We have
+                // two moves.
+                // 1: conflict analysis.
+                // 2: conclude that local optima is reached, will flip some cost term and try again.
+                return true;
+            }
+            else
+            {
+                throw InfeasibleQueryException();
+            }
         }
     }
 
@@ -840,7 +846,7 @@ void Engine::performSimplexStep( bool localSearch )
         if ( !_tableau->basisMatrixAvailable() )
         {
             _tableau->refreshBasisFactorization();
-            return;
+            return false;
         }
 
         _statistics.incNumSimplexUnstablePivots();
@@ -859,6 +865,7 @@ void Engine::performSimplexStep( bool localSearch )
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
+    return false;
 }
 
 void Engine::fixViolatedPlConstraintIfPossible()

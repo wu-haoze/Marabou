@@ -166,7 +166,19 @@ public:
       or return false with _needToSplit set to true and a branching variable picked.
       or return true with satisfying solution stored in the tableau.
     */
-    bool performLocalSearch();
+    bool performLocalSearch( unsigned timeoutInSeconds );
+
+    /*
+      Go through the cost term for each PLConstraint, check whether it is satisfied.
+      If it is satisfied but the cost term is not zero, flip the cost term so that
+      the cost term is zero.
+      If some PLConstraint is not satisfied,
+      following the heuristics from
+      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
+      with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
+      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
+    */
+    double computeAndUpdatePLConstraintHeuristic();
 
     /*
       PSA: The following two methods are for DnC only and should be used very
@@ -382,8 +394,9 @@ private:
     /*
       Perform a simplex step: compute the cost function, pick the
       entering and leaving variables and perform a pivot.
+      Return true, if local optima is reached.
     */
-    void performSimplexStep( bool localSearch = false );
+    bool performSimplexStep( bool localSearch = false );
 
     /*
       Perform a constraint-fixing step: select a violated piece-wise
