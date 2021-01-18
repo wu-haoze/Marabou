@@ -258,7 +258,17 @@ public:
         return _upperBounds[i];
     }
 
-    virtual void getCostFunctionComponent( Map<unsigned, double> &, PhaseStatus ) {};
+    PhaseStatus getAddedHeuristicCost() const
+    {
+        return _phaseOfHeuristicCost;
+    }
+
+    void setAddedHeuristicCost( PhaseStatus phaseStatus )
+    {
+        _phaseOfHeuristicCost = phaseStatus;
+    }
+
+    virtual void addCostFunctionComponent( Map<unsigned, double> &, PhaseStatus ) {};
 
     /*
       Ask the piecewise linear constraint to contribute a component to the cost
@@ -267,7 +277,7 @@ public:
       equation should then lead to the constraint being "closer to satisfied".
     */
 
-    virtual void getCostFunctionComponent( Map<unsigned, double> & ) {};
+    virtual void addCostFunctionComponent( Map<unsigned, double> & ) {};
 
 protected:
     bool _constraintActive;
@@ -289,6 +299,8 @@ protected:
       Statistics collection
     */
     Statistics *_statistics;
+
+    PhaseStatus _phaseOfHeuristicCost;
 
     /*
       Set the phase status of the constraint. Uses the global PhaseStatus

@@ -65,6 +65,7 @@ public:
     void addTimeForAssignmentCheck( unsigned long long time );
     void addTimeForNetworkEvaluation( unsigned long long time );
     void addTimeForUpdatingDynamicConstraints( unsigned long long time );
+    void addTimeForUpdatingCostForLocalSearch( unsigned long long time );
 
     void incNumPrecisionRestorations();
     double getMaxDegradation() const;
@@ -328,6 +329,9 @@ private:
 
     // Total time spent updating the dynamic constraints
     unsigned long long _totalTimeUpdatingDynamicConstraints;
+
+    // Total time spent updating the dynamic constraints
+    unsigned long long _totalTimeUpdatingCostFunctionForLocalSearch;
 
     // Whether the engine quitted with a timeout
     bool _timedOut;

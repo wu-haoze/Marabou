@@ -101,14 +101,15 @@ void Engine::adjustWorkMemorySize()
 
 void Engine::updateCostFunctionForLocalSearch()
 {
+    struct timespec start = TimeUtils::sampleMicro();
     SOI_LOG( "Updating cost function for local search..." );
-
-    Map<unsigned, double> heuristicCost;
     for ( const auto &plConstraint : _plConstraints )
     {
-        plConstraint->getCostFunctionComponent( heuristicCost );
+        plConstraint->addCostFunctionComponent( _heuristicCost );
     }
     SOI_LOG( "Updating cost function for local search - done" );
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
 
@@ -672,7 +673,7 @@ void Engine::performConstraintFixingStep()
     _statistics.addTimeConstraintFixingSteps( TimeUtils::timePassed( start, end ) );
 }
 
-void Engine::performSimplexStep()
+void Engine::performSimplexStep( bool localSearch )
 {
     // Statistics
     _statistics.incNumSimplexSteps();
@@ -688,8 +689,9 @@ void Engine::performSimplexStep()
       3. If the combination is bad, go back to (1) and find the
          next-best entering variable.
     */
-
-    if ( _costFunctionManager->costFunctionInvalid() )
+    if ( localSearch )
+        _costFunctionManager->computeCostFunction( _heuristicCost );
+    else if ( _costFunctionManager->costFunctionInvalid() )
         _costFunctionManager->computeCoreCostFunction();
     else
         _costFunctionManager->adjustBasicCostAccuracy();

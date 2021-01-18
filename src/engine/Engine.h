@@ -361,6 +361,8 @@ private:
     */
     bool _concretizeInput;
 
+    Map<unsigned, double> _heuristicCost;
+
     /*
       GurobiWrapper object
     */
@@ -381,7 +383,7 @@ private:
       Perform a simplex step: compute the cost function, pick the
       entering and leaving variables and perform a pivot.
     */
-    void performSimplexStep();
+    void performSimplexStep( bool localSearch = false );
 
     /*
       Perform a constraint-fixing step: select a violated piece-wise

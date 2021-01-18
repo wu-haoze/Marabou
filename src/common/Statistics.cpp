@@ -79,6 +79,7 @@ Statistics::Statistics()
     , _totalTimeAssignmentCheck( 0 )
     , _totalTimeNetworkEvaluation( 0 )
     , _totalTimeUpdatingDynamicConstraints( 0 )
+    , _totalTimeUpdatingCostFunctionForLocalSearch( 0 )
     , _timedOut( false )
 {
 }
@@ -180,6 +181,11 @@ void Statistics::print()
             , printPercents( _totalTimeUpdatingDynamicConstraints, _timeMainLoopMicro )
             , _totalTimeUpdatingDynamicConstraints / 1000
             );
+    printf( "\t\t[%.2lf%%] Updating cost function for local search: %llu milli\n"
+            , printPercents( _totalTimeUpdatingCostFunctionForLocalSearch, _timeMainLoopMicro )
+            , _totalTimeUpdatingCostFunctionForLocalSearch / 1000
+            );
+
     unsigned long long total =
         _timeSimplexStepsMicro +
         _timeConstraintFixingStepsMicro +
@@ -194,7 +200,8 @@ void Statistics::print()
         _totalTimePerformingSymbolicBoundTightening +
         _totalTimeNetworkEvaluation +
         _totalTimeAssignmentCheck +
-        _totalTimeUpdatingDynamicConstraints;
+        _totalTimeUpdatingDynamicConstraints +
+        _totalTimeUpdatingCostFunctionForLocalSearch;
 
     printf( "\t\t[%.2lf%%] Unaccounted for: %llu milli\n"
             , printPercents( _timeMainLoopMicro - total, _timeMainLoopMicro )
@@ -627,6 +634,11 @@ void Statistics::addTimeForNetworkEvaluation( unsigned long long time )
 void Statistics::addTimeForUpdatingDynamicConstraints( unsigned long long time )
 {
     _totalTimeUpdatingDynamicConstraints += time;
+}
+
+void Statistics::addTimeForUpdatingCostForLocalSearch( unsigned long long time )
+{
+    _totalTimeUpdatingCostFunctionForLocalSearch += time;
 }
 
 void Statistics::addTimeSmtCore( unsigned long long time )

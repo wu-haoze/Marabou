@@ -983,11 +983,24 @@ void ReluConstraint::updateScoreBasedOnPolarity()
     _score = std::abs( computePolarity() );
 }
 
-void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost,
+void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
                                                PhaseStatus phaseStatus )
 {
     ASSERT( phaseStatus == RELU_PHASE_ACTIVE ||
             phaseStatus == RELU_PHASE_INACTIVE );
+
+    // Undo the previously added cost
+    if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
+    {
+        ASSERT( cost.exists( _f ) );
+        cost[_f] = cost[_f] - 1;
+    }
+    else if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+    {
+        ASSERT( cost.exists( _f ) && cost.exists( _b ) );
+        cost[_f] = cost[_f] - 1;
+        cost[_b] = cost[_b] + 1;
+    }
 
     if ( phaseStatus == RELU_PHASE_INACTIVE )
     {
@@ -995,6 +1008,7 @@ void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost,
         if ( !cost.exists( _f ) )
             cost[_f] = 0;
         cost[_f] = cost[_f] + 1;
+        setAddedHeuristicCost( RELU_PHASE_INACTIVE );
         return;
     }
     else if ( phaseStatus == RELU_PHASE_ACTIVE )
@@ -1006,11 +1020,12 @@ void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost,
             cost[_b] = 0;
         cost[_f] = cost[_f] + 1;
         cost[_b] = cost[_b] - 1;
+        setAddedHeuristicCost( RELU_PHASE_ACTIVE );
         return;
     }
 }
 
-void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost )
+void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
 {
     double bValue = _assignment.get( _b );
     double fValue = _assignment.get( _f );
@@ -1031,14 +1046,14 @@ void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost )
     {
         // Case 1: b is non-positive. Cost: f
         PLConstraint_LOG( "Adding 1 * f to the cost" );
-        getCostFunctionComponent( cost, RELU_PHASE_INACTIVE );
+        addCostFunctionComponent( cost, RELU_PHASE_INACTIVE );
         return;
     }
     else
     {
         // Case 2: b is positive. Cost: f - b
         PLConstraint_LOG( "Adding 1 * f - 1 * b to the cost" );
-        getCostFunctionComponent( cost, RELU_PHASE_ACTIVE );
+        addCostFunctionComponent( cost, RELU_PHASE_ACTIVE );
         return;
     }
 }

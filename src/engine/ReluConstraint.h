@@ -186,9 +186,9 @@ public:
 
     void updateScoreBasedOnPolarity();
 
-    void getCostFunctionComponent( Map<unsigned, double> &costTerms, PhaseStatus phaseStatus );
+    void addCostFunctionComponent( Map<unsigned, double> &costTerms, PhaseStatus phaseStatus );
 
-    void getCostFunctionComponent( Map<unsigned, double> &costTerms );
+    void addCostFunctionComponent( Map<unsigned, double> &costTerms );
 
 private:
     unsigned _b, _f;
