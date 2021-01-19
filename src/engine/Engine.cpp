@@ -206,6 +206,7 @@ void Engine::checkAllVariblesInBound()
 
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 {
+    _tableau->optimizing();
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
     updateCostFunctionForLocalSearch();
@@ -221,7 +222,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 
         checkAllVariblesInBound();
         if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
-            return false;
+            break;
 
         DEBUG( _tableau->verifyInvariants() );
 
@@ -282,6 +283,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             if ( allPlConstraintsHold() )
             {
                 SOI_LOG( "Satisfying assignment found!" );
+                _tableau->notOptimizing();
                 return true;
             }
             else
@@ -292,6 +294,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         }
         continue;
     }
+    _tableau->notOptimizing();
     return false;
 }
 
