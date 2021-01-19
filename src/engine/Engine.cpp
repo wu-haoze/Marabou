@@ -257,7 +257,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             throw InfeasibleQueryException();
         }
 
-        bool localOptimaReached = performSimplexStep();
+        bool localOptimaReached = performSimplexStep( true );
         if ( localOptimaReached )
         {
             collectViolatedPlConstraints();
@@ -580,7 +580,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
             if ( allVarsWithinBounds() )
             {
-                if ( _localSearch )
+                collectViolatedPlConstraints();
+                if ( _localSearch && !allPlConstraintsHold() )
                 {
                     if ( performLocalSearch( timeoutInSeconds ) )
                     {
