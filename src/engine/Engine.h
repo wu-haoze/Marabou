@@ -170,6 +170,8 @@ public:
     */
     bool performLocalSearch( unsigned timeoutInSeconds );
 
+    void checkAllVariblesInBound();
+
     /*
       Go through the cost term for each PLConstraint, check whether it is satisfied.
       If it is satisfied but the cost term is not zero, flip the cost term so that

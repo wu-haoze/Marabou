@@ -189,12 +189,28 @@ void Engine::updatePLConstraintHeuristicCost()
     return;
 }
 
+void Engine::checkAllVariblesInBound()
+{
+    DEBUG({
+            for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+            {
+                double value = _tableau->getValue( i );
+                if ( FloatUtils::lt( value, _tableau->getLowerBound( i ) ) ||
+                     FloatUtils::gt( value, _tableau->getUpperBound( i ) ) )
+                {
+                    std::cout << "x" << i << " out of bound.\n";
+                }
+            }
+        });
+}
+
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 {
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
     updateCostFunctionForLocalSearch();
     ASSERT( allVarsWithinBounds() );
+    checkAllVariblesInBound();
 
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( true )
@@ -203,8 +219,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
         mainLoopStart = mainLoopEnd;
 
-        ASSERT( allVarsWithinBounds() );
-
+        checkAllVariblesInBound();
         if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
             return false;
 
