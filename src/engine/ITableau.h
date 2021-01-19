@@ -181,6 +181,15 @@ public:
     virtual bool areLinearlyDependent( unsigned x1, unsigned x2, double &coefficient, double &inverseCoefficient ) = 0;
     virtual unsigned getVariableAfterMerging( unsigned variable ) const = 0;
     virtual const double *getNonBasicAssignment() const = 0;
+    bool isOptimizing() const
+    {
+        return _optimizing;
+    }
+    void optimizing() { _optimizing = true; }
+    void notOptimizing() { _optimizing = false; }
+
+protected:
+    bool _optimizing;
 };
 
 #endif // __ITableau_h__
