@@ -39,6 +39,7 @@ public:
       a heuristic-based component.
     */
     void computeCostFunction( const Map<unsigned, double> &heuristicCost );
+    void computeGivenCostFunction( const Map<unsigned, double> &heuristicCost );
     void computeCoreCostFunction();
 
     /*

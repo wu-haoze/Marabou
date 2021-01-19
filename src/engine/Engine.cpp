@@ -775,7 +775,7 @@ bool Engine::performSimplexStep( bool localSearch )
     */
     if ( localSearch )
     {
-        _costFunctionManager->computeCostFunction( _heuristicCost );
+        _costFunctionManager->computeGivenCostFunction( _heuristicCost );
         String s = "";
         bool first = true;
         for ( const auto &pair : _heuristicCost )
