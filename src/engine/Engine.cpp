@@ -194,6 +194,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
     updateCostFunctionForLocalSearch();
+    ASSERT( allVarsWithinBounds() );
 
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( true )
@@ -201,6 +202,8 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
         _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
         mainLoopStart = mainLoopEnd;
+
+        ASSERT( allVarsWithinBounds() );
 
         if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
             return false;

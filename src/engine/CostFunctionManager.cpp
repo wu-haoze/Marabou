@@ -117,7 +117,7 @@ void CostFunctionManager::computeCostFunction( const Map<unsigned, double> &heur
     computeReducedCosts();
 
     // So that it doesn't count as "fresh" for declaring UNSAT
-    _costFunctionStatus = ICostFunctionManager::COST_FUNCTION_UPDATED;
+    _costFunctionStatus = ICostFunctionManager::COST_FUNCTION_JUST_COMPUTED;
 }
 
 void CostFunctionManager::computeCoreCostFunction()
