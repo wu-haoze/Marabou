@@ -39,6 +39,8 @@
 #include "Statistics.h"
 #include "SymbolicBoundTighteningType.h"
 
+#include "Vector.h"
+
 #include <atomic>
 
 #ifdef _WIN32
@@ -178,7 +180,7 @@ public:
       with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
       with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
     */
-    double computeAndUpdatePLConstraintHeuristic();
+    void updatePLConstraintHeuristicCost();
 
     /*
       PSA: The following two methods are for DnC only and should be used very
@@ -219,7 +221,7 @@ private:
     /*
       Piecewise linear constraints that are currently violated.
     */
-    List<PiecewiseLinearConstraint *> _violatedPlConstraints;
+    Vector<PiecewiseLinearConstraint *> _violatedPlConstraints;
 
     /*
       A single, violated PL constraint, selected for fixing.
@@ -390,6 +392,16 @@ private:
     */
     InputQuery _originalInputQuery;
     bool _solutionFoundAndStoredInOriginalQuery;
+
+    /*
+      Seed for random stuff
+    */
+    unsigned _seed;
+
+    /*
+      The probability to use a noise strategy in local search
+    */
+    float _noiseParameter;
 
     /*
       Perform a simplex step: compute the cost function, pick the

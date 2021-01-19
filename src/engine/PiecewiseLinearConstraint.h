@@ -24,6 +24,7 @@
 #include "PiecewiseLinearFunctionType.h"
 #include "Queue.h"
 #include "Tightening.h"
+#include "Vector.h"
 
 class Equation;
 class IConstraintBoundTightener;
@@ -278,6 +279,18 @@ public:
     */
 
     virtual void addCostFunctionComponent( Map<unsigned, double> & ) {};
+
+    /*
+      See if picking another phaseStatus as the heuristic cost can reduce the
+      cost. Store the amount by which the cost will be reduced in the first argument,
+      and store the alternative phaseStatus in the second argument.
+    */
+    virtual void getReducedHeuristicCost( double &, PhaseStatus & ) {};
+
+    virtual Vector<PhaseStatus> getAlternativeHeuristicPhaseStatus()
+    {
+        return Vector<PhaseStatus>();
+    }
 
 protected:
     bool _constraintActive;

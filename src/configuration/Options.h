@@ -89,6 +89,9 @@ public:
 
         // Engine's Preprocessor options
         PREPROCESSOR_BOUND_TOLERANCE,
+
+        // Probabiltiy to use the noise strategy in local search
+        NOISE_PARAMETER,
     };
 
     enum StringOptions {

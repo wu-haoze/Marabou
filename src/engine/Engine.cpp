@@ -31,6 +31,7 @@
 #include "TableauRow.h"
 #include "TimeUtils.h"
 
+#include <cstdlib>
 #include <string.h>
 
 Engine::Engine()
@@ -59,6 +60,8 @@ Engine::Engine()
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
     , _solutionFoundAndStoredInOriginalQuery( false )
+    , _seed( 1219 )
+    , _noiseParameter( Options::get()->getFloat( Options::NOISE_PARAMETER ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -70,6 +73,8 @@ Engine::Engine()
     _activeEntryStrategy->setStatistics( &_statistics );
 
     _statistics.stampStartingTime();
+
+    std::srand( _seed );
 }
 
 Engine::~Engine()
@@ -112,9 +117,76 @@ void Engine::updateCostFunctionForLocalSearch()
     _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
-double Engine::computeAndUpdatePLConstraintHeuristic()
+void Engine::updatePLConstraintHeuristicCost()
 {
-    return 0;
+    /*
+      Following the heuristics from
+      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
+      with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
+      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
+    */
+    bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
+
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->satisfied() )
+        {
+            double reducedCost = 0;
+            PhaseStatus phaseStatusOfReducedCost = PhaseStatus::PHASE_NOT_FIXED;
+            plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
+
+            ASSERT( !FloatUtils::isNegative( reducedCost ) );
+            if ( FloatUtils::isPositive( reducedCost ) )
+            {
+                // We can make the heuristic cost 0 by just flipping the cost term.
+                plConstraint->addCostFunctionComponent
+                    ( _heuristicCost, phaseStatusOfReducedCost );
+            }
+        }
+    }
+
+    PiecewiseLinearConstraint *plConstraintToFlip = NULL;
+    PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
+
+    if ( !useNoiseStrategy )
+    {
+        // Flip the cost term that reduces the cost by the most
+        SOI_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
+
+        double maxReducedCost = 0;
+        for ( const auto &plConstraint : _violatedPlConstraints )
+        {
+            double reducedCost = 0;
+            PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
+            ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
+            plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
+
+            ASSERT( !FloatUtils::isNegative( reducedCost ) );
+            if ( reducedCost > maxReducedCost )
+            {
+                maxReducedCost = reducedCost;
+                plConstraintToFlip = plConstraint;
+                phaseStatusToFlipTo = phaseStatusOfReducedCost;
+            }
+        }
+    }
+
+    if ( !plConstraintToFlip ||  useNoiseStrategy )
+    {
+        // Assume violated pl constraints has been updated.
+        // If using noise stategy, we just flip a random
+        // unsatisfied PLConstraint.
+        SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
+        unsigned plConstraintIndex = (unsigned) rand() % _violatedPlConstraints.size();
+        plConstraintToFlip = _violatedPlConstraints[plConstraintIndex];
+        Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+        unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+        phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+    }
+
+    ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
+    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+    return;
 }
 
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
@@ -188,18 +260,17 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         bool localOptimaReached = performSimplexStep();
         if ( localOptimaReached )
         {
-            double cost = computeAndUpdatePLConstraintHeuristic();
-            if ( FloatUtils::isZero( cost ) )
+            collectViolatedPlConstraints();
+            if ( allPlConstraintsHold() )
             {
-                // We found a satisfying assignment!
-                DEBUG({
-                        collectViolatedPlConstraints();
-                        ASSERT( _violatedPlConstraints.empty() );
-                    });
                 SOI_LOG( "Satisfying assignment found!" );
                 return true;
             }
-            continue;
+            else
+            {
+                updatePLConstraintHeuristicCost();
+                continue;
+            }
         }
         continue;
     }

@@ -190,6 +190,10 @@ public:
 
     void addCostFunctionComponent( Map<unsigned, double> &costTerms );
 
+    void getReducedHeuristicCost( double &reducedCost, PhaseStatus &phaseStatusOfReducedCost );
+
+    Vector<PhaseStatus> getAlternativeHeuristicPhaseStatus();
+
 private:
     unsigned _b, _f;
     bool _auxVarInUse;

@@ -1086,6 +1086,58 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
     }
 }
 
+void ReluConstraint::getReducedHeuristicCost( double &reducedCost,
+                                              PhaseStatus &phaseStatusOfReducedCost )
+{
+    ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
+    double bValue = _assignment.get( _b );
+
+    if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+    {
+        // Current heuristic cost is f - b, see if the heuristic cost f is better
+        if ( !FloatUtils::isNegative( bValue ) )
+        {
+            reducedCost = 0;
+            phaseStatusOfReducedCost = RELU_PHASE_ACTIVE;
+            return;
+        }
+        else
+        {
+            reducedCost = -bValue;
+            phaseStatusOfReducedCost = RELU_PHASE_INACTIVE;
+            return;
+        }
+    }
+    else
+    {
+        ASSERT( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE );
+        // Current heuristic cost is f, see if the heuristic cost f - b is better
+        if ( !FloatUtils::isNegative( bValue ) )
+        {
+            reducedCost = bValue;
+            phaseStatusOfReducedCost = RELU_PHASE_ACTIVE;
+            return;
+        }
+        else
+        {
+            reducedCost = 0;
+            phaseStatusOfReducedCost = RELU_PHASE_INACTIVE;
+            return;
+        }
+    }
+    return;
+}
+
+Vector<PhaseStatus> ReluConstraint::getAlternativeHeuristicPhaseStatus()
+{
+    ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
+    Vector<PhaseStatus> alternatives;
+    if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+        alternatives.append( RELU_PHASE_INACTIVE );
+    else
+        alternatives.append( RELU_PHASE_ACTIVE );
+    return alternatives;
+}
 
 //
 // Local Variables:

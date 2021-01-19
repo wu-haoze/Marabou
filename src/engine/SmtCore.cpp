@@ -370,7 +370,7 @@ bool SmtCore::splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, 
     return true;
 }
 
-PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( List<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const
+PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( Vector<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const
 {
     ASSERT( !_violatedPlConstraints.empty() );
 

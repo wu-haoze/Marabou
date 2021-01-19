@@ -115,6 +115,9 @@ void OptionParser::initialize()
          ( "preprocessor-bound-tolerance",
           boost::program_options::value<float>( &((*_floatOptions)[Options::PREPROCESSOR_BOUND_TOLERANCE]) ),
           "epsilon for preprocessor bound tightening comparisons" )
+        ( "noise-parameter",
+          boost::program_options::value<float>( &((*_floatOptions)[Options::NOISE_PARAMETER]) ),
+          "The probability to use the noise strategy in local search. default: 0.5" )
 #ifdef ENABLE_GUROBI
         ( "milp",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::SOLVE_WITH_MILP]) ),

@@ -23,6 +23,7 @@
 #include "SmtStackEntry.h"
 #include "Statistics.h"
 
+#include "Vector.h"
 #include <memory>
 
 #define SMT_LOG( x, ... ) LOG( GlobalConfiguration::SMT_CORE_LOGGING, "SmtCore: %s\n", x )
@@ -105,7 +106,7 @@ public:
       Have the SMT core choose, among a set of violated PL constraints, which
       constraint should be repaired (without splitting)
     */
-    PiecewiseLinearConstraint *chooseViolatedConstraintForFixing( List<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const;
+    PiecewiseLinearConstraint *chooseViolatedConstraintForFixing( Vector<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const;
 
     void setConstraintViolationThreshold( unsigned threshold );
 
