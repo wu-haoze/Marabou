@@ -756,7 +756,24 @@ bool Engine::performSimplexStep( bool localSearch )
          next-best entering variable.
     */
     if ( localSearch )
+    {
         _costFunctionManager->computeCostFunction( _heuristicCost );
+        String s = "";
+        bool first = true;
+        for ( const auto &pair : _heuristicCost )
+        {
+            if ( first )
+            {
+                s += Stringf( "%f x%u ", pair.second, pair.first );
+                first = false;
+            }
+            else
+            {
+                s += Stringf( "+ %f x%u ", pair.second, pair.first );
+            }
+        }
+        SOI_LOG( s.ascii() );
+    }
     else if ( _costFunctionManager->costFunctionInvalid() )
         _costFunctionManager->computeCoreCostFunction();
     else
