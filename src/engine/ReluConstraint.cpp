@@ -1054,7 +1054,7 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
                                _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, fValue ).ascii() );
 
     // If the constraint is not active or is fixed, it contributes nothing
-    if ( !isActive() && phaseFixed() )
+    if ( !isActive() || phaseFixed() )
         return;
 
     // This should not be called when the linear part
