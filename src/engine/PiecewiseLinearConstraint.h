@@ -292,6 +292,11 @@ public:
         return Vector<PhaseStatus>();
     }
 
+    PhaseStatus getPhaseOfHeuristicCost() const
+    {
+        return _phaseOfHeuristicCost;
+    }
+
 protected:
     bool _constraintActive;
     PhaseStatus _phaseStatus;

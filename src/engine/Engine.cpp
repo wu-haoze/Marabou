@@ -104,6 +104,34 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
+double Engine::computeHeuristicCost()
+{
+    double cost = 0;
+    for ( const auto &pair : _heuristicCost )
+        cost += pair.second * _tableau->getValue( pair.first );
+    return cost;
+}
+
+void Engine::dumpHeuristicCost()
+{
+    String s = "";
+    bool first = true;
+    for ( const auto &pair : _heuristicCost )
+    {
+        if ( first )
+        {
+            s += Stringf( "%.2f x%u ", pair.second, pair.first );
+            first = false;
+        }
+        else
+        {
+            s += Stringf( "+ %.2f x%u ", pair.second, pair.first );
+        }
+    }
+    SOI_LOG( s.ascii() );
+    return;
+}
+
 void Engine::updateCostFunctionForLocalSearch()
 {
     struct timespec start = TimeUtils::sampleMicro();
@@ -129,12 +157,13 @@ void Engine::updatePLConstraintHeuristicCost()
 
     for ( const auto &plConstraint : _plConstraints )
     {
-        if ( plConstraint->satisfied() )
+        if ( plConstraint->isActive() &&
+             ( !plConstraint->phaseFixed() ) &&
+             plConstraint->satisfied() )
         {
             double reducedCost = 0;
             PhaseStatus phaseStatusOfReducedCost = PhaseStatus::PHASE_NOT_FIXED;
             plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-
             ASSERT( !FloatUtils::isNegative( reducedCost ) );
             if ( FloatUtils::isPositive( reducedCost ) )
             {
@@ -148,11 +177,13 @@ void Engine::updatePLConstraintHeuristicCost()
     PiecewiseLinearConstraint *plConstraintToFlip = NULL;
     PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
 
+    SOI_LOG( "Heuristic cost before updates:" );
+    dumpHeuristicCost();
+
     if ( !useNoiseStrategy )
     {
         // Flip the cost term that reduces the cost by the most
         SOI_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
-
         double maxReducedCost = 0;
         for ( const auto &plConstraint : _violatedPlConstraints )
         {
@@ -172,20 +203,38 @@ void Engine::updatePLConstraintHeuristicCost()
     }
 
     if ( !plConstraintToFlip ||  useNoiseStrategy )
+        {
+            // Assume violated pl constraints has been updated.
+            // If using noise stategy, we just flip a random
+            // unsatisfied PLConstraint.
+            SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
+            unsigned plConstraintIndex = (unsigned) rand() % _violatedPlConstraints.size();
+            plConstraintToFlip = _violatedPlConstraints[plConstraintIndex];
+            Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+            unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+            phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+        }
+
+    /*
+    if ( !plConstraintToFlip ||  useNoiseStrategy )
     {
         // Assume violated pl constraints has been updated.
         // If using noise stategy, we just flip a random
         // unsatisfied PLConstraint.
         SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
-        unsigned plConstraintIndex = (unsigned) rand() % _violatedPlConstraints.size();
-        plConstraintToFlip = _violatedPlConstraints[plConstraintIndex];
+        unsigned plConstraintIndex = (unsigned) rand() % _candidatesForFlipping.size();
+        plConstraintToFlip = _candidatesForFlipping[plConstraintIndex];
         Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
         unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
     }
+    */
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+
+    SOI_LOG( "Heuristic cost after updates:" );
+    dumpHeuristicCost();
     return;
 }
 
@@ -204,12 +253,25 @@ void Engine::checkAllVariblesInBound()
         });
 }
 
+void Engine::updateCandidatesForFlipping()
+{
+    _candidatesForFlipping.clear();
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->isActive() && ( !plConstraint->phaseFixed() ) )
+            _candidatesForFlipping.append( plConstraint );
+    }
+}
+
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 {
     _tableau->optimizing();
+
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
     updateCostFunctionForLocalSearch();
+    updateCandidatesForFlipping();
+
     ASSERT( allVarsWithinBounds() );
     checkAllVariblesInBound();
 
@@ -232,7 +294,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             _statistics.print();
 
         // Check whether progress has been made recently
-        checkOverallProgress();
+        //checkOverallProgress();
 
         // If the basis has become malformed, we need to restore it
         if ( basisRestorationNeeded() )
@@ -241,11 +303,13 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             {
                 performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
                 _basisRestorationPerformed = Engine::PERFORMED_STRONG_RESTORATION;
+                updateCostFunctionForLocalSearch();
             }
             else
             {
                 performPrecisionRestoration( PrecisionRestorer::DO_NOT_RESTORE_BASICS );
                 _basisRestorationPerformed = Engine::PERFORMED_WEAK_RESTORATION;
+                updateCostFunctionForLocalSearch();
             }
 
             _numVisitedStatesAtPreviousRestoration = _statistics.getNumVisitedTreeStates();
@@ -268,6 +332,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             explicitBasisBoundTightening();
             applyAllBoundTightenings();
             applyAllValidConstraintCaseSplits();
+            updateCandidatesForFlipping();
         }
 
         if ( !_tableau->allBoundsValid() )
@@ -276,10 +341,15 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             throw InfeasibleQueryException();
         }
 
-        bool localOptimaReached = performSimplexStep( true );
+        printf(  "cost: %f\n", computeHeuristicCost() );
+        SOI_LOG( "Performing Simplex Step..." );
+        bool localOptimaReached = performSimplexStep();
+        SOI_LOG( Stringf( "Performing Simplex Step - local optima reached: %u - done", localOptimaReached ).ascii() );
         if ( localOptimaReached )
         {
+            SOI_LOG( "Collecting violated piecewise-linear constraints..." );
             collectViolatedPlConstraints();
+            SOI_LOG( "Collecting violated piecewise-linear constraints - done" );
             if ( allPlConstraintsHold() )
             {
                 SOI_LOG( "Satisfying assignment found!" );
@@ -288,7 +358,9 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             }
             else
             {
+                SOI_LOG( "Updating heuristic cost..." );
                 updatePLConstraintHeuristicCost();
+                SOI_LOG( "Updating heuristic cost - done" );
                 continue;
             }
         }
@@ -760,7 +832,7 @@ void Engine::performConstraintFixingStep()
     _statistics.addTimeConstraintFixingSteps( TimeUtils::timePassed( start, end ) );
 }
 
-bool Engine::performSimplexStep( bool localSearch )
+bool Engine::performSimplexStep()
 {
     // Statistics
     _statistics.incNumSimplexSteps();
@@ -776,24 +848,10 @@ bool Engine::performSimplexStep( bool localSearch )
       3. If the combination is bad, go back to (1) and find the
          next-best entering variable.
     */
-    if ( localSearch )
+    if ( _tableau->isOptimizing() )
     {
         _costFunctionManager->computeGivenCostFunction( _heuristicCost );
-        String s = "";
-        bool first = true;
-        for ( const auto &pair : _heuristicCost )
-        {
-            if ( first )
-            {
-                s += Stringf( "%f x%u ", pair.second, pair.first );
-                first = false;
-            }
-            else
-            {
-                s += Stringf( "+ %f x%u ", pair.second, pair.first );
-            }
-        }
-        SOI_LOG( s.ascii() );
+        dumpHeuristicCost();
     }
     else if ( _costFunctionManager->costFunctionInvalid() )
         _costFunctionManager->computeCoreCostFunction();
@@ -921,7 +979,7 @@ bool Engine::performSimplexStep( bool localSearch )
             // Cost function is fresh --- failure is real.
             struct timespec end = TimeUtils::sampleMicro();
             _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
-            if ( localSearch )
+            if ( _tableau->isOptimizing() )
             {
                 // If we are performing local search, then the fact that we cannot
                 // improve does not mean that the query is unsatisfiable. We have

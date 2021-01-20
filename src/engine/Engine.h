@@ -220,6 +220,8 @@ private:
     */
     List<PiecewiseLinearConstraint *> _plConstraints;
 
+    Vector<PiecewiseLinearConstraint *> _candidatesForFlipping;
+
     /*
       Piecewise linear constraints that are currently violated.
     */
@@ -410,7 +412,7 @@ private:
       entering and leaving variables and perform a pivot.
       Return true, if local optima is reached.
     */
-    bool performSimplexStep( bool localSearch = false );
+    bool performSimplexStep();
 
     /*
       Perform a constraint-fixing step: select a violated piece-wise
@@ -618,6 +620,15 @@ private:
       Add a cost term for each PLconstraint
     */
     void updateCostFunctionForLocalSearch();
+
+    /*
+      Print out the heuristic cost
+    */
+    void dumpHeuristicCost();
+
+    double computeHeuristicCost();
+
+    void updateCandidatesForFlipping();
 };
 
 #endif // __Engine_h__

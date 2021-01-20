@@ -83,6 +83,7 @@ PiecewiseLinearConstraint *ReluConstraint::duplicateConstraint() const
 {
     ReluConstraint *clone = new ReluConstraint( _b, _f );
     *clone = *this;
+    clone->_phaseOfHeuristicCost = this->_phaseOfHeuristicCost;
     return clone;
 }
 
@@ -90,6 +91,7 @@ void ReluConstraint::restoreState( const PiecewiseLinearConstraint *state )
 {
     const ReluConstraint *relu = dynamic_cast<const ReluConstraint *>( state );
     *this = *relu;
+    _phaseOfHeuristicCost = relu->_phaseOfHeuristicCost;
 }
 
 void ReluConstraint::registerAsWatcher( ITableau *tableau )
@@ -989,21 +991,9 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
     ASSERT( phaseStatus == RELU_PHASE_ACTIVE ||
             phaseStatus == RELU_PHASE_INACTIVE );
 
-    // Undo the previously added cost
-    if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
-    {
-        ASSERT( cost.exists( _f ) );
-        cost[_f] = cost[_f] - 1;
-    }
-    else if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
-    {
-        ASSERT( cost.exists( _f ) && cost.exists( _b ) );
-        cost[_f] = cost[_f] - 1;
-        cost[_b] = cost[_b] + 1;
-    }
-
     if ( phaseStatus == RELU_PHASE_INACTIVE )
     {
+        PLConstraint_LOG( Stringf( "Adding x%u + 0x%u to the cost", _f, _b ).ascii() );
         if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
         {
             return;
@@ -1027,13 +1017,15 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
     }
     else if ( phaseStatus == RELU_PHASE_ACTIVE )
     {
+        PLConstraint_LOG( Stringf( "Adding x%u - x%u to the cost", _f, _b ).ascii() );
         if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
         {
             return;
         }
         else if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
         {
-            ASSERT( cost.exists( _b ) );
+            if ( !cost.exists( _b ) )
+                cost[_b] = 0;
             cost[_b] = cost[_b] - 1;
             setAddedHeuristicCost( RELU_PHASE_ACTIVE );
             return;
@@ -1058,8 +1050,8 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
     double bValue = _assignment.get( _b );
     double fValue = _assignment.get( _f );
 
-    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. f: %u, fValue: %.2lf. ",
-                               _b, bValue, _f, fValue ).ascii() );
+    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
+                               _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, fValue ).ascii() );
 
     // If the constraint is not active or is fixed, it contributes nothing
     if ( !isActive() && phaseFixed() )
@@ -1073,14 +1065,12 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
     if ( !FloatUtils::isPositive( bValue ) )
     {
         // Case 1: b is non-positive. Cost: f
-        PLConstraint_LOG( "Adding 1 * f to the cost" );
         addCostFunctionComponent( cost, RELU_PHASE_INACTIVE );
         return;
     }
     else
     {
         // Case 2: b is positive. Cost: f - b
-        PLConstraint_LOG( "Adding 1 * f - 1 * b to the cost" );
         addCostFunctionComponent( cost, RELU_PHASE_ACTIVE );
         return;
     }

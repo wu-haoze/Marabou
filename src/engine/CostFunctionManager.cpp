@@ -135,6 +135,7 @@ void CostFunctionManager::computeGivenCostFunction( const Map<unsigned, double> 
 
     // Reset cost function
     std::fill( _costFunction, _costFunction + _n - _m, 0.0 );
+    std::fill( _basicCosts, _basicCosts + _m, 0.0 );
 
     // Iterate over the heuristic costs. Add any basic variables to the basic
     // cost vector, and the rest directly to the cost function.
