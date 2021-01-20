@@ -190,7 +190,6 @@ void Engine::updatePLConstraintHeuristicCost()
     SOI_LOG( "Heuristic cost before updates:" );
     dumpHeuristicCost();
 
-    /*
     if ( !useNoiseStrategy )
     {
         // Flip the cost term that reduces the cost by the most
@@ -215,43 +214,22 @@ void Engine::updatePLConstraintHeuristicCost()
             }
         }
     }
-    */
-    if ( !useNoiseStrategy )
-    {
-        // Flip the cost term of the earliest ReLU that would reduce the cost
-        SOI_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
-        for ( const auto &plConstraint : _violatedPlConstraints )
-        {
-            // Assuming we are visiting in topological order.
-            double reducedCost = 0;
-            PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
-            ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
-            plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-
-            ASSERT( !FloatUtils::isNegative( reducedCost ) );
-            if ( reducedCost > 0 )
-            {
-                plConstraintToFlip = plConstraint;
-                phaseStatusToFlipTo = phaseStatusOfReducedCost;
-                break;
-            }
-        }
-    }
-
-    if ( !plConstraintToFlip ||  useNoiseStrategy )
-        {
-            // Assume violated pl constraints has been updated.
-            // If using noise stategy, we just flip a random
-            // unsatisfied PLConstraint.
-            SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
-            unsigned plConstraintIndex = (unsigned) rand() % _violatedPlConstraints.size();
-            plConstraintToFlip = _violatedPlConstraints[plConstraintIndex];
-            Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
-            unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
-            phaseStatusToFlipTo = phaseStatuses[phaseIndex];
-        }
 
     /*
+    if ( !plConstraintToFlip ||  useNoiseStrategy )
+    {
+        // Assume violated pl constraints has been updated.
+        // If using noise stategy, we just flip a random
+        // unsatisfied PLConstraint.
+        SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
+        unsigned plConstraintIndex = (unsigned) rand() % _violatedPlConstraints.size();
+        plConstraintToFlip = _violatedPlConstraints[plConstraintIndex];
+        Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+        unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+        phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+    }
+    */
+
     if ( !plConstraintToFlip ||  useNoiseStrategy )
     {
         // Assume violated pl constraints has been updated.
@@ -264,7 +242,6 @@ void Engine::updatePLConstraintHeuristicCost()
         unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
     }
-    */
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
@@ -737,6 +714,11 @@ bool Engine::solve( unsigned timeoutInSeconds )
                         // or contains a satisfying assignment
                         // or conclude that splitting is needed
                         _exitCode = Engine::SAT;
+                        if ( _verbosity > 0 )
+                        {
+                            printf( "\nEngine::solve: sat assignment found\n" );
+                            _statistics.print();
+                        }
                         return true;
                     }
                     else
