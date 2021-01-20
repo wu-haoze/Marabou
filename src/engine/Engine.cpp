@@ -145,16 +145,11 @@ void Engine::updateCostFunctionForLocalSearch()
     _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
-void Engine::updatePLConstraintHeuristicCost()
+void Engine::updateSatisfiedCostTerms()
 {
-    /*
-      Following the heuristics from
-      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
-      with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
-      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
-    */
-    bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
-
+    SOI_LOG( "Updating satisfied cost terms..." );
+    printf( "cost before updating satisfied term: %f\n", computeHeuristicCost() );
+    dumpHeuristicCost();
     for ( const auto &plConstraint : _plConstraints )
     {
         if ( plConstraint->isActive() &&
@@ -167,12 +162,27 @@ void Engine::updatePLConstraintHeuristicCost()
             ASSERT( !FloatUtils::isNegative( reducedCost ) );
             if ( FloatUtils::isPositive( reducedCost ) )
             {
+                SOI_LOG( "Constraint is satisfied but cost term does not correspond to it!" );
                 // We can make the heuristic cost 0 by just flipping the cost term.
                 plConstraint->addCostFunctionComponent
                     ( _heuristicCost, phaseStatusOfReducedCost );
             }
         }
     }
+    printf( "cost after updating satisfied term: %f\n", computeHeuristicCost() );
+    dumpHeuristicCost();
+    SOI_LOG( "Updating satisfied cost terms - done" );
+}
+
+void Engine::updatePLConstraintHeuristicCost()
+{
+    /*
+      Following the heuristics from
+      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
+      with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
+      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
+    */
+    bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
 
     PiecewiseLinearConstraint *plConstraintToFlip = NULL;
     PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
@@ -180,6 +190,7 @@ void Engine::updatePLConstraintHeuristicCost()
     SOI_LOG( "Heuristic cost before updates:" );
     dumpHeuristicCost();
 
+    /*
     if ( !useNoiseStrategy )
     {
         // Flip the cost term that reduces the cost by the most
@@ -187,6 +198,9 @@ void Engine::updatePLConstraintHeuristicCost()
         double maxReducedCost = 0;
         for ( const auto &plConstraint : _violatedPlConstraints )
         {
+            String s = "";
+            plConstraint->dump( s );
+            std::cout << "Violated constraint:\n" << s.ascii() << std::endl;
             double reducedCost = 0;
             PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
             ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
@@ -198,6 +212,28 @@ void Engine::updatePLConstraintHeuristicCost()
                 maxReducedCost = reducedCost;
                 plConstraintToFlip = plConstraint;
                 phaseStatusToFlipTo = phaseStatusOfReducedCost;
+            }
+        }
+    }
+    */
+    if ( !useNoiseStrategy )
+    {
+        // Flip the cost term of the earliest ReLU that would reduce the cost
+        SOI_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
+        for ( const auto &plConstraint : _violatedPlConstraints )
+        {
+            // Assuming we are visiting in topological order.
+            double reducedCost = 0;
+            PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
+            ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
+            plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
+
+            ASSERT( !FloatUtils::isNegative( reducedCost ) );
+            if ( reducedCost > 0 )
+            {
+                plConstraintToFlip = plConstraint;
+                phaseStatusToFlipTo = phaseStatusOfReducedCost;
+                break;
             }
         }
     }
@@ -263,12 +299,28 @@ void Engine::updateCandidatesForFlipping()
     }
 }
 
+void Engine::resetHeuristicCost()
+{
+    _heuristicCost.clear();
+    struct timespec start = TimeUtils::sampleMicro();
+    SOI_LOG( "Updating cost function for local search..." );
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        plConstraint->resetCostFunctionComponent();
+    }
+    SOI_LOG( "Updating cost function for local search - done" );
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
+
+}
+
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 {
     _tableau->optimizing();
 
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
+    resetHeuristicCost();
     updateCostFunctionForLocalSearch();
     updateCandidatesForFlipping();
 
@@ -347,6 +399,9 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         SOI_LOG( Stringf( "Performing Simplex Step - local optima reached: %u - done", localOptimaReached ).ascii() );
         if ( localOptimaReached )
         {
+            SOI_LOG( "Local optima reached!" );
+            updateSatisfiedCostTerms();
+            printf(  "cost: %f\n", computeHeuristicCost() );
             SOI_LOG( "Collecting violated piecewise-linear constraints..." );
             collectViolatedPlConstraints();
             SOI_LOG( "Collecting violated piecewise-linear constraints - done" );
@@ -1717,8 +1772,8 @@ void Engine::extractSolution( InputQuery &inputQuery )
 
                 // Finally, set the assigned value
                 inputQuery.setSolutionValue( i, _tableau->getValue( variable ) );
-                ASSERT( inputQuery.getLowerBound( i ) <= _tableau->getValue( variable ) );
-                ASSERT( inputQuery.getUpperBound( i ) >= _tableau->getValue( variable ) );
+                ASSERT( FloatUtils::lte( inputQuery.getLowerBound( i ), _tableau->getValue( variable ) ) );
+                ASSERT( FloatUtils::gte( inputQuery.getUpperBound( i ), _tableau->getValue( variable ) ) );
                 inputQuery.setLowerBound( i, _tableau->getLowerBound( variable ) );
                 inputQuery.setUpperBound( i, _tableau->getUpperBound( variable ) );
             }

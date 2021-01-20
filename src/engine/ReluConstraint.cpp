@@ -1081,6 +1081,10 @@ void ReluConstraint::getReducedHeuristicCost( double &reducedCost,
 {
     ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
     double bValue = _assignment.get( _b );
+    double fValue = _assignment.get( _f );
+
+    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
+                               _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, fValue ).ascii() );
 
     if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
     {

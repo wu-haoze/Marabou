@@ -629,6 +629,10 @@ private:
     double computeHeuristicCost();
 
     void updateCandidatesForFlipping();
+
+    void resetHeuristicCost();
+
+    void updateSatisfiedCostTerms();
 };
 
 #endif // __Engine_h__

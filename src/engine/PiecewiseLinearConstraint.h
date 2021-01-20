@@ -297,6 +297,12 @@ public:
         return _phaseOfHeuristicCost;
     }
 
+    void resetCostFunctionComponent()
+    {
+        _phaseOfHeuristicCost = PHASE_NOT_FIXED;
+    }
+
+
 protected:
     bool _constraintActive;
     PhaseStatus _phaseStatus;
