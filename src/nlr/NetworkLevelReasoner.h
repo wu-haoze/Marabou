@@ -143,6 +143,23 @@ public:
     void addConstraintInTopologicalOrder( PiecewiseLinearConstraint *constraint );
     void removeConstraintFromTopologicalOrder( PiecewiseLinearConstraint *constraint );
 
+    void setPLConstraintNeuronIndex( PiecewiseLinearConstraint * constraint,
+                                     NeuronIndex index )
+    {
+        _piecewiseLinearConstraintToIndex[constraint] = index;
+        _indexToPiecewiseLinearConstraint[index] = constraint;
+    }
+
+    PiecewiseLinearConstraint *getPLConstraintFromNeuronIndex( NeuronIndex index )
+    {
+        return _indexToPiecewiseLinearConstraint[index];
+    }
+
+    NeuronIndex getPLConstraintFromNeuronIndex( PiecewiseLinearConstraint *constraint )
+    {
+        return _piecewiseLinearConstraintToIndex[constraint];
+    }
+
     /*
       Generate an input query from this NLR, according to the
       discovered network topology
@@ -175,8 +192,10 @@ private:
     // Tightenings discovered by the various layers
     List<Tightening> _boundTightenings;
 
-
     std::unique_ptr<DeepPolyAnalysis> _deepPolyAnalysis;
+
+    Map<NeuronIndex, PiecewiseLinearConstraint *> _indexToPiecewiseLinearConstraint;
+    Map<PiecewiseLinearConstraint *, NeuronIndex> _piecewiseLinearConstraintToIndex;
 
     void freeMemoryIfNeeded();
 

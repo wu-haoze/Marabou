@@ -826,6 +826,8 @@ bool InputQuery::constructReluLayer( NLR::NetworkLevelReasoner *nlr,
         // B has been handled, f hasn't. Add f
         newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
         nlr->addConstraintInTopologicalOrder( plc );
+        nlr->setPLConstraintNeuronIndex( plc, NLR::NeuronIndex
+                                         ( newLayerIndex, newNeurons.size() ) );
     }
 
     // No neurons found for the new layer
@@ -915,6 +917,8 @@ bool InputQuery::constructAbsoluteValueLayer( NLR::NetworkLevelReasoner *nlr,
         // B has been handled, f hasn't. Add f
         newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
         nlr->addConstraintInTopologicalOrder( plc );
+        nlr->setPLConstraintNeuronIndex( plc, NLR::NeuronIndex
+                                         ( newLayerIndex, newNeurons.size() ) );
     }
 
     // No neurons found for the new layer
@@ -1004,6 +1008,8 @@ bool InputQuery::constructSignLayer( NLR::NetworkLevelReasoner *nlr,
         // B has been handled, f hasn't. Add f
         newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
         nlr->addConstraintInTopologicalOrder( plc );
+        nlr->setPLConstraintNeuronIndex( plc, NLR::NeuronIndex
+                                         ( newLayerIndex, newNeurons.size() ) );
     }
 
     // No neurons found for the new layer
@@ -1104,6 +1110,8 @@ bool InputQuery::constructMaxLayer( NLR::NetworkLevelReasoner *nlr,
                                               newNeurons.size(),
                                               max->getElements() ) );
         nlr->addConstraintInTopologicalOrder( plc );
+        nlr->setPLConstraintNeuronIndex( plc, NLR::NeuronIndex
+                                         ( newLayerIndex, newNeurons.size() ) );
     }
 
     // No neurons found for the new layer
