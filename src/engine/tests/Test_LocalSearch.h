@@ -148,7 +148,6 @@ public:
         TS_ASSERT_THROWS_NOTHING( relu1.getReducedHeuristicCost( reducedCost, phase ) );
         TS_ASSERT( reducedCost == 1 );
         TS_ASSERT( phase == RELU_PHASE_ACTIVE );
-
     }
 };
 
