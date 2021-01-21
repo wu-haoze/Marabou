@@ -280,6 +280,8 @@ public:
 
     virtual void addCostFunctionComponent( Map<unsigned, double> & ) {};
 
+    virtual void addCostFunctionComponentByOutputValue( Map<unsigned, double> &, double ) {};
+
     /*
       See if picking another phaseStatus as the heuristic cost can reduce the
       cost. Store the amount by which the cost will be reduced in the first argument,

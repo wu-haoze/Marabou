@@ -148,6 +148,23 @@ void Engine::initiateCostFunctionForLocalSearchBasedOnCurrentAssignment
     }
 }
 
+void Engine::initiateCostFunctionForLocalSearchBasedOnInputAssignment
+( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd )
+{
+    concretizeInputAssignment();
+    for ( const auto &plConstraint : plConstraintsToAdd )
+    {
+        ASSERT( !_plConstraintsInHeuristicCost.exists( plConstraint ) );
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            auto index = _networkLevelReasoner->getNeuronIndexFromPLConstraint( plConstraint );
+            double value = _networkLevelReasoner->getLayer( index._layer )->getAssignment()[index._neuron];
+            plConstraint->addCostFunctionComponentByOutputValue( _heuristicCost, value );
+            _plConstraintsInHeuristicCost.append( plConstraint );
+        }
+    }
+}
+
 void Engine::initiateCostFunctionForLocalSearch()
 {
     struct timespec start = TimeUtils::sampleMicro();
@@ -156,6 +173,8 @@ void Engine::initiateCostFunctionForLocalSearch()
     _plConstraintsInHeuristicCost.clear();
     if ( _initializationStrategy == "currentAssignment" )
         initiateCostFunctionForLocalSearchBasedOnCurrentAssignment( _plConstraints );
+    else if ( _initializationStrategy == "inputAssignment" )
+        initiateCostFunctionForLocalSearchBasedOnInputAssignment( _plConstraints );
 
     SOI_LOG( "initiating cost function for local search - done" );
     struct timespec end = TimeUtils::sampleMicro();
@@ -301,7 +320,7 @@ void Engine::updateHeuristicCost()
 
     if ( _flippingStrategy == "gwsat" )
         updateHeuristicCostGWSAT();
-    if ( _flippingStrategy == "walksat" )
+    else if ( _flippingStrategy == "walksat" )
         updateHeuristicCostWalkSAT();
 
     SOI_LOG( Stringf( "Heuristic cost after updates: %f", computeHeuristicCost() ).ascii() ) ;

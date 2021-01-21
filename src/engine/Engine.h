@@ -623,6 +623,12 @@ private:
     void initiateCostFunctionForLocalSearchBasedOnCurrentAssignment
     ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
 
+    /*
+      Based on input assignment
+    */
+    void initiateCostFunctionForLocalSearchBasedOnInputAssignment
+    ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
+
     // Optimize w.r.t. the current heuristic cost function
     void optimizeForHeuristicCost( unsigned timeoutInSeconds );
 

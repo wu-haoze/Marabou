@@ -155,7 +155,7 @@ public:
         return _indexToPiecewiseLinearConstraint[index];
     }
 
-    NeuronIndex getPLConstraintFromNeuronIndex( PiecewiseLinearConstraint *constraint )
+    NeuronIndex getNeuronIndexFromPLConstraint( PiecewiseLinearConstraint *constraint )
     {
         return _piecewiseLinearConstraintToIndex[constraint];
     }

@@ -136,6 +136,32 @@ public:
         TS_ASSERT( reducedCost == 1 );
         TS_ASSERT( phase == RELU_PHASE_INACTIVE );
     }
+
+    void test_add_and_remove_cost_component_by_output_value()
+    {
+        ReluConstraint relu1( 0, 1 );
+
+        double large = 100;
+        relu1.notifyLowerBound( 0, -large );
+        relu1.notifyUpperBound( 0, large );
+        relu1.notifyLowerBound( 1, -large );
+        relu1.notifyUpperBound( 1, large );
+
+        relu1.notifyVariableValue( 0, -1 );
+        relu1.notifyVariableValue( 1, 1 );
+
+        Map<unsigned, double> cost;
+
+        TS_ASSERT_THROWS_NOTHING( relu1.addCostFunctionComponentByOutputValue( cost, 20 ) );
+        TS_ASSERT( cost.size() == 2 );
+        TS_ASSERT( cost[0] == -1 );
+        TS_ASSERT( cost[1] == 1 );
+
+        TS_ASSERT_THROWS_NOTHING( relu1.addCostFunctionComponentByOutputValue( cost, 0 ) );
+        TS_ASSERT( cost.size() == 2 );
+        TS_ASSERT( cost[0] == 0 );
+        TS_ASSERT( cost[1] == 1 );
+    }
 };
 
 //

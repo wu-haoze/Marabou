@@ -1066,6 +1066,34 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
     }
 }
 
+void ReluConstraint::addCostFunctionComponentByOutputValue( Map<unsigned, double> &cost, double fValue )
+{
+    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
+                               _b, _assignment.get( _b ), _lowerBounds[_b], _upperBounds[_b], _f, _assignment.get( _f ) ).ascii() );
+
+    // If the constraint is not active or is fixed, it contributes nothing
+    if( !isActive() || phaseFixed() )
+        return;
+
+    // This should not be called when the linear part
+    // has not been satisfied
+    ASSERT( !haveOutOfBoundVariables() );
+
+    // Use a simple heuristic to decide which cost term to add.
+    if ( !FloatUtils::isPositive( fValue ) )
+    {
+        // Case 1: b is non-positive. Cost: f
+        addCostFunctionComponent( cost, RELU_PHASE_INACTIVE );
+        return;
+    }
+    else
+    {
+        // Case 2: b is positive. Cost: f - b
+        addCostFunctionComponent( cost, RELU_PHASE_ACTIVE );
+        return;
+    }
+}
+
 void ReluConstraint::getReducedHeuristicCost( double &reducedCost,
                                               PhaseStatus &phaseStatusOfReducedCost )
 {
