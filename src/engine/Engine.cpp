@@ -62,7 +62,8 @@ Engine::Engine()
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
     , _noiseParameter( Options::get()->getFloat( Options::NOISE_PARAMETER ) )
-    , _localSearchStrategy( Options::get()->getString( Options::LOCAL_SEARCH_STRATEGY ) )
+    , _flippingStrategy( Options::get()->getString( Options::FLIPPING_STRATEGY ) )
+    , _initializationStrategy( Options::get()->getString( Options::INITIALIZATION_STRATEGY ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -133,20 +134,29 @@ void Engine::dumpHeuristicCost()
     return;
 }
 
-void Engine::initiateCostFunctionForLocalSearch()
+void Engine::initiateCostFunctionForLocalSearchBasedOnCurrentAssignment
+( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd )
 {
-    struct timespec start = TimeUtils::sampleMicro();
-    SOI_LOG( "Initiating cost function for local search..." );
-
-    _plConstraintsInHeuristicCost.clear();
-    for ( const auto &plConstraint : _plConstraints )
+    for ( const auto &plConstraint : plConstraintsToAdd )
     {
+        ASSERT( !_plConstraintsInHeuristicCost.exists( plConstraint ) );
         if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
         {
             plConstraint->addCostFunctionComponent( _heuristicCost );
             _plConstraintsInHeuristicCost.append( plConstraint );
         }
     }
+}
+
+void Engine::initiateCostFunctionForLocalSearch()
+{
+    struct timespec start = TimeUtils::sampleMicro();
+    SOI_LOG( Stringf( "Initiating cost function for local search with strategy %s...", _initializationStrategy ).ascii() );
+
+    _plConstraintsInHeuristicCost.clear();
+    if ( _initializationStrategy == "currentAssignment" )
+        initiateCostFunctionForLocalSearchBasedOnCurrentAssignment( _plConstraints );
+
     SOI_LOG( "initiating cost function for local search - done" );
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
@@ -154,6 +164,7 @@ void Engine::initiateCostFunctionForLocalSearch()
 
 void Engine::updateCostTermsForSatisfiedPLConstraints()
 {
+    struct timespec start = TimeUtils::sampleMicro();
     SOI_LOG( "Updating cost terms for satisfied constraint..." );
     SOI_LOG( Stringf( "Heuristic cost before updating cost terms for satisfied constraint: %f",
                       computeHeuristicCost() ).ascii() );
@@ -177,6 +188,8 @@ void Engine::updateCostTermsForSatisfiedPLConstraints()
     SOI_LOG( Stringf( "Heuristic cost after updating cost terms for satisfied constraint: %f",
                       computeHeuristicCost() ).ascii() );
     SOI_LOG( "Updating cost terms for satisfied constraint - done\n" );
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::updateHeuristicCostWalkSAT()
@@ -283,16 +296,18 @@ void Engine::updateHeuristicCostGWSAT()
 
 void Engine::updateHeuristicCost()
 {
-    SOI_LOG( Stringf( "Updating heuristic cost with strategy %s", _localSearchStrategy.ascii() ).ascii() );
+    struct timespec start = TimeUtils::sampleMicro();
+    SOI_LOG( Stringf( "Updating heuristic cost with strategy %s", _flippingStrategy.ascii() ).ascii() );
 
-    if ( _localSearchStrategy == "gwsat" )
+    if ( _flippingStrategy == "gwsat" )
         updateHeuristicCostGWSAT();
-    if ( _localSearchStrategy == "walksat" )
+    if ( _flippingStrategy == "walksat" )
         updateHeuristicCostWalkSAT();
 
     SOI_LOG( Stringf( "Heuristic cost after updates: %f", computeHeuristicCost() ).ascii() ) ;
-    SOI_LOG( "Updating heuristic cost - done\n" ) ;
-    return;
+    SOI_LOG( "Updating heuristic cost - done\n" );
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::checkAllVariblesInBound()

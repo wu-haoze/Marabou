@@ -75,8 +75,11 @@ void OptionParser::initialize()
         ( "query-dump-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::QUERY_DUMP_FILE]) ),
           "Query dump file" )
-        ( "local-search-strategy",
-          boost::program_options::value<std::string>( &((*_stringOptions)[Options::LOCAL_SEARCH_STRATEGY]) ),
+        ( "flip-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::FLIPPING_STRATEGY]) ),
+          "Strategy of local search: gwsat/walksat/grow. default: gwsat" )
+        ( "initialization-strategy",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::INITIALIZATION_STRATEGY]) ),
           "Strategy of local search: gwsat/walksat/grow. default: gwsat" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),

@@ -594,9 +594,10 @@ private:
     float _noiseParameter;
 
     /*
-      The strategy of local search
+      The strategies of local search
     */
-    String _localSearchStrategy;
+    String _flippingStrategy;
+    String _initializationStrategy;
 
     Map<unsigned, double> _heuristicCost;
 
@@ -615,6 +616,12 @@ private:
       Create the initial cost function for local search
     */
     void initiateCostFunctionForLocalSearch();
+
+    /*
+      Based on current assignment
+    */
+    void initiateCostFunctionForLocalSearchBasedOnCurrentAssignment
+    ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
 
     // Optimize w.r.t. the current heuristic cost function
     void optimizeForHeuristicCost( unsigned timeoutInSeconds );
