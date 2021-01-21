@@ -132,24 +132,23 @@ void Engine::dumpHeuristicCost()
     return;
 }
 
-void Engine::updateCostFunctionForLocalSearch()
+void Engine::initiateCostFunctionForLocalSearch()
 {
     struct timespec start = TimeUtils::sampleMicro();
-    SOI_LOG( "Updating cost function for local search..." );
+    SOI_LOG( "Initiating cost function for local search..." );
     for ( const auto &plConstraint : _plConstraints )
     {
         plConstraint->addCostFunctionComponent( _heuristicCost );
     }
-    SOI_LOG( "Updating cost function for local search - done" );
+    SOI_LOG( "initiating cost function for local search - done" );
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
-void Engine::updateSatisfiedCostTerms()
+void Engine::updateCostTermsForSatisfiedPLConstraints()
 {
     SOI_LOG( "Updating satisfied cost terms..." );
     printf( "cost before updating satisfied term: %f\n", computeHeuristicCost() );
-    dumpHeuristicCost();
     for ( const auto &plConstraint : _plConstraints )
     {
         if ( plConstraint->isActive() &&
@@ -170,7 +169,6 @@ void Engine::updateSatisfiedCostTerms()
         }
     }
     printf( "cost after updating satisfied term: %f\n", computeHeuristicCost() );
-    dumpHeuristicCost();
     SOI_LOG( "Updating satisfied cost terms - done" );
 }
 
@@ -261,6 +259,7 @@ void Engine::checkAllVariblesInBound()
                      FloatUtils::gt( value, _tableau->getUpperBound( i ) ) )
                 {
                     std::cout << "x" << i << " out of bound.\n";
+                    ASSERT( false );
                 }
             }
         });
@@ -291,26 +290,14 @@ void Engine::resetHeuristicCost()
 
 }
 
-bool Engine::performLocalSearch( unsigned timeoutInSeconds )
+void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
 {
-    _tableau->optimizing();
+    ASSERT( _tableau->isOptimizing() );
 
-    // All the linear constraints have been satisfied at this point.
-    // Update the cost function
-    resetHeuristicCost();
-    updateCostFunctionForLocalSearch();
-    updateCandidatesForFlipping();
-
-    ASSERT( allVarsWithinBounds() );
-    checkAllVariblesInBound();
-
-    struct timespec mainLoopStart = TimeUtils::sampleMicro();
-    while ( true )
+    SOI_LOG( "Optimizing w.r.t. the current heuristic cost..." );
+    bool localOptimaReached = false;
+    while ( !localOptimaReached )
     {
-        struct timespec mainLoopEnd = TimeUtils::sampleMicro();
-        _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
-        mainLoopStart = mainLoopEnd;
-
         checkAllVariblesInBound();
         if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
             break;
@@ -328,21 +315,23 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         // If the basis has become malformed, we need to restore it
         if ( basisRestorationNeeded() )
         {
+            SOI_LOG( "Performing basic restoration..." );
             if ( _basisRestorationRequired == Engine::STRONG_RESTORATION_NEEDED )
             {
                 performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
                 _basisRestorationPerformed = Engine::PERFORMED_STRONG_RESTORATION;
-                updateCostFunctionForLocalSearch();
+                initiateCostFunctionForLocalSearch();
             }
             else
             {
                 performPrecisionRestoration( PrecisionRestorer::DO_NOT_RESTORE_BASICS );
                 _basisRestorationPerformed = Engine::PERFORMED_WEAK_RESTORATION;
-                updateCostFunctionForLocalSearch();
+                initiateCostFunctionForLocalSearch();
             }
 
             _numVisitedStatesAtPreviousRestoration = _statistics.getNumVisitedTreeStates();
             _basisRestorationRequired = Engine::RESTORATION_NOT_NEEDED;
+            SOI_LOG( "Performing basic restoration - done" );
             continue;
         }
 
@@ -369,35 +358,50 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
             // Some variable bounds are invalid, so the query is unsat
             throw InfeasibleQueryException();
         }
-
-        printf(  "cost: %f\n", computeHeuristicCost() );
-        SOI_LOG( "Performing Simplex Step..." );
-        bool localOptimaReached = performSimplexStep();
-        SOI_LOG( Stringf( "Performing Simplex Step - local optima reached: %u - done", localOptimaReached ).ascii() );
-        if ( localOptimaReached )
-        {
-            SOI_LOG( "Local optima reached!" );
-            updateSatisfiedCostTerms();
-            printf(  "cost: %f\n", computeHeuristicCost() );
-            SOI_LOG( "Collecting violated piecewise-linear constraints..." );
-            collectViolatedPlConstraints();
-            SOI_LOG( "Collecting violated piecewise-linear constraints - done" );
-            if ( allPlConstraintsHold() )
-            {
-                SOI_LOG( "Satisfying assignment found!" );
-                _tableau->notOptimizing();
-                return true;
-            }
-            else
-            {
-                SOI_LOG( "Updating heuristic cost..." );
-                updatePLConstraintHeuristicCost();
-                SOI_LOG( "Updating heuristic cost - done" );
-                continue;
-            }
-        }
-        continue;
+        localOptimaReached = performSimplexStep();
     }
+    SOI_LOG( "Optimizing w.r.t. the current heuristic cost - done" );
+}
+
+bool Engine::performLocalSearch( unsigned timeoutInSeconds )
+{
+    _tableau->optimizing();
+
+    // All the linear constraints have been satisfied at this point.
+    // Update the cost function
+    resetHeuristicCost();
+    initiateCostFunctionForLocalSearch();
+    updateCandidatesForFlipping();
+
+    ASSERT( allVarsWithinBounds() );
+
+    struct timespec mainLoopStart = TimeUtils::sampleMicro();
+    while ( true )
+    {
+        struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+        _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+        mainLoopStart = mainLoopEnd;
+
+        optimizeForHeuristicCost( timeoutInSeconds );
+
+        updateCostTermsForSatisfiedPLConstraints();
+
+        collectViolatedPlConstraints();
+        if ( allPlConstraintsHold() )
+        {
+            ASSERT( FloatUtils::isZero( computeHeuristicCost() ) );
+            _tableau->notOptimizing();
+            return true;
+        }
+        else
+        {
+            SOI_LOG( "Updating heuristic cost..." );
+            updatePLConstraintHeuristicCost();
+            SOI_LOG( "Updating heuristic cost - done" );
+            continue;
+        }
+    }
+
     _tableau->notOptimizing();
     return false;
 }

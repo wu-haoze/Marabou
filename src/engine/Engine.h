@@ -163,28 +163,6 @@ public:
     PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy strategy );
 
     /*
-      Performs local search at the search level.
-      Either throws InfeasibleQueryException,
-      or return false with _needToSplit set to true and a branching variable picked.
-      or return true with satisfying solution stored in the tableau.
-    */
-    bool performLocalSearch( unsigned timeoutInSeconds );
-
-    void checkAllVariblesInBound();
-
-    /*
-      Go through the cost term for each PLConstraint, check whether it is satisfied.
-      If it is satisfied but the cost term is not zero, flip the cost term so that
-      the cost term is zero.
-      If some PLConstraint is not satisfied,
-      following the heuristics from
-      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
-      with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
-      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
-    */
-    void updatePLConstraintHeuristicCost();
-
-    /*
       PSA: The following two methods are for DnC only and should be used very
       cautiously.
      */
@@ -616,23 +594,60 @@ private:
     bool checkAssignment( InputQuery &inputQuery,
                           const Map<unsigned, double> assignments );
 
-    /*
-      Add a cost term for each PLconstraint
-    */
-    void updateCostFunctionForLocalSearch();
+
+    /****************************** local search ****************************/
 
     /*
-      Print out the heuristic cost
+      Performs local search at the search level.
+      Either throws InfeasibleQueryException,
+      or return false with _needToSplit set to true and a branching variable picked.
+      or return true with satisfying solution stored in the tableau.
     */
+    bool performLocalSearch( unsigned timeoutInSeconds );
+
+    /*
+      Create the initial cost function for local search
+    */
+    void initiateCostFunctionForLocalSearch();
+
+    // Optimize w.r.t. the current heuristic cost function
+    void optimizeForHeuristicCost( unsigned timeoutInSeconds );
+
+    /*
+      Called when local optima is reached but not all PLConstraint is satisfied.
+
+      There are two scenarios:
+      scenario 1:
+         If the local optima is not zero, we flip the cost term for certain PLConstraint already in the cost function.
+
+         Heuristic:
+          following the heuristics from
+          https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
+          with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
+          with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
+
+      scenario 2:
+          If the local optima is zero, we add more PLConstraints to the cost function.
+    */
+    void updatePLConstraintHeuristicCost();
+
+    /*
+      SOI helper functions
+    */
+    void updateCandidatesForFlipping();
+    void resetHeuristicCost();
+    // Go through the cost term for each PLConstraint, check whether it is satisfied.
+    // If it is satisfied but the cost term is not zero, flip the cost term so that
+    // the cost term is zero.
+    void updateCostTermsForSatisfiedPLConstraints();
+
+    /*
+      For SOI Debugging
+    */
+    void checkAllVariblesInBound();
     void dumpHeuristicCost();
-
     double computeHeuristicCost();
 
-    void updateCandidatesForFlipping();
-
-    void resetHeuristicCost();
-
-    void updateSatisfiedCostTerms();
 };
 
 #endif // __Engine_h__
