@@ -283,7 +283,6 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
                     SOI_LOG( Stringf( "Current heuristic cost: %f", computeHeuristicCost() ).ascii() ) ;
             });
 
-        checkAllVariblesInBound();
         if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
             break;
 
@@ -300,6 +299,8 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
             performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
             continue;
         }
+
+        checkAllVariblesInBound();
 
         if ( _tableau->basisMatrixAvailable() )
         {
@@ -730,6 +731,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
         }
         catch ( const MalformedBasisException & )
         {
+            _tableau->notOptimizing();
+
             // Debug
             printf( "MalformedBasisException caught!\n" );
             //
