@@ -30,6 +30,7 @@
 #include "Preprocessor.h"
 #include "TableauRow.h"
 #include "TimeUtils.h"
+#include "VariableOutOfBoundException.h"
 
 #include <cstdlib>
 #include <string.h>
@@ -356,11 +357,15 @@ void Engine::checkAllVariblesInBound()
             for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
             {
                 double value = _tableau->getValue( i );
-                if ( FloatUtils::lt( value, _tableau->getLowerBound( i ) ) ||
-                     FloatUtils::gt( value, _tableau->getUpperBound( i ) ) )
+                if ( !FloatUtils::gte( value, _tableau->getLowerBound( i ) ) ||
+                     !FloatUtils::lte( value, _tableau->getUpperBound( i ) ) )
                 {
                     std::cout << "x" << i << " out of bound.\n";
-                    ASSERT( false );
+                    printf( "Lb: %f, Ub: %f, value: %f\n",
+                            _tableau->getLowerBound( i ),
+                            _tableau->getUpperBound( i ),
+                            value );
+                    throw VariableOutOfBoundException();
                 }
             }
         });
@@ -818,6 +823,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
             performSimplexStep();
             continue;
         }
+
+
         catch ( const MalformedBasisException & )
         {
             _tableau->notOptimizing();
@@ -867,6 +874,13 @@ bool Engine::solve( unsigned timeoutInSeconds )
             }
 
         }
+        catch ( const VariableOutOfBoundException & )
+        {
+            if ( _verbosity > 0 )
+                printf( "Was optimizing, but had out-of-bound variable." );
+            _tableau->notOptimizing();
+        }
+
         catch ( ... )
         {
             _exitCode = Engine::ERROR;
