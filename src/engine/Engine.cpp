@@ -237,7 +237,7 @@ void Engine::updateHeuristicCost()
     {
         // Assume violated pl constraints has been updated.
         // If using noise stategy, we just flip a random
-        // unsatisfied PLConstraint.
+        // PLConstraint.
         SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
         unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
         plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
