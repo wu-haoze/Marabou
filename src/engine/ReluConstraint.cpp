@@ -991,19 +991,18 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
     ASSERT( phaseStatus == RELU_PHASE_ACTIVE ||
             phaseStatus == RELU_PHASE_INACTIVE );
 
+    if ( _phaseOfHeuristicCost == phaseStatus )
+        return;
+
     if ( phaseStatus == RELU_PHASE_INACTIVE )
     {
         PLConstraint_LOG( Stringf( "Adding x%u + 0x%u to the cost", _f, _b ).ascii() );
-        if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
-        {
-            return;
-        }
-        else if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+        if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
         {
             ASSERT( cost.exists( _b ) );
             cost[_b] = cost[_b] + 1;
             setAddedHeuristicCost( RELU_PHASE_INACTIVE );
-            return;
+
         }
         else
         {
@@ -1012,23 +1011,17 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
                 cost[_f] = 0;
             cost[_f] = cost[_f] + 1;
             setAddedHeuristicCost( RELU_PHASE_INACTIVE );
-            return;
         }
     }
     else if ( phaseStatus == RELU_PHASE_ACTIVE )
     {
         PLConstraint_LOG( Stringf( "Adding x%u - x%u to the cost", _f, _b ).ascii() );
-        if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
-        {
-            return;
-        }
-        else if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
+        if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
         {
             if ( !cost.exists( _b ) )
                 cost[_b] = 0;
             cost[_b] = cost[_b] - 1;
             setAddedHeuristicCost( RELU_PHASE_ACTIVE );
-            return;
         }
         else
         {
@@ -1040,7 +1033,6 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
             cost[_f] = cost[_f] + 1;
             cost[_b] = cost[_b] - 1;
             setAddedHeuristicCost( RELU_PHASE_ACTIVE );
-            return;
         }
     }
 }
@@ -1054,8 +1046,7 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
                                _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, fValue ).ascii() );
 
     // If the constraint is not active or is fixed, it contributes nothing
-    if ( !isActive() || phaseFixed() )
-        return;
+    ASSERT( isActive() && !phaseFixed() );
 
     // This should not be called when the linear part
     // has not been satisfied
@@ -1120,6 +1111,32 @@ void ReluConstraint::getReducedHeuristicCost( double &reducedCost,
         }
     }
     return;
+}
+
+void ReluConstraint::removeCostFunctionComponent( Map<unsigned, double> &cost )
+{
+    ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
+    if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+    {
+        if ( !cost.exists( _f ) )
+            cost[_f] = 0;
+        if ( !cost.exists( _b ) )
+            cost[_b] = 0;
+        cost[_b] += 1;
+        cost[_f] -= 1;
+    }
+    else
+    {
+        ASSERT( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE );
+        if ( !cost.exists( _f ) )
+            cost[_f] = 0;
+        cost[_f] -= 1;
+    }
+    if ( cost.exists( _f ) && cost[_f] == 0 )
+        cost.erase( _f );
+    if ( cost.exists( _b ) && cost[_b] == 0 )
+        cost.erase( _b );
+    _phaseOfHeuristicCost = PHASE_NOT_FIXED;
 }
 
 Vector<PhaseStatus> ReluConstraint::getAlternativeHeuristicPhaseStatus()

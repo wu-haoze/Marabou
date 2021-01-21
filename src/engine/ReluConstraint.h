@@ -194,6 +194,8 @@ public:
 
     Vector<PhaseStatus> getAlternativeHeuristicPhaseStatus();
 
+    void removeCostFunctionComponent( Map<unsigned, double> &cost );
+
 private:
     unsigned _b, _f;
     bool _auxVarInUse;

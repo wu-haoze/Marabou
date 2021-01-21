@@ -198,8 +198,6 @@ private:
     */
     List<PiecewiseLinearConstraint *> _plConstraints;
 
-    Vector<PiecewiseLinearConstraint *> _candidatesForFlipping;
-
     /*
       Piecewise linear constraints that are currently violated.
     */
@@ -348,18 +346,6 @@ private:
     bool _solveWithMILP;
 
     /*
-      Use simplex-based local search
-    */
-    bool _localSearch;
-
-    /*
-      Concretize inputs.
-    */
-    bool _concretizeInput;
-
-    Map<unsigned, double> _heuristicCost;
-
-    /*
       GurobiWrapper object
     */
     std::unique_ptr<GurobiWrapper> _gurobi;
@@ -368,22 +354,6 @@ private:
       MILPEncoder
     */
     std::unique_ptr<MILPEncoder> _milpEncoder;
-
-    /*
-      Copy of the original input query
-    */
-    InputQuery _originalInputQuery;
-    bool _solutionFoundAndStoredInOriginalQuery;
-
-    /*
-      Seed for random stuff
-    */
-    unsigned _seed;
-
-    /*
-      The probability to use a noise strategy in local search
-    */
-    float _noiseParameter;
 
     /*
       Perform a simplex step: compute the cost function, pick the
@@ -598,6 +568,37 @@ private:
     /****************************** local search ****************************/
 
     /*
+      Use simplex-based local search
+    */
+    bool _localSearch;
+
+    /*
+      Concretize inputs.
+    */
+    bool _concretizeInput;
+
+    /*
+      Copy of the original input query
+    */
+    InputQuery _originalInputQuery;
+    bool _solutionFoundAndStoredInOriginalQuery;
+
+    /*
+      Seed for random stuff
+    */
+    unsigned _seed;
+
+    /*
+      The probability to use a noise strategy in local search
+    */
+    float _noiseParameter;
+
+    Map<unsigned, double> _heuristicCost;
+
+
+    Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
+
+    /*
       Performs local search at the search level.
       Either throws InfeasibleQueryException,
       or return false with _needToSplit set to true and a branching variable picked.
@@ -629,13 +630,11 @@ private:
       scenario 2:
           If the local optima is zero, we add more PLConstraints to the cost function.
     */
-    void updatePLConstraintHeuristicCost();
+    void updateHeuristicCost();
 
     /*
       SOI helper functions
     */
-    void updateCandidatesForFlipping();
-    void resetHeuristicCost();
     // Go through the cost term for each PLConstraint, check whether it is satisfied.
     // If it is satisfied but the cost term is not zero, flip the cost term so that
     // the cost term is zero.

@@ -55,10 +55,10 @@ Engine::Engine()
     , _splittingStrategy( Options::get()->getDivideStrategy() )
     , _symbolicBoundTighteningType( Options::get()->getSymbolicBoundTighteningType() )
     , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
-    , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
-    , _concretizeInput( Options::get()->getBool( Options::CONCRETIZE_INPUT ) )
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
+    , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
+    , _concretizeInput( Options::get()->getBool( Options::CONCRETIZE_INPUT ) )
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
     , _noiseParameter( Options::get()->getFloat( Options::NOISE_PARAMETER ) )
@@ -136,9 +136,15 @@ void Engine::initiateCostFunctionForLocalSearch()
 {
     struct timespec start = TimeUtils::sampleMicro();
     SOI_LOG( "Initiating cost function for local search..." );
+
+    _plConstraintsInHeuristicCost.clear();
     for ( const auto &plConstraint : _plConstraints )
     {
-        plConstraint->addCostFunctionComponent( _heuristicCost );
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            plConstraint->addCostFunctionComponent( _heuristicCost );
+            _plConstraintsInHeuristicCost.append( plConstraint );
+        }
     }
     SOI_LOG( "initiating cost function for local search - done" );
     struct timespec end = TimeUtils::sampleMicro();
@@ -172,7 +178,7 @@ void Engine::updateCostTermsForSatisfiedPLConstraints()
     SOI_LOG( "Updating satisfied cost terms - done" );
 }
 
-void Engine::updatePLConstraintHeuristicCost()
+void Engine::updateHeuristicCost()
 {
     /*
       Following the heuristics from
@@ -234,8 +240,8 @@ void Engine::updatePLConstraintHeuristicCost()
         // If using noise stategy, we just flip a random
         // unsatisfied PLConstraint.
         SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
-        unsigned plConstraintIndex = (unsigned) rand() % _candidatesForFlipping.size();
-        plConstraintToFlip = _candidatesForFlipping[plConstraintIndex];
+        unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
+        plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
         Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
         unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
@@ -263,31 +269,6 @@ void Engine::checkAllVariblesInBound()
                 }
             }
         });
-}
-
-void Engine::updateCandidatesForFlipping()
-{
-    _candidatesForFlipping.clear();
-    for ( const auto &plConstraint : _plConstraints )
-    {
-        if ( plConstraint->isActive() && ( !plConstraint->phaseFixed() ) )
-            _candidatesForFlipping.append( plConstraint );
-    }
-}
-
-void Engine::resetHeuristicCost()
-{
-    _heuristicCost.clear();
-    struct timespec start = TimeUtils::sampleMicro();
-    SOI_LOG( "Updating cost function for local search..." );
-    for ( const auto &plConstraint : _plConstraints )
-    {
-        plConstraint->resetCostFunctionComponent();
-    }
-    SOI_LOG( "Updating cost function for local search - done" );
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
-
 }
 
 void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
@@ -350,7 +331,6 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
             explicitBasisBoundTightening();
             applyAllBoundTightenings();
             applyAllValidConstraintCaseSplits();
-            updateCandidatesForFlipping();
         }
 
         if ( !_tableau->allBoundsValid() )
@@ -369,10 +349,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
-    resetHeuristicCost();
     initiateCostFunctionForLocalSearch();
-    updateCandidatesForFlipping();
-
     ASSERT( allVarsWithinBounds() );
 
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
@@ -396,7 +373,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         else
         {
             SOI_LOG( "Updating heuristic cost..." );
-            updatePLConstraintHeuristicCost();
+            updateHeuristicCost();
             SOI_LOG( "Updating heuristic cost - done" );
             continue;
         }
@@ -2171,12 +2148,17 @@ bool Engine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constrain
         constraint->dump( constraintString );
         ENGINE_LOG( Stringf( "A constraint has become valid. Dumping constraint: %s",
                              constraintString.ascii() ).ascii() );
-
         constraint->setActiveConstraint( false );
         PiecewiseLinearCaseSplit validSplit = constraint->getValidCaseSplit();
         _smtCore.recordImpliedValidSplit( validSplit );
         applySplit( validSplit );
         ++_numPlConstraintsDisabledByValidSplits;
+
+        if ( _plConstraintsInHeuristicCost.exists( constraint ) )
+        {
+            constraint->removeCostFunctionComponent( _heuristicCost );
+            _plConstraintsInHeuristicCost.erase( constraint );
+        }
 
         return true;
     }

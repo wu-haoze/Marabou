@@ -297,11 +297,7 @@ public:
         return _phaseOfHeuristicCost;
     }
 
-    void resetCostFunctionComponent()
-    {
-        _phaseOfHeuristicCost = PHASE_NOT_FIXED;
-    }
-
+    virtual void removeCostFunctionComponent( Map<unsigned, double> & ) {};
 
 protected:
     bool _constraintActive;
