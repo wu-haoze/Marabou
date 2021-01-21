@@ -69,7 +69,7 @@ void Options::initializeDefaultValues()
     _floatOptions[MILP_SOLVER_TIMEOUT] = 1.0;
     _floatOptions[PREPROCESSOR_BOUND_TOLERANCE] = \
         GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
-    _floatOptions[NOISE_PARAMETER] = 0.5;
+    _floatOptions[NOISE_PARAMETER] = 0.0;
 
     /*
       String options
