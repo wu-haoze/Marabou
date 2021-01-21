@@ -593,6 +593,11 @@ private:
     */
     float _noiseParameter;
 
+    /*
+      The strategy of local search
+    */
+    String _localSearchStrategy;
+
     Map<unsigned, double> _heuristicCost;
 
 
@@ -621,16 +626,31 @@ private:
       scenario 1:
          If the local optima is not zero, we flip the cost term for certain PLConstraint already in the cost function.
 
-         Heuristic:
-          following the heuristics from
-          https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
-          with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
-          with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
-
       scenario 2:
           If the local optima is zero, we add more PLConstraints to the cost function.
     */
     void updateHeuristicCost();
+
+    /*
+      Heuristic to flip the cost component of a PLConstraint
+      following the heuristics from WalkSAT
+      flip the cost term of the first PLConstraint that reduces the cost
+
+      if not available,
+      with probability p, flip the cost term of the first PLConstraint that increases the cost the least.
+      with probability 1- p, flip the cost term of a randomly chosen PLConstraint
+    */
+    void updateHeuristicCostWalkSAT();
+
+    /*
+      Heuristic to flip the cost component of a PLConstraint:
+      following the heuristics from
+      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
+      with probability p, flip the cost term of a randomly chosen PLConstraint
+      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
+    */
+    void updateHeuristicCostGWSAT();
+
 
     /*
       SOI helper functions

@@ -128,26 +128,13 @@ public:
 
         TS_ASSERT_THROWS_NOTHING( relu1.addCostFunctionComponent( cost, PhaseStatus::RELU_PHASE_INACTIVE ) );
         TS_ASSERT_THROWS_NOTHING( relu1.getReducedHeuristicCost( reducedCost, phase ) );
-        TS_ASSERT( reducedCost == 0 );
-        TS_ASSERT( phase == RELU_PHASE_INACTIVE );
+        TS_ASSERT( reducedCost == -1 );
+        TS_ASSERT( phase == RELU_PHASE_ACTIVE );
 
         TS_ASSERT_THROWS_NOTHING( relu1.addCostFunctionComponent( cost, PhaseStatus::RELU_PHASE_ACTIVE ) );
         TS_ASSERT_THROWS_NOTHING( relu1.getReducedHeuristicCost( reducedCost, phase ) );
         TS_ASSERT( reducedCost == 1 );
         TS_ASSERT( phase == RELU_PHASE_INACTIVE );
-
-        relu1.notifyVariableValue( 0, 1 );
-        relu1.notifyVariableValue( 1, 3 );
-
-        TS_ASSERT_THROWS_NOTHING( relu1.addCostFunctionComponent( cost, PhaseStatus::RELU_PHASE_ACTIVE ) );
-        TS_ASSERT_THROWS_NOTHING( relu1.getReducedHeuristicCost( reducedCost, phase ) );
-        TS_ASSERT( reducedCost == 0 );
-        TS_ASSERT( phase == RELU_PHASE_ACTIVE );
-
-        TS_ASSERT_THROWS_NOTHING( relu1.addCostFunctionComponent( cost, PhaseStatus::RELU_PHASE_INACTIVE ) );
-        TS_ASSERT_THROWS_NOTHING( relu1.getReducedHeuristicCost( reducedCost, phase ) );
-        TS_ASSERT( reducedCost == 1 );
-        TS_ASSERT( phase == RELU_PHASE_ACTIVE );
     }
 };
 

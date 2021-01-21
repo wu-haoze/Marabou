@@ -83,6 +83,7 @@ void Options::initializeDefaultValues()
     _stringOptions[SYMBOLIC_BOUND_TIGHTENING_TYPE] = "";
     _stringOptions[MILP_SOLVER_BOUND_TIGHTENING_TYPE] = "";
     _stringOptions[QUERY_DUMP_FILE] = "";
+    _stringOptions[LOCAL_SEARCH_STRATEGY] = "gwsat";
 }
 
 void Options::parseOptions( int argc, char **argv )

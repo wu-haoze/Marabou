@@ -62,6 +62,7 @@ Engine::Engine()
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
     , _noiseParameter( Options::get()->getFloat( Options::NOISE_PARAMETER ) )
+    , _localSearchStrategy( Options::get()->getString( Options::LOCAL_SEARCH_STRATEGY ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -165,7 +166,6 @@ void Engine::updateCostTermsForSatisfiedPLConstraints()
             double reducedCost = 0;
             PhaseStatus phaseStatusOfReducedCost = PhaseStatus::PHASE_NOT_FIXED;
             plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-            ASSERT( !FloatUtils::isNegative( reducedCost ) );
             if ( FloatUtils::isPositive( reducedCost ) )
             {
                 // We can make the heuristic cost 0 by just flipping the cost term.
@@ -179,10 +179,56 @@ void Engine::updateCostTermsForSatisfiedPLConstraints()
     SOI_LOG( "Updating cost terms for satisfied constraint - done\n" );
 }
 
-void Engine::updateHeuristicCost()
+void Engine::updateHeuristicCostWalkSAT()
 {
-    SOI_LOG( "Updating heuristic cost..." ) ;
+    PiecewiseLinearConstraint *plConstraintToFlip = NULL;
+    PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
 
+    SOI_LOG( Stringf( "Heuristic cost before updates: %f", computeHeuristicCost() ).ascii() ) ;
+
+    // Flip the cost term that reduces the cost by the most
+    SOI_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
+    double maxReducedCost = FloatUtils::negativeInfinity();
+    for ( const auto &plConstraint : _violatedPlConstraints )
+    {
+        double reducedCost = 0;
+        PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
+        ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
+        plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
+
+        if ( reducedCost > maxReducedCost )
+        {
+            maxReducedCost = reducedCost;
+            plConstraintToFlip = plConstraint;
+            phaseStatusToFlipTo = phaseStatusOfReducedCost;
+        }
+    }
+
+    ASSERT( plConstraintToFlip );
+    if ( maxReducedCost < 0 )
+    {
+        bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
+        if ( useNoiseStrategy )
+        {
+            // If using noise stategy, we just flip a random
+            // PLConstraint.
+            SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
+            unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
+            plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
+            Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+            unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+            phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+        }
+    }
+
+    ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
+    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+    return;
+}
+
+
+void Engine::updateHeuristicCostGWSAT()
+{
     /*
       Following the heuristics from
       https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
@@ -208,7 +254,6 @@ void Engine::updateHeuristicCost()
             ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
             plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
 
-            ASSERT( !FloatUtils::isNegative( reducedCost ) );
             if ( reducedCost > maxReducedCost )
             {
                 maxReducedCost = reducedCost;
@@ -217,21 +262,6 @@ void Engine::updateHeuristicCost()
             }
         }
     }
-
-    /*
-    if ( !plConstraintToFlip ||  useNoiseStrategy )
-    {
-        // Assume violated pl constraints has been updated.
-        // If using noise stategy, we just flip a random
-        // unsatisfied PLConstraint.
-        SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
-        unsigned plConstraintIndex = (unsigned) rand() % _violatedPlConstraints.size();
-        plConstraintToFlip = _violatedPlConstraints[plConstraintIndex];
-        Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
-        unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
-        phaseStatusToFlipTo = phaseStatuses[phaseIndex];
-    }
-    */
 
     if ( !plConstraintToFlip ||  useNoiseStrategy )
     {
@@ -248,6 +278,17 @@ void Engine::updateHeuristicCost()
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+    return;
+}
+
+void Engine::updateHeuristicCost()
+{
+    SOI_LOG( Stringf( "Updating heuristic cost with strategy %s", _localSearchStrategy.ascii() ).ascii() );
+
+    if ( _localSearchStrategy == "gwsat" )
+        updateHeuristicCostGWSAT();
+    if ( _localSearchStrategy == "walksat" )
+        updateHeuristicCostWalkSAT();
 
     SOI_LOG( Stringf( "Heuristic cost after updates: %f", computeHeuristicCost() ).ascii() ) ;
     SOI_LOG( "Updating heuristic cost - done\n" ) ;
@@ -301,13 +342,6 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
         }
 
         checkAllVariblesInBound();
-
-        if ( _tableau->basisMatrixAvailable() )
-        {
-            explicitBasisBoundTightening();
-            applyAllBoundTightenings();
-            applyAllValidConstraintCaseSplits();
-        }
 
         if ( !_tableau->allBoundsValid() )
         {
