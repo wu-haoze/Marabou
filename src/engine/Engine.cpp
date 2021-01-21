@@ -1724,24 +1724,26 @@ void Engine::extractSolution( InputQuery &inputQuery )
         }
     }
 
-    for ( const auto &eq : inputQuery.getEquations() )
-    {
-        auto addends = eq._addends;
-        double scalar = eq._scalar;
-        auto type = eq._type;
-        double sum = 0;
-        for ( const auto &addend : addends )
-        {
-            sum += addend._coefficient *
-                inputQuery.getSolutionValue( addend._variable );
-        }
-        if ( type == Equation::EQ )
-            ASSERT( FloatUtils::areEqual( sum, scalar ) );
-        if ( type == Equation::GE )
-            ASSERT( FloatUtils::gte( sum, scalar ) );
-        if ( type == Equation::LE )
-            ASSERT( FloatUtils::lte( sum, scalar ) );
-    }
+    DEBUG({
+            for ( const auto &eq : inputQuery.getEquations() )
+            {
+                auto addends = eq._addends;
+                double scalar = eq._scalar;
+                auto type = eq._type;
+                double sum = 0;
+                for ( const auto &addend : addends )
+                {
+                    sum += addend._coefficient *
+                        inputQuery.getSolutionValue( addend._variable );
+                }
+                if ( type == Equation::EQ )
+                    ASSERT( FloatUtils::areEqual( sum, scalar ) );
+                if ( type == Equation::GE )
+                    ASSERT( FloatUtils::gte( sum, scalar ) );
+                if ( type == Equation::LE )
+                    ASSERT( FloatUtils::lte( sum, scalar ) );
+            }
+        });
 }
 
 bool Engine::allVarsWithinBounds() const
