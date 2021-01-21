@@ -996,7 +996,7 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
 
     if ( phaseStatus == RELU_PHASE_INACTIVE )
     {
-        PLConstraint_LOG( Stringf( "Adding x%u + 0x%u to the cost", _f, _b ).ascii() );
+        PLConstraint_LOG( Stringf( "Cost component: x%u", _f ).ascii() );
         if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
         {
             ASSERT( cost.exists( _b ) );
@@ -1015,7 +1015,7 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
     }
     else if ( phaseStatus == RELU_PHASE_ACTIVE )
     {
-        PLConstraint_LOG( Stringf( "Adding x%u - x%u to the cost", _f, _b ).ascii() );
+        PLConstraint_LOG( Stringf( "Cost component: x%u - x%u", _f, _b ).ascii() );
         if ( _phaseOfHeuristicCost == RELU_PHASE_INACTIVE )
         {
             if ( !cost.exists( _b ) )
@@ -1040,10 +1040,9 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
 void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
 {
     double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
 
     PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
-                               _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, fValue ).ascii() );
+                               _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, _assignment.get( _f ) ).ascii() );
 
     // If the constraint is not active or is fixed, it contributes nothing
     ASSERT( isActive() && !phaseFixed() );
@@ -1072,10 +1071,6 @@ void ReluConstraint::getReducedHeuristicCost( double &reducedCost,
 {
     ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
     double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
-
-    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
-                               _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, fValue ).ascii() );
 
     if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
     {

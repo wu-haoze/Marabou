@@ -128,7 +128,7 @@ void Engine::dumpHeuristicCost()
             s += Stringf( "+ %.2f x%u ", pair.second, pair.first );
         }
     }
-    SOI_LOG( s.ascii() );
+    std::cout << s.ascii() << std::endl;
     return;
 }
 
@@ -153,8 +153,9 @@ void Engine::initiateCostFunctionForLocalSearch()
 
 void Engine::updateCostTermsForSatisfiedPLConstraints()
 {
-    SOI_LOG( "Updating satisfied cost terms..." );
-    printf( "cost before updating satisfied term: %f\n", computeHeuristicCost() );
+    SOI_LOG( "Updating cost terms for satisfied constraint..." );
+    SOI_LOG( Stringf( "Heuristic cost before updating cost terms for satisfied constraint: %f",
+                      computeHeuristicCost() ).ascii() );
     for ( const auto &plConstraint : _plConstraints )
     {
         if ( plConstraint->isActive() &&
@@ -167,19 +168,21 @@ void Engine::updateCostTermsForSatisfiedPLConstraints()
             ASSERT( !FloatUtils::isNegative( reducedCost ) );
             if ( FloatUtils::isPositive( reducedCost ) )
             {
-                SOI_LOG( "Constraint is satisfied but cost term does not correspond to it!" );
                 // We can make the heuristic cost 0 by just flipping the cost term.
                 plConstraint->addCostFunctionComponent
                     ( _heuristicCost, phaseStatusOfReducedCost );
             }
         }
     }
-    printf( "cost after updating satisfied term: %f\n", computeHeuristicCost() );
-    SOI_LOG( "Updating satisfied cost terms - done" );
+    SOI_LOG( Stringf( "Heuristic cost after updating cost terms for satisfied constraint: %f",
+                      computeHeuristicCost() ).ascii() );
+    SOI_LOG( "Updating cost terms for satisfied constraint - done\n" );
 }
 
 void Engine::updateHeuristicCost()
 {
+    SOI_LOG( "Updating heuristic cost..." ) ;
+
     /*
       Following the heuristics from
       https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
@@ -191,8 +194,7 @@ void Engine::updateHeuristicCost()
     PiecewiseLinearConstraint *plConstraintToFlip = NULL;
     PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
 
-    SOI_LOG( "Heuristic cost before updates:" );
-    dumpHeuristicCost();
+    SOI_LOG( Stringf( "Heuristic cost before updates: %f", computeHeuristicCost() ).ascii() ) ;
 
     if ( !useNoiseStrategy )
     {
@@ -201,9 +203,6 @@ void Engine::updateHeuristicCost()
         double maxReducedCost = 0;
         for ( const auto &plConstraint : _violatedPlConstraints )
         {
-            String s = "";
-            plConstraint->dump( s );
-            std::cout << "Violated constraint:\n" << s.ascii() << std::endl;
             double reducedCost = 0;
             PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
             ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
@@ -250,8 +249,8 @@ void Engine::updateHeuristicCost()
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
 
-    SOI_LOG( "Heuristic cost after updates:" );
-    dumpHeuristicCost();
+    SOI_LOG( Stringf( "Heuristic cost after updates: %f", computeHeuristicCost() ).ascii() ) ;
+    SOI_LOG( "Updating heuristic cost - done\n" ) ;
     return;
 }
 
@@ -279,6 +278,11 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
     bool localOptimaReached = false;
     while ( !localOptimaReached )
     {
+        DEBUG({
+                if ( _verbosity == 2 )
+                    SOI_LOG( Stringf( "Current heuristic cost: %f", computeHeuristicCost() ).ascii() ) ;
+            });
+
         checkAllVariblesInBound();
         if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
             break;
@@ -340,7 +344,7 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
         }
         localOptimaReached = performSimplexStep();
     }
-    SOI_LOG( "Optimizing w.r.t. the current heuristic cost - done" );
+    SOI_LOG( "Optimizing w.r.t. the current heuristic cost - done\n" );
 }
 
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
@@ -372,9 +376,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         }
         else
         {
-            SOI_LOG( "Updating heuristic cost..." );
             updateHeuristicCost();
-            SOI_LOG( "Updating heuristic cost - done" );
             continue;
         }
     }
@@ -869,7 +871,6 @@ bool Engine::performSimplexStep()
     if ( _tableau->isOptimizing() )
     {
         _costFunctionManager->computeGivenCostFunction( _heuristicCost );
-        dumpHeuristicCost();
     }
     else if ( _costFunctionManager->costFunctionInvalid() )
         _costFunctionManager->computeCoreCostFunction();
