@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file FlippingStrategy.h
+/*! \file LocalSearchWatcher.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Haoze Wu
@@ -13,40 +13,19 @@
 
 **/
 
-#ifndef __FlippingStrategy_h__
-#define __FlippingStrategy_h__
+#ifndef __LocalSearchWatcher_h__
+#define __LocalSearchWatcher_h__
 
 #include "IEngine.h"
 #include "PiecewiseLinearConstraint.h"
 
-class FlippingStrategy
+class LocalSearchWatcher
 {
 public:
-    struct CostComponent
-    {
-        CostComponent()
-            : _constraint( NULL )
-            , _phase( PhaseStatus::PHASE_NOT_FIXED )
-        {
-        }
-
-        CostComponent( PiecewiseLinearConstraint *constraint, PhaseStatus phase )
-            : _constraint( constraint )
-            , _phase( phase )
-        {
-        }
-
-        PiecewiseLinearConstraint *_constraint;
-        PhaseStatus _phase;
-    }
-
-    virtual CostComponent pickPiecewiseLinearConstraintToFlip()
-    {
-        return CostComponent();
-    }
+    registerToWatchConstraint( PiecewiseLinearConstraint *constraint );
 };
 
-#endif // __FlippingStrategy_h__
+#endif // __LocalSearchWatcher_h__
 
 //
 // Local Variables:

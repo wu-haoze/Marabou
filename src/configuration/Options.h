@@ -61,7 +61,10 @@ public:
         CONCRETIZE_INPUT,
 
         // Add dynamic constraints
-        ADD_DYNAMIC_CONSTRAINTS
+        ADD_DYNAMIC_CONSTRAINTS,
+
+        // restart cost function periodically
+        RESTART,
     };
 
     enum IntOptions {

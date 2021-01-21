@@ -54,6 +54,9 @@ void OptionParser::initialize()
         ( "concretize-input",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::CONCRETIZE_INPUT]) ),
           "Concretize inputs" )
+        ( "restart",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::RESTART]) ),
+          "recreate the cost function periodically" )
         ( "use-dynamic-constraints",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::ADD_DYNAMIC_CONSTRAINTS]) ),
           "Add dynamic constraints" )
@@ -77,10 +80,10 @@ void OptionParser::initialize()
           "Query dump file" )
         ( "flip-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::FLIPPING_STRATEGY]) ),
-          "Strategy of local search: gwsat/walksat/grow. default: gwsat" )
+          "Strategy of local search: currentAssignment/inputAssignment/random. default: currentAssignment" )
         ( "initialization-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INITIALIZATION_STRATEGY]) ),
-          "Strategy of local search: gwsat/walksat/grow. default: gwsat" )
+          "Strategy of local search: gwsat/walksat. default: gwsat" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )

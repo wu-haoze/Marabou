@@ -50,6 +50,7 @@ void Options::initializeDefaultValues()
     _boolOptions[LOCAL_SEARCH] = false;
     _boolOptions[CONCRETIZE_INPUT] = false;
     _boolOptions[ADD_DYNAMIC_CONSTRAINTS] = false;
+    _boolOptions[RESTART] = false;
 
     /*
       Int options

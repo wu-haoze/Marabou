@@ -161,6 +161,9 @@ public:
         TS_ASSERT( cost.size() == 2 );
         TS_ASSERT( cost[0] == 0 );
         TS_ASSERT( cost[1] == 1 );
+
+        TS_ASSERT_THROWS_NOTHING( relu1.removeCostFunctionComponent( cost ) );
+        TS_ASSERT( cost.size() == 0 );
     }
 };
 

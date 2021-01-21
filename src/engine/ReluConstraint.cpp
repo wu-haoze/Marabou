@@ -1143,9 +1143,13 @@ void ReluConstraint::removeCostFunctionComponent( Map<unsigned, double> &cost )
 
 Vector<PhaseStatus> ReluConstraint::getAlternativeHeuristicPhaseStatus()
 {
-    ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
     Vector<PhaseStatus> alternatives;
-    if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
+    if ( _phaseOfHeuristicCost == PHASE_NOT_FIXED )
+    {
+        alternatives.append( RELU_PHASE_INACTIVE );
+        alternatives.append( RELU_PHASE_ACTIVE );
+    }
+    else if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
         alternatives.append( RELU_PHASE_INACTIVE );
     else
         alternatives.append( RELU_PHASE_ACTIVE );

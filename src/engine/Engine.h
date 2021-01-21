@@ -573,6 +573,11 @@ private:
     bool _localSearch;
 
     /*
+      Restart when progress is not made
+    */
+    bool _restart;
+
+    /*
       Concretize inputs.
     */
     bool _concretizeInput;
@@ -601,7 +606,6 @@ private:
 
     Map<unsigned, double> _heuristicCost;
 
-
     Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
 
     /*
@@ -627,6 +631,12 @@ private:
       Based on input assignment
     */
     void initiateCostFunctionForLocalSearchBasedOnInputAssignment
+    ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
+
+    /*
+      Pick a phase at uniform random
+    */
+    void initiateCostFunctionForLocalSearchRandomly
     ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
 
     // Optimize w.r.t. the current heuristic cost function

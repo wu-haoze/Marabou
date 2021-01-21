@@ -58,6 +58,7 @@ Engine::Engine()
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
     , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
+    , _restart( Options::get()->getBool( Options::RESTART ) )
     , _concretizeInput( Options::get()->getBool( Options::CONCRETIZE_INPUT ) )
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
@@ -165,16 +166,36 @@ void Engine::initiateCostFunctionForLocalSearchBasedOnInputAssignment
     }
 }
 
+void Engine::initiateCostFunctionForLocalSearchRandomly
+( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd )
+{
+    for ( const auto &plConstraint : plConstraintsToAdd )
+    {
+        ASSERT( !_plConstraintsInHeuristicCost.exists( plConstraint ) );
+        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            Vector<PhaseStatus> phaseStatuses = plConstraint->getAlternativeHeuristicPhaseStatus();
+            unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+            PhaseStatus phaseStatusToSet = phaseStatuses[phaseIndex];
+            plConstraint->addCostFunctionComponentByOutputValue( _heuristicCost, phaseStatusToSet );
+            _plConstraintsInHeuristicCost.append( plConstraint );
+        }
+    }
+}
+
 void Engine::initiateCostFunctionForLocalSearch()
 {
     struct timespec start = TimeUtils::sampleMicro();
-    SOI_LOG( Stringf( "Initiating cost function for local search with strategy %s...", _initializationStrategy ).ascii() );
+    SOI_LOG( Stringf( "Initiating cost function for local search with strategy %s...",
+                      _initializationStrategy.ascii() ).ascii() );
 
     _plConstraintsInHeuristicCost.clear();
     if ( _initializationStrategy == "currentAssignment" )
         initiateCostFunctionForLocalSearchBasedOnCurrentAssignment( _plConstraints );
     else if ( _initializationStrategy == "inputAssignment" )
         initiateCostFunctionForLocalSearchBasedOnInputAssignment( _plConstraints );
+    else if ( _initializationStrategy == "random" )
+        initiateCostFunctionForLocalSearchRandomly( _plConstraints );
 
     SOI_LOG( "initiating cost function for local search - done" );
     struct timespec end = TimeUtils::sampleMicro();
