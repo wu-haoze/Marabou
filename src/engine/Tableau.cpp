@@ -2557,6 +2557,13 @@ const double *Tableau::getNonBasicAssignment() const
     return _nonBasicAssignment;
 }
 
+void Tableau::updateA( unsigned row, unsigned col, double coefficient )
+{
+    _A->commitChange( row, col, coefficient );
+    _A->executeChanges();
+}
+
+
 void Tableau::mergeColumns( unsigned x1, unsigned x2 )
 {
     ASSERT( !isBasic( x1 ) );

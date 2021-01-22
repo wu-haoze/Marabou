@@ -66,6 +66,7 @@ Engine::Engine()
     , _noiseParameter( Options::get()->getFloat( Options::NOISE_PARAMETER ) )
     , _flippingStrategy( Options::get()->getString( Options::FLIPPING_STRATEGY ) )
     , _initializationStrategy( Options::get()->getString( Options::INITIALIZATION_STRATEGY ) )
+    , _addDynamicConstraint( Options::get()->getBool( Options::ADD_DYNAMIC_CONSTRAINTS ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -624,6 +625,16 @@ bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double
     return true;
 }
 
+void Engine::updateDynamicConstraints()
+{
+    if ( _addDynamicConstraint )
+    {
+        for ( const auto &plConstraint : _plConstraints )
+            if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+                plConstraint->updateDynamicConstraints( _tableau );
+    }
+}
+
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
@@ -735,6 +746,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
                     performSymbolicBoundTightening();
                 }
                 while ( applyAllValidConstraintCaseSplits() );
+
+                updateDynamicConstraints();
                 splitJustPerformed = false;
             }
 

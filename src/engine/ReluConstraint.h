@@ -198,6 +198,8 @@ public:
 
     void removeCostFunctionComponent( Map<unsigned, double> &cost );
 
+    void updateDynamicConstraints( ITableau *tableau );
+
 private:
     unsigned _b, _f;
     bool _auxVarInUse;
@@ -205,6 +207,8 @@ private:
 
     bool _dynamicConstraintsInUse;
     unsigned _z, _t, _aux1;
+
+    unsigned _dynamicConstraintRowIndex;
 
     /*
       Denotes which case split to handle first.

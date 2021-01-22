@@ -301,6 +301,8 @@ public:
 
     virtual void removeCostFunctionComponent( Map<unsigned, double> & ) {};
 
+    virtual void updateDynamicConstraints( ITableau * ) {};
+
 protected:
     bool _constraintActive;
     PhaseStatus _phaseStatus;

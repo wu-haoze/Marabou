@@ -1024,8 +1024,8 @@ public:
         TS_ASSERT_EQUALS( query.getNumberOfVariables(), 10U );
 
         unsigned aux = 9;
-        TS_ASSERT_EQUALS( query.getLowerBound( aux ), 0 );
-        TS_ASSERT_EQUALS( query.getUpperBound( aux ), 4 );
+        TS_ASSERT_EQUALS( query.getLowerBound( aux ), -0.8 );
+        TS_ASSERT_EQUALS( query.getUpperBound( aux ), 3.2 );
 
         Equation eq = *equations.begin();
 

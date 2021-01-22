@@ -565,6 +565,8 @@ private:
                           const Map<unsigned, double> assignments );
 
 
+    void updateDynamicConstraints();
+
     /****************************** local search ****************************/
 
     /*
@@ -603,6 +605,8 @@ private:
     */
     String _flippingStrategy;
     String _initializationStrategy;
+
+    bool _addDynamicConstraint;
 
     Map<unsigned, double> _heuristicCost;
 
@@ -673,7 +677,6 @@ private:
       with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
     */
     void updateHeuristicCostGWSAT();
-
 
     /*
       SOI helper functions
