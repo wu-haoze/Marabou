@@ -635,6 +635,9 @@ void Engine::addDynamicConstraints()
                 plConstraint->addDynamicConstraints( _tableau );
         }
         _activeEntryStrategy->resizeHook( _tableau );
+        adjustWorkMemorySize();
+        _rowBoundTightener->resetBounds();
+        _constraintBoundTightener->resetBounds();
     }
 }
 

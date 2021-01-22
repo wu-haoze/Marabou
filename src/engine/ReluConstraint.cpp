@@ -815,7 +815,7 @@ void ReluConstraint::addDynamicConstraints( ITableau *tableau )
     ASSERT( FloatUtils::isNegative( lb ) && FloatUtils::isPositive( ub ) );
 
     double t = ub / ( ub - lb );
-    Equation equation1( Equation::GE );
+    Equation equation1( Equation::EQ );
     equation1.addAddend( t, _b );
     equation1.addAddend( -1.0, _f );
     equation1.setScalar( 0 );
