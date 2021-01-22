@@ -132,7 +132,7 @@ public:
     */
     void addAuxiliaryEquations( InputQuery &inputQuery );
 
-    void addDynamicConstraints( InputQuery &inputQuery );
+    void addDynamicConstraints( ITableau *tableau );
 
     /*
       Ask the piecewise linear constraint to contribute a component to the cost

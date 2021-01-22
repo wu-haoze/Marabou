@@ -625,14 +625,29 @@ bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double
     return true;
 }
 
+void Engine::addDynamicConstraints()
+{
+    if ( _addDynamicConstraint )
+    {
+        for ( const auto &plConstraint : _plConstraints )
+        {
+            if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
+                plConstraint->addDynamicConstraints( _tableau );
+        }
+        _activeEntryStrategy->resizeHook( _tableau );
+    }
+}
+
 void Engine::updateDynamicConstraints()
 {
+    /*
     if ( _addDynamicConstraint )
     {
         for ( const auto &plConstraint : _plConstraints )
             if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
                 plConstraint->updateDynamicConstraints( _tableau );
     }
+    */
 }
 
 bool Engine::solve( unsigned timeoutInSeconds )
@@ -644,6 +659,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
         return solveWithMILPEncoding( timeoutInSeconds );
 
     updateDirections();
+    addDynamicConstraints();
+
     storeInitialEngineState();
 
     mainLoopStatistics();

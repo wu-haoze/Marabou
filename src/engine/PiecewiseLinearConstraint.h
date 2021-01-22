@@ -194,7 +194,7 @@ public:
     */
     virtual void addAuxiliaryEquations( InputQuery &/* inputQuery */ ) {}
 
-    virtual void addDynamicConstraints( InputQuery &/* inputQuery */ ) {}
+    virtual void addDynamicConstraints( ITableau * ) {};
 
     /*
       Produce string representation of the piecewise linear constraint.

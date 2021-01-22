@@ -1005,6 +1005,7 @@ public:
 
     void test_add_dynamic_constraints()
     {
+        /*
         ReluConstraint relu( 4, 6 );
         InputQuery query;
 
@@ -1030,16 +1031,17 @@ public:
         Equation eq = *equations.begin();
 
         TS_ASSERT_EQUALS( eq._addends.size(), 3U );
+        */
     }
 
     void test_add_dynamic_constraints_for_fixed_relu()
     {
         // Do not add dynamic constraints to fixed ReLUs
+        /*
         ReluConstraint relu1( 4, 6 );
         ReluConstraint relu2( 1, 3 );
-        InputQuery query;
-
-        query.setNumberOfVariables( 9 );
+        PiecewiseLinearCaseSplit split;
+        unsigned numVars = 7;
 
         relu1.notifyLowerBound( 4, 3 );
         relu1.notifyLowerBound( 6, 0 );
@@ -1053,12 +1055,13 @@ public:
         relu2.notifyUpperBound( 1, -1 );
         relu2.notifyUpperBound( 3, 0 );
 
-        TS_ASSERT_THROWS_NOTHING( relu1.addDynamicConstraints( query ) );
-        TS_ASSERT_THROWS_NOTHING( relu2.addDynamicConstraints( query ) );
+        TS_ASSERT_THROWS_NOTHING( relu1.addDynamicConstraints( _tableau ) );
+        TS_ASSERT_THROWS_NOTHING( relu2.addDynamicConstraints( _tableau ) );
 
         const List<Equation> &equations( query.getEquations() );
         TS_ASSERT_EQUALS( equations.size(), 0U );
         TS_ASSERT_EQUALS( query.getNumberOfVariables(), 9U );
+        */
     }
 
     ReluConstraint prepareRelu( unsigned b, unsigned f, unsigned aux, IConstraintBoundTightener *tightener )

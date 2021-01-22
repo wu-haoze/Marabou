@@ -1836,7 +1836,7 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
     }
 }
 
-unsigned Tableau::addEquation( const Equation &equation )
+unsigned Tableau::addEquation( const Equation &equation, double auxLb, double auxUb )
 {
     // The fresh auxiliary variable assigned to the equation is _n.
     // This variable is implicitly added to the equation, with
@@ -1866,30 +1866,38 @@ unsigned Tableau::addEquation( const Equation &equation )
     // Invalidate the cost function, so that it is recomputed in the next iteration.
     _costFunctionManager->invalidateCostFunction();
 
-    // All variables except the new one have finite bounds. Use this to compute
-    // finite bounds for the new variable.
-    double lb = equation._scalar;
-    double ub = equation._scalar;
-
-    for ( const auto &addend : equation._addends )
+    if ( auxLb == FloatUtils::negativeInfinity() || auxUb == FloatUtils::infinity() )
     {
-        double coefficient = addend._coefficient;
-        unsigned variable = addend._variable;
+        // All variables except the new one have finite bounds. Use this to compute
+        // finite bounds for the new variable.
+        double lb = equation._scalar;
+        double ub = equation._scalar;
 
-        if ( FloatUtils::isPositive( coefficient ) )
+        for ( const auto &addend : equation._addends )
         {
-            lb -= coefficient * _upperBounds[variable];
-            ub -= coefficient * _lowerBounds[variable];
+            double coefficient = addend._coefficient;
+            unsigned variable = addend._variable;
+
+            if ( FloatUtils::isPositive( coefficient ) )
+            {
+                lb -= coefficient * _upperBounds[variable];
+                ub -= coefficient * _lowerBounds[variable];
+            }
+            else
+            {
+                lb -= coefficient * _lowerBounds[variable];
+                ub -= coefficient * _upperBounds[variable];
+            }
         }
-        else
-        {
-            lb -= coefficient * _lowerBounds[variable];
-            ub -= coefficient * _upperBounds[variable];
-        }
+
+        setLowerBound( auxVariable, lb );
+        setUpperBound( auxVariable, ub );
     }
-
-    setLowerBound( auxVariable, lb );
-    setUpperBound( auxVariable, ub );
+    else
+    {
+        setLowerBound( auxVariable, auxLb );
+        setUpperBound( auxVariable, auxUb );
+    }
 
     // Populate the new row of b
     _b[_m - 1] = equation._scalar;

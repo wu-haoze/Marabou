@@ -380,7 +380,7 @@ public:
     }
 
     unsigned nextAuxVar;
-    unsigned addEquation( const Equation &/* equation */ )
+    unsigned addEquation( const Equation &/* equation */, double, double )
     {
         return nextAuxVar;
     }

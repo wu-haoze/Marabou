@@ -106,11 +106,6 @@ private:
     void addPlAuxiliaryEquations();
 
     /*
-      Call on the PL constraints to add dynamic constraints
-    */
-    void addPlDynamicConstraints();
-
-    /*
       All input/output variables
     */
     Set<unsigned> _inputOutputVariables;

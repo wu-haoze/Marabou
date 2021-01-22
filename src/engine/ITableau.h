@@ -16,6 +16,7 @@
 #ifndef __ITableau_h__
 #define __ITableau_h__
 
+#include "FloatUtils.h"
 #include "List.h"
 #include "Set.h"
 
@@ -149,7 +150,8 @@ public:
     virtual unsigned basicIndexToVariable( unsigned index ) const = 0;
     virtual void assignIndexToBasicVariable( unsigned variable, unsigned index ) = 0;
     virtual unsigned variableToIndex( unsigned index ) const = 0;
-    virtual unsigned addEquation( const Equation &equation ) = 0;
+    virtual unsigned addEquation( const Equation &equation, double lb=FloatUtils::negativeInfinity(),
+                                  double ub=FloatUtils::infinity() ) = 0;
     virtual unsigned getM() const = 0;
     virtual unsigned getN() const = 0;
     virtual void getTableauRow( unsigned index, TableauRow *row ) = 0;

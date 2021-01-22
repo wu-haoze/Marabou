@@ -565,6 +565,7 @@ private:
                           const Map<unsigned, double> assignments );
 
 
+    void addDynamicConstraints();
     void updateDynamicConstraints();
 
     /****************************** local search ****************************/

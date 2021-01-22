@@ -102,7 +102,9 @@ public:
       method returns the index of the fresh auxiliary variable assigned
       to the equation
     */
-    unsigned addEquation( const Equation &equation );
+    unsigned addEquation( const Equation &equation,
+                          double lb=FloatUtils::negativeInfinity(),
+                          double ub=FloatUtils::infinity() );
 
     /*
       Get the Tableau's dimensions.

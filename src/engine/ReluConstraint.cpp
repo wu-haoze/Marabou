@@ -780,12 +780,23 @@ void ReluConstraint::addAuxiliaryEquations( InputQuery &inputQuery )
 
 }
 
-void ReluConstraint::addDynamicConstraints( InputQuery &inputQuery )
+void ReluConstraint::addDynamicConstraints( ITableau *tableau )
 {
     /*
       We additionally add the following constraint:
 
-      u / (u - l) * b - ( u * l ) / ( u - l ) >= f ->  u / (u - l) * b - f - _aux1 = ( u * l ) / ( u - l )
+      t = ub / (ub - lb)
+      t * b - lb * t >= f ->  t * b - f >= lb * t
+
+      which becomes
+      t * b - f + aux = 0
+
+      where -aux >= lb * t
+            -aux <= t * ub
+
+      that is
+
+      -t * ub  <= aux <= -lb * t
     */
     PLConstraint_LOG( "Adding dynamic constraint for ReLU...\n" );
 
@@ -802,43 +813,30 @@ void ReluConstraint::addDynamicConstraints( InputQuery &inputQuery )
     }
 
     ASSERT( FloatUtils::isNegative( lb ) && FloatUtils::isPositive( ub ) );
-    _aux1 = inputQuery.getNumberOfVariables();
-    inputQuery.setNumberOfVariables( _aux1 + 1 );
 
     double t = ub / ( ub - lb );
-    Equation equation1( Equation::EQ );
+    Equation equation1( Equation::GE );
     equation1.addAddend( t, _b );
     equation1.addAddend( -1.0, _f );
-    equation1.addAddend( -1.0, _aux1 );
     equation1.setScalar( 0 );
-    inputQuery.addEquation( equation1 );
 
-    inputQuery.setLowerBound( _aux1, lb * t );
-    inputQuery.setUpperBound( _aux1, ub * t );
-
-    DEBUG({
-            String s;
-            equation1.dump( s );
-            PLConstraint_LOG( Stringf( "\tEquation 1: %s", s.ascii() ).ascii() );
-            PLConstraint_LOG( Stringf( "\t%.2f <= x%u <= %.2f", inputQuery.getLowerBound( _aux1 ), _aux1,
-                                       inputQuery.getUpperBound( _aux1 ) ).ascii() );
-        });
-
-    // We now care about z, t, and aux1 as well
     _dynamicConstraintsInUse = true;
-    _dynamicConstraintRowIndex = inputQuery.getEquations().size() - 1;
+
+    _aux1 = tableau->addEquation( equation1, -t * ub, -lb * t );
 
     PLConstraint_LOG( "Adding dynamic constraint for ReLU - done\n" );
 }
 
-void ReluConstraint::updateDynamicConstraints( ITableau *tableau )
+void ReluConstraint::updateDynamicConstraints( ITableau * )
 {
-    double ub = _upperBounds[_b];
-    double lb = _lowerBounds[_b];
-    double t = ub / ( ub - lb );
-    tableau->updateA( _dynamicConstraintRowIndex, _b, ub / ( ub - lb ) );
-    tableau->setLowerBound( _aux1, t * lb );
-    tableau->setUpperBound( _aux1, ub * t + lb * t );
+    /*
+        double ub = _upperBounds[_b];
+        double lb = _lowerBounds[_b];
+        double t = ub / ( ub - lb );
+        tableau->updateA( _dynamicConstraintRowIndex, _b, ub / ( ub - lb ) );
+        tableau->setLowerBound( _aux1, t * lb );
+        tableau->setUpperBound( _aux1, ub * t + lb * t );
+    */
 }
 
 void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost ) const
