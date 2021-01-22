@@ -1020,46 +1020,16 @@ public:
 
         const List<Equation> &equations( query.getEquations() );
 
-        TS_ASSERT_EQUALS( equations.size(), 2U );
-        TS_ASSERT_EQUALS( query.getNumberOfVariables(), 12U );
+        TS_ASSERT_EQUALS( equations.size(), 1U );
+        TS_ASSERT_EQUALS( query.getNumberOfVariables(), 10U );
 
-        unsigned b = 4;
-        unsigned f = 6;
-        unsigned z = 9;
-        unsigned t = 10;
-        unsigned aux = 11;
-        TS_ASSERT_EQUALS( query.getLowerBound( z ), -0.8 );
-        TS_ASSERT_EQUALS( query.getUpperBound( z ), 3.2 );
-        TS_ASSERT_EQUALS( query.getLowerBound( t ), 0.8 );
-        TS_ASSERT_EQUALS( query.getUpperBound( t ), 0.8 );
+        unsigned aux = 9;
         TS_ASSERT_EQUALS( query.getLowerBound( aux ), 0 );
         TS_ASSERT_EQUALS( query.getUpperBound( aux ), 4 );
 
         Equation eq = *equations.begin();
 
-        TS_ASSERT_EQUALS( eq._addends.size(), 4U );
-
-        auto it = eq._addends.begin();
-        TS_ASSERT_EQUALS( *it, Equation::Addend( 1, z ) );
-        ++it;
-        TS_ASSERT_EQUALS( *it, Equation::Addend( 1, t ) );
-        ++it;
-        TS_ASSERT_EQUALS( *it, Equation::Addend( -1, f ) );
-        ++it;
-        TS_ASSERT_EQUALS( *it, Equation::Addend( -1, aux ) );
-
-        TS_ASSERT_EQUALS( eq._scalar, 0 );
-
-        eq = *( ++equations.begin() );
-
-        TS_ASSERT_EQUALS( eq._addends.size(), 2U );
-
-        it = eq._addends.begin();
-        TS_ASSERT_EQUALS( *it, Equation::Addend( 1, z ) );
-        ++it;
-        TS_ASSERT_EQUALS( *it, Equation::Addend( -0.8, b ) );
-        ++it;
-        TS_ASSERT_EQUALS( eq._scalar, 0 );
+        TS_ASSERT_EQUALS( eq._addends.size(), 3U );
     }
 
     void test_add_dynamic_constraints_for_fixed_relu()

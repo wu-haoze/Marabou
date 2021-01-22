@@ -453,6 +453,8 @@ public:
 
     const double *getNonBasicAssignment() const;
 
+    void updateA( unsigned row, unsigned col, double coefficient );
+
 private:
     /*
       Variable watchers
