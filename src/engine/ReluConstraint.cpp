@@ -798,7 +798,7 @@ void ReluConstraint::addDynamicConstraints( ITableau *tableau )
 
       -t * ub  <= aux <= -lb * t
     */
-    PLConstraint_LOG( "Adding dynamic constraint for ReLU...\n" );
+    PLConstraint_LOG( "Adding dynamic constraint for ReLU..." );
 
     double ub = _upperBounds[_b];
     double lb = _lowerBounds[_b];
@@ -808,7 +808,7 @@ void ReluConstraint::addDynamicConstraints( ITableau *tableau )
     if ( !FloatUtils::isNegative( lb ) || !FloatUtils::isPositive( ub ) )
     {
         PLConstraint_LOG( "ReLU fixed - no constraint added." );
-        PLConstraint_LOG( "Adding dynamic constraint for ReLU - done\n" );
+        PLConstraint_LOG( "Adding dynamic constraint for ReLU - done" );
         return;
     }
 
@@ -824,7 +824,7 @@ void ReluConstraint::addDynamicConstraints( ITableau *tableau )
 
     _aux1 = tableau->addEquation( equation1, -t * ub, -lb * t );
 
-    PLConstraint_LOG( "Adding dynamic constraint for ReLU - done\n" );
+    PLConstraint_LOG( "Adding dynamic constraint for ReLU - done" );
 }
 
 void ReluConstraint::updateDynamicConstraints( ITableau * )
