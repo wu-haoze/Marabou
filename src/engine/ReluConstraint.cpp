@@ -1135,6 +1135,12 @@ Vector<PhaseStatus> ReluConstraint::getAlternativeHeuristicPhaseStatus()
     return alternatives;
 }
 
+void ReluConstraint::extractVariableValueFromGurobi( GurobiWrapper &gurobi )
+{
+    notifyVariableValue( _b, gurobi.getValue( _b ) );
+    notifyVariableValue( _f, gurobi.getValue( _f ) );
+}
+
 //
 // Local Variables:
 // compile-command: "make -C ../.. "

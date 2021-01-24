@@ -63,6 +63,9 @@ void OptionParser::initialize()
         ( "dump-bounds",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DUMP_BOUNDS]) ),
           "Dump the bounds after preprocessing" )
+        ( "gurobi-lp",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::USE_GUROBI_FOR_LP]) ),
+          "Use Gurobi to solve lp problem at each tree state" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

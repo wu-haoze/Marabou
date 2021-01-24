@@ -65,6 +65,8 @@ public:
 
         // restart cost function periodically
         RESTART,
+
+        USE_GUROBI_FOR_LP,
     };
 
     enum IntOptions {

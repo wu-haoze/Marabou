@@ -102,6 +102,8 @@ public:
     // Solve and extract the solution, or the best known bound on the
     // objective function
     void solve();
+    double getValue( unsigned variable );
+    double getObjective();
     void extractSolution( Map<String, double> &values, double &costOrObjective );
     double getObjectiveBound();
 
@@ -166,6 +168,8 @@ public:
     void setObjective( const List<Term> & ) {}
     void setCutoff( double ) {};
     void solve() {}
+    double getValue( unsigned ){ return 0; };
+    double getObjective(){ return 0; };
     void extractSolution( Map<String, double> &, double & ) {}
     void reset() {}
     void resetModel() {}

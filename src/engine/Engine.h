@@ -355,6 +355,10 @@ private:
     */
     std::unique_ptr<MILPEncoder> _milpEncoder;
 
+    bool performSimplexStep( bool useGurobi );
+
+    void performSimplexStepWithGurobi();
+
     /*
       Perform a simplex step: compute the cost function, pick the
       entering and leaving variables and perform a pivot.
@@ -686,6 +690,9 @@ private:
     // If it is satisfied but the cost term is not zero, flip the cost term so that
     // the cost term is zero.
     void updateCostTermsForSatisfiedPLConstraints();
+
+    // Notify the plConstraints of the assignments from Gurobi
+    void notifyPLConstraintsAssignments();
 
     /*
       For SOI Debugging

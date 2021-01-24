@@ -26,7 +26,7 @@
 class MILPEncoder
 {
 public:
-    MILPEncoder( const ITableau &tableau );
+    MILPEncoder( const ITableau &tableau, bool relax=false );
 
     /*
       Encode the input query as a Gurobi query, variables and inequalities
@@ -45,6 +45,11 @@ private:
       Tableau has the latest bound
     */
     const ITableau &_tableau;
+
+    /*
+      Create LP relaxtion
+    */
+    bool _relax;
 
     /*
       Map the variable to the string encoded in Gurobi

@@ -200,6 +200,8 @@ public:
 
     void updateDynamicConstraints( ITableau *tableau );
 
+    void extractVariableValueFromGurobi( GurobiWrapper &gurobi );
+
 private:
     unsigned _b, _f;
     bool _auxVarInUse;

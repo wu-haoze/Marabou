@@ -113,7 +113,10 @@ double Engine::computeHeuristicCost()
 {
     double cost = 0;
     for ( const auto &pair : _heuristicCost )
-        cost += pair.second * _tableau->getValue( pair.first );
+    {
+        double value =  _solveWithMILP ? _gurobi->getValue( pair.first ) : _tableau->getValue( pair.first );
+        cost += pair.second * value;
+    }
     return cost;
 }
 
@@ -357,7 +360,8 @@ void Engine::checkAllVariblesInBound()
     DEBUG({
             for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
             {
-                double value = _tableau->getValue( i );
+                double value =  _solveWithMILP ? _gurobi->getValue( i ) : _tableau->getValue( i );
+
                 if ( !FloatUtils::gte( value, _tableau->getLowerBound( i ) ) ||
                      !FloatUtils::lte( value, _tableau->getUpperBound( i ) ) )
                 {
@@ -376,47 +380,74 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
 {
     ASSERT( _tableau->isOptimizing() );
 
-    SOI_LOG( "Optimizing w.r.t. the current heuristic cost..." );
-    bool localOptimaReached = false;
-    while ( !localOptimaReached )
+    if ( _solveWithMILP )
     {
-        DEBUG({
-                if ( _verbosity == 2 )
-                    SOI_LOG( Stringf( "Current heuristic cost: %f", computeHeuristicCost() ).ascii() ) ;
-            });
-
-        if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
-            break;
-
-        DEBUG( _tableau->verifyInvariants() );
-
-        mainLoopStatistics();
-        if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
-             GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
-            _statistics.print();
-
-        // Possible restoration due to preceision degradation
-        if ( shouldCheckDegradation() && highDegradation() )
+        struct timespec start = TimeUtils::sampleMicro();
+        List<GurobiWrapper::Term> terms;
+        for ( const auto &term : _heuristicCost )
+            terms.append( GurobiWrapper::Term( term.second,
+                                               Stringf( "x%u", term.first ) ) );
+        _gurobi->setCost( terms );
+        _gurobi->solve();
+        notifyPLConstraintsAssignments();
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
+    }
+    else
+    {
+        SOI_LOG( "Optimizing w.r.t. the current heuristic cost..." );
+        bool localOptimaReached = false;
+        while ( !localOptimaReached )
         {
-            performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
-            continue;
-        }
+            DEBUG({
+                    if ( _verbosity == 2 )
+                        SOI_LOG( Stringf( "Current heuristic cost: %f", computeHeuristicCost() ).ascii() ) ;
+                });
 
-        checkAllVariblesInBound();
+            if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
+                break;
 
-        if ( !_tableau->allBoundsValid() )
-        {
-            // Some variable bounds are invalid, so the query is unsat
-            throw InfeasibleQueryException();
+            DEBUG( _tableau->verifyInvariants() );
+
+            mainLoopStatistics();
+            if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
+                 GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
+                _statistics.print();
+
+            // Possible restoration due to preceision degradation
+            if ( shouldCheckDegradation() && highDegradation() )
+            {
+                performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
+                continue;
+            }
+
+            checkAllVariblesInBound();
+
+            if ( !_tableau->allBoundsValid() )
+            {
+                // Some variable bounds are invalid, so the query is unsat
+                throw InfeasibleQueryException();
+            }
+            localOptimaReached = performSimplexStep();
         }
-        localOptimaReached = performSimplexStep();
     }
     SOI_LOG( "Optimizing w.r.t. the current heuristic cost - done\n" );
+}
+
+void Engine::notifyPLConstraintsAssignments()
+{
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        plConstraint->extractVariableValueFromGurobi( *_gurobi );
+    }
 }
 
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 {
     _tableau->optimizing();
+
+    if ( _solveWithMILP )
+        notifyPLConstraintsAssignments();
 
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
@@ -488,7 +519,7 @@ void Engine::concretizeInputAssignment()
     for ( unsigned i = 0; i < numInputVariables; ++i )
     {
         unsigned variable = _preprocessedQuery.inputVariableByIndex( i );
-        inputAssignment[i] = _tableau->getValue( variable );
+        inputAssignment[i] = _solveWithMILP ? _gurobi->getValue( variable ) : _tableau->getValue( variable );
     }
 
     // Evaluate the network for this assignment
@@ -2877,6 +2908,13 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         performSymbolicBoundTightening();
     }
     while ( applyAllValidConstraintCaseSplits() );
+
+    if ( _localSearch )
+    {
+        _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+        _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau, true ) );
+        _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
+    }
 
     ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );

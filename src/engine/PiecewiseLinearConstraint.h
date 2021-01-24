@@ -17,6 +17,7 @@
 #define __PiecewiseLinearConstraint_h__
 
 #include "FloatUtils.h"
+#include "GurobiWrapper.h"
 #include "ITableau.h"
 #include "List.h"
 #include "Map.h"
@@ -302,6 +303,8 @@ public:
     virtual void removeCostFunctionComponent( Map<unsigned, double> & ) {};
 
     virtual void updateDynamicConstraints( ITableau * ) {};
+
+    virtual void extractVariableValueFromGurobi( GurobiWrapper & ){};
 
 protected:
     bool _constraintActive;

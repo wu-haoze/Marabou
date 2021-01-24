@@ -276,6 +276,28 @@ bool GurobiWrapper::haveFeasibleSolution()
     return _model->get( GRB_IntAttr_SolCount ) > 0;
 }
 
+double GurobiWrapper::getValue( unsigned variable )
+{
+    return _nameToVariable[Stringf("x%u", variable)]->get( GRB_DoubleAttr_X );
+
+}
+
+double GurobiWrapper::getObjective()
+{
+    try
+    {
+        return _model->get( GRB_DoubleAttr_ObjVal );
+    }
+    catch ( GRBException e )
+    {
+        throw CommonError( CommonError::GUROBI_EXCEPTION,
+                           Stringf( "Gurobi exception. Gurobi Code: %u, message: %s\n",
+                                    e.getErrorCode(),
+                                    e.getMessage().c_str() ).ascii() );
+    }
+}
+
+
 void GurobiWrapper::extractSolution( Map<String, double> &values, double &costOrObjective )
 {
     try
