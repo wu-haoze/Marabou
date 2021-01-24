@@ -382,16 +382,20 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
 
     if ( _solveWithMILP )
     {
-        struct timespec start = TimeUtils::sampleMicro();
-        List<GurobiWrapper::Term> terms;
-        for ( const auto &term : _heuristicCost )
-            terms.append( GurobiWrapper::Term( term.second,
-                                               Stringf( "x%u", term.first ) ) );
-        _gurobi->setCost( terms );
-        _gurobi->solve();
-        notifyPLConstraintsAssignments();
-        struct timespec end = TimeUtils::sampleMicro();
-        _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
+        if ( !shouldExitDueToTimeout( timeoutInSeconds ) && !_quitRequested )
+        {
+
+            struct timespec start = TimeUtils::sampleMicro();
+            List<GurobiWrapper::Term> terms;
+            for ( const auto &term : _heuristicCost )
+                terms.append( GurobiWrapper::Term( term.second,
+                                                   Stringf( "x%u", term.first ) ) );
+            _gurobi->setCost( terms );
+            _gurobi->solve();
+            notifyPLConstraintsAssignments();
+            struct timespec end = TimeUtils::sampleMicro();
+            _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
+        }
     }
     else
     {
@@ -1915,7 +1919,10 @@ void Engine::extractSolution( InputQuery &inputQuery )
 
 bool Engine::allVarsWithinBounds() const
 {
-    return !_tableau->existsBasicOutOfBounds();
+    if ( _solveWithMILP )
+        return _gurobi->haveFeasibleSolution();
+    else
+        return !_tableau->existsBasicOutOfBounds();
 }
 
 void Engine::collectViolatedPlConstraints()
@@ -2895,25 +2902,66 @@ void Engine::storeSmtState( SmtState & smtState )
 
 bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 {
-    // Apply bound tightening before handing to Gurobi
-    if ( _tableau->basisMatrixAvailable() )
-        {
-            explicitBasisBoundTightening();
-            applyAllBoundTightenings();
-            applyAllValidConstraintCaseSplits();
-        }
-
-    do
+    try
     {
-        performSymbolicBoundTightening();
+        // Apply bound tightening before handing to Gurobi
+        if ( _tableau->basisMatrixAvailable() )
+        {
+	    explicitBasisBoundTightening();
+	    applyAllBoundTightenings();
+	    applyAllValidConstraintCaseSplits();
+	}
+	do
+	{
+	    performSymbolicBoundTightening();
+	}
+	while ( applyAllValidConstraintCaseSplits() );
     }
-    while ( applyAllValidConstraintCaseSplits() );
+    catch ( const InfeasibleQueryException & )
+    {
+        _exitCode = Engine::UNSAT;
+        return false;
+    }
 
     if ( _localSearch )
     {
+        ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
         _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
         _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau, true ) );
         _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
+        ENGINE_LOG( "Query encoded in Gurobi...\n" );
+
+        double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
+                                    : timeoutInSeconds );
+        ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
+            _gurobi->setTimeLimit( timeoutForGurobi );
+        _gurobi->solve();
+        if ( _gurobi->haveFeasibleSolution() )
+        {
+            notifyPLConstraintsAssignments();
+            collectViolatedPlConstraints();
+            if ( allPlConstraintsHold() )
+            {
+                _exitCode = IEngine::SAT;
+                return true;
+            }
+            else if ( performLocalSearch( timeoutInSeconds ) )
+            {
+                // Either throws InfeasibleQueryException,
+                // or contains a satisfying assignment
+                // or conclude that splitting is needed
+                _exitCode = Engine::SAT;
+                return true;
+            }
+        }
+        else if ( _gurobi->infeasbile() )
+            _exitCode = IEngine::UNSAT;
+        else if ( _gurobi->timeout() )
+            _exitCode = IEngine::TIMEOUT;
+        else
+            throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
+        return false;
+
     }
 
     ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
