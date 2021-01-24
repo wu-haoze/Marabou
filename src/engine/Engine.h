@@ -649,7 +649,7 @@ private:
     ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
 
     // Optimize w.r.t. the current heuristic cost function
-    void optimizeForHeuristicCost( unsigned timeoutInSeconds );
+    void optimizeForHeuristicCost();
 
     /*
       Called when local optima is reached but not all PLConstraint is satisfied.

@@ -376,26 +376,22 @@ void Engine::checkAllVariblesInBound()
         });
 }
 
-void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
+void Engine::optimizeForHeuristicCost()
 {
     ASSERT( _tableau->isOptimizing() );
 
     if ( _solveWithMILP )
     {
-        if ( !shouldExitDueToTimeout( timeoutInSeconds ) && !_quitRequested )
-        {
-
-            struct timespec start = TimeUtils::sampleMicro();
-            List<GurobiWrapper::Term> terms;
-            for ( const auto &term : _heuristicCost )
-                terms.append( GurobiWrapper::Term( term.second,
-                                                   Stringf( "x%u", term.first ) ) );
-            _gurobi->setCost( terms );
-            _gurobi->solve();
-            notifyPLConstraintsAssignments();
-            struct timespec end = TimeUtils::sampleMicro();
-            _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
-        }
+        struct timespec start = TimeUtils::sampleMicro();
+        List<GurobiWrapper::Term> terms;
+        for ( const auto &term : _heuristicCost )
+            terms.append( GurobiWrapper::Term( term.second,
+                                               Stringf( "x%u", term.first ) ) );
+        _gurobi->setCost( terms );
+        _gurobi->solve();
+        notifyPLConstraintsAssignments();
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
     }
     else
     {
@@ -407,9 +403,6 @@ void Engine::optimizeForHeuristicCost( unsigned timeoutInSeconds )
                     if ( _verbosity == 2 )
                         SOI_LOG( Stringf( "Current heuristic cost: %f", computeHeuristicCost() ).ascii() ) ;
                 });
-
-            if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
-                break;
 
             DEBUG( _tableau->verifyInvariants() );
 
@@ -465,7 +458,10 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
         mainLoopStart = mainLoopEnd;
 
-        optimizeForHeuristicCost( timeoutInSeconds );
+        if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
+            break;
+
+        optimizeForHeuristicCost();
 
         updateCostTermsForSatisfiedPLConstraints();
 
