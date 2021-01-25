@@ -22,6 +22,7 @@
 
 class EntrySelectionStrategy;
 class Equation;
+class GurobiWrapper;
 class ICostFunctionManager;
 class PiecewiseLinearCaseSplit;
 class SparseMatrix;
@@ -191,8 +192,15 @@ public:
     void optimizing() { _optimizing = true; }
     void notOptimizing() { _optimizing = false; }
 
+    bool useGurobi() const
+    {
+        return _gurobi != NULL;
+    }
+    void setGurobi( GurobiWrapper *gurobi ) { _gurobi = gurobi; }
+
 protected:
     bool _optimizing;
+    GurobiWrapper *_gurobi = NULL;
 };
 
 #endif // __ITableau_h__

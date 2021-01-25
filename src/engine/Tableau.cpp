@@ -486,12 +486,16 @@ void Tableau::setUpperBound( unsigned variable, double value )
 double Tableau::getLowerBound( unsigned variable ) const
 {
     ASSERT( variable < _n );
+    if ( _gurobi != NULL )
+        ASSERT( _lowerBounds[variable] == _gurobi->getLowerBound( Stringf( "x%u", variable ) ) );
     return _lowerBounds[variable];
 }
 
 double Tableau::getUpperBound( unsigned variable ) const
 {
     ASSERT( variable < _n );
+    if ( _gurobi != NULL )
+        ASSERT( _lowerBounds[variable] == _gurobi->getLowerBound( Stringf( "x%u", variable ) ) );
     return _upperBounds[variable];
 }
 
@@ -1778,26 +1782,28 @@ void Tableau::tightenLowerBound( unsigned variable, double value )
 
     setLowerBound( variable, value );
 
-    /*
-      Update dynamic constraints if necessary
-    */
-    //updateDynamicConstraint( variable );
-
-    // Ensure that non-basic variables are within bounds
-    unsigned index = _variableToIndex[variable];
-    if ( !_basicVariables.exists( variable ) )
+    if ( useGurobi() )
     {
-        if ( FloatUtils::gt( value, _nonBasicAssignment[index] ) )
-            setNonBasicAssignment( variable, value, true );
+        _gurobi->setLowerBound( Stringf( "x%u", variable ), value );
     }
     else
     {
-        // Recompute the status of an affected basic variable
-        // If the status changes, invalidate the cost function
-        unsigned oldStatus = _basicStatus[index];
-        computeBasicStatus( index );
-        if ( _basicStatus[index] != oldStatus )
-            _costFunctionManager->invalidateCostFunction();
+        // Ensure that non-basic variables are within bounds
+        unsigned index = _variableToIndex[variable];
+        if ( !_basicVariables.exists( variable ) )
+        {
+            if ( FloatUtils::gt( value, _nonBasicAssignment[index] ) )
+                setNonBasicAssignment( variable, value, true );
+        }
+        else
+        {
+            // Recompute the status of an affected basic variable
+            // If the status changes, invalidate the cost function
+            unsigned oldStatus = _basicStatus[index];
+            computeBasicStatus( index );
+            if ( _basicStatus[index] != oldStatus )
+                _costFunctionManager->invalidateCostFunction();
+        }
     }
 }
 
@@ -1813,26 +1819,28 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
 
     setUpperBound( variable, value );
 
-    /*
-      Update the corresponding dynamic constraint if necessary
-    */
-    //updateDynamicConstraint( variable );
-
-    // Ensure that non-basic variables are within bounds
-    unsigned index = _variableToIndex[variable];
-    if ( !_basicVariables.exists( variable ) )
+    if ( useGurobi() )
     {
-        if ( FloatUtils::lt( value, _nonBasicAssignment[index] ) )
-            setNonBasicAssignment( variable, value, true );
+        _gurobi->setUpperBound( Stringf( "x%u", variable ), value );
     }
     else
     {
-        // Recompute the status of an affected basic variable
-        // If the status changes, invalidate the cost function
-        unsigned oldStatus = _basicStatus[index];
-        computeBasicStatus( index );
-        if ( _basicStatus[index] != oldStatus )
-            _costFunctionManager->invalidateCostFunction();
+        // Ensure that non-basic variables are within bounds
+        unsigned index = _variableToIndex[variable];
+        if ( !_basicVariables.exists( variable ) )
+        {
+            if ( FloatUtils::lt( value, _nonBasicAssignment[index] ) )
+                setNonBasicAssignment( variable, value, true );
+        }
+        else
+        {
+            // Recompute the status of an affected basic variable
+            // If the status changes, invalidate the cost function
+            unsigned oldStatus = _basicStatus[index];
+            computeBasicStatus( index );
+            if ( _basicStatus[index] != oldStatus )
+                _costFunctionManager->invalidateCostFunction();
+        }
     }
 }
 

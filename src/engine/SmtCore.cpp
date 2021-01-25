@@ -98,7 +98,7 @@ bool SmtCore::needToSplit() const
     return _needToSplit;
 }
 
-void SmtCore::performSplit( bool gurobiForLP )
+void SmtCore::performSplit()
 {
     ASSERT( _needToSplit );
 
@@ -134,16 +134,14 @@ void SmtCore::performSplit( bool gurobiForLP )
     EngineState *stateBeforeSplits = new EngineState;
     stateBeforeSplits->_stateId = _stateId;
     ++_stateId;
-    _engine->storeState( *stateBeforeSplits, !gurobiForLP );
+    _engine->storeState( *stateBeforeSplits, true );
 
     SmtStackEntry *stackEntry = new SmtStackEntry;
     // Perform the first split: add bounds and equations
     List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
 
-    PiecewiseLinearCaseSplit undoSplit;
-    _engine->applySplit( *split, &undoSplit );
+    _engine->applySplit( *split );
     stackEntry->_activeSplit = *split;
-    stackEntry->_undoSplit = undoSplit;
 
     // Store the remaining splits on the stack, for later
     stackEntry->_engineState = stateBeforeSplits;
@@ -171,7 +169,7 @@ unsigned SmtCore::getStackDepth() const
     return _stack.size();
 }
 
-bool SmtCore::popSplit( bool gurobiForLP )
+bool SmtCore::popSplit()
 {
     SMT_LOG( "Performing a pop" );
 
@@ -192,19 +190,14 @@ bool SmtCore::popSplit( bool gurobiForLP )
     String error;
     while ( _stack.back()->_alternativeSplits.empty() )
     {
-        if ( !gurobiForLP )
+        if ( checkSkewFromDebuggingSolution() )
         {
-            if ( checkSkewFromDebuggingSolution() )
-            {
-                // Pops should not occur from a compliant stack!
-                printf( "Error! Popping from a compliant stack\n" );
-                throw MarabouError( MarabouError::DEBUGGING_ERROR );
-            }
-
-            delete _stack.back()->_engineState;
+            // Pops should not occur from a compliant stack!
+            printf( "Error! Popping from a compliant stack\n" );
+            throw MarabouError( MarabouError::DEBUGGING_ERROR );
         }
-        else
-            _engine->applySplit( _stack.back()->_undoSplit );
+
+        delete _stack.back()->_engineState;
 
         delete _stack.back();
         _stack.popBack();
@@ -233,11 +226,8 @@ bool SmtCore::popSplit( bool gurobiForLP )
     // Erase any valid splits that were learned using the split we just popped
     stackEntry->_impliedValidSplits.clear();
 
-    if ( gurobiForLP )
-        _engine->applySplit( stackEntry->_undoSplit );
-
     SMT_LOG( "\tApplying new split..." );
-    _engine->applySplit( *split, &( stackEntry->_undoSplit ) );
+    _engine->applySplit( *split );
     SMT_LOG( "\tApplying new split - DONE" );
 
     stackEntry->_activeSplit = *split;

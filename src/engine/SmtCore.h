@@ -76,13 +76,13 @@ public:
       Perform the split according to the constraint marked for
       splitting. Update bounds, add equations and update the stack.
     */
-    void performSplit( bool gurobiForLP = false );
+    void performSplit();
 
     /*
       Pop an old split from the stack, and perform a new split as
       needed. Return true if successful, false if the stack is empty.
     */
-    bool popSplit( bool gurobiForLP = false );
+    bool popSplit();
 
     /*
       The current stack depth.
