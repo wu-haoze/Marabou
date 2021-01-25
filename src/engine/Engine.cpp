@@ -751,13 +751,15 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 
             if ( splitJustPerformed )
             {
-                do
-                {
-                    performSymbolicBoundTightening();
-                }
-                while ( applyAllValidConstraintCaseSplits() );
+                /*
+                    do
+                    {
+                        performSymbolicBoundTightening();
+                    }
+                    while ( applyAllValidConstraintCaseSplits() );
 
-                updateDynamicConstraints();
+                    updateDynamicConstraints();
+                */
                 splitJustPerformed = false;
             }
 
