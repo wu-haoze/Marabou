@@ -763,6 +763,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 
                     updateDynamicConstraints();
                 */
+                List<GurobiWrapper::Term> obj;
+                _gurobi->setCost( obj );
 
                 applyAllValidConstraintCaseSplits();
                 splitJustPerformed = false;
@@ -800,7 +802,10 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             _gurobi->solve();
             ENGINE_LOG( "Solving LP with Gurobi - done" );
             if ( _gurobi->infeasbile() )
+            {
+                ENGINE_LOG( "Infeasible!" );
                 throw InfeasibleQueryException();
+            }
         }
         catch ( const InfeasibleQueryException & )
         {
@@ -2150,12 +2155,15 @@ void Engine::restoreState( const EngineState &state )
 
     _numPlConstraintsDisabledByValidSplits = state._numPlConstraintsDisabledByValidSplits;
 
-    // Make sure the data structures are initialized to the correct size
-    _rowBoundTightener->setDimensions();
-    _constraintBoundTightener->setDimensions();
-    adjustWorkMemorySize();
-    _activeEntryStrategy->resizeHook( _tableau );
-    _costFunctionManager->initialize();
+    if ( !_gurobiForLP )
+    {
+        // Make sure the data structures are initialized to the correct size
+        _rowBoundTightener->setDimensions();
+        _constraintBoundTightener->setDimensions();
+        adjustWorkMemorySize();
+        _activeEntryStrategy->resizeHook( _tableau );
+        _costFunctionManager->initialize();
+    }
 
     // Reset the violation counts in the SMT core
     _smtCore.resetReportedViolations();
@@ -2261,7 +2269,8 @@ bool Engine::attemptToMergeVariables( unsigned x1, unsigned x2 )
     return true;
 }
 
-void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
+void Engine::applySplit( const PiecewiseLinearCaseSplit &split,
+                         PiecewiseLinearCaseSplit *undoSplit )
 {
     ENGINE_LOG( "" );
     ENGINE_LOG( "Applying a split. " );
@@ -2274,17 +2283,20 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
 
         for ( auto &bound : bounds )
         {
+            String variableName = _milpEncoder->getVariableNameFromVariable( bound._variable );
             if ( bound._type == Tightening::LB )
             {
                 ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", bound._variable, bound._value ).ascii() );
-                _gurobi->setLowerBound( _milpEncoder->getVariableNameFromVariable( bound._variable ),
-                                        bound._value );
+                if ( undoSplit )
+                    undoSplit->storeBoundTightening( Tightening( bound._variable, _gurobi->getLowerBound( variableName ), Tightening::LB ) );
+                _gurobi->setLowerBound( variableName, bound._value );
             }
             else
             {
                 ENGINE_LOG( Stringf( "x%u: upper bound set to %.3lf", bound._variable, bound._value ).ascii() );
-                _gurobi->setUpperBound( _milpEncoder->getVariableNameFromVariable( bound._variable ),
-                                        bound._value );
+                if ( undoSplit )
+                    undoSplit->storeBoundTightening( Tightening( bound._variable, _gurobi->getUpperBound( variableName ), Tightening::UB ) );
+                _gurobi->setUpperBound( variableName, bound._value );
             }
         }
     }

@@ -117,7 +117,8 @@ public:
     /*
       Add equations and tightenings from a split.
     */
-    void applySplit( const PiecewiseLinearCaseSplit &split );
+    void applySplit( const PiecewiseLinearCaseSplit &split,
+                     PiecewiseLinearCaseSplit *undoSplit = NULL );
 
     /*
       Reset the state of the engine, before solving a new query

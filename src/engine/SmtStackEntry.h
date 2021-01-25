@@ -28,6 +28,7 @@ struct SmtStackEntry
 {
 public:
     PiecewiseLinearCaseSplit _activeSplit;
+    PiecewiseLinearCaseSplit _undoSplit;
     List<PiecewiseLinearCaseSplit> _impliedValidSplits;
     List<PiecewiseLinearCaseSplit> _alternativeSplits;
     EngineState *_engineState;
@@ -43,6 +44,7 @@ public:
         SmtStackEntry *copy = new SmtStackEntry();
 
         copy->_activeSplit = _activeSplit;
+        copy->_undoSplit = _undoSplit;
         copy->_impliedValidSplits = _impliedValidSplits;
         copy->_alternativeSplits = _alternativeSplits;
         copy->_engineState = NULL;

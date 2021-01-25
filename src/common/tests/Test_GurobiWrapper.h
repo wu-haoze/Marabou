@@ -81,6 +81,49 @@ public:
         TS_ASSERT( true );
 #endif // ENABLE_GUROBI
     }
+
+    void test_incremental()
+    {
+#ifdef ENABLE_GUROBI
+        GurobiWrapper gurobi;
+
+        gurobi.addVariable( "x", 2, 4 );
+        gurobi.addVariable( "y", 3, 5 );
+
+        // x + y <= 5
+        List<GurobiWrapper::Term> contraint = {
+            GurobiWrapper::Term( 1, "x" ),
+            GurobiWrapper::Term( 1, "y" )
+        };
+
+        gurobi.addLeqConstraint( contraint, 5 );
+
+        // Solve and extract
+        TS_ASSERT_THROWS_NOTHING( gurobi.solve() );
+
+        TS_ASSERT( gurobi.haveFeasibleSolution() );
+
+        TS_ASSERT_THROWS_NOTHING( gurobi.setLowerBound( "y", 4 ) );
+
+        TS_ASSERT( !gurobi.haveFeasibleSolution() );
+
+        TS_ASSERT_THROWS_NOTHING( gurobi.solve() );
+
+        TS_ASSERT( gurobi.infeasbile() );
+
+        TS_ASSERT_THROWS_NOTHING( gurobi.setLowerBound( "y", 2 ) );
+
+        TS_ASSERT( !gurobi.infeasbile() );
+        TS_ASSERT( !gurobi.haveFeasibleSolution() );
+
+        TS_ASSERT_THROWS_NOTHING( gurobi.solve() );
+
+        TS_ASSERT( gurobi.haveFeasibleSolution() );
+
+#else
+        TS_ASSERT( true );
+#endif // ENABLE_GUROBI
+    }
 };
 
 //

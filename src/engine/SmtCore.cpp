@@ -139,8 +139,11 @@ void SmtCore::performSplit( bool gurobiForLP )
     SmtStackEntry *stackEntry = new SmtStackEntry;
     // Perform the first split: add bounds and equations
     List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
-    _engine->applySplit( *split );
+
+    PiecewiseLinearCaseSplit undoSplit;
+    _engine->applySplit( *split, &undoSplit );
     stackEntry->_activeSplit = *split;
+    stackEntry->_undoSplit = undoSplit;
 
     // Store the remaining splits on the stack, for later
     stackEntry->_engineState = stateBeforeSplits;
@@ -200,6 +203,9 @@ bool SmtCore::popSplit( bool gurobiForLP )
 
             delete _stack.back()->_engineState;
         }
+        else
+            _engine->applySplit( _stack.back()->_undoSplit );
+
         delete _stack.back();
         _stack.popBack();
 
@@ -227,8 +233,11 @@ bool SmtCore::popSplit( bool gurobiForLP )
     // Erase any valid splits that were learned using the split we just popped
     stackEntry->_impliedValidSplits.clear();
 
+    if ( gurobiForLP )
+        _engine->applySplit( stackEntry->_undoSplit );
+
     SMT_LOG( "\tApplying new split..." );
-    _engine->applySplit( *split );
+    _engine->applySplit( *split, &( stackEntry->_undoSplit ) );
     SMT_LOG( "\tApplying new split - DONE" );
 
     stackEntry->_activeSplit = *split;
