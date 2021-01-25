@@ -16,6 +16,7 @@
 #ifndef __SmtCore_h__
 #define __SmtCore_h__
 
+#include "GurobiWrapper.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearConstraint.h"
 #include "SmtState.h"
@@ -48,6 +49,8 @@ public:
     */
     void reset();
 
+    void setGurobi( GurobiWrapper *gurobi );
+
     /*
       Inform the SMT core that a PL constraint is violated.
     */
@@ -73,13 +76,13 @@ public:
       Perform the split according to the constraint marked for
       splitting. Update bounds, add equations and update the stack.
     */
-    void performSplit();
+    void performSplit( bool gurobiForLP = false );
 
     /*
       Pop an old split from the stack, and perform a new split as
       needed. Return true if successful, false if the stack is empty.
     */
-    bool popSplit();
+    bool popSplit( bool gurobiForLP = false );
 
     /*
       The current stack depth.
@@ -180,6 +183,8 @@ private:
       Split when some relu has been violated for this many times
     */
     unsigned _constraintViolationThreshold;
+
+    GurobiWrapper *_gurobi;
 };
 
 #endif // __SmtCore_h__

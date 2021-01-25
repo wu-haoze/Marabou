@@ -32,6 +32,7 @@ SmtCore::SmtCore( IEngine *engine )
     , _constraintForSplitting( NULL )
     , _stateId( 0 )
     , _constraintViolationThreshold( Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ) )
+    , _gurobi( NULL )
 {
 }
 
@@ -49,6 +50,11 @@ void SmtCore::freeMemory()
     }
 
     _stack.clear();
+}
+
+void SmtCore::setGurobi( GurobiWrapper *gurobi )
+{
+    _gurobi = gurobi;
 }
 
 void SmtCore::reset()
@@ -92,7 +98,7 @@ bool SmtCore::needToSplit() const
     return _needToSplit;
 }
 
-void SmtCore::performSplit()
+void SmtCore::performSplit( bool gurobiForLP )
 {
     ASSERT( _needToSplit );
 
@@ -124,28 +130,47 @@ void SmtCore::performSplit()
     ASSERT( splits.size() >= 2 ); // Not really necessary, can add code to handle this case.
     _constraintForSplitting->setActiveConstraint( false );
 
-    // Obtain the current state of the engine
-    EngineState *stateBeforeSplits = new EngineState;
-    stateBeforeSplits->_stateId = _stateId;
-    ++_stateId;
-    _engine->storeState( *stateBeforeSplits, true );
-
-    SmtStackEntry *stackEntry = new SmtStackEntry;
-    // Perform the first split: add bounds and equations
-    List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
-    _engine->applySplit( *split );
-    stackEntry->_activeSplit = *split;
-
-    // Store the remaining splits on the stack, for later
-    stackEntry->_engineState = stateBeforeSplits;
-    ++split;
-    while ( split != splits.end() )
+    if ( gurobiForLP )
     {
-        stackEntry->_alternativeSplits.append( *split );
+        SmtStackEntry *stackEntry = new SmtStackEntry;
+        List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
+        _engine->applySplit( *split );
+        stackEntry->_activeSplit = *split;
+
         ++split;
+        while ( split != splits.end() )
+        {
+            stackEntry->_alternativeSplits.append( *split );
+            ++split;
+        }
+        _stack.append( stackEntry );
+    }
+    else
+    {
+        // Obtain the current state of the engine
+        EngineState *stateBeforeSplits = new EngineState;
+        stateBeforeSplits->_stateId = _stateId;
+        ++_stateId;
+        _engine->storeState( *stateBeforeSplits, true );
+
+        SmtStackEntry *stackEntry = new SmtStackEntry;
+        // Perform the first split: add bounds and equations
+        List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
+        _engine->applySplit( *split );
+        stackEntry->_activeSplit = *split;
+
+        // Store the remaining splits on the stack, for later
+        stackEntry->_engineState = stateBeforeSplits;
+        ++split;
+        while ( split != splits.end() )
+        {
+            stackEntry->_alternativeSplits.append( *split );
+            ++split;
+        }
+
+        _stack.append( stackEntry );
     }
 
-    _stack.append( stackEntry );
     if ( _statistics )
     {
         _statistics->setCurrentStackDepth( getStackDepth() );
@@ -161,7 +186,7 @@ unsigned SmtCore::getStackDepth() const
     return _stack.size();
 }
 
-bool SmtCore::popSplit()
+bool SmtCore::popSplit( bool gurobiForLP )
 {
     SMT_LOG( "Performing a pop" );
 
@@ -182,14 +207,17 @@ bool SmtCore::popSplit()
     String error;
     while ( _stack.back()->_alternativeSplits.empty() )
     {
-        if ( checkSkewFromDebuggingSolution() )
+        if ( !gurobiForLP )
         {
-            // Pops should not occur from a compliant stack!
-            printf( "Error! Popping from a compliant stack\n" );
-            throw MarabouError( MarabouError::DEBUGGING_ERROR );
-        }
+            if ( checkSkewFromDebuggingSolution() )
+            {
+                // Pops should not occur from a compliant stack!
+                printf( "Error! Popping from a compliant stack\n" );
+                throw MarabouError( MarabouError::DEBUGGING_ERROR );
+            }
 
-        delete _stack.back()->_engineState;
+            delete _stack.back()->_engineState;
+        }
         delete _stack.back();
         _stack.popBack();
 
@@ -206,10 +234,13 @@ bool SmtCore::popSplit()
 
     SmtStackEntry *stackEntry = _stack.back();
 
-    // Restore the state of the engine
-    SMT_LOG( "\tRestoring engine state..." );
-    _engine->restoreState( *( stackEntry->_engineState ) );
-    SMT_LOG( "\tRestoring engine state - DONE" );
+    if ( !gurobiForLP )
+    {
+        // Restore the state of the engine
+        SMT_LOG( "\tRestoring engine state..." );
+        _engine->restoreState( *( stackEntry->_engineState ) );
+        SMT_LOG( "\tRestoring engine state - DONE" );
+    }
 
     // Apply the new split and erase it from the list
     auto split = stackEntry->_alternativeSplits.begin();

@@ -56,6 +56,7 @@ Engine::Engine()
     , _splittingStrategy( Options::get()->getDivideStrategy() )
     , _symbolicBoundTighteningType( Options::get()->getSymbolicBoundTighteningType() )
     , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
+    , _gurobiForLP( Options::get()->getBool( Options::USE_GUROBI_FOR_LP ) )
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
     , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
@@ -281,6 +282,7 @@ void Engine::updateHeuristicCostWalkSAT()
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+    _smtCore.reportViolatedConstraint( plConstraintToFlip );
     return;
 }
 
@@ -336,6 +338,7 @@ void Engine::updateHeuristicCostGWSAT()
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+    _smtCore.reportViolatedConstraint( plConstraintToFlip );
     return;
 }
 
@@ -452,7 +455,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
     ASSERT( allVarsWithinBounds() );
 
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
-    while ( true )
+    while ( !_smtCore.needToSplit() )
     {
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
         _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
@@ -684,6 +687,141 @@ void Engine::updateDynamicConstraints()
     */
 }
 
+bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
+{
+    SignalHandler::getInstance()->initialize();
+    SignalHandler::getInstance()->registerClient( this );
+
+    _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau, true ) );
+    _smtCore.setGurobi( &( *_gurobi ) );
+    _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
+    ENGINE_LOG( "Query encoded in Gurobi...\n" );
+
+    mainLoopStatistics();
+    if ( _verbosity > 0 )
+    {
+        printf( "\nEngine::solve: Initial statistics\n" );
+        _statistics.print();
+        printf( "\n---\n" );
+    }
+    applyAllValidConstraintCaseSplits();
+
+    bool splitJustPerformed = true;
+    struct timespec mainLoopStart = TimeUtils::sampleMicro();
+    while ( true )
+    {
+        struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+        _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+        mainLoopStart = mainLoopEnd;
+
+        if ( shouldExitDueToTimeout( timeoutInSeconds ) )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\n\nEngine: quitting due to timeout...\n\n" );
+                printf( "Final statistics:\n" );
+                _statistics.print();
+            }
+
+            _exitCode = Engine::TIMEOUT;
+            _statistics.timeout();
+            return false;
+        }
+
+        if ( _quitRequested )
+        {
+            if ( _verbosity > 0 )
+            {
+                printf( "\n\nEngine: quitting due to external request...\n\n" );
+                printf( "Final statistics:\n" );
+                _statistics.print();
+            }
+
+            _exitCode = Engine::QUIT_REQUESTED;
+            return false;
+        }
+
+        try
+        {
+            mainLoopStatistics();
+            if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
+                 GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
+                _statistics.print();
+
+            if ( splitJustPerformed )
+            {
+                do
+                {
+                    performSymbolicBoundTightening();
+                }
+                while ( applyAllValidConstraintCaseSplits() );
+
+                updateDynamicConstraints();
+                splitJustPerformed = false;
+            }
+
+            // Perform any SmtCore-initiated case splits
+            if ( _smtCore.needToSplit() )
+            {
+                _smtCore.performSplit( _gurobiForLP );
+                splitJustPerformed = true;
+                continue;
+            }
+
+            if ( _gurobi->haveFeasibleSolution() )
+            {
+                notifyPLConstraintsAssignments();
+                collectViolatedPlConstraints();
+                if ( allPlConstraintsHold() )
+                {
+                    _exitCode = IEngine::SAT;
+                    return true;
+                }
+                else if ( performLocalSearch( timeoutInSeconds ) )
+                {
+                    // Either throws InfeasibleQueryException,
+                    // or contains a satisfying assignment
+                    // or conclude that splitting is needed
+                    _exitCode = Engine::SAT;
+                    return true;
+                }
+                continue;
+            }
+
+            _gurobi->solve();
+            if ( _gurobi->infeasbile() )
+                throw InfeasibleQueryException();
+        }
+        catch ( const InfeasibleQueryException & )
+        {
+            // The current query is unsat, and we need to pop.
+            // If we're at level 0, the whole query is unsat.
+            if ( !_smtCore.popSplit(  _gurobiForLP ) )
+            {
+                if ( _verbosity > 0 )
+                {
+                    printf( "\nEngine::solve: unsat query\n" );
+                    _statistics.print();
+                }
+                _exitCode = Engine::UNSAT;
+                return false;
+            }
+            else
+            {
+                splitJustPerformed = true;
+            }
+
+        }
+        catch ( ... )
+        {
+            _exitCode = Engine::ERROR;
+            printf( "Engine: Unknown error!\n" );
+            return false;
+        }
+    }
+}
+
 bool Engine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
@@ -691,6 +829,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
     if ( _solveWithMILP )
         return solveWithMILPEncoding( timeoutInSeconds );
+    if ( _gurobiForLP )
+        return solveWithGurobi( timeoutInSeconds );
 
     updateDirections();
     addDynamicConstraints();
@@ -2114,119 +2254,142 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
     ENGINE_LOG( "" );
     ENGINE_LOG( "Applying a split. " );
 
-    DEBUG( _tableau->verifyInvariants() );
-
-    List<Tightening> bounds = split.getBoundTightenings();
-    List<Equation> equations = split.getEquations();
-    for ( auto &equation : equations )
+    if ( _gurobiForLP )
     {
-        /*
-          First, adjust the equation if any variables have been merged.
-          E.g., if the equation is x1 + x2 + x3 = 0, and x1 and x2 have been
-          merged, the equation becomes 2x1 + x3 = 0
-        */
-        for ( auto &addend : equation._addends )
-            addend._variable = _tableau->getVariableAfterMerging( addend._variable );
+        List<Tightening> bounds = split.getBoundTightenings();
+        List<Equation> equations = split.getEquations();
+        ASSERT( equations.size() == 0 );
 
-        List<Equation::Addend>::iterator addend;
-        List<Equation::Addend>::iterator otherAddend;
-
-        addend = equation._addends.begin();
-        while ( addend != equation._addends.end() )
+        for ( auto &bound : bounds )
         {
-            otherAddend = addend;
-            ++otherAddend;
-
-            while ( otherAddend != equation._addends.end() )
+            if ( bound._type == Tightening::LB )
             {
-                if ( otherAddend->_variable == addend->_variable )
-                {
-                    addend->_coefficient += otherAddend->_coefficient;
-                    otherAddend = equation._addends.erase( otherAddend );
-                }
-                else
-                    ++otherAddend;
+                ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", bound._variable, bound._value ).ascii() );
+                _gurobi->setLowerBound( Stringf( "x%u", bound._variable ), bound._value );
             }
-
-            if ( FloatUtils::isZero( addend->_coefficient ) )
-                addend = equation._addends.erase( addend );
             else
-                ++addend;
-        }
-
-        /*
-          In the general case, we just add the new equation to the tableau.
-          However, we also support a very common case: equations of the form
-          x1 = x2, which are common, e.g., with ReLUs. For these equations we
-          may be able to merge two columns of the tableau.
-        */
-        unsigned x1, x2;
-        bool canMergeColumns =
-            // Only if the flag is on
-            GlobalConfiguration::USE_COLUMN_MERGING_EQUATIONS &&
-            // Only if the equation has the correct form
-            equation.isVariableMergingEquation( x1, x2 ) &&
-            // And only if the variables are not out of bounds
-            ( !_tableau->isBasic( x1 ) ||
-              !_tableau->basicOutOfBounds( _tableau->variableToIndex( x1 ) ) )
-            &&
-            ( !_tableau->isBasic( x2 ) ||
-              !_tableau->basicOutOfBounds( _tableau->variableToIndex( x2 ) ) );
-
-        bool columnsSuccessfullyMerged = false;
-        if ( canMergeColumns )
-            columnsSuccessfullyMerged = attemptToMergeVariables( x1, x2 );
-
-        if ( !columnsSuccessfullyMerged )
-        {
-            // General case: add a new equation to the tableau
-            unsigned auxVariable = _tableau->addEquation( equation );
-            _activeEntryStrategy->resizeHook( _tableau );
-
-            switch ( equation._type )
             {
-            case Equation::GE:
-                bounds.append( Tightening( auxVariable, 0.0, Tightening::UB ) );
-                break;
-
-            case Equation::LE:
-                bounds.append( Tightening( auxVariable, 0.0, Tightening::LB ) );
-                break;
-
-            case Equation::EQ:
-                bounds.append( Tightening( auxVariable, 0.0, Tightening::LB ) );
-                bounds.append( Tightening( auxVariable, 0.0, Tightening::UB ) );
-                break;
-
-            default:
-                ASSERT( false );
-                break;
+                ENGINE_LOG( Stringf( "x%u: upper bound set to %.3lf", bound._variable, bound._value ).ascii() );
+                _gurobi->setUpperBound( Stringf( "x%u", bound._variable ), bound._value );
             }
         }
     }
-
-    adjustWorkMemorySize();
-
-    _rowBoundTightener->resetBounds();
-    _constraintBoundTightener->resetBounds();
-
-    for ( auto &bound : bounds )
+    else
     {
-        unsigned variable = _tableau->getVariableAfterMerging( bound._variable );
+        DEBUG( _tableau->verifyInvariants() );
 
-        if ( bound._type == Tightening::LB )
+        List<Tightening> bounds = split.getBoundTightenings();
+        List<Equation> equations = split.getEquations();
+        for ( auto &equation : equations )
         {
-            ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", variable, bound._value ).ascii() );
-            _tableau->tightenLowerBound( variable, bound._value );
+            /*
+              First, adjust the equation if any variables have been merged.
+              E.g., if the equation is x1 + x2 + x3 = 0, and x1 and x2 have been
+              merged, the equation becomes 2x1 + x3 = 0
+            */
+            for ( auto &addend : equation._addends )
+                addend._variable = _tableau->getVariableAfterMerging( addend._variable );
+
+            List<Equation::Addend>::iterator addend;
+            List<Equation::Addend>::iterator otherAddend;
+
+            addend = equation._addends.begin();
+            while ( addend != equation._addends.end() )
+            {
+                otherAddend = addend;
+                ++otherAddend;
+
+                while ( otherAddend != equation._addends.end() )
+                {
+                    if ( otherAddend->_variable == addend->_variable )
+                    {
+                        addend->_coefficient += otherAddend->_coefficient;
+                        otherAddend = equation._addends.erase( otherAddend );
+                    }
+                    else
+                        ++otherAddend;
+                }
+
+                if ( FloatUtils::isZero( addend->_coefficient ) )
+                    addend = equation._addends.erase( addend );
+                else
+                    ++addend;
+            }
+
+            /*
+              In the general case, we just add the new equation to the tableau.
+              However, we also support a very common case: equations of the form
+              x1 = x2, which are common, e.g., with ReLUs. For these equations we
+              may be able to merge two columns of the tableau.
+            */
+            unsigned x1, x2;
+            bool canMergeColumns =
+                // Only if the flag is on
+                GlobalConfiguration::USE_COLUMN_MERGING_EQUATIONS &&
+                // Only if the equation has the correct form
+                equation.isVariableMergingEquation( x1, x2 ) &&
+                // And only if the variables are not out of bounds
+                ( !_tableau->isBasic( x1 ) ||
+                  !_tableau->basicOutOfBounds( _tableau->variableToIndex( x1 ) ) )
+                &&
+                ( !_tableau->isBasic( x2 ) ||
+                  !_tableau->basicOutOfBounds( _tableau->variableToIndex( x2 ) ) );
+
+            bool columnsSuccessfullyMerged = false;
+            if ( canMergeColumns )
+                columnsSuccessfullyMerged = attemptToMergeVariables( x1, x2 );
+
+            if ( !columnsSuccessfullyMerged )
+            {
+                // General case: add a new equation to the tableau
+                unsigned auxVariable = _tableau->addEquation( equation );
+                _activeEntryStrategy->resizeHook( _tableau );
+
+                switch ( equation._type )
+                {
+                case Equation::GE:
+                    bounds.append( Tightening( auxVariable, 0.0, Tightening::UB ) );
+                    break;
+
+                case Equation::LE:
+                    bounds.append( Tightening( auxVariable, 0.0, Tightening::LB ) );
+                    break;
+
+                case Equation::EQ:
+                    bounds.append( Tightening( auxVariable, 0.0, Tightening::LB ) );
+                    bounds.append( Tightening( auxVariable, 0.0, Tightening::UB ) );
+                    break;
+
+                default:
+                    ASSERT( false );
+                    break;
+                }
+            }
         }
-        else
+
+        adjustWorkMemorySize();
+
+        _rowBoundTightener->resetBounds();
+        _constraintBoundTightener->resetBounds();
+
+        for ( auto &bound : bounds )
         {
-            ENGINE_LOG( Stringf( "x%u: upper bound set to %.3lf", variable, bound._value ).ascii() );
-            _tableau->tightenUpperBound( variable, bound._value );
+            unsigned variable = _tableau->getVariableAfterMerging( bound._variable );
+
+            if ( bound._type == Tightening::LB )
+            {
+                ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", variable, bound._value ).ascii() );
+                _tableau->tightenLowerBound( variable, bound._value );
+            }
+            else
+            {
+                ENGINE_LOG( Stringf( "x%u: upper bound set to %.3lf", variable, bound._value ).ascii() );
+                _tableau->tightenUpperBound( variable, bound._value );
+            }
         }
+
+        DEBUG( _tableau->verifyInvariants() );
     }
-
-    DEBUG( _tableau->verifyInvariants() );
     ENGINE_LOG( "Done with split\n" );
 }
 

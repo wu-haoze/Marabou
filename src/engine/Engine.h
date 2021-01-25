@@ -346,6 +346,11 @@ private:
     bool _solveWithMILP;
 
     /*
+      Use Gurobi to solve LP
+    */
+    bool _gurobiForLP;
+
+    /*
       GurobiWrapper object
     */
     std::unique_ptr<GurobiWrapper> _gurobi;
@@ -616,6 +621,8 @@ private:
     Map<unsigned, double> _heuristicCost;
 
     Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
+
+    bool solveWithGurobi( unsigned timeoutInSeconds );
 
     /*
       Performs local search at the search level.
