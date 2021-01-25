@@ -115,7 +115,7 @@ double Engine::computeHeuristicCost()
     double cost = 0;
     for ( const auto &pair : _heuristicCost )
     {
-        double value =  _solveWithMILP ? _gurobi->getValue( pair.first ) : _tableau->getValue( pair.first );
+        double value =  ( _solveWithMILP || _gurobiForLP ) ? _gurobi->getValue( pair.first ) : _tableau->getValue( pair.first );
         cost += pair.second * value;
     }
     return cost;
@@ -363,7 +363,7 @@ void Engine::checkAllVariblesInBound()
     DEBUG({
             for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
             {
-                double value =  _solveWithMILP ? _gurobi->getValue( i ) : _tableau->getValue( i );
+                double value =  ( _solveWithMILP || _gurobiForLP ) ? _gurobi->getValue( i ) : _tableau->getValue( i );
 
                 if ( !FloatUtils::gte( value, _tableau->getLowerBound( i ) ) ||
                      !FloatUtils::lte( value, _tableau->getUpperBound( i ) ) )
@@ -383,7 +383,7 @@ void Engine::optimizeForHeuristicCost()
 {
     ASSERT( _tableau->isOptimizing() );
 
-    if ( _solveWithMILP )
+    if ( _solveWithMILP || _gurobiForLP )
     {
         struct timespec start = TimeUtils::sampleMicro();
         List<GurobiWrapper::Term> terms;
@@ -444,9 +444,10 @@ void Engine::notifyPLConstraintsAssignments()
 
 bool Engine::performLocalSearch( unsigned timeoutInSeconds )
 {
+    ENGINE_LOG( "Performing local search..." );
     _tableau->optimizing();
 
-    if ( _solveWithMILP )
+    if ( _solveWithMILP || _gurobiForLP )
         notifyPLConstraintsAssignments();
 
     // All the linear constraints have been satisfied at this point.
@@ -473,6 +474,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
         {
             ASSERT( FloatUtils::isZero( computeHeuristicCost() ) );
             _tableau->notOptimizing();
+            ENGINE_LOG( "Performing local search - done" );
             return true;
         }
         else
@@ -483,6 +485,7 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
     }
 
     _tableau->notOptimizing();
+    ENGINE_LOG( "Performing local search - done" );
     return false;
 }
 
@@ -522,7 +525,7 @@ void Engine::concretizeInputAssignment()
     for ( unsigned i = 0; i < numInputVariables; ++i )
     {
         unsigned variable = _preprocessedQuery.inputVariableByIndex( i );
-        inputAssignment[i] = _solveWithMILP ? _gurobi->getValue( variable ) : _tableau->getValue( variable );
+        inputAssignment[i] = ( _solveWithMILP || _gurobiForLP ) ? _gurobi->getValue( variable ) : _tableau->getValue( variable );
     }
 
     // Evaluate the network for this assignment
@@ -689,8 +692,7 @@ void Engine::updateDynamicConstraints()
 
 bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 {
-    SignalHandler::getInstance()->initialize();
-    SignalHandler::getInstance()->registerClient( this );
+    updateDirections();
 
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
     _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau, true ) );
@@ -705,6 +707,7 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
         _statistics.print();
         printf( "\n---\n" );
     }
+
     applyAllValidConstraintCaseSplits();
 
     bool splitJustPerformed = true;
@@ -760,6 +763,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 
                     updateDynamicConstraints();
                 */
+
+                applyAllValidConstraintCaseSplits();
                 splitJustPerformed = false;
             }
 
@@ -791,7 +796,9 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                 continue;
             }
 
+            ENGINE_LOG( "Solving LP with Gurobi..." );
             _gurobi->solve();
+            ENGINE_LOG( "Solving LP with Gurobi - done" );
             if ( _gurobi->infeasbile() )
                 throw InfeasibleQueryException();
         }
@@ -1977,7 +1984,7 @@ void Engine::performMILPSolverBoundedTightening()
 
 void Engine::extractSolution( InputQuery &inputQuery )
 {
-    if ( _solveWithMILP )
+    if ( _solveWithMILP || _gurobiForLP )
     {
         extractSolutionFromGurobi( inputQuery );
         return;
@@ -2057,7 +2064,7 @@ void Engine::extractSolution( InputQuery &inputQuery )
 
 bool Engine::allVarsWithinBounds() const
 {
-    if ( _solveWithMILP )
+    if ( _solveWithMILP || _gurobiForLP )
         return _gurobi->haveFeasibleSolution();
     else
         return !_tableau->existsBasicOutOfBounds();
@@ -2123,11 +2130,14 @@ void Engine::restoreState( const EngineState &state )
 {
     ENGINE_LOG( "Restore state starting" );
 
-    if ( !state._tableauStateIsStored )
+    if ( !state._tableauStateIsStored && !_gurobiForLP )
         throw MarabouError( MarabouError::RESTORING_ENGINE_FROM_INVALID_STATE );
 
-    ENGINE_LOG( "\tRestoring tableau state" );
-    _tableau->restoreState( state._tableauState );
+    if ( !_gurobiForLP )
+    {
+        ENGINE_LOG( "\tRestoring tableau state" );
+        _tableau->restoreState( state._tableauState );
+    }
 
     ENGINE_LOG( "\tRestoring constraint states" );
     for ( auto &constraint : _plConstraints )
@@ -2267,12 +2277,14 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
             if ( bound._type == Tightening::LB )
             {
                 ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", bound._variable, bound._value ).ascii() );
-                _gurobi->setLowerBound( Stringf( "x%u", bound._variable ), bound._value );
+                _gurobi->setLowerBound( _milpEncoder->getVariableNameFromVariable( bound._variable ),
+                                        bound._value );
             }
             else
             {
                 ENGINE_LOG( Stringf( "x%u: upper bound set to %.3lf", bound._variable, bound._value ).ascii() );
-                _gurobi->setUpperBound( Stringf( "x%u", bound._variable ), bound._value );
+                _gurobi->setUpperBound( _milpEncoder->getVariableNameFromVariable( bound._variable ),
+                                        bound._value );
             }
         }
     }
@@ -2463,7 +2475,8 @@ bool Engine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constrain
         constraint->setActiveConstraint( false );
         PiecewiseLinearCaseSplit validSplit = constraint->getValidCaseSplit();
         _smtCore.recordImpliedValidSplit( validSplit );
-        applySplit( validSplit );
+        if ( !_gurobiForLP )
+            applySplit( validSplit );
         ++_numPlConstraintsDisabledByValidSplits;
 
         if ( _plConstraintsInHeuristicCost.exists( constraint ) )
