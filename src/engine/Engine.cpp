@@ -445,7 +445,7 @@ void Engine::notifyPLConstraintsAssignments()
     }
 }
 
-bool Engine::performLocalSearch( unsigned timeoutInSeconds )
+bool Engine::performLocalSearch()
 {
     ENGINE_LOG( "Performing local search..." );
     _tableau->optimizing();
@@ -458,16 +458,8 @@ bool Engine::performLocalSearch( unsigned timeoutInSeconds )
     initiateCostFunctionForLocalSearch();
     ASSERT( allVarsWithinBounds() );
 
-    struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( !_smtCore.needToSplit() )
     {
-        struct timespec mainLoopEnd = TimeUtils::sampleMicro();
-        _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
-        mainLoopStart = mainLoopEnd;
-
-        if ( shouldExitDueToTimeout( timeoutInSeconds ) || _quitRequested )
-            break;
-
         optimizeForHeuristicCost();
 
         updateCostTermsForSatisfiedPLConstraints();
@@ -753,15 +745,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
         {
             mainLoopStatistics();
             if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
-                 100 == 0 )
+                 10 == 0 )
                 _statistics.print();
-
-            if ( _tableau->basisMatrixAvailable() )
-            {
-                explicitBasisBoundTightening();
-                applyAllBoundTightenings();
-                applyAllValidConstraintCaseSplits();
-            }
 
             if ( splitJustPerformed )
             {
@@ -800,7 +785,7 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                     _exitCode = IEngine::SAT;
                     return true;
                 }
-                else if ( performLocalSearch( timeoutInSeconds ) )
+                else if ( performLocalSearch() )
                 {
                     // Either throws InfeasibleQueryException,
                     // or contains a satisfying assignment
@@ -812,7 +797,10 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             }
 
             ENGINE_LOG( "Solving LP with Gurobi..." );
+            struct timespec simplexStart = TimeUtils::sampleMicro();
             _gurobi->solve();
+            struct timespec simplexEnd = TimeUtils::sampleMicro();
+            _statistics.addTimeSimplexSteps( TimeUtils::timePassed( simplexStart, simplexEnd ) );
             ENGINE_LOG( "Solving LP with Gurobi - done" );
             if ( _gurobi->infeasbile() )
             {
@@ -988,7 +976,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 collectViolatedPlConstraints();
                 if ( _localSearch && !allPlConstraintsHold() )
                 {
-                    if ( performLocalSearch( timeoutInSeconds ) )
+                    if ( performLocalSearch() )
                     {
                         // Either throws InfeasibleQueryException,
                         // or contains a satisfying assignment
@@ -2928,6 +2916,38 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnPolarity()
         return NULL;
 }
 
+/*
+PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBABSR()
+{
+    ENGINE_LOG( Stringf( "Using BABSR heuristics..." ).ascii() );
+
+    if ( !_networkLevelReasoner )
+        throw MarabouError( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
+
+    List<PiecewiseLinearConstraint *> constraints =
+        _networkLevelReasoner->getConstraintsInTopologicalOrder();
+
+    Map<double, PiecewiseLinearConstraint *> scoreToConstraint;
+    for ( auto &plConstraint : constraints )
+    {
+        if ( plConstraint->getType() == PiecewiseLinearFunctionType::RELU &&
+             plConstraint->isActive() && !plConstraint->phaseFixed() )
+        {
+            ( (ReluConstraint) plConstraint )->updateScoreBasedOnBABSR();
+            scoreToConstraint[plConstraint->getScore()] = plConstraint;
+        }
+    }
+    if ( scoreToConstraint.size() > 0 )
+    {
+        ENGINE_LOG( Stringf( "Score of the picked ReLU: %f",
+                             ( *scoreToConstraint.begin() ).first ).ascii() );
+        return (*scoreToConstraint.begin()).second;
+    }
+    else
+        return NULL;
+}
+*/
+
 PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnTopology()
 {
     // We push the first unfixed ReLU in the topology order to the _candidatePlConstraints
@@ -2995,6 +3015,8 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
     PiecewiseLinearConstraint *candidatePLConstraint = NULL;
     if ( _splittingStrategy == DivideStrategy::Polarity )
         candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
+    //if ( _splittingStrategy == DivideStrategy::BABSR )
+    //    candidatePLConstraint = pickSplitPLConstraintBABSR();
     else if ( _splittingStrategy == DivideStrategy::EarliestReLU )
         candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
     else if ( _splittingStrategy == DivideStrategy::LargestInterval &&
@@ -3131,7 +3153,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                 _exitCode = IEngine::SAT;
                 return true;
             }
-            else if ( performLocalSearch( timeoutInSeconds ) )
+            else if ( performLocalSearch() )
             {
                 // Either throws InfeasibleQueryException,
                 // or contains a satisfying assignment

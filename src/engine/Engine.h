@@ -528,6 +528,8 @@ private:
     */
     PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnPolarity();
 
+    PiecewiseLinearConstraint *pickSplitPLConstraintBABSR();
+
     /*
       Pick the first unfixed ReLU in the topological order
     */
@@ -630,7 +632,7 @@ private:
       or return false with _needToSplit set to true and a branching variable picked.
       or return true with satisfying solution stored in the tableau.
     */
-    bool performLocalSearch( unsigned timeoutInSeconds );
+    bool performLocalSearch();
 
     /*
       Create the initial cost function for local search

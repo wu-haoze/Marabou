@@ -151,6 +151,8 @@ DivideStrategy Options::getDivideStrategy() const
         return DivideStrategy::ReLUViolation;
     else if ( strategyString == "largest-interval" )
         return DivideStrategy::LargestInterval;
+    else if ( strategyString == "babsr" )
+        return DivideStrategy::BABSR;
     else
         return DivideStrategy::Auto;
 }
