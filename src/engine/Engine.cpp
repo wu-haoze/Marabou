@@ -756,6 +756,16 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                 }
                 while ( applyAllValidConstraintCaseSplits() );
 
+                struct timespec sstart = TimeUtils::sampleMicro();
+
+                _rowBoundTightener->examineConstraintMatrix( true );
+                _statistics.incNumBoundTighteningOnConstraintMatrix();
+
+                struct timespec send = TimeUtils::sampleMicro();
+                _statistics.addTimeForConstraintMatrixBoundTightening( TimeUtils::timePassed( sstart, send ) );
+                applyAllBoundTightenings();
+                applyAllValidConstraintCaseSplits();
+
                 if ( !_tableau->allBoundsValid() )
                 {
                     // Some variable bounds are invalid, so the query is unsat
@@ -938,12 +948,14 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 continue;
             }
 
+            /*
             if ( _tableau->basisMatrixAvailable() )
             {
                 explicitBasisBoundTightening();
                 applyAllBoundTightenings();
                 applyAllValidConstraintCaseSplits();
             }
+            */
 
             if ( splitJustPerformed )
             {
@@ -1338,7 +1350,7 @@ bool Engine::performSimplexStep()
     if ( !fakePivot )
     {
         _tableau->computePivotRow();
-        _rowBoundTightener->examinePivotRow();
+        // _rowBoundTightener->examinePivotRow();
     }
 
     // Perform the actual pivot
