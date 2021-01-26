@@ -270,6 +270,11 @@ public:
         _phaseOfHeuristicCost = phaseStatus;
     }
 
+    void resetCostFunctionComponent()
+    {
+        _phaseOfHeuristicCost = PHASE_NOT_FIXED;
+    }
+
     virtual void addCostFunctionComponent( Map<unsigned, double> &, PhaseStatus ) {};
 
     /*

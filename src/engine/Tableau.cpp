@@ -486,16 +486,20 @@ void Tableau::setUpperBound( unsigned variable, double value )
 double Tableau::getLowerBound( unsigned variable ) const
 {
     ASSERT( variable < _n );
+    DEBUG({
     if ( _gurobi != NULL )
         ASSERT( _lowerBounds[variable] == _gurobi->getLowerBound( Stringf( "x%u", variable ) ) );
+        });
     return _lowerBounds[variable];
 }
 
 double Tableau::getUpperBound( unsigned variable ) const
 {
     ASSERT( variable < _n );
+    DEBUG({
     if ( _gurobi != NULL )
         ASSERT( _lowerBounds[variable] == _gurobi->getLowerBound( Stringf( "x%u", variable ) ) );
+        });
     return _upperBounds[variable];
 }
 
@@ -1698,6 +1702,20 @@ void Tableau::restoreState( const TableauState &state )
     freeMemoryIfNeeded();
     setDimensions( state._m, state._n );
 
+    // Restore the bounds and valid status
+    // TODO: should notify all the constraints.
+    memcpy( _lowerBounds, state._lowerBounds, sizeof(double) *_n );
+    memcpy( _upperBounds, state._upperBounds, sizeof(double) *_n );
+
+    if ( useGurobi() )
+    {
+        for ( unsigned i = 0; i < _n; ++i )
+        {
+            _gurobi->setLowerBound( Stringf( "x%u", i ), _lowerBounds[i] );
+            _gurobi->setUpperBound( Stringf( "x%u", i ), _upperBounds[i] );
+        }
+    }
+
     // Restore matrix A
     state._A->storeIntoOther( _A );
     for ( unsigned i = 0; i < _n; ++i )
@@ -1708,11 +1726,6 @@ void Tableau::restoreState( const TableauState &state )
 
     // Restore right hand side vector _b
     memcpy( _b, state._b, sizeof(double) * _m );
-
-    // Restore the bounds and valid status
-    // TODO: should notify all the constraints.
-    memcpy( _lowerBounds, state._lowerBounds, sizeof(double) *_n );
-    memcpy( _upperBounds, state._upperBounds, sizeof(double) *_n );
 
     // Basic variables
     _basicVariables = state._basicVariables;

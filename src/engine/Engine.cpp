@@ -183,7 +183,7 @@ void Engine::initiateCostFunctionForLocalSearchRandomly
             Vector<PhaseStatus> phaseStatuses = plConstraint->getAlternativeHeuristicPhaseStatus();
             unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
             PhaseStatus phaseStatusToSet = phaseStatuses[phaseIndex];
-            plConstraint->addCostFunctionComponentByOutputValue( _heuristicCost, phaseStatusToSet );
+            plConstraint->addCostFunctionComponent( _heuristicCost, phaseStatusToSet );
             _plConstraintsInHeuristicCost.append( plConstraint );
         }
     }
@@ -195,7 +195,10 @@ void Engine::initiateCostFunctionForLocalSearch()
     SOI_LOG( Stringf( "Initiating cost function for local search with strategy %s...",
                       _initializationStrategy.ascii() ).ascii() );
 
+    for ( const auto &plConstraint : _plConstraints )
+        plConstraint->resetCostFunctionComponent();
     _plConstraintsInHeuristicCost.clear();
+    _heuristicCost.clear();
     if ( _initializationStrategy == "currentAssignment" )
         initiateCostFunctionForLocalSearchBasedOnCurrentAssignment( _plConstraints );
     else if ( _initializationStrategy == "inputAssignment" )
@@ -696,8 +699,9 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
     _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau, true ) );
-    _smtCore.setGurobi( &( *_gurobi ) );
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
+    _smtCore.setGurobi( &( *_gurobi ) );
+    _tableau->setGurobi( &(*_gurobi) );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
 
     mainLoopStatistics();
@@ -749,8 +753,15 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
         {
             mainLoopStatistics();
             if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
-                 GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY == 0 )
+                 100 == 0 )
                 _statistics.print();
+
+            if ( _tableau->basisMatrixAvailable() )
+            {
+                explicitBasisBoundTightening();
+                applyAllBoundTightenings();
+                applyAllValidConstraintCaseSplits();
+            }
 
             if ( splitJustPerformed )
             {
@@ -2140,11 +2151,8 @@ void Engine::restoreState( const EngineState &state )
     if ( !state._tableauStateIsStored && !_gurobiForLP )
         throw MarabouError( MarabouError::RESTORING_ENGINE_FROM_INVALID_STATE );
 
-    if ( !_gurobiForLP )
-    {
-        ENGINE_LOG( "\tRestoring tableau state" );
-        _tableau->restoreState( state._tableauState );
-    }
+    ENGINE_LOG( "\tRestoring tableau state" );
+    _tableau->restoreState( state._tableauState );
 
     ENGINE_LOG( "\tRestoring constraint states" );
     for ( auto &constraint : _plConstraints )
@@ -2157,15 +2165,12 @@ void Engine::restoreState( const EngineState &state )
 
     _numPlConstraintsDisabledByValidSplits = state._numPlConstraintsDisabledByValidSplits;
 
-    if ( !_gurobiForLP )
-    {
-        // Make sure the data structures are initialized to the correct size
-        _rowBoundTightener->setDimensions();
-        _constraintBoundTightener->setDimensions();
-        adjustWorkMemorySize();
-        _activeEntryStrategy->resizeHook( _tableau );
-        _costFunctionManager->initialize();
-    }
+    // Make sure the data structures are initialized to the correct size
+    _rowBoundTightener->setDimensions();
+    _constraintBoundTightener->setDimensions();
+    adjustWorkMemorySize();
+    _activeEntryStrategy->resizeHook( _tableau );
+    _costFunctionManager->initialize();
 
     // Reset the violation counts in the SMT core
     _smtCore.resetReportedViolations();
@@ -2483,8 +2488,7 @@ bool Engine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constrain
         constraint->setActiveConstraint( false );
         PiecewiseLinearCaseSplit validSplit = constraint->getValidCaseSplit();
         _smtCore.recordImpliedValidSplit( validSplit );
-        if ( !_gurobiForLP )
-            applySplit( validSplit );
+        applySplit( validSplit );
         ++_numPlConstraintsDisabledByValidSplits;
 
         if ( _plConstraintsInHeuristicCost.exists( constraint ) )
