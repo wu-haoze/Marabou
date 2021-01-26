@@ -1656,49 +1656,80 @@ void Tableau::dumpEquations()
 
 void Tableau::storeState( TableauState &state ) const
 {
-    // Set the dimensions
-    state.setDimensions( _m, _n, *this );
+    if ( useGurobi() )
+    {
+        state.initializeBounds( _n );
 
-    // Store matrix A
-    _A->storeIntoOther( state._A );
-    for ( unsigned i = 0; i < _n; ++i )
-        _sparseColumnsOfA[i]->storeIntoOther( state._sparseColumnsOfA[i] );
-    for ( unsigned i = 0; i < _m; ++i )
-        _sparseRowsOfA[i]->storeIntoOther( state._sparseRowsOfA[i] );
-    memcpy( state._denseA, _denseA, sizeof(double) * _m * _n );
+        // Store the bounds
+        memcpy( state._lowerBounds, _lowerBounds, sizeof(double) *_n );
+        memcpy( state._upperBounds, _upperBounds, sizeof(double) *_n );
 
-    // Store right hand side vector _b
-    memcpy( state._b, _b, sizeof(double) * _m );
+        // Store the _boundsValid indicator
+        state._boundsValid = _boundsValid;
+    }
+    else
+    {
+        // Set the dimensions
+        state.setDimensions( _m, _n, *this );
 
-    // Store the bounds
-    memcpy( state._lowerBounds, _lowerBounds, sizeof(double) *_n );
-    memcpy( state._upperBounds, _upperBounds, sizeof(double) *_n );
+        // Store matrix A
+        _A->storeIntoOther( state._A );
+        for ( unsigned i = 0; i < _n; ++i )
+            _sparseColumnsOfA[i]->storeIntoOther( state._sparseColumnsOfA[i] );
+        for ( unsigned i = 0; i < _m; ++i )
+            _sparseRowsOfA[i]->storeIntoOther( state._sparseRowsOfA[i] );
+        memcpy( state._denseA, _denseA, sizeof(double) * _m * _n );
 
-    // Basic variables
-    state._basicVariables = _basicVariables;
+        // Store right hand side vector _b
+        memcpy( state._b, _b, sizeof(double) * _m );
 
-    // Store the assignments
-    memcpy( state._basicAssignment, _basicAssignment, sizeof(double) *_m );
-    memcpy( state._nonBasicAssignment, _nonBasicAssignment, sizeof(double) * ( _n - _m ) );
-    state._basicAssignmentStatus = _basicAssignmentStatus;
+        // Basic variables
+        state._basicVariables = _basicVariables;
 
-    // Store the indices
-    memcpy( state._basicIndexToVariable, _basicIndexToVariable, sizeof(unsigned) * _m );
-    memcpy( state._nonBasicIndexToVariable, _nonBasicIndexToVariable, sizeof(unsigned) * ( _n - _m ) );
-    memcpy( state._variableToIndex, _variableToIndex, sizeof(unsigned) * _n );
+        // Store the assignments
+        memcpy( state._basicAssignment, _basicAssignment, sizeof(double) *_m );
+        memcpy( state._nonBasicAssignment, _nonBasicAssignment, sizeof(double) * ( _n - _m ) );
+        state._basicAssignmentStatus = _basicAssignmentStatus;
 
-    // Store the basis factorization
-    _basisFactorization->storeFactorization( state._basisFactorization );
+        // Store the indices
+        memcpy( state._basicIndexToVariable, _basicIndexToVariable, sizeof(unsigned) * _m );
+        memcpy( state._nonBasicIndexToVariable, _nonBasicIndexToVariable, sizeof(unsigned) * ( _n - _m ) );
+        memcpy( state._variableToIndex, _variableToIndex, sizeof(unsigned) * _n );
 
-    // Store the _boundsValid indicator
-    state._boundsValid = _boundsValid;
+        // Store the basis factorization
+        _basisFactorization->storeFactorization( state._basisFactorization );
 
-    // Store the merged variables
-    state._mergedVariables = _mergedVariables;
+        // Store the bounds
+        memcpy( state._lowerBounds, _lowerBounds, sizeof(double) *_n );
+        memcpy( state._upperBounds, _upperBounds, sizeof(double) *_n );
+
+        // Store the _boundsValid indicator
+        state._boundsValid = _boundsValid;
+
+        // Store the merged variables
+        state._mergedVariables = _mergedVariables;
+    }
 }
 
 void Tableau::restoreState( const TableauState &state )
 {
+    if ( useGurobi() )
+    {
+        ASSERT( _n = state._n );
+        // Restore the bounds and valid status
+        // TODO: should notify all the constraints.
+        memcpy( _lowerBounds, state._lowerBounds, sizeof(double) *_n );
+        memcpy( _upperBounds, state._upperBounds, sizeof(double) *_n );
+        for ( unsigned i = 0; i < _n; ++i )
+        {
+            _gurobi->setLowerBound( Stringf( "x%u", i ), _lowerBounds[i] );
+            _gurobi->setUpperBound( Stringf( "x%u", i ), _upperBounds[i] );
+        }
+        // Restore the _boundsValid indicator
+        _boundsValid = state._boundsValid;
+        return;
+    }
+
     freeMemoryIfNeeded();
     setDimensions( state._m, state._n );
 
@@ -1706,15 +1737,6 @@ void Tableau::restoreState( const TableauState &state )
     // TODO: should notify all the constraints.
     memcpy( _lowerBounds, state._lowerBounds, sizeof(double) *_n );
     memcpy( _upperBounds, state._upperBounds, sizeof(double) *_n );
-
-    if ( useGurobi() )
-    {
-        for ( unsigned i = 0; i < _n; ++i )
-        {
-            _gurobi->setLowerBound( Stringf( "x%u", i ), _lowerBounds[i] );
-            _gurobi->setUpperBound( Stringf( "x%u", i ), _upperBounds[i] );
-        }
-    }
 
     // Restore matrix A
     state._A->storeIntoOther( _A );

@@ -41,6 +41,7 @@ public:
     TableauState();
     ~TableauState();
 
+    void initializeBounds( unsigned n );
     void setDimensions( unsigned m, unsigned n, const IBasisFactorization::BasisColumnOracle &oracle );
 
     /*

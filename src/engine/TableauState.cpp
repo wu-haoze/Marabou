@@ -135,6 +135,20 @@ TableauState::~TableauState()
     }
 }
 
+void TableauState::initializeBounds( unsigned n )
+{
+    _n = n;
+
+    _lowerBounds = new double[n];
+    if ( !_lowerBounds )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "TableauState::lowerBounds" );
+
+    _upperBounds = new double[n];
+    if ( !_upperBounds )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "TableauState::upperBounds" );
+}
+
+
 void TableauState::setDimensions( unsigned m, unsigned n, const IBasisFactorization::BasisColumnOracle &oracle )
 {
     _m = m;
