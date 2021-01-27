@@ -948,14 +948,12 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 continue;
             }
 
-            /*
             if ( _tableau->basisMatrixAvailable() )
             {
                 explicitBasisBoundTightening();
                 applyAllBoundTightenings();
                 applyAllValidConstraintCaseSplits();
             }
-            */
 
             if ( splitJustPerformed )
             {
@@ -3031,15 +3029,19 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
     //    candidatePLConstraint = pickSplitPLConstraintBABSR();
     else if ( _splittingStrategy == DivideStrategy::EarliestReLU )
         candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
-    else if ( _splittingStrategy == DivideStrategy::LargestInterval &&
-              _smtCore.getStackDepth() %
-              GlobalConfiguration::INTERVAL_SPLITTING_FREQUENCY == 0 )
+    else if ( _splittingStrategy == DivideStrategy::LargestInterval )
+    {
         // Conduct interval splitting periodically.
-        candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
+        if ( _smtCore.getStackDepth() %
+             GlobalConfiguration::INTERVAL_SPLITTING_FREQUENCY == 0 )
+            candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
+        else
+            candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
+    }
     ENGINE_LOG( Stringf( ( candidatePLConstraint ?
                            "Picked..." :
                            "Unable to pick using the current strategy..." ) ).ascii() );
-
+    
     return candidatePLConstraint;
 }
 
