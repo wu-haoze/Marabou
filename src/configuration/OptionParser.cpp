@@ -60,6 +60,9 @@ void OptionParser::initialize()
         ( "use-dynamic-constraints",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::ADD_DYNAMIC_CONSTRAINTS]) ),
           "Add dynamic constraints" )
+        ( "split-threshold-per-relu",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::VIOLATION_THRESHOLD_PER_RELU]) ),
+          "The split threshold is per relu." )
         ( "dump-bounds",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DUMP_BOUNDS]) ),
           "Dump the bounds after preprocessing" )

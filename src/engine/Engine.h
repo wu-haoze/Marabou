@@ -620,6 +620,8 @@ private:
 
     bool _addDynamicConstraint;
 
+    bool _violationThresholdPerReLU;
+
     Map<unsigned, double> _heuristicCost;
 
     Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;

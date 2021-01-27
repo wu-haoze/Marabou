@@ -52,6 +52,11 @@ public:
     void setGurobi( GurobiWrapper *gurobi );
 
     /*
+      Inform the SMT core that a random flip happened.
+    */
+    void reportRandomFlip();
+
+    /*
       Inform the SMT core that a PL constraint is violated.
     */
     void reportViolatedConstraint( PiecewiseLinearConstraint *constraint );
@@ -185,6 +190,8 @@ private:
     unsigned _constraintViolationThreshold;
 
     GurobiWrapper *_gurobi;
+
+    unsigned _numberOfRandomFlips;
 };
 
 #endif // __SmtCore_h__

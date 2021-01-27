@@ -68,6 +68,7 @@ Engine::Engine()
     , _flippingStrategy( Options::get()->getString( Options::FLIPPING_STRATEGY ) )
     , _initializationStrategy( Options::get()->getString( Options::INITIALIZATION_STRATEGY ) )
     , _addDynamicConstraint( Options::get()->getBool( Options::ADD_DYNAMIC_CONSTRAINTS ) )
+    , _violationThresholdPerReLU( Options::get()->getBool( Options::VIOLATION_THRESHOLD_PER_RELU ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -280,12 +281,16 @@ void Engine::updateHeuristicCostWalkSAT()
             Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
             unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
             phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+
+            if ( !_violationThresholdPerReLU )
+                _smtCore.reportRandomFlip();
         }
     }
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-    _smtCore.reportViolatedConstraint( plConstraintToFlip );
+    if ( _violationThresholdPerReLU )
+        _smtCore.reportViolatedConstraint( plConstraintToFlip );
     return;
 }
 
@@ -337,11 +342,15 @@ void Engine::updateHeuristicCostGWSAT()
         Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
         unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+
+        if ( !_violationThresholdPerReLU )
+            _smtCore.reportRandomFlip();
     }
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-    _smtCore.reportViolatedConstraint( plConstraintToFlip );
+    if ( _violationThresholdPerReLU )
+        _smtCore.reportViolatedConstraint( plConstraintToFlip );
     return;
 }
 

@@ -33,6 +33,7 @@ SmtCore::SmtCore( IEngine *engine )
     , _stateId( 0 )
     , _constraintViolationThreshold( Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ) )
     , _gurobi( NULL )
+    , _numberOfRandomFlips( 0 )
 {
 }
 
@@ -65,6 +66,15 @@ void SmtCore::reset()
     _constraintForSplitting = NULL;
     _stateId = 0;
     _constraintToViolationCount.clear();
+}
+
+void SmtCore::reportRandomFlip()
+{
+    if ( _numberOfRandomFlips++ >= _constraintViolationThreshold )
+    {
+        _needToSplit = true;
+        pickSplitPLConstraint();
+    }
 }
 
 void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
@@ -247,6 +257,7 @@ bool SmtCore::popSplit()
 
 void SmtCore::resetReportedViolations()
 {
+    _numberOfRandomFlips = 0;
     _constraintToViolationCount.clear();
     _needToSplit = false;
 }

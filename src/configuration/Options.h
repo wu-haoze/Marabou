@@ -63,6 +63,8 @@ public:
         // Add dynamic constraints
         ADD_DYNAMIC_CONSTRAINTS,
 
+        VIOLATION_THRESHOLD_PER_RELU,
+
         // restart cost function periodically
         RESTART,
 
