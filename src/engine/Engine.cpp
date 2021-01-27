@@ -809,6 +809,12 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                     // Either throws InfeasibleQueryException,
                     // or contains a satisfying assignment
                     // or conclude that splitting is needed
+                    if ( _verbosity > 0 )
+                    {
+                        printf( "\nEngine::solve: sat assignment found\n" );
+                        _statistics.print();
+                    }
+
                     _exitCode = Engine::SAT;
                     return true;
                 }
