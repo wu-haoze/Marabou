@@ -85,10 +85,6 @@ public:
     {
     }
 
-    void computeGivenCostFunction( const Map<unsigned, double> &/* heuristicCost */ )
-    {
-    }
-
     double *nextCostFunction;
     const double *getCostFunction() const
     {
