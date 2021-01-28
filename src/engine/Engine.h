@@ -20,6 +20,8 @@
 #include "AutoCostFunctionManager.h"
 #include "AutoRowBoundTightener.h"
 #include "AutoTableau.h"
+#include "BoundManager.h"
+#include "context/context.h"
 #include "DivideStrategy.h"
 #include "SnCDivideStrategy.h"
 #include "GlobalConfiguration.h"
@@ -176,6 +178,13 @@ private:
         PERFORMED_STRONG_RESTORATION = 1,
         PERFORMED_WEAK_RESTORATION = 2,
     };
+
+    /*
+      CVC4 Context Data structure
+    */
+    CVC4::context::Context _context;
+
+    BoundManager _boundManager;
 
     /*
       Collect and print various statistics.

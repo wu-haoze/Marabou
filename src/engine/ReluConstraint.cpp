@@ -26,6 +26,10 @@
 #include "Statistics.h"
 #include "TableauRow.h"
 
+#include "context/cdlist.h"
+#include "context/cdo.h"
+#include "context/context.h"
+
 #ifdef _WIN32
 #define __attribute__(x)
 #endif
