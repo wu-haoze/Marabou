@@ -48,27 +48,9 @@ void OptionParser::initialize()
         ( "restore-tree-states",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::RESTORE_TREE_STATES]) ),
           "Restore tree states in dnc mode" )
-        ( "local-search",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::LOCAL_SEARCH]) ),
-          "Use SOI-based local search" )
-        ( "concretize-input",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::CONCRETIZE_INPUT]) ),
-          "Concretize inputs" )
-        ( "restart",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::RESTART]) ),
-          "recreate the cost function periodically" )
-        ( "use-dynamic-constraints",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::ADD_DYNAMIC_CONSTRAINTS]) ),
-          "Add dynamic constraints" )
-        ( "split-threshold-per-relu",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::VIOLATION_THRESHOLD_PER_RELU]) ),
-          "The split threshold is per relu." )
         ( "dump-bounds",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DUMP_BOUNDS]) ),
           "Dump the bounds after preprocessing" )
-        ( "gurobi-lp",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::USE_GUROBI_FOR_LP]) ),
-          "Use Gurobi to solve lp problem at each tree state" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

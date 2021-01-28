@@ -53,22 +53,6 @@ public:
 
         // Solve the input query with a MILP solver
         SOLVE_WITH_MILP,
-
-        // Using SOI-based local search
-        LOCAL_SEARCH,
-
-        // Concretize input
-        CONCRETIZE_INPUT,
-
-        // Add dynamic constraints
-        ADD_DYNAMIC_CONSTRAINTS,
-
-        VIOLATION_THRESHOLD_PER_RELU,
-
-        // restart cost function periodically
-        RESTART,
-
-        USE_GUROBI_FOR_LP,
     };
 
     enum IntOptions {

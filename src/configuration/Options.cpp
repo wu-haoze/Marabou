@@ -47,12 +47,6 @@ void Options::initializeDefaultValues()
     _boolOptions[RESTORE_TREE_STATES] = false;
     _boolOptions[DUMP_BOUNDS] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
-    _boolOptions[LOCAL_SEARCH] = false;
-    _boolOptions[CONCRETIZE_INPUT] = false;
-    _boolOptions[ADD_DYNAMIC_CONSTRAINTS] = false;
-    _boolOptions[VIOLATION_THRESHOLD_PER_RELU] = false;
-    _boolOptions[RESTART] = false;
-    _boolOptions[USE_GUROBI_FOR_LP] = false;
 
     /*
       Int options

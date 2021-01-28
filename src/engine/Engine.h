@@ -440,11 +440,6 @@ private:
 
     /****************************** local search ****************************/
     /*
-      Concretize inputs.
-    */
-    bool _concretizeInput;
-
-    /*
       Copy of the original input query
     */
     InputQuery _originalInputQuery;

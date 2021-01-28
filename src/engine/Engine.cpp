@@ -47,7 +47,6 @@ Engine::Engine()
     , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
-    , _concretizeInput( Options::get()->getBool( Options::CONCRETIZE_INPUT ) )
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
     , _noiseParameter( Options::get()->getFloat( Options::NOISE_PARAMETER ) )
@@ -372,9 +371,6 @@ bool Engine::performLocalSearch()
 
 bool Engine::concretizeAndCheckInputAssignment()
 {
-    if ( !_concretizeInput )
-        return false;
-
     concretizeInputAssignment();
     if ( checkAssignmentFromNetworkLevelReasoner() )
     {
