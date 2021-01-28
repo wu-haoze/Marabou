@@ -250,7 +250,6 @@ void Engine::updateHeuristicCostWalkSAT()
     return;
 }
 
-
 void Engine::updateHeuristicCostGWSAT()
 {
     /*
