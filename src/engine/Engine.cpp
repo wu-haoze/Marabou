@@ -616,6 +616,13 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                  10 == 0 )
                 _statistics.print();
 
+            if ( _tableau->basisMatrixAvailable() )
+            {
+                explicitBasisBoundTightening();
+                applyAllBoundTightenings();
+                applyAllValidConstraintCaseSplits();
+            }
+
             if ( splitJustPerformed )
             {
                 do
