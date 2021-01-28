@@ -16,7 +16,6 @@
 #ifndef __SmtCore_h__
 #define __SmtCore_h__
 
-#include "GurobiWrapper.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearConstraint.h"
 #include "SmtState.h"
@@ -48,8 +47,6 @@ public:
       Reset the SmtCore
     */
     void reset();
-
-    void setGurobi( GurobiWrapper *gurobi );
 
     /*
       Inform the SMT core that a random flip happened.
@@ -188,8 +185,6 @@ private:
       Split when some relu has been violated for this many times
     */
     unsigned _constraintViolationThreshold;
-
-    GurobiWrapper *_gurobi;
 
     unsigned _numberOfRandomFlips;
 };

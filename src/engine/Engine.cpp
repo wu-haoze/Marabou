@@ -560,7 +560,6 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
     _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau, true ) );
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
-    _smtCore.setGurobi( &( *_gurobi ) );
     _tableau->setGurobi( &(*_gurobi) );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
 

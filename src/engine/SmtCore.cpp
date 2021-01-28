@@ -30,9 +30,7 @@ SmtCore::SmtCore( IEngine *engine )
     , _engine( engine )
     , _needToSplit( false )
     , _constraintForSplitting( NULL )
-    , _stateId( 0 )
     , _constraintViolationThreshold( Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ) )
-    , _gurobi( NULL )
     , _numberOfRandomFlips( 0 )
 {
 }
@@ -53,18 +51,12 @@ void SmtCore::freeMemory()
     _stack.clear();
 }
 
-void SmtCore::setGurobi( GurobiWrapper *gurobi )
-{
-    _gurobi = gurobi;
-}
-
 void SmtCore::reset()
 {
     freeMemory();
     _impliedValidSplitsAtRoot.clear();
     _needToSplit = false;
     _constraintForSplitting = NULL;
-    _stateId = 0;
     _constraintToViolationCount.clear();
 }
 
@@ -75,32 +67,6 @@ void SmtCore::reportRandomFlip()
         _needToSplit = true;
         pickSplitPLConstraint();
     }
-}
-
-void SmtCore::reportViolatedConstraint( PiecewiseLinearConstraint *constraint )
-{
-    if ( !_constraintToViolationCount.exists( constraint ) )
-        _constraintToViolationCount[constraint] = 0;
-
-    ++_constraintToViolationCount[constraint];
-
-    if ( _constraintToViolationCount[constraint] >=
-         _constraintViolationThreshold )
-    {
-        _needToSplit = true;
-        if ( !pickSplitPLConstraint() )
-            // If pickSplitConstraint failed to pick one, use the native
-            // relu-violation based splitting heuristic.
-            _constraintForSplitting = constraint;
-    }
-}
-
-unsigned SmtCore::getViolationCounts( PiecewiseLinearConstraint *constraint ) const
-{
-    if ( !_constraintToViolationCount.exists( constraint ) )
-        return 0;
-
-    return _constraintToViolationCount[constraint];
 }
 
 bool SmtCore::needToSplit() const
@@ -116,7 +82,6 @@ void SmtCore::performSplit()
     if ( !_constraintForSplitting->isActive() )
     {
         _needToSplit = false;
-        _constraintToViolationCount[_constraintForSplitting] = 0;
         _constraintForSplitting = NULL;
         return;
     }
@@ -142,8 +107,6 @@ void SmtCore::performSplit()
 
     // Obtain the current state of the engine
     EngineState *stateBeforeSplits = new EngineState;
-    stateBeforeSplits->_stateId = _stateId;
-    ++_stateId;
     _engine->storeState( *stateBeforeSplits, true );
 
     SmtStackEntry *stackEntry = new SmtStackEntry;
@@ -258,7 +221,6 @@ bool SmtCore::popSplit()
 void SmtCore::resetReportedViolations()
 {
     _numberOfRandomFlips = 0;
-    _constraintToViolationCount.clear();
     _needToSplit = false;
 }
 
@@ -390,39 +352,6 @@ bool SmtCore::splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, 
     return true;
 }
 
-PiecewiseLinearConstraint *SmtCore::chooseViolatedConstraintForFixing( Vector<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const
-{
-    ASSERT( !_violatedPlConstraints.empty() );
-
-    if ( !GlobalConfiguration::USE_LEAST_FIX )
-        return *_violatedPlConstraints.begin();
-
-    PiecewiseLinearConstraint *candidate;
-
-    // Apply the least fix heuristic
-    auto it = _violatedPlConstraints.begin();
-
-    candidate = *it;
-    unsigned minFixes = getViolationCounts( candidate );
-
-    PiecewiseLinearConstraint *contender;
-    unsigned contenderFixes;
-    while ( it != _violatedPlConstraints.end() )
-    {
-        contender = *it;
-        contenderFixes = getViolationCounts( contender );
-        if ( contenderFixes < minFixes )
-        {
-            minFixes = contenderFixes;
-            candidate = contender;
-        }
-
-        ++it;
-    }
-
-    return candidate;
-}
-
 void SmtCore::replaySmtStackEntry( SmtStackEntry *stackEntry )
 {
     struct timespec start = TimeUtils::sampleMicro();
@@ -435,8 +364,6 @@ void SmtCore::replaySmtStackEntry( SmtStackEntry *stackEntry )
 
     // Obtain the current state of the engine
     EngineState *stateBeforeSplits = new EngineState;
-    stateBeforeSplits->_stateId = _stateId;
-    ++_stateId;
     _engine->storeState( *stateBeforeSplits, true );
     stackEntry->_engineState = stateBeforeSplits;
 
@@ -461,8 +388,6 @@ void SmtCore::storeSmtState( SmtState &smtState )
 
     for ( auto &stackEntry : _stack )
         smtState._stack.append( stackEntry->duplicateSmtStackEntry() );
-
-    smtState._stateId = _stateId;
 }
 
 bool SmtCore::pickSplitPLConstraint()
