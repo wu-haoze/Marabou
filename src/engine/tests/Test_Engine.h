@@ -46,7 +46,6 @@ class EngineTestSuite : public CxxTest::TestSuite
 public:
     MockForEngine *mock;
     MockTableau *tableau;
-    MockCostFunctionManager *costFunctionManager;
     MockRowBoundTightener *rowTightener;
     MockConstraintBoundTightener *constraintTightener;
     MockConstraintMatrixAnalyzer *constraintMatrixAnalyzer;
@@ -56,7 +55,6 @@ public:
         TS_ASSERT( mock = new MockForEngine );
 
         tableau = &( mock->mockTableau );
-        costFunctionManager = &( mock->mockCostFunctionManager );
         rowTightener = &( mock->mockRowBoundTightener );
         constraintTightener = &( mock->mockConstraintBoundTightener );
         constraintMatrixAnalyzer = &( mock->mockConstraintMatrixAnalyzer );
@@ -74,12 +72,10 @@ public:
         TS_ASSERT_THROWS_NOTHING( engine = new Engine() );
 
         TS_ASSERT( tableau->wasCreated );
-        TS_ASSERT( costFunctionManager->wasCreated );
 
         TS_ASSERT_THROWS_NOTHING( delete engine );
 
         TS_ASSERT( tableau->wasDiscarded );
-        TS_ASSERT( costFunctionManager->wasDiscarded );
     }
 
     void test_process_input_query()
@@ -140,14 +136,11 @@ public:
         TS_ASSERT_THROWS_NOTHING( engine.processInputQuery( inputQuery, false ) );
 
         TS_ASSERT( tableau->initializeTableauCalled );
-        TS_ASSERT( costFunctionManager->initializeWasCalled );
-        TS_ASSERT( rowTightener->setDimensionsWasCalled );
+       TS_ASSERT( rowTightener->setDimensionsWasCalled );
 
         TS_ASSERT_EQUALS( tableau->lastResizeWatchers.size(), 2U );
         TS_ASSERT_EQUALS( *( tableau->lastResizeWatchers.begin() ), rowTightener );
         TS_ASSERT_EQUALS( *( tableau->lastResizeWatchers.rbegin() ), constraintTightener );
-
-        TS_ASSERT_EQUALS( tableau->lastCostFunctionManager, costFunctionManager );
 
         TS_ASSERT_EQUALS( tableau->lastM, 2U );
         TS_ASSERT_EQUALS( tableau->lastN, 7U );

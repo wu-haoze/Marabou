@@ -18,12 +18,8 @@
 
 #include "AutoConstraintBoundTightener.h"
 #include "AutoCostFunctionManager.h"
-#include "AutoProjectedSteepestEdge.h"
 #include "AutoRowBoundTightener.h"
 #include "AutoTableau.h"
-#include "BlandsRule.h"
-#include "DantzigsRule.h"
-#include "DegradationChecker.h"
 #include "DivideStrategy.h"
 #include "SnCDivideStrategy.h"
 #include "GlobalConfiguration.h"
@@ -32,7 +28,6 @@
 #include "InputQuery.h"
 #include "Map.h"
 #include "MILPEncoder.h"
-#include "PrecisionRestorer.h"
 #include "Preprocessor.h"
 #include "SignalHandler.h"
 #include "SmtCore.h"
@@ -59,7 +54,6 @@ class Engine : public IEngine, public SignalHandler::Signalable
 {
 public:
     Engine();
-    ~Engine();
 
     /*
       Attempt to find a feasible solution for the input within a time limit
@@ -204,22 +198,9 @@ private:
     Vector<PiecewiseLinearConstraint *> _violatedPlConstraints;
 
     /*
-      A single, violated PL constraint, selected for fixing.
+      Preprocessed InputQuery
     */
-    PiecewiseLinearConstraint *_plConstraintToFix;
-
-	/*
-	  Preprocessed InputQuery
-	*/
-	InputQuery _preprocessedQuery;
-
-    /*
-      Pivot selection strategies.
-    */
-    BlandsRule _blandsRule;
-    DantzigsRule _dantzigsRule;
-    AutoProjectedSteepestEdgeRule _projectedSteepestEdgeRule;
-    EntrySelectionStrategy *_activeEntryStrategy;
+    InputQuery _preprocessedQuery;
 
     /*
       Bound tightener.
@@ -235,11 +216,6 @@ private:
       Number of pl constraints disabled by valid splits.
     */
     unsigned _numPlConstraintsDisabledByValidSplits;
-
-    /*
-      Degradation checker.
-    */
-    DegradationChecker _degradationChecker;
 
     /*
       Query preprocessor.
@@ -260,22 +236,6 @@ private:
       Work memory (of size m)
     */
     double *_work;
-
-    /*
-      Restoration status.
-    */
-    BasisRestorationRequired _basisRestorationRequired;
-    BasisRestorationPerformed _basisRestorationPerformed;
-
-    /*
-      Used to restore tableau precision when degradation becomes excessive.
-    */
-    PrecisionRestorer _precisionRestorer;
-
-    /*
-      Cost function manager.
-    */
-    AutoCostFunctionManager _costFunctionManager;
 
     /*
       Indicates a user/DnCManager request to quit
@@ -316,16 +276,6 @@ private:
     unsigned _verbosity;
 
     /*
-      Records for checking whether the solution process is, overall,
-      making progress. _lastNumVisitedStates stores the previous number
-      of visited tree states, and _lastIterationWithProgress stores the
-      last iteration number where the number of visited tree states was
-      observed to increase.
-    */
-    unsigned _lastNumVisitedStates;
-    unsigned long long _lastIterationWithProgress;
-
-    /*
       Strategy used for internal splitting
     */
     DivideStrategy _splittingStrategy;
@@ -346,11 +296,6 @@ private:
     bool _solveWithMILP;
 
     /*
-      Use Gurobi to solve LP
-    */
-    bool _gurobiForLP;
-
-    /*
       GurobiWrapper object
     */
     std::unique_ptr<GurobiWrapper> _gurobi;
@@ -359,28 +304,6 @@ private:
       MILPEncoder
     */
     std::unique_ptr<MILPEncoder> _milpEncoder;
-
-    bool performSimplexStep( bool useGurobi );
-
-    void performSimplexStepWithGurobi();
-
-    /*
-      Perform a simplex step: compute the cost function, pick the
-      entering and leaving variables and perform a pivot.
-      Return true, if local optima is reached.
-    */
-    bool performSimplexStep();
-
-    /*
-      Perform a constraint-fixing step: select a violated piece-wise
-      linear constraint and attempt to fix it.
-    */
-    void performConstraintFixingStep();
-
-    /*
-      Attempt to fix one of the violated pl constraints.
-    */
-    void fixViolatedPlConstraintIfPossible();
 
     /*
       Return true iff all variables are within bounds.
@@ -396,16 +319,6 @@ private:
       Return true iff all piecewise linear constraints hold.
     */
     bool allPlConstraintsHold();
-
-    /*
-      Select a currently-violated LP constraint for fixing
-    */
-    void selectViolatedPlConstraint();
-
-    /*
-      Report the violated PL constraint to the SMT engine.
-    */
-    void reportPlViolation();
 
     /*
       Apply all bound tightenings (row and matrix-based) in
@@ -436,45 +349,9 @@ private:
     void mainLoopStatistics();
 
     /*
-      Check if the current degradation is high
-    */
-    bool shouldCheckDegradation();
-    bool highDegradation();
-
-    /*
       Perform bound tightening on the constraint matrix A.
     */
     void tightenBoundsOnConstraintMatrix();
-
-    /*
-      Adjust the size of the work memory. Should be called when m changes.
-    */
-    void adjustWorkMemorySize();
-
-    /*
-      Store the original engine state within the precision restorer.
-      Restore the tableau from the original version.
-    */
-    void storeInitialEngineState();
-    void performPrecisionRestoration( PrecisionRestorer::RestoreBasics restoreBasics );
-    bool basisRestorationNeeded() const;
-
-    /*
-      For debugging purposes:
-      Check that the current lower and upper bounds are consistent
-      with the stored solution
-    */
-    void checkBoundCompliancyWithDebugSolution();
-
-    /*
-      A helper function for merging the columns of two variables.
-      This function will ensure that the variables are non-basic
-      and then attempt to merge them. Returns true if successful,
-      false otherwise.
-    */
-    bool attemptToMergeVariables( unsigned x1, unsigned x2 );
-
-    void performDeepPolyAnalysis();
 
     /*
       Perform a round of symbolic bound tightening, taking into
@@ -488,25 +365,11 @@ private:
     bool shouldExitDueToTimeout( unsigned timeout ) const;
 
     /*
-      Evaluate the network on legal inputs; obtain the assignment
-      for as many intermediate nodes as possible; and then try
-      to assign these values to the corresponding variables.
-    */
-    void warmStart();
-
-    /*
-      Check whether the number of visited tree states has increased
-      recently. If not, request a precision restoration.
-    */
-    void checkOverallProgress();
-
-    /*
       Helper functions for input query preprocessing
     */
     void informConstraintsOfInitialBounds( InputQuery &inputQuery ) const;
     void invokePreprocessor( const InputQuery &inputQuery, bool preprocess );
     void printInputBounds( const InputQuery &inputQuery ) const;
-    void storeEquationsInDegradationChecker();
     void removeRedundantEquations( const double *constraintMatrix );
     void selectInitialVariablesForBasis( const double *constraintMatrix, List<unsigned> &initialBasis, List<unsigned> &basicRows );
     void initializeTableau( const double *constraintMatrix, const List<unsigned> &initialBasis );
@@ -575,22 +438,7 @@ private:
     bool checkAssignment( InputQuery &inputQuery,
                           const Map<unsigned, double> assignments );
 
-
-    void addDynamicConstraints();
-    void updateDynamicConstraints();
-
     /****************************** local search ****************************/
-
-    /*
-      Use simplex-based local search
-    */
-    bool _localSearch;
-
-    /*
-      Restart when progress is not made
-    */
-    bool _restart;
-
     /*
       Concretize inputs.
     */
@@ -617,10 +465,6 @@ private:
     */
     String _flippingStrategy;
     String _initializationStrategy;
-
-    bool _addDynamicConstraint;
-
-    bool _violationThresholdPerReLU;
 
     Map<unsigned, double> _heuristicCost;
 
@@ -708,7 +552,6 @@ private:
     /*
       For SOI Debugging
     */
-    void checkAllVariblesInBound();
     void dumpHeuristicCost();
     double computeHeuristicCost();
 
