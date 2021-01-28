@@ -1,4 +1,0 @@
-acas_5_1_prop2 - sat -46 sec
-acas_1_2_prop2 - sat - 705 sec
-mnist10x10_image2_target2_0.05 - sat - 69 sec
-mnist4x256_image1_target7_0.1 - hours
