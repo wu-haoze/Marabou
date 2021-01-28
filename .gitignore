@@ -37,5 +37,5 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 /tools/pybind11_2_3_0.tar.gz
-build*
+build
 /.idea/
