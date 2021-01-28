@@ -151,7 +151,6 @@ void Engine::initiateCostFunctionForLocalSearchRandomly
 
 void Engine::initiateCostFunctionForLocalSearch()
 {
-    struct timespec start = TimeUtils::sampleMicro();
     SOI_LOG( Stringf( "Initiating cost function for local search with strategy %s...",
                       _initializationStrategy.ascii() ).ascii() );
 
@@ -167,13 +166,10 @@ void Engine::initiateCostFunctionForLocalSearch()
         initiateCostFunctionForLocalSearchRandomly( _plConstraints );
 
     SOI_LOG( "initiating cost function for local search - done" );
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::updateCostTermsForSatisfiedPLConstraints()
 {
-    struct timespec start = TimeUtils::sampleMicro();
     SOI_LOG( "Updating cost terms for satisfied constraint..." );
     SOI_LOG( Stringf( "Heuristic cost before updating cost terms for satisfied constraint: %f",
                       computeHeuristicCost() ).ascii() );
@@ -197,8 +193,6 @@ void Engine::updateCostTermsForSatisfiedPLConstraints()
     SOI_LOG( Stringf( "Heuristic cost after updating cost terms for satisfied constraint: %f",
                       computeHeuristicCost() ).ascii() );
     SOI_LOG( "Updating cost terms for satisfied constraint - done\n" );
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::updateHeuristicCostWalkSAT()
@@ -307,7 +301,6 @@ void Engine::updateHeuristicCostGWSAT()
 
 void Engine::updateHeuristicCost()
 {
-    struct timespec start = TimeUtils::sampleMicro();
     SOI_LOG( Stringf( "Updating heuristic cost with strategy %s", _flippingStrategy.ascii() ).ascii() );
 
     if ( _flippingStrategy == "gwsat" )
@@ -317,8 +310,6 @@ void Engine::updateHeuristicCost()
 
     SOI_LOG( Stringf( "Heuristic cost after updates: %f", computeHeuristicCost() ).ascii() ) ;
     SOI_LOG( "Updating heuristic cost - done\n" );
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForUpdatingCostForLocalSearch( TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::optimizeForHeuristicCost()
@@ -398,8 +389,6 @@ void Engine::concretizeInputAssignment()
     if ( !_networkLevelReasoner )
         return;
 
-    struct timespec start = TimeUtils::sampleMicro();
-
     unsigned numInputVariables = _preprocessedQuery.getNumInputVariables();
     unsigned numOutputVariables = _preprocessedQuery.getNumOutputVariables();
 
@@ -423,17 +412,12 @@ void Engine::concretizeInputAssignment()
 
     delete[] outputAssignment;
     delete[] inputAssignment;
-
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForNetworkEvaluation( TimeUtils::timePassed( start, end ) );
 }
 
 bool Engine::checkAssignmentFromNetworkLevelReasoner()
 {
     if ( !_networkLevelReasoner )
         return false;
-
-    struct timespec start = TimeUtils::sampleMicro();
 
     Map<unsigned, double> assignments;
     // Try to update as many variables as possible to match their assignment
@@ -461,9 +445,6 @@ bool Engine::checkAssignmentFromNetworkLevelReasoner()
         // TODO: Get explanation where it fails.
     }
 
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForAssignmentCheck( TimeUtils::timePassed( start, end ) );
-    _statistics.incNumAssignmentChecks();
     return assignmentValid;
 }
 

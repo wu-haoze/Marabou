@@ -62,11 +62,6 @@ public:
     void addTimeForDegradationChecking( unsigned long long time );
     void addTimeForPrecisionRestoration( unsigned long long time );
     void addTimeForApplyingStoredTightenings( unsigned long long time );
-    void addTimeForAssignmentCheck( unsigned long long time );
-    void addTimeForNetworkEvaluation( unsigned long long time );
-    void addTimeForUpdatingDynamicConstraints( unsigned long long time );
-    void addTimeForUpdatingCostForLocalSearch( unsigned long long time );
-
     void incNumPrecisionRestorations();
     double getMaxDegradation() const;
     unsigned getNumPrecisionRestorations() const;
@@ -129,9 +124,6 @@ public:
     void incNumBoundsProposedByPlConstraints();
 
     void incNumTighteningsFromSymbolicBoundTightening( unsigned increment );
-
-    void incNumAssignmentChecks();
-    void incNumDynamicConstraintUpdates( unsigned increment = 1 );
 
     /*
       Basis factorization statistics
@@ -275,12 +267,6 @@ private:
     // Basis factorization statistics
     unsigned long long _numBasisRefactorizations;
 
-    // Number of times checking the validity of the assignment from the network level reasoner.
-    unsigned long long _numAssignmentChecks;
-
-    // Number of times the dynamic constraints are updated
-    unsigned long long _numDynamicConstraintUpdates;
-
     // Projected steepest edge statistics
     unsigned long long _pseNumIterations;
     unsigned long long _pseNumResetReferenceSpace;
@@ -320,18 +306,6 @@ private:
 
     // Total amount of time spent within the SMT core
     unsigned long long _totalTimeSmtCoreMicro;
-
-    // Total time spent checking whether a network level reasoner assignment is valid
-    unsigned long long _totalTimeAssignmentCheck;
-
-    // Total time spent evaluting inputs using the network level reasoner
-    unsigned long long _totalTimeNetworkEvaluation;
-
-    // Total time spent updating the dynamic constraints
-    unsigned long long _totalTimeUpdatingDynamicConstraints;
-
-    // Total time spent updating the dynamic constraints
-    unsigned long long _totalTimeUpdatingCostFunctionForLocalSearch;
 
     // Whether the engine quitted with a timeout
     bool _timedOut;
