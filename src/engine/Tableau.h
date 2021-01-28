@@ -16,11 +16,11 @@
 #ifndef __Tableau_h__
 #define __Tableau_h__
 
+#include "GurobiWrapper.h"
 #include "IBasisFactorization.h"
 #include "ITableau.h"
 #include "MString.h"
 #include "Map.h"
-#include "PiecewiseLinearConstraint.h"
 #include "Set.h"
 #include "SparseColumnsOfBasis.h"
 #include "SparseMatrix.h"
@@ -102,9 +102,7 @@ public:
       method returns the index of the fresh auxiliary variable assigned
       to the equation
     */
-    unsigned addEquation( const Equation &equation,
-                          double lb=FloatUtils::negativeInfinity(),
-                          double ub=FloatUtils::infinity() );
+    unsigned addEquation( const Equation &equation );
 
     /*
       Get the Tableau's dimensions.
@@ -260,11 +258,6 @@ public:
       True iff the variable is basic
     */
     bool isBasic( unsigned variable ) const;
-
-    /*
-      Update the non-basic assignments without updating the basic assignments.
-    */
-    void setNonBasicAssignments( double *nonBasicAssignment );
 
     /*
       Set the assignment of a non-basic variable to a given value.
@@ -452,10 +445,6 @@ public:
       variable, after the merging has been applied.
      */
     unsigned getVariableAfterMerging( unsigned variable ) const;
-
-    const double *getNonBasicAssignment() const;
-
-    void updateA( unsigned row, unsigned col, double coefficient );
 
 private:
     /*

@@ -132,8 +132,6 @@ public:
     */
     void addAuxiliaryEquations( InputQuery &inputQuery );
 
-    void addDynamicConstraints( ITableau *tableau );
-
     /*
       Ask the piecewise linear constraint to contribute a component to the cost
       function. If implemented, this component should be empty when the constraint is
@@ -198,19 +196,12 @@ public:
 
     void removeCostFunctionComponent( Map<unsigned, double> &cost );
 
-    void updateDynamicConstraints( ITableau *tableau );
-
     void extractVariableValueFromGurobi( GurobiWrapper &gurobi );
 
 private:
     unsigned _b, _f;
     bool _auxVarInUse;
     unsigned _aux;
-
-    bool _dynamicConstraintsInUse;
-    unsigned _z, _t, _aux1;
-
-    unsigned _dynamicConstraintRowIndex;
 
     /*
       Denotes which case split to handle first.

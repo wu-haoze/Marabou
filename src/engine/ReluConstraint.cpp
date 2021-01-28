@@ -34,8 +34,6 @@ ReluConstraint::ReluConstraint( unsigned b, unsigned f )
     : _b( b )
     , _f( f )
     , _auxVarInUse( false )
-    , _dynamicConstraintsInUse( false )
-    , _dynamicConstraintRowIndex( 0 )
     , _direction( PHASE_NOT_FIXED )
     , _haveEliminatedVariables( false )
 {
@@ -780,65 +778,6 @@ void ReluConstraint::addAuxiliaryEquations( InputQuery &inputQuery )
 
 }
 
-void ReluConstraint::addDynamicConstraints( ITableau *tableau )
-{
-    /*
-      We additionally add the following constraint:
-
-      t = ub / (ub - lb)
-      t * b - lb * t >= f ->  t * b - f >= lb * t
-
-      which becomes
-      t * b - f + aux = 0
-
-      where -aux >= lb * t
-            -aux <= t * ub
-
-      that is
-
-      -t * ub  <= aux <= -lb * t
-    */
-    PLConstraint_LOG( "Adding dynamic constraint for ReLU..." );
-
-    double ub = _upperBounds[_b];
-    double lb = _lowerBounds[_b];
-    ASSERT( ub != FloatUtils::infinity() &&
-            lb != FloatUtils::negativeInfinity() );
-
-    if ( !FloatUtils::isNegative( lb ) || !FloatUtils::isPositive( ub ) )
-    {
-        PLConstraint_LOG( "ReLU fixed - no constraint added." );
-        PLConstraint_LOG( "Adding dynamic constraint for ReLU - done" );
-        return;
-    }
-
-    ASSERT( FloatUtils::isNegative( lb ) && FloatUtils::isPositive( ub ) );
-
-    double t = ub / ( ub - lb );
-    Equation equation1( Equation::EQ );
-    equation1.addAddend( t, _b );
-    equation1.addAddend( -1.0, _f );
-    equation1.setScalar( 0 );
-
-    _dynamicConstraintsInUse = true;
-
-    _aux1 = tableau->addEquation( equation1, -t * ub, -lb * t );
-
-    PLConstraint_LOG( "Adding dynamic constraint for ReLU - done" );
-}
-
-void ReluConstraint::updateDynamicConstraints( ITableau * )
-{
-    /*
-        double ub = _upperBounds[_b];
-        double lb = _lowerBounds[_b];
-        double t = ub / ( ub - lb );
-        tableau->updateA( _dynamicConstraintRowIndex, _b, ub / ( ub - lb ) );
-        tableau->setLowerBound( _aux1, t * lb );
-        tableau->setUpperBound( _aux1, ub * t + lb * t );
-    */
-}
-
 void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost ) const
 {
     // This should not be called for inactive constraints
@@ -926,11 +865,6 @@ bool ReluConstraint::supportPolarity() const
 bool ReluConstraint::auxVariableInUse() const
 {
     return _auxVarInUse;
-}
-
-bool ReluConstraint::dynamicConstraintsInUse() const
-{
-    return _dynamicConstraintsInUse;
 }
 
 unsigned ReluConstraint::getAux() const

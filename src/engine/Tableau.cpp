@@ -1421,17 +1421,6 @@ bool Tableau::isBasic( unsigned variable ) const
     return _basicVariables.exists( variable );
 }
 
-void Tableau::setNonBasicAssignments( double *nonBasicAssignment )
-{
-    for ( unsigned i = 0; i < _n - _m; ++i )
-    {
-        double value = nonBasicAssignment[i];
-        _nonBasicAssignment[i] = value;
-        notifyVariableValue( _nonBasicIndexToVariable[i], value );
-    }
-    return;
-}
-
 void Tableau::setNonBasicAssignment( unsigned variable, double value, bool updateBasics )
 {
     ASSERT( !_basicVariables.exists( variable ) );
@@ -1690,7 +1679,7 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
         _gurobi->setUpperBound( Stringf( "x%u", variable ), value );
 }
 
-unsigned Tableau::addEquation( const Equation &equation, double auxLb, double auxUb )
+unsigned Tableau::addEquation( const Equation &equation )
 {
     // The fresh auxiliary variable assigned to the equation is _n.
     // This variable is implicitly added to the equation, with
@@ -1720,38 +1709,30 @@ unsigned Tableau::addEquation( const Equation &equation, double auxLb, double au
     // Invalidate the cost function, so that it is recomputed in the next iteration.
     _costFunctionManager->invalidateCostFunction();
 
-    if ( auxLb == FloatUtils::negativeInfinity() || auxUb == FloatUtils::infinity() )
-    {
-        // All variables except the new one have finite bounds. Use this to compute
-        // finite bounds for the new variable.
-        double lb = equation._scalar;
-        double ub = equation._scalar;
+    // All variables except the new one have finite bounds. Use this to compute
+    // finite bounds for the new variable.
+    double lb = equation._scalar;
+    double ub = equation._scalar;
 
-        for ( const auto &addend : equation._addends )
+    for ( const auto &addend : equation._addends )
+    {
+        double coefficient = addend._coefficient;
+        unsigned variable = addend._variable;
+
+        if ( FloatUtils::isPositive( coefficient ) )
         {
-            double coefficient = addend._coefficient;
-            unsigned variable = addend._variable;
-
-            if ( FloatUtils::isPositive( coefficient ) )
-            {
-                lb -= coefficient * _upperBounds[variable];
-                ub -= coefficient * _lowerBounds[variable];
-            }
-            else
-            {
-                lb -= coefficient * _lowerBounds[variable];
-                ub -= coefficient * _upperBounds[variable];
-            }
+            lb -= coefficient * _upperBounds[variable];
+            ub -= coefficient * _lowerBounds[variable];
         }
+        else
+        {
+            lb -= coefficient * _lowerBounds[variable];
+            ub -= coefficient * _upperBounds[variable];
+        }
+    }
 
-        setLowerBound( auxVariable, lb );
-        setUpperBound( auxVariable, ub );
-    }
-    else
-    {
-        setLowerBound( auxVariable, auxLb );
-        setUpperBound( auxVariable, auxUb );
-    }
+    setLowerBound( auxVariable, lb );
+    setUpperBound( auxVariable, ub );
 
     // Populate the new row of b
     _b[_m - 1] = equation._scalar;
@@ -2413,18 +2394,6 @@ unsigned Tableau::getVariableAfterMerging( unsigned variable ) const
 
     return answer;
 }
-
-const double *Tableau::getNonBasicAssignment() const
-{
-    return _nonBasicAssignment;
-}
-
-void Tableau::updateA( unsigned row, unsigned col, double coefficient )
-{
-    _A->commitChange( row, col, coefficient );
-    _A->executeChanges();
-}
-
 
 void Tableau::mergeColumns( unsigned x1, unsigned x2 )
 {

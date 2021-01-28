@@ -195,8 +195,6 @@ public:
     */
     virtual void addAuxiliaryEquations( InputQuery &/* inputQuery */ ) {}
 
-    virtual void addDynamicConstraints( ITableau * ) {};
-
     /*
       Produce string representation of the piecewise linear constraint.
       This representation contains only the information necessary to reproduce it
@@ -306,8 +304,6 @@ public:
     }
 
     virtual void removeCostFunctionComponent( Map<unsigned, double> & ) {};
-
-    virtual void updateDynamicConstraints( ITableau * ) {};
 
     virtual void extractVariableValueFromGurobi( GurobiWrapper & ){};
 

@@ -380,7 +380,7 @@ public:
     }
 
     unsigned nextAuxVar;
-    unsigned addEquation( const Equation &/* equation */, double, double )
+    unsigned addEquation( const Equation &/* equation */ )
     {
         return nextAuxVar;
     }
@@ -594,13 +594,6 @@ public:
     unsigned getVariableAfterMerging( unsigned /* variable */ ) const
     {
         return 0;
-    }
-
-    void setNonBasicAssignments( double * ){};
-
-    const double *getNonBasicAssignment() const
-    {
-        return NULL;
     }
 };
 
