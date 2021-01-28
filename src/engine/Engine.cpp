@@ -366,7 +366,6 @@ bool Engine::performLocalSearch()
         if ( allPlConstraintsHold() )
         {
             ASSERT( FloatUtils::isZero( computeHeuristicCost() ) );
-            _tableau->notOptimizing();
             ENGINE_LOG( "Performing local search - done" );
             return true;
         }

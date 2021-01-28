@@ -60,7 +60,6 @@ Tableau::Tableau()
     , _costFunctionManager( NULL )
     , _rhsIsAllZeros( true )
 {
-    _optimizing = false;
 }
 
 Tableau::~Tableau()
@@ -885,12 +884,7 @@ double Tableau::ratioConstraintPerBasic( unsigned basicIndex, double coefficient
     {
         // Basic variable is decreasing
         double actualLowerBound;
-        if ( isOptimizing() )
-        {
-            ASSERT( !existsBasicOutOfBounds() );
-            actualLowerBound = _lowerBounds[basic];
-        }
-        else if ( basicCost > 0 )
+        if ( basicCost > 0 )
         {
             actualLowerBound = _upperBounds[basic];
         }
@@ -923,12 +917,7 @@ double Tableau::ratioConstraintPerBasic( unsigned basicIndex, double coefficient
     {
         // Basic variable is increasing
         double actualUpperBound;
-        if ( isOptimizing() )
-        {
-            ASSERT( !existsBasicOutOfBounds() );
-            actualUpperBound = _upperBounds[basic];
-        }
-        else if ( basicCost < 0 )
+        if ( basicCost < 0 )
         {
             actualUpperBound = _lowerBounds[basic];
         }
@@ -1070,12 +1059,10 @@ void Tableau::harrisRatioTest( double *changeColumn )
 {
     /*
       The Harris ratio test is performed in two steps:
-
       1. Find the minimal change ratio, according to the constraints imposed by the
          basic variables
       2. For the discovered change ratio, pick the basic variable leading to the largest
          pivot element.
-
       Observe that the constraints imposed by the basic variables are slightly relaxed
       when compared to the traditional, text-book ratio test
     */
@@ -1100,7 +1087,6 @@ void Tableau::harrisRatioTest( double *changeColumn )
 
     /*
       Alfa:
-
       nb increases -->   pivot ( = -changeColumn )
       nb decreases --> - pivot ( =  changeColumn )
     */
@@ -1126,12 +1112,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic decreases, basic increases
                 double actualUpperBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualUpperBound = _upperBounds[basic];
-                }
-                else if ( basicCost > 0 )
+                if ( basicCost > 0 )
                     continue;
                 else if ( basicCost < 0 )
                     actualUpperBound = _lowerBounds[basic];
@@ -1150,12 +1131,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic decreases, basic decreases
                 double actualLowerBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualLowerBound = _lowerBounds[basic];
-                }
-                else if ( basicCost < 0 )
+                if ( basicCost < 0 )
                     continue;
                 else if ( basicCost > 0 )
                     actualLowerBound = _upperBounds[basic];
@@ -1200,12 +1176,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic increases, basic decreases
                 double actualLowerBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualLowerBound = _lowerBounds[basic];
-                }
-                else if ( basicCost < 0 )
+                if ( basicCost < 0 )
                     continue;
                 else if ( basicCost > 0 )
                     actualLowerBound = _upperBounds[basic];
@@ -1224,12 +1195,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic increases, basic increases
                 double actualUpperBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualUpperBound = _upperBounds[basic];
-                }
-                else if ( basicCost > 0 )
+                if ( basicCost > 0 )
                     continue;
                 else if ( basicCost < 0 )
                     actualUpperBound = _lowerBounds[basic];
@@ -1297,12 +1263,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic decreases, basic increases
                 double actualUpperBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualUpperBound = _upperBounds[basic];
-                }
-                else if ( basicCost > 0 )
+                if ( basicCost > 0 )
                     continue;
                 else if ( basicCost < 0 )
                     actualUpperBound = _lowerBounds[basic];
@@ -1315,12 +1276,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic decreases, basic decreases
                 double actualLowerBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualLowerBound = _lowerBounds[basic];
-                }
-                else if ( basicCost < 0 )
+                if ( basicCost < 0 )
                     continue;
                 else if ( basicCost > 0 )
                     actualLowerBound = _upperBounds[basic];
@@ -1368,12 +1324,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic increases, basic decreases
                 double actualLowerBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualLowerBound = _lowerBounds[basic];
-                }
-                else if ( basicCost < 0 )
+                if ( basicCost < 0 )
                     continue;
                 else if ( basicCost > 0 )
                     actualLowerBound = _upperBounds[basic];
@@ -1386,12 +1337,7 @@ void Tableau::harrisRatioTest( double *changeColumn )
             {
                 // Nonbasic decreases, basic decreases
                 double actualUpperBound;
-                if ( isOptimizing() )
-                {
-                    ASSERT( !existsBasicOutOfBounds() );
-                    actualUpperBound = _upperBounds[basic];
-                }
-                else if ( basicCost > 0 )
+                if ( basicCost > 0 )
                     continue;
                 else if ( basicCost < 0 )
                     actualUpperBound = _lowerBounds[basic];
@@ -1656,127 +1602,34 @@ void Tableau::dumpEquations()
 
 void Tableau::storeState( TableauState &state ) const
 {
-    if ( useGurobi() )
-    {
-        state.initializeBounds( _n );
+    state.initializeBounds( _n );
 
-        // Store the bounds
-        memcpy( state._lowerBounds, _lowerBounds, sizeof(double) *_n );
-        memcpy( state._upperBounds, _upperBounds, sizeof(double) *_n );
+    // Store the bounds
+    memcpy( state._lowerBounds, _lowerBounds, sizeof(double) *_n );
+    memcpy( state._upperBounds, _upperBounds, sizeof(double) *_n );
 
-        // Store the _boundsValid indicator
-        state._boundsValid = _boundsValid;
-    }
-    else
-    {
-        // Set the dimensions
-        state.setDimensions( _m, _n, *this );
-
-        // Store matrix A
-        _A->storeIntoOther( state._A );
-        for ( unsigned i = 0; i < _n; ++i )
-            _sparseColumnsOfA[i]->storeIntoOther( state._sparseColumnsOfA[i] );
-        for ( unsigned i = 0; i < _m; ++i )
-            _sparseRowsOfA[i]->storeIntoOther( state._sparseRowsOfA[i] );
-        memcpy( state._denseA, _denseA, sizeof(double) * _m * _n );
-
-        // Store right hand side vector _b
-        memcpy( state._b, _b, sizeof(double) * _m );
-
-        // Basic variables
-        state._basicVariables = _basicVariables;
-
-        // Store the assignments
-        memcpy( state._basicAssignment, _basicAssignment, sizeof(double) *_m );
-        memcpy( state._nonBasicAssignment, _nonBasicAssignment, sizeof(double) * ( _n - _m ) );
-        state._basicAssignmentStatus = _basicAssignmentStatus;
-
-        // Store the indices
-        memcpy( state._basicIndexToVariable, _basicIndexToVariable, sizeof(unsigned) * _m );
-        memcpy( state._nonBasicIndexToVariable, _nonBasicIndexToVariable, sizeof(unsigned) * ( _n - _m ) );
-        memcpy( state._variableToIndex, _variableToIndex, sizeof(unsigned) * _n );
-
-        // Store the basis factorization
-        _basisFactorization->storeFactorization( state._basisFactorization );
-
-        // Store the bounds
-        memcpy( state._lowerBounds, _lowerBounds, sizeof(double) *_n );
-        memcpy( state._upperBounds, _upperBounds, sizeof(double) *_n );
-
-        // Store the _boundsValid indicator
-        state._boundsValid = _boundsValid;
-
-        // Store the merged variables
-        state._mergedVariables = _mergedVariables;
-    }
+    // Store the _boundsValid indicator
+    state._boundsValid = _boundsValid;
 }
 
 void Tableau::restoreState( const TableauState &state )
 {
-    if ( useGurobi() )
+    ASSERT( _n = state._n );
+    // Restore the bounds and valid status
+    // TODO: should notify all the constraints.
+    memcpy( _lowerBounds, state._lowerBounds, sizeof(double) *_n );
+    memcpy( _upperBounds, state._upperBounds, sizeof(double) *_n );
+    if ( _gurobi != nullptr )
     {
-        ASSERT( _n = state._n );
-        // Restore the bounds and valid status
-        // TODO: should notify all the constraints.
-        memcpy( _lowerBounds, state._lowerBounds, sizeof(double) *_n );
-        memcpy( _upperBounds, state._upperBounds, sizeof(double) *_n );
         for ( unsigned i = 0; i < _n; ++i )
         {
             _gurobi->setLowerBound( Stringf( "x%u", i ), _lowerBounds[i] );
             _gurobi->setUpperBound( Stringf( "x%u", i ), _upperBounds[i] );
         }
-        // Restore the _boundsValid indicator
-        _boundsValid = state._boundsValid;
-        return;
     }
-
-    freeMemoryIfNeeded();
-    setDimensions( state._m, state._n );
-
-    // Restore the bounds and valid status
-    // TODO: should notify all the constraints.
-    memcpy( _lowerBounds, state._lowerBounds, sizeof(double) *_n );
-    memcpy( _upperBounds, state._upperBounds, sizeof(double) *_n );
-
-    // Restore matrix A
-    state._A->storeIntoOther( _A );
-    for ( unsigned i = 0; i < _n; ++i )
-        state._sparseColumnsOfA[i]->storeIntoOther( _sparseColumnsOfA[i] );
-    for ( unsigned i = 0; i < _m; ++i )
-        state._sparseRowsOfA[i]->storeIntoOther( _sparseRowsOfA[i] );
-    memcpy( _denseA, state._denseA, sizeof(double) * _m * _n );
-
-    // Restore right hand side vector _b
-    memcpy( _b, state._b, sizeof(double) * _m );
-
-    // Basic variables
-    _basicVariables = state._basicVariables;
-
-    // Restore the assignments
-    memcpy( _basicAssignment, state._basicAssignment, sizeof(double) *_m );
-    memcpy( _nonBasicAssignment, state._nonBasicAssignment, sizeof(double) * ( _n - _m  ) );
-    _basicAssignmentStatus = state._basicAssignmentStatus;
-
-    // Restore the indices
-    memcpy( _basicIndexToVariable, state._basicIndexToVariable, sizeof(unsigned) * _m );
-    memcpy( _nonBasicIndexToVariable, state._nonBasicIndexToVariable, sizeof(unsigned) * ( _n - _m ) );
-    memcpy( _variableToIndex, state._variableToIndex, sizeof(unsigned) * _n );
-
-    // Restore the basis factorization
-    _basisFactorization->restoreFactorization( state._basisFactorization );
-
     // Restore the _boundsValid indicator
     _boundsValid = state._boundsValid;
-
-    // Restore the merged varaibles
-    _mergedVariables = state._mergedVariables;
-
-    computeAssignment();
-    _costFunctionManager->initialize();
-    computeCostFunction();
-
-    if ( _statistics )
-        _statistics->setCurrentTableauDimension( _m, _n );
+    return;
 }
 
 void Tableau::checkBoundsValid()
@@ -1817,29 +1670,8 @@ void Tableau::tightenLowerBound( unsigned variable, double value )
 
     setLowerBound( variable, value );
 
-    if ( useGurobi() )
-    {
+    if ( _gurobi )
         _gurobi->setLowerBound( Stringf( "x%u", variable ), value );
-    }
-    else
-    {
-        // Ensure that non-basic variables are within bounds
-        unsigned index = _variableToIndex[variable];
-        if ( !_basicVariables.exists( variable ) )
-        {
-            if ( FloatUtils::gt( value, _nonBasicAssignment[index] ) )
-                setNonBasicAssignment( variable, value, true );
-        }
-        else
-        {
-            // Recompute the status of an affected basic variable
-            // If the status changes, invalidate the cost function
-            unsigned oldStatus = _basicStatus[index];
-            computeBasicStatus( index );
-            if ( _basicStatus[index] != oldStatus )
-                _costFunctionManager->invalidateCostFunction();
-        }
-    }
 }
 
 void Tableau::tightenUpperBound( unsigned variable, double value )
@@ -1854,29 +1686,8 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
 
     setUpperBound( variable, value );
 
-    if ( useGurobi() )
-    {
+    if ( _gurobi )
         _gurobi->setUpperBound( Stringf( "x%u", variable ), value );
-    }
-    else
-    {
-        // Ensure that non-basic variables are within bounds
-        unsigned index = _variableToIndex[variable];
-        if ( !_basicVariables.exists( variable ) )
-        {
-            if ( FloatUtils::lt( value, _nonBasicAssignment[index] ) )
-                setNonBasicAssignment( variable, value, true );
-        }
-        else
-        {
-            // Recompute the status of an affected basic variable
-            // If the status changes, invalidate the cost function
-            unsigned oldStatus = _basicStatus[index];
-            computeBasicStatus( index );
-            if ( _basicStatus[index] != oldStatus )
-                _costFunctionManager->invalidateCostFunction();
-        }
-    }
 }
 
 unsigned Tableau::addEquation( const Equation &equation, double auxLb, double auxUb )

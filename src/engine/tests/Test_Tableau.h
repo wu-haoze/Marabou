@@ -1063,60 +1063,8 @@ public:
 
         TS_ASSERT_THROWS_NOTHING( tableau->storeState( *tableauState ) );
 
-        // Do some more stuff
-        TS_ASSERT_THROWS_NOTHING( tableau->computeCostFunction() );
-        tableau->setEnteringVariableIndex( 2u );
-
-        tableau->computeChangeColumn();
-
-        TS_ASSERT_THROWS_NOTHING( tableau->pickLeavingVariable() );
-        TS_ASSERT_EQUALS( tableau->getEnteringVariable(), 2u );
-        TS_ASSERT_EQUALS( tableau->getLeavingVariable(), 5u );
-
-        TS_ASSERT( !tableau->isBasic( 2u ) );
-        TS_ASSERT( tableau->isBasic( 5u ) );
-
-        TS_ASSERT_EQUALS( tableau->getValue( 2u ), 1.0 );
-        TS_ASSERT_EQUALS( tableau->getValue( 5u ), 112.0 );
-
-        TS_ASSERT_THROWS_NOTHING( tableau->computePivotRow() );
-
-        TS_ASSERT_THROWS_NOTHING( tableau->performPivot() );
-
-        TS_ASSERT_DIFFERS( tableau->getValue( 2u ), 1.0 );
-        TS_ASSERT_DIFFERS( tableau->getValue( 5u ), 112.0 );
-
-        TS_ASSERT( tableau->isBasic( 2u ) );
-        TS_ASSERT( !tableau->isBasic( 5u ) );
-
         // Now restore the tableau
         TS_ASSERT_THROWS_NOTHING( tableau->restoreState( *tableauState ) );
-
-        // Do some more stuff again
-        TS_ASSERT_THROWS_NOTHING( tableau->computeCostFunction() );
-        tableau->setEnteringVariableIndex( 2u );
-        tableau->computeChangeColumn();
-
-        TS_ASSERT_THROWS_NOTHING( tableau->pickLeavingVariable() );
-
-        TS_ASSERT_EQUALS( tableau->getEnteringVariable(), 2u );
-        TS_ASSERT_EQUALS( tableau->getLeavingVariable(), 5u );
-
-        TS_ASSERT( !tableau->isBasic( 2u ) );
-        TS_ASSERT( tableau->isBasic( 5u ) );
-
-        TS_ASSERT_EQUALS( tableau->getValue( 2u ), 1.0 );
-        TS_ASSERT_EQUALS( tableau->getValue( 5u ), 112.0 );
-
-        TS_ASSERT_THROWS_NOTHING( tableau->computePivotRow() );
-
-        TS_ASSERT_THROWS_NOTHING( tableau->performPivot() );
-
-        TS_ASSERT_DIFFERS( tableau->getValue( 2u ), 1.0 );
-        TS_ASSERT_DIFFERS( tableau->getValue( 5u ), 112.0 );
-
-        TS_ASSERT( tableau->isBasic( 2u ) );
-        TS_ASSERT( !tableau->isBasic( 5u ) );
 
         TS_ASSERT_THROWS_NOTHING( delete tableauState );
         TS_ASSERT_THROWS_NOTHING( delete tableau );
@@ -1333,25 +1281,20 @@ public:
 
         TS_ASSERT_EQUALS( tableau->getLowerBound( 1 ), 4 );
         TS_ASSERT_EQUALS( tableau->getUpperBound( 1 ), 10 );
-        TS_ASSERT_EQUALS( tableau->getValue( 1 ), 4.0 );
 
         TS_ASSERT_THROWS_NOTHING( tableau->tightenLowerBound( 1, 2 ) );
         TS_ASSERT_THROWS_NOTHING( tableau->tightenUpperBound( 1, 22 ) );
 
         TS_ASSERT_EQUALS( tableau->getLowerBound( 1 ), 4 );
         TS_ASSERT_EQUALS( tableau->getUpperBound( 1 ), 10 );
-        TS_ASSERT_EQUALS( tableau->getValue( 1 ), 4.0 );
 
         TS_ASSERT_THROWS_NOTHING( tableau->tightenUpperBound( 1, 8 ) );
 
         TS_ASSERT_EQUALS( tableau->getLowerBound( 1 ), 4 );
         TS_ASSERT_EQUALS( tableau->getUpperBound( 1 ), 8 );
-        TS_ASSERT_EQUALS( tableau->getValue( 1 ), 4.0 );
 
         // Tightening the bounds of basic variables doesn't change their values
-        TS_ASSERT_EQUALS( tableau->getValue( 5 ), 110.0 );
         TS_ASSERT_THROWS_NOTHING( tableau->tightenLowerBound( 5, 111 ) );
-        TS_ASSERT_EQUALS( tableau->getValue( 5 ), 110.0 );
 
         TS_ASSERT_THROWS_NOTHING( delete tableau );
     }

@@ -185,21 +185,10 @@ public:
     virtual unsigned getVariableAfterMerging( unsigned variable ) const = 0;
     virtual const double *getNonBasicAssignment() const = 0;
     virtual void updateA( unsigned, unsigned, double ) {};
-    bool isOptimizing() const
-    {
-        return _optimizing;
-    }
-    void optimizing() { _optimizing = true; }
-    void notOptimizing() { _optimizing = false; }
 
-    bool useGurobi() const
-    {
-        return _gurobi != NULL;
-    }
     void setGurobi( GurobiWrapper *gurobi ) { _gurobi = gurobi; }
 
 protected:
-    bool _optimizing;
     GurobiWrapper *_gurobi = NULL;
 };
 
