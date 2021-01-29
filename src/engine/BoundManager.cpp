@@ -140,6 +140,25 @@ double BoundManager::getUpperBound( unsigned variable )
   return *_upperBounds[variable];
 }
 
+void BoundManager::getTightenings( List<Tightening> &tightenings )
+{
+    for ( unsigned i = 0; i < _size; ++i )
+    {
+        if ( *_tightenedLower[i] )
+        {
+            tightenings.append( Tightening( i, *_lowerBounds[i], Tightening::LB ) );
+            *_tightenedLower[i] = false;
+        }
+
+        if ( *_tightenedUpper[i] )
+        {
+            tightenings.append( Tightening( i, *_upperBounds[i], Tightening::UB ) );
+            *_tightenedUpper[i] = false;
+        }
+    }
+}
+
+
 void BoundManager::registerTableauReference( ITableau *ptrTableau )
 {
     _tableau = ptrTableau;
