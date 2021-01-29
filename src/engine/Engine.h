@@ -312,11 +312,6 @@ private:
     void applyAllBoundTightenings();
 
     /*
-      Apply any bound tightenings found by the row tightener.
-    */
-    void applyAllRowTightenings();
-
-    /*
       Apply any bound tightenings entailed by the constraints.
     */
     void applyAllConstraintTightenings();
