@@ -19,7 +19,6 @@
 #include "Debug.h"
 #include "Equation.h"
 #include "FloatUtils.h"
-#include "ICostFunctionManager.h"
 #include "MStringf.h"
 #include "MalformedBasisException.h"
 #include "MarabouError.h"

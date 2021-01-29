@@ -45,10 +45,12 @@ macro(marabou_add_test test_name test_dir add_common_real add_engine_real labels
     add_dependencies(build-tests ${name})
 endmacro()
 
+add_subdirectory(activation)
 add_subdirectory(configuration)
 add_subdirectory(engine)
 add_subdirectory(basis_factorization)
 add_subdirectory(common)
+add_subdirectory(snc)
 add_subdirectory(system_tests)
 add_subdirectory(${INPUT_PARSERS_DIR})
 add_subdirectory(query_loader)

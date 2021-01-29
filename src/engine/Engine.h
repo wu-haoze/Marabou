@@ -17,7 +17,6 @@
 #define __Engine_h__
 
 #include "AutoConstraintBoundTightener.h"
-#include "AutoCostFunctionManager.h"
 #include "AutoRowBoundTightener.h"
 #include "AutoTableau.h"
 #include "BoundManager.h"
