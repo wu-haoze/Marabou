@@ -56,7 +56,6 @@ class MaxConstraint : public PiecewiseLinearConstraint
       This callback is invoked when a watched variable's value
       changes.
     */
-    void notifyVariableValue( unsigned variable, double value );
     void notifyLowerBound( unsigned variable, double value );
     void notifyUpperBound( unsigned variable, double value );
 
@@ -79,11 +78,6 @@ class MaxConstraint : public PiecewiseLinearConstraint
     bool satisfied() const;
 
     /*
-      Returns a list of possible fixes for the violated constraint.
-    */
-    List<PiecewiseLinearConstraint::Fix> getPossibleFixes() const;
-
-    /*
       Returns the list of case splits that this piecewise linear
       constraint breaks into. These splits need to complementary,
       i.e. if the list is {l1, l2, ..., ln-1, ln},
@@ -100,11 +94,6 @@ class MaxConstraint : public PiecewiseLinearConstraint
       If the constraint's phase has been fixed, get the (valid) case split.
     */
     PiecewiseLinearCaseSplit getValidCaseSplit() const;
-
-    /*
-      Return a list of smart fixes for violated constraint.
-    */
-    List<PiecewiseLinearConstraint::Fix> getSmartFixes( ITableau *tableau ) const;
 
     /*
       Preprocessing related functions, to inform that a variable has been eliminated completely

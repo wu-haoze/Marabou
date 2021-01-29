@@ -94,18 +94,7 @@ List<unsigned> SignConstraint::getParticipatingVariables() const
 
 bool SignConstraint::satisfied() const
 {
-    if ( !( _assignment.exists( _b ) && _assignment.exists( _f ) ) )
-        throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
-
-    double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
-
-    // if bValue is negative, f should be -1
-    if ( FloatUtils::isNegative( bValue ) )
-        return FloatUtils::areEqual( fValue, -1 );
-
-    // bValue is non-negative, f should be 1
-    return FloatUtils::areEqual( fValue, 1 );
+    return false;
 }
 
 List<PiecewiseLinearCaseSplit> SignConstraint::getCaseSplits() const
@@ -128,27 +117,9 @@ List<PiecewiseLinearCaseSplit> SignConstraint::getCaseSplits() const
       return splits;
     }
 
-    // If we have existing knowledge about the assignment, use it to
-    // influence the order of splits
-    if ( _assignment.exists( _f ) )
-    {
-        if ( FloatUtils::isPositive( _assignment[_f] ) )
-        {
-            splits.append( getPositiveSplit() );
-            splits.append( getNegativeSplit() );
-        }
-        else
-        {
-            splits.append( getNegativeSplit() );
-            splits.append( getPositiveSplit() );
-        }
-    }
-    else
-    {
-        // Default
-        splits.append( getNegativeSplit() );
-        splits.append( getPositiveSplit() );
-    }
+    // Default
+    splits.append( getNegativeSplit() );
+    splits.append( getPositiveSplit() );
 
     return splits;
 }
@@ -199,16 +170,7 @@ String SignConstraint::serializeToString() const
 
 bool SignConstraint::haveOutOfBoundVariables() const
 {
-    double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
-
-    if ( FloatUtils::gt( _lowerBounds[_b], bValue ) || FloatUtils::lt( _upperBounds[_b], bValue ) )
-        return true;
-
-    if ( FloatUtils::gt( _lowerBounds[_f], fValue ) || FloatUtils::lt( _upperBounds[_f], fValue ) )
-        return true;
-
-    return false;
+    return true;
 }
 
 String SignConstraint::phaseToString( PhaseStatus phase )
@@ -228,14 +190,6 @@ String SignConstraint::phaseToString( PhaseStatus phase )
             return "UNKNOWN";
     }
 };
-
-void SignConstraint::notifyVariableValue( unsigned variable, double value )
-{
-    if ( FloatUtils::isZero( value ) )
-        value = 0.0;
-
-    _assignment[variable] = value;
-}
 
 void SignConstraint::notifyLowerBound( unsigned variable, double bound )
 {
@@ -299,25 +253,6 @@ void SignConstraint::notifyUpperBound( unsigned variable, double bound )
     }
 }
 
-List<PiecewiseLinearConstraint::Fix> SignConstraint::getPossibleFixes() const
-{
-    ASSERT( !satisfied() );
-    ASSERT( _assignment.exists( _b ) );
-    ASSERT( _assignment.exists( _f ) );
-
-    double bValue = _assignment.get( _b );
-    double newFValue = FloatUtils::isNegative( bValue ) ? -1 : 1;
-
-    List<PiecewiseLinearConstraint::Fix> fixes;
-    fixes.append( PiecewiseLinearConstraint::Fix( _f, newFValue ) );
-    return fixes;
-}
-
-List<PiecewiseLinearConstraint::Fix> SignConstraint::getSmartFixes( ITableau * ) const
-{
-    return getPossibleFixes();
-}
-
 void SignConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
 {
     ASSERT( _lowerBounds.exists( _b ) && _lowerBounds.exists( _f ) &&
@@ -358,16 +293,9 @@ void SignConstraint::setPhaseStatus( PhaseStatus phaseStatus )
 void SignConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
     ASSERT( oldIndex == _b || oldIndex == _f  );
-    ASSERT( !_assignment.exists( newIndex ) &&
-            !_lowerBounds.exists( newIndex ) &&
+    ASSERT( !_lowerBounds.exists( newIndex ) &&
             !_upperBounds.exists( newIndex ) &&
             newIndex != _b && newIndex != _f );
-
-    if ( _assignment.exists( oldIndex ) )
-    {
-        _assignment[newIndex] = _assignment.get( oldIndex );
-        _assignment.erase( oldIndex );
-    }
 
     if ( _lowerBounds.exists( oldIndex ) )
     {

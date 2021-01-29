@@ -322,26 +322,15 @@ void Engine::optimizeForHeuristicCost()
                                            Stringf( "x%u", term.first ) ) );
     _gurobi->setCost( terms );
     _gurobi->solve();
-    notifyPLConstraintsAssignments();
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
 
     SOI_LOG( "Optimizing w.r.t. the current heuristic cost - done\n" );
 }
 
-void Engine::notifyPLConstraintsAssignments()
-{
-    for ( const auto &plConstraint : _plConstraints )
-    {
-        plConstraint->extractVariableValueFromGurobi( *_gurobi );
-    }
-}
-
 bool Engine::performLocalSearch()
 {
     ENGINE_LOG( "Performing local search..." );
-
-    notifyPLConstraintsAssignments();
 
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
@@ -634,7 +623,6 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 
             if ( _gurobi->haveFeasibleSolution() )
             {
-                notifyPLConstraintsAssignments();
                 collectViolatedPlConstraints();
                 if ( allPlConstraintsHold() )
                 {
@@ -1101,18 +1089,6 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
     _rowBoundTightener->setDimensions();
     _constraintBoundTightener->setDimensions();
 
-    // Register the constraint bound tightener to all the PL constraints
-    for ( auto &plConstraint : _preprocessedQuery.getPiecewiseLinearConstraints() )
-        plConstraint->registerConstraintBoundTightener( _constraintBoundTightener );
-
-    _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
-    for ( const auto &constraint : _plConstraints )
-    {
-        constraint->registerBoundManager( &_boundManager );
-        constraint->registerAsWatcher( _tableau );
-        constraint->setStatistics( &_statistics );
-    }
-
     _tableau->initializeTableau( initialBasis );
 
     _statistics.setNumPlConstraints( _plConstraints.size() );
@@ -1162,6 +1138,16 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         initializeTableau( constraintMatrix, initialBasis );
 
         delete[] constraintMatrix;
+
+        _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
+        for ( const auto &constraint : _plConstraints )
+        {
+            constraint->registerConstraintBoundTightener( _constraintBoundTightener );
+            constraint->registerGurobi( &( *_gurobi ) );
+            constraint->registerBoundManager( &_boundManager );
+            constraint->registerAsWatcher( _tableau );
+            constraint->setStatistics( &_statistics );
+        }
 
         if ( preprocess )
         {

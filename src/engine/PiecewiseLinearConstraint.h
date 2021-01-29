@@ -92,22 +92,11 @@ public:
     virtual PiecewiseLinearConstraint *duplicateConstraint() const = 0;
 
     /*
-      Restore the state of this constraint from the given one.
-      We have this function in order to take advantage of the polymorphically
-      correct assignment operator.
-    */
-    virtual void restoreState( const PiecewiseLinearConstraint *state ) = 0;
-
-    /*
       Register/unregister the constraint with a talbeau.
     */
     virtual void registerAsWatcher( ITableau *tableau ) = 0;
     virtual void unregisterAsWatcher( ITableau *tableau ) = 0;
 
-    /*
-      The variable watcher notifcation callbacks, about a change in a variable's value or bounds.
-    */
-    virtual void notifyVariableValue( unsigned /* variable */, double /* value */ ) {}
     virtual void notifyLowerBound( unsigned /* variable */, double /* bound */ ) {}
     virtual void notifyUpperBound( unsigned /* variable */, double /* bound */ ) {}
 
@@ -303,11 +292,16 @@ public:
         _boundManager = boundManager;
     }
 
+    void registerGurobi( GurobiWrapper *gurobi )
+    {
+        _gurobi = gurobi;
+    }
+
 protected:
     BoundManager *_boundManager;
+    GurobiWrapper *_gurobi;
     bool _constraintActive;
     PhaseStatus _phaseStatus;
-    Map<unsigned, double> _assignment;
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
 

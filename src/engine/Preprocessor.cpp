@@ -439,18 +439,18 @@ bool Preprocessor::processConstraints()
 
 	for ( auto &constraint : _preprocessed.getPiecewiseLinearConstraints() )
 	{
-		for ( unsigned variable : constraint->getParticipatingVariables() )
-		{
-			constraint->notifyLowerBound( variable, _preprocessed.getLowerBound( variable ) );
-			constraint->notifyUpperBound( variable, _preprocessed.getUpperBound( variable ) );
-		}
+            for ( unsigned variable : constraint->getParticipatingVariables() )
+	    {
+                constraint->notifyLowerBound( variable, _preprocessed.getLowerBound( variable ) );
+                constraint->notifyUpperBound( variable, _preprocessed.getUpperBound( variable ) );
+            }
 
         List<Tightening> tightenings;
         constraint->getEntailedTightenings( tightenings );
 
         for ( const auto &tightening : tightenings )
-		{
-			if ( ( tightening._type == Tightening::LB ) &&
+        {
+            if ( ( tightening._type == Tightening::LB ) &&
                  ( FloatUtils::gt( tightening._value, _preprocessed.getLowerBound( tightening._variable ) ) ) )
             {
                 tighterBoundFound = true;

@@ -102,18 +102,6 @@ void MaxConstraint::unregisterAsWatcher( ITableau *tableau )
         tableau->unregisterToWatchVariable( this, _f );
 }
 
-void MaxConstraint::notifyVariableValue( unsigned variable, double value )
-{
-    if ( ( _elements.exists( _f ) || variable != _f )
-         &&
-         ( !_maxIndexSet || _assignment.get( _maxIndex ) < value ) )
-    {
-        _maxIndex = variable;
-        _maxIndexSet = true;
-    }
-    _assignment[variable] = value;
-}
-
 void MaxConstraint::notifyLowerBound( unsigned variable, double value )
 {
     if ( _statistics )
@@ -282,114 +270,17 @@ unsigned MaxConstraint::getF() const
 
 bool MaxConstraint::satisfied() const
 {
-    if ( !( _assignment.exists( _f ) && _assignment.size() > 1 ) )
-        throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
-
-    double fValue = _assignment.get( _f );
-    return FloatUtils::areEqual( _assignment.get( _maxIndex ), fValue );
+    return false;
 }
 
 void MaxConstraint::resetMaxIndex()
 {
-    double maxValue = FloatUtils::negativeInfinity();
-    _maxIndexSet = false;
-
-    if ( _assignment.empty() ||
-         ( _assignment.size() == 1 && !_elements.exists( _f ) && _assignment.begin()->first == _f ) )
-    {
-        // If none of the variables has been assigned, the max index is
-        // not set
-        return;
-    }
-    else
-    {
-        for ( auto element : _elements )
-        {
-            if ( _assignment.exists( element ) )
-            {
-                double elementValue = _assignment[element];
-
-                if ( !_maxIndexSet )
-                {
-                    _maxIndexSet = true;
-                    _maxIndex = element;
-                    maxValue = elementValue;
-                }
-                else if ( elementValue > maxValue )
-                {
-                    _maxIndex = element;
-                    maxValue = elementValue;
-                }
-            }
-        }
-
-        ASSERT( _maxIndexSet );
-    }
-
-    ASSERT( !_maxIndexSet || FloatUtils::isFinite( maxValue ) );
-}
-
-List<PiecewiseLinearConstraint::Fix> MaxConstraint::getPossibleFixes() const
-{
-    ASSERT( !satisfied() );
-    ASSERT( _assignment.exists( _f ) && _assignment.size() > 1 );
-
-    double fValue = _assignment.get( _f );
-    double maxVal = _assignment.get( _maxIndex );
-
-    List<PiecewiseLinearConstraint::Fix> fixes;
-
-    // Possible violations
-    //	1. f is greater than maxVal
-    //	2. f is less than maxVal
-    //  3. if f is greater than all variables except 1
-
-    if ( FloatUtils::gt( fValue, maxVal ) )
-	{
-	    fixes.append( PiecewiseLinearConstraint::Fix( _f, maxVal ) );
-	    for ( auto elem : _elements )
-		{
-		    fixes.append( PiecewiseLinearConstraint::Fix( elem, fValue ) );
-		}
-	}
-    else if ( FloatUtils::lt( fValue, maxVal ) )
-	{
-	    fixes.append( PiecewiseLinearConstraint::Fix( _f, maxVal ) );
-
-        unsigned greaterVar;
-        unsigned numGreater = 0;
-        for ( auto elem : _elements )
-        {
-            if ( _assignment.exists( elem ) && FloatUtils::gt( _assignment[elem], fValue ) )
-            {
-                numGreater++;
-                greaterVar = elem;
-            }
-        }
-        if ( numGreater == 1 )
-        {
-            fixes.append( PiecewiseLinearConstraint::Fix( greaterVar, fValue ) );
-        }
-	}
-
-    return fixes;
-}
-
-List<PiecewiseLinearConstraint::Fix> MaxConstraint::getSmartFixes( ITableau * ) const
-{
-    ASSERT( !satisfied() );
-    ASSERT( _assignment.exists( _f ) && _assignment.size() > 1 );
-
-    // TODO
-    return getPossibleFixes();
 }
 
 List<PiecewiseLinearCaseSplit> MaxConstraint::getCaseSplits() const
 {
     if ( phaseFixed() && !_elements.exists( _f ) )
         throw MarabouError( MarabouError::REQUESTED_CASE_SPLITS_FROM_FIXED_CONSTRAINT );
-
-    ASSERT(	_assignment.exists( _f ) );
 
     List<PiecewiseLinearCaseSplit> splits;
 
@@ -432,7 +323,6 @@ PiecewiseLinearCaseSplit MaxConstraint::getValidCaseSplit() const
 
 PiecewiseLinearCaseSplit MaxConstraint::getSplit( unsigned argMax ) const
 {
-    ASSERT( _assignment.exists( argMax ) );
     PiecewiseLinearCaseSplit maxPhase;
 
     if ( argMax != _f )

@@ -17,7 +17,6 @@
 #include "CSRMatrix.h"
 #include "ConstraintMatrixAnalyzer.h"
 #include "Debug.h"
-#include "EntrySelectionStrategy.h"
 #include "Equation.h"
 #include "FloatUtils.h"
 #include "ICostFunctionManager.h"

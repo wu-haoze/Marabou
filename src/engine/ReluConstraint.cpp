@@ -84,17 +84,9 @@ PiecewiseLinearFunctionType ReluConstraint::getType() const
 
 PiecewiseLinearConstraint *ReluConstraint::duplicateConstraint() const
 {
-    ReluConstraint *clone = new ReluConstraint( _b, _f );
+    PiecewiseLinearConstraint *clone = new ReluConstraint( _b, _f );
     *clone = *this;
-    clone->_phaseOfHeuristicCost = this->_phaseOfHeuristicCost;
     return clone;
-}
-
-void ReluConstraint::restoreState( const PiecewiseLinearConstraint *state )
-{
-    const ReluConstraint *relu = dynamic_cast<const ReluConstraint *>( state );
-    *this = *relu;
-    _phaseOfHeuristicCost = relu->_phaseOfHeuristicCost;
 }
 
 void ReluConstraint::registerAsWatcher( ITableau *tableau )
@@ -115,23 +107,18 @@ void ReluConstraint::unregisterAsWatcher( ITableau *tableau )
         tableau->unregisterToWatchVariable( this, _aux );
 }
 
-void ReluConstraint::notifyVariableValue( unsigned variable, double value )
-{
-    if ( FloatUtils::isZero( value, GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE ) )
-        value = 0.0;
-
-    _assignment[variable] = value;
-}
-
 void ReluConstraint::notifyLowerBound( unsigned variable, double bound )
 {
     if ( _statistics )
         _statistics->incNumBoundNotificationsPlConstraints();
 
-    if ( _lowerBounds.exists( variable ) && !FloatUtils::gt( bound, _lowerBounds[variable] ) )
-        return;
-
-    _lowerBounds[variable] = bound;
+    if ( !_boundManager )
+    {
+        if ( _lowerBounds.exists( variable ) && !FloatUtils::gt( bound, _lowerBounds[variable] ) )
+            return;
+        else
+            _lowerBounds[variable] = bound;
+    }
 
     if ( variable == _f && FloatUtils::isPositive( bound ) )
         setPhaseStatus( RELU_PHASE_ACTIVE );
@@ -187,10 +174,13 @@ void ReluConstraint::notifyUpperBound( unsigned variable, double bound )
     if ( _statistics )
         _statistics->incNumBoundNotificationsPlConstraints();
 
-    if ( _upperBounds.exists( variable ) && !FloatUtils::lt( bound, _upperBounds[variable] ) )
-        return;
-
-    _upperBounds[variable] = bound;
+    if ( !_boundManager )
+    {
+        if ( _upperBounds.exists( variable ) && !FloatUtils::lt( bound, _upperBounds[variable] ) )
+            return;
+        else
+            _upperBounds[variable] = bound;
+    }
 
     if ( ( variable == _f || variable == _b ) && !FloatUtils::isPositive( bound ) )
         setPhaseStatus( RELU_PHASE_INACTIVE );
@@ -245,11 +235,11 @@ List<unsigned> ReluConstraint::getParticipatingVariables() const
 
 bool ReluConstraint::satisfied() const
 {
-    if ( !( _assignment.exists( _b ) && _assignment.exists( _f ) ) )
+    if ( !_gurobi )
         throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
 
-    double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
+    double bValue = _gurobi->getValue( _b );
+    double fValue = _gurobi->getValue( _f );
 
     if ( FloatUtils::isNegative( fValue ) )
         return false;
@@ -278,29 +268,6 @@ List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
         splits.append( getActiveSplit() );
         splits.append( getInactiveSplit() );
         return splits;
-    }
-
-    // If we have existing knowledge about the assignment, use it to
-    // influence the order of splits
-    if ( _assignment.exists( _f ) )
-    {
-        if ( FloatUtils::isPositive( _assignment[_f] ) )
-        {
-            splits.append( getActiveSplit() );
-            splits.append( getInactiveSplit() );
-        }
-        else
-        {
-            splits.append( getInactiveSplit() );
-            splits.append( getActiveSplit() );
-        }
-    }
-    else
-    {
-        // Default: start with the inactive case, because it doesn't
-        // introduce a new equation and is hence computationally cheaper.
-        splits.append( getInactiveSplit() );
-        splits.append( getActiveSplit() );
     }
 
     return splits;
@@ -382,16 +349,9 @@ void ReluConstraint::dump( String &output ) const
 void ReluConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
 	ASSERT( oldIndex == _b || oldIndex == _f || ( _auxVarInUse && oldIndex == _aux ) );
-    ASSERT( !_assignment.exists( newIndex ) &&
-            !_lowerBounds.exists( newIndex ) &&
+    ASSERT( !_lowerBounds.exists( newIndex ) &&
             !_upperBounds.exists( newIndex ) &&
             newIndex != _b && newIndex != _f && ( !_auxVarInUse || newIndex != _aux ) );
-
-    if ( _assignment.exists( oldIndex ) )
-    {
-        _assignment[newIndex] = _assignment.get( oldIndex );
-        _assignment.erase( oldIndex );
-    }
 
     if ( _lowerBounds.exists( oldIndex ) )
     {
@@ -619,8 +579,8 @@ void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost ) con
 
     // Both variables are within bounds and the constraint is not
     // satisfied or fixed.
-    double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
+    double bValue = _gurobi->getValue( _b );
+    double fValue = _gurobi->getValue( _f );
 
     if ( !cost.exists( _f ) )
         cost[_f] = 0;
@@ -655,8 +615,8 @@ void ReluConstraint::getCostFunctionComponent( Map<unsigned, double> &cost ) con
 
 bool ReluConstraint::haveOutOfBoundVariables() const
 {
-    double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
+    double bValue = _gurobi->getValue( _b );
+    double fValue = _gurobi->getValue( _f );
 
     if ( FloatUtils::gt( _lowerBounds[_b], bValue ) || FloatUtils::lt( _upperBounds[_b], bValue ) )
         return true;
@@ -781,10 +741,11 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost,
 
 void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
 {
-    double bValue = _assignment.get( _b );
+    double bValue = _gurobi->getValue( _b );
 
     PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
-                               _b, bValue, _lowerBounds[_b], _upperBounds[_b], _f, _assignment.get( _f ) ).ascii() );
+                               _b, bValue, _boundManager->getLowerBound( _b ),
+                               _boundManager->getUpperBound( _b ), _f, _gurobi->getValue( _f ) ).ascii() );
 
     // If the constraint is not active or is fixed, it contributes nothing
     ASSERT( isActive() && !phaseFixed() );
@@ -811,7 +772,8 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
 void ReluConstraint::addCostFunctionComponentByOutputValue( Map<unsigned, double> &cost, double fValue )
 {
     PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
-                               _b, _assignment.get( _b ), _lowerBounds[_b], _upperBounds[_b], _f, _assignment.get( _f ) ).ascii() );
+                               _b, _gurobi->getValue( _b ), _boundManager->getLowerBound( _b ),
+                               _boundManager->getUpperBound( _b ), _f, _gurobi->getValue( _f ) ).ascii() );
 
     // If the constraint is not active or is fixed, it contributes nothing
     if( !isActive() || phaseFixed() )
@@ -840,7 +802,7 @@ void ReluConstraint::getReducedHeuristicCost( double &reducedCost,
                                               PhaseStatus &phaseStatusOfReducedCost )
 {
     ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
-    double bValue = _assignment.get( _b );
+    double bValue = _gurobi->getValue( _b );
 
     // Current heuristic cost is f - b, see if the heuristic cost f is better
     if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
@@ -896,12 +858,6 @@ Vector<PhaseStatus> ReluConstraint::getAlternativeHeuristicPhaseStatus()
     else
         alternatives.append( RELU_PHASE_ACTIVE );
     return alternatives;
-}
-
-void ReluConstraint::extractVariableValueFromGurobi( GurobiWrapper &gurobi )
-{
-    notifyVariableValue( _b, gurobi.getValue( _b ) );
-    notifyVariableValue( _f, gurobi.getValue( _f ) );
 }
 
 //

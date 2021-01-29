@@ -61,11 +61,6 @@ void DisjunctionConstraint::unregisterAsWatcher( ITableau *tableau )
         tableau->unregisterToWatchVariable( this, variable );
 }
 
-void DisjunctionConstraint::notifyVariableValue( unsigned variable, double value )
-{
-    _assignment[variable] = value;
-}
-
 void DisjunctionConstraint::notifyLowerBound( unsigned variable, double bound )
 {
     if ( _statistics )
@@ -115,16 +110,6 @@ bool DisjunctionConstraint::satisfied() const
     return false;
 }
 
-List<PiecewiseLinearConstraint::Fix> DisjunctionConstraint::getPossibleFixes() const
-{
-    return List<PiecewiseLinearConstraint::Fix>();
-}
-
-List<PiecewiseLinearConstraint::Fix> DisjunctionConstraint::getSmartFixes( ITableau */* tableau */ ) const
-{
-    return getPossibleFixes();
-}
-
 List<PiecewiseLinearCaseSplit> DisjunctionConstraint::getCaseSplits() const
 {
     return _disjuncts;
@@ -157,12 +142,6 @@ void DisjunctionConstraint::dump( String &output ) const
 void DisjunctionConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
     ASSERT( !participatingVariable( newIndex ) );
-
-    if ( _assignment.exists( oldIndex ) )
-    {
-        _assignment[newIndex] = _assignment.get( oldIndex );
-        _assignment.erase( oldIndex );
-    }
 
     if ( _lowerBounds.exists( oldIndex ) )
     {
@@ -230,35 +209,9 @@ void DisjunctionConstraint::extractParticipatingVariables()
     }
 }
 
-bool DisjunctionConstraint::disjunctSatisfied( const PiecewiseLinearCaseSplit &disjunct ) const
+bool DisjunctionConstraint::disjunctSatisfied( const PiecewiseLinearCaseSplit & ) const
 {
-    // Check whether the bounds are satisfied
-    for ( const auto &bound : disjunct.getBoundTightenings() )
-    {
-        if ( bound._type == Tightening::LB )
-        {
-            if ( _assignment[bound._variable] < bound._value )
-                return false;
-        }
-        else
-        {
-            if ( _assignment[bound._variable] > bound._value )
-                return false;
-        }
-    }
-
-    // Check whether the equations are satisfied
-    for ( const auto &equation : disjunct.getEquations() )
-    {
-        double result = 0;
-        for ( const auto &addend : equation._addends )
-            result += addend._coefficient * _assignment[addend._variable];
-
-        if ( !FloatUtils::areEqual( result, equation._scalar ) )
-            return false;
-    }
-
-    return true;
+    return false;
 }
 
 void DisjunctionConstraint::updateFeasibleDisjuncts()

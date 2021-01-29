@@ -72,7 +72,6 @@ public:
       These callbacks are invoked when a watched variable's value
       changes, or when its bounds change.
     */
-    void notifyVariableValue( unsigned variable, double value );
     void notifyLowerBound( unsigned variable, double bound );
     void notifyUpperBound( unsigned variable, double bound );
 
@@ -86,16 +85,6 @@ public:
       Get the list of variables participating in this constraint.
     */
     List<unsigned> getParticipatingVariables() const;
-
-    /*
-      Returns a list of possible fixes for the violated constraint.
-    */
-    List<PiecewiseLinearConstraint::Fix> getPossibleFixes() const;
-
-    /*
-      Return a list of smart fixes for violated constraint.
-    */
-    List<PiecewiseLinearConstraint::Fix> getSmartFixes( ITableau *tableau ) const;
 
     /*
       Check if the constraint's phase has been fixed.

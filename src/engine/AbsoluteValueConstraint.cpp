@@ -108,11 +108,6 @@ void AbsoluteValueConstraint::unregisterAsWatcher( ITableau *tableau )
     }
 }
 
-void AbsoluteValueConstraint::notifyVariableValue( unsigned variable, double value )
-{
-    _assignment[variable] = value;
-}
-
 void AbsoluteValueConstraint::notifyLowerBound( unsigned variable, double bound )
 {
     if ( _statistics )
@@ -271,6 +266,8 @@ List<unsigned> AbsoluteValueConstraint::getParticipatingVariables() const
 
 bool AbsoluteValueConstraint::satisfied() const
 {
+    return false;
+    /*
     if ( !( _assignment.exists( _b ) && _assignment.exists( _f ) ) )
         throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
 
@@ -287,35 +284,7 @@ bool AbsoluteValueConstraint::satisfied() const
     return FloatUtils::areEqual( FloatUtils::abs( bValue ),
                                  fValue,
                                  GlobalConfiguration::ABS_CONSTRAINT_COMPARISON_TOLERANCE );
-}
-
-List<PiecewiseLinearConstraint::Fix> AbsoluteValueConstraint::getPossibleFixes() const
-{
-    ASSERT( !satisfied() );
-    ASSERT( _assignment.exists( _b ) );
-    ASSERT( _assignment.exists( _f ) );
-
-    double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
-
-    ASSERT( !FloatUtils::isNegative( fValue ) );
-
-    List<PiecewiseLinearConstraint::Fix> fixes;
-
-    // Possible violations:
-    //   1. f is positive, b is positive, b and f are unequal
-    //   2. f is positive, b is negative, -b and f are unequal
-
-    fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
-    fixes.append( PiecewiseLinearConstraint::Fix( _b, -fValue ) );
-    fixes.append( PiecewiseLinearConstraint::Fix( _f, FloatUtils::abs( bValue ) ) );
-
-    return fixes;
-}
-
-List<PiecewiseLinearConstraint::Fix> AbsoluteValueConstraint::getSmartFixes( ITableau */* tableau */ ) const
-{
-    return getPossibleFixes();
+    */
 }
 
 List<PiecewiseLinearCaseSplit> AbsoluteValueConstraint::getCaseSplits() const
@@ -434,16 +403,9 @@ void AbsoluteValueConstraint::updateVariableIndex( unsigned oldIndex, unsigned n
     ASSERT( oldIndex == _b || oldIndex == _f ||
             ( _auxVarsInUse && ( oldIndex == _posAux || oldIndex == _negAux ) ) );
 
-    ASSERT( !_assignment.exists( newIndex ) &&
-            !_lowerBounds.exists( newIndex ) &&
+    ASSERT( !_lowerBounds.exists( newIndex ) &&
             !_upperBounds.exists( newIndex ) &&
             newIndex != _b && newIndex != _f && ( !_auxVarsInUse || ( newIndex != _posAux && newIndex != _negAux ) ) );
-
-    if ( _assignment.exists( oldIndex ) )
-    {
-        _assignment[newIndex] = _assignment.get( oldIndex );
-        _assignment.erase( oldIndex );
-    }
 
     if ( _lowerBounds.exists( oldIndex ) )
     {

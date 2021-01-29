@@ -58,12 +58,12 @@ public:
     // Add a new variabel to the model
     void addVariable( String name, double lb, double ub, VariableType type = CONTINUOUS );
 
-    double getLowerBound( String );
-    double getUpperBound( String );
+    double getLowerBound( unsigned );
+    double getUpperBound( unsigned );
 
     // Set the lower or upper bound for an existing variable
-    void setLowerBound( String name, double lb );
-    void setUpperBound( String name, double ub );
+    void setLowerBound( String, double lb );
+    void setUpperBound( String, double ub );
 
     // Add a new LEQ constraint, e.g. 3x + 4y <= -5
     void addLeqConstraint( const List<Term> &terms, double scalar );
@@ -162,8 +162,8 @@ public:
     ~GurobiWrapper() {}
 
     void addVariable( String, double, double, VariableType type = CONTINUOUS ) { (void)type; }
-    double getLowerBound( String ) {};
-    double getUpperBound( String ) {};
+    double getLowerBound( unsigned ) {};
+    double getUpperBound( unsigned ) {};
     void setLowerBound( String, double ) {};
     void setUpperBound( String, double ) {};
     void addLeqConstraint( const List<Term> &, double ) {}

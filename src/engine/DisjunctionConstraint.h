@@ -51,7 +51,6 @@ public:
       These callbacks are invoked when a watched variable's value
       changes, or when its bounds change.
     */
-    void notifyVariableValue( unsigned variable, double value );
     void notifyLowerBound( unsigned variable, double bound );
     void notifyUpperBound( unsigned variable, double bound );
 
@@ -70,16 +69,6 @@ public:
       Returns true iff the assignment satisfies the constraint
     */
     bool satisfied() const;
-
-    /*
-      Returns a list of possible fixes for the violated constraint.
-    */
-    List<PiecewiseLinearConstraint::Fix> getPossibleFixes() const;
-
-    /*
-      Return a list of smart fixes for violated constraint.
-    */
-    List<PiecewiseLinearConstraint::Fix> getSmartFixes( ITableau *tableau ) const;
 
     /*
       Returns the list of case splits that this piecewise linear

@@ -129,13 +129,15 @@ void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType
     }
 }
 
-double GurobiWrapper::getLowerBound( String name )
+double GurobiWrapper::getLowerBound( unsigned var )
 {
+    String name = Stringf("x%u", var );
     return _model->getVarByName( name.ascii() ).get( GRB_DoubleAttr_LB );
 }
 
-double GurobiWrapper::getUpperBound( String name )
+double GurobiWrapper::getUpperBound( unsigned var )
 {
+    String name = Stringf("x%u", var );
     return _model->getVarByName( name.ascii() ).get( GRB_DoubleAttr_UB );
 }
 

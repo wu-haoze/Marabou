@@ -231,11 +231,6 @@ private:
     bool _initialStateStored;
 
     /*
-      Work memory (of size m)
-    */
-    double *_work;
-
-    /*
       Indicates a user/DnCManager request to quit
     */
     std::atomic_bool _quitRequested;
@@ -388,8 +383,6 @@ private:
       K is equal to GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD
     */
     PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnPolarity();
-
-    PiecewiseLinearConstraint *pickSplitPLConstraintBABSR();
 
     /*
       Pick the first unfixed ReLU in the topological order
