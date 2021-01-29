@@ -18,6 +18,7 @@
 
 #include "cxxtest/Mock.h"
 
+class BoundManager;
 class IConstraintBoundTightener;
 class ITableau;
 
@@ -28,11 +29,11 @@ namespace T
 }
 
 CXXTEST_SUPPLY( createConstraintBoundTightener,
-				IConstraintBoundTightener *,
-				createConstraintBoundTightener,
-                                ( const ITableau &tableau, BoundManager &boundManager ),
-				T::createConstraintBoundTightener,
-				( tableau ) );
+                IConstraintBoundTightener *,
+                createConstraintBoundTightener,
+                ( const ITableau &tableau, BoundManager &boundManager ),
+                T::createConstraintBoundTightener,
+                ( tableau, boundManager ) );
 
 CXXTEST_SUPPLY_VOID( discardConstraintBoundTightener,
 					 discardConstraintBoundTightener,
