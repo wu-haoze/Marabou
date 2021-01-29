@@ -1643,6 +1643,7 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnIntervalWidth()
         splits.append( s2 );
         _disjunctionForSplitting = std::unique_ptr<DisjunctionConstraint>
             ( new DisjunctionConstraint( splits ) );
+        _disjunctionForSplitting->initializeCDOs( &_context );
         return _disjunctionForSplitting.get();
     }
 }
