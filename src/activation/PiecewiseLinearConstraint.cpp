@@ -19,8 +19,10 @@
 
 PiecewiseLinearConstraint::PiecewiseLinearConstraint()
     : _boundManager( NULL )
-    , _constraintActive( true )
-    , _phaseStatus( PHASE_NOT_FIXED )
+    , _gurobi( NULL )
+    , _context( NULL )
+    , _constraintActive( NULL )
+    , _phaseStatus( NULL )
     , _score( FloatUtils::negativeInfinity() )
     , _constraintBoundTightener( NULL )
     , _statistics( NULL )

@@ -75,6 +75,7 @@ PiecewiseLinearConstraint *AbsoluteValueConstraint::duplicateConstraint() const
 {
     AbsoluteValueConstraint *clone = new AbsoluteValueConstraint( _b, _f );
     *clone = *this;
+    clone->reinitializeCDOs();
     return clone;
 }
 
@@ -289,7 +290,7 @@ bool AbsoluteValueConstraint::satisfied() const
 
 List<PiecewiseLinearCaseSplit> AbsoluteValueConstraint::getCaseSplits() const
 {
-    ASSERT( _phaseStatus == PhaseStatus::PHASE_NOT_FIXED );
+    ASSERT( *_phaseStatus == PhaseStatus::PHASE_NOT_FIXED );
 
     List<PiecewiseLinearCaseSplit> splits;
     splits.append( getNegativeSplit() );
@@ -344,14 +345,14 @@ PiecewiseLinearCaseSplit AbsoluteValueConstraint::getPositiveSplit() const
 
 bool AbsoluteValueConstraint::phaseFixed() const
 {
-    return _phaseStatus != PhaseStatus::PHASE_NOT_FIXED;
+    return *_phaseStatus != PhaseStatus::PHASE_NOT_FIXED;
 }
 
 PiecewiseLinearCaseSplit AbsoluteValueConstraint::getValidCaseSplit() const
 {
-    ASSERT( _phaseStatus != PHASE_NOT_FIXED );
+    ASSERT( *_phaseStatus != PHASE_NOT_FIXED );
 
-    if ( _phaseStatus == ABS_PHASE_POSITIVE )
+    if ( *_phaseStatus == ABS_PHASE_POSITIVE )
         return getPositiveSplit();
 
     return getNegativeSplit();
@@ -370,11 +371,11 @@ void AbsoluteValueConstraint::eliminateVariable( unsigned variable, double /* fi
 
 void AbsoluteValueConstraint::dump( String &output ) const
 {
+    PhaseStatus phase = *_phaseStatus;
     output = Stringf( "AbsoluteValueCosntraint: x%u = Abs( x%u ). Active? %s. PhaseStatus = %u (%s).\n",
                       _f, _b,
-                      _constraintActive ? "Yes" : "No",
-                      _phaseStatus, phaseToString( _phaseStatus ).ascii()
-                      );
+                      ( *_constraintActive ) ? "Yes" : "No",
+                      phase, phaseToString( phase ).ascii() );
 
     output += Stringf( "b in [%s, %s], ",
                        _lowerBounds.exists( _b ) ? Stringf( "%lf", _lowerBounds[_b] ).ascii() : "-inf",

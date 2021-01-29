@@ -84,8 +84,9 @@ PiecewiseLinearFunctionType ReluConstraint::getType() const
 
 PiecewiseLinearConstraint *ReluConstraint::duplicateConstraint() const
 {
-    PiecewiseLinearConstraint *clone = new ReluConstraint( _b, _f );
+    ReluConstraint *clone = new ReluConstraint( _b, _f );
     *clone = *this;
+    clone->reinitializeCDOs();
     return clone;
 }
 
@@ -252,7 +253,7 @@ bool ReluConstraint::satisfied() const
 
 List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
 {
-    if ( _phaseStatus != PHASE_NOT_FIXED )
+    if ( *_phaseStatus != PHASE_NOT_FIXED )
         throw MarabouError( MarabouError::REQUESTED_CASE_SPLITS_FROM_FIXED_CONSTRAINT );
 
     List<PiecewiseLinearCaseSplit> splits;
@@ -308,14 +309,14 @@ PiecewiseLinearCaseSplit ReluConstraint::getActiveSplit() const
 
 bool ReluConstraint::phaseFixed() const
 {
-    return _phaseStatus != PHASE_NOT_FIXED;
+    return *_phaseStatus != PHASE_NOT_FIXED;
 }
 
 PiecewiseLinearCaseSplit ReluConstraint::getValidCaseSplit() const
 {
-    ASSERT( _phaseStatus != PHASE_NOT_FIXED );
+    ASSERT( *_phaseStatus != PHASE_NOT_FIXED );
 
-    if ( _phaseStatus == RELU_PHASE_ACTIVE )
+    if ( *_phaseStatus == RELU_PHASE_ACTIVE )
         return getActiveSplit();
 
     return getInactiveSplit();
@@ -323,10 +324,11 @@ PiecewiseLinearCaseSplit ReluConstraint::getValidCaseSplit() const
 
 void ReluConstraint::dump( String &output ) const
 {
+    PhaseStatus phase = *_phaseStatus;
     output = Stringf( "ReluConstraint: x%u = ReLU( x%u ). Active? %s. PhaseStatus = %u (%s).\n",
                       _f, _b,
-                      _constraintActive ? "Yes" : "No",
-                      _phaseStatus, phaseToString( _phaseStatus ).ascii()
+                      *_constraintActive ? "Yes" : "No",
+                      phase, phaseToString( phase ).ascii()
                       );
 
     output += Stringf( "b in [%s, %s], ",
@@ -388,11 +390,11 @@ void ReluConstraint::eliminateVariable( __attribute__((unused)) unsigned variabl
             {
                 if ( FloatUtils::gt( fixedValue, 0 ) )
                 {
-                    ASSERT( _phaseStatus != RELU_PHASE_INACTIVE );
+                    ASSERT( *_phaseStatus != RELU_PHASE_INACTIVE );
                 }
                 else if ( FloatUtils::lt( fixedValue, 0 ) )
                 {
-                    ASSERT( _phaseStatus != RELU_PHASE_ACTIVE );
+                    ASSERT( *_phaseStatus != RELU_PHASE_ACTIVE );
                 }
             }
             else
@@ -400,7 +402,7 @@ void ReluConstraint::eliminateVariable( __attribute__((unused)) unsigned variabl
                 // This is the aux variable
                 if ( FloatUtils::isPositive( fixedValue ) )
                 {
-                    ASSERT( _phaseStatus != RELU_PHASE_ACTIVE );
+                    ASSERT( *_phaseStatus != RELU_PHASE_ACTIVE );
                 }
             }
         });
@@ -540,7 +542,7 @@ void ReluConstraint::addAuxiliaryEquations( InputQuery &inputQuery )
       Lower bound: always non-negative
       Upper bound: when f = 0 and b is minimal, i.e. -b.lb
     */
-    ASSERT( !_gurobi );
+    ASSERT( _gurobi == NULL );
 
     // Create the aux variable
     _aux = inputQuery.getNumberOfVariables();

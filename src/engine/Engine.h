@@ -459,6 +459,8 @@ private:
 
     Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
 
+    void performBoundTightening();
+
     bool solveWithGurobi( unsigned timeoutInSeconds );
 
     /*

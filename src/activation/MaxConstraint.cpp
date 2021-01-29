@@ -75,6 +75,7 @@ PiecewiseLinearConstraint *MaxConstraint::duplicateConstraint() const
 {
     MaxConstraint *clone = new MaxConstraint( _f, _elements );
     *clone = *this;
+    clone->reinitializeCDOs();
     return clone;
 }
 

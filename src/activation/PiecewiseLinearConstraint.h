@@ -28,6 +28,10 @@
 #include "Tightening.h"
 #include "Vector.h"
 
+#include "context/context.h"
+#include "context/cdo.h"
+#include "context/cdlist.h"
+
 class Equation;
 class IConstraintBoundTightener;
 class ITableau;
@@ -74,7 +78,13 @@ public:
     };
 
     PiecewiseLinearConstraint();
-    virtual ~PiecewiseLinearConstraint() {}
+    virtual ~PiecewiseLinearConstraint()
+    {
+        if ( _constraintActive )
+            _constraintActive->deleteSelf();
+        if ( _phaseStatus )
+            _phaseStatus->deleteSelf();
+    }
 
     bool operator<( const PiecewiseLinearConstraint &other ) const
     {
@@ -105,12 +115,13 @@ public:
     */
     virtual void setActiveConstraint( bool active )
     {
-        _constraintActive = active;
+        ASSERT( _constraintActive )
+        *_constraintActive = active;
     }
 
     virtual bool isActive() const
     {
-        return _constraintActive;
+        return *_constraintActive;
     }
 
     /*
@@ -150,7 +161,7 @@ public:
     /*
       Dump the current state of the constraint.
     */
-    virtual void dump( String & ) const {}
+    virtual void dump( String & ) const {};
 
     /*
       Preprocessing related functions, to inform that a variable has been eliminated completely
@@ -211,7 +222,6 @@ public:
     {
         return _score;
     }
-
 
     virtual void updateScoreBasedOnPolarity()
     {
@@ -297,11 +307,24 @@ public:
         _gurobi = gurobi;
     }
 
+    void initializeCDOs( CVC4::context::Context *context )
+    {
+        ASSERT( NULL == _context );
+        ASSERT( NULL == _constraintActive );
+        ASSERT( NULL == _phaseStatus );
+        _context = context;
+        _constraintActive = new (true) CVC4::context::CDO<bool>( _context, true );
+        _phaseStatus = new (true) CVC4::context::CDO<PhaseStatus>( _context, PHASE_NOT_FIXED );
+    }
+
 protected:
     BoundManager *_boundManager;
     GurobiWrapper *_gurobi;
-    bool _constraintActive;
-    PhaseStatus _phaseStatus;
+
+    CVC4::context::Context *_context;
+    CVC4::context::CDO<bool> *_constraintActive;
+    CVC4::context::CDO<PhaseStatus> *_phaseStatus;
+
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
 
@@ -327,12 +350,29 @@ protected:
      */
     void setPhaseStatus( PhaseStatus phase )
     {
-        _phaseStatus = phase;
+        ASSERT( _phaseStatus );
+        *_phaseStatus = phase;
     };
 
     PhaseStatus getPhaseStatus() const
     {
-        return _phaseStatus;
+        return *_phaseStatus;
+    };
+
+    void reinitializeCDOs()
+    {
+        if ( _context == nullptr )
+        {
+            return;
+        }
+        ASSERT( nullptr != _context );
+        ASSERT( nullptr != _constraintActive );
+        ASSERT( nullptr != _phaseStatus );
+
+        bool constraintActive = *_constraintActive;
+        _constraintActive = new (true) CVC4::context::CDO<bool>( _context, constraintActive );
+        PhaseStatus phaseStatus = *_phaseStatus;
+        _phaseStatus = new (true) CVC4::context::CDO<PhaseStatus>( _context, phaseStatus );
     };
 };
 

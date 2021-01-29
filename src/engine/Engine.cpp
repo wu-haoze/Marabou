@@ -522,13 +522,16 @@ bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double
 
 bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 {
-    updateDirections();
-
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
     _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager, true ) );
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
-    _tableau->setGurobi( &(*_gurobi) );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
+
+    for ( const auto &constraint : _plConstraints )
+        constraint->registerGurobi( &( *_gurobi ) );
+    _tableau->setGurobi( &(*_gurobi) );
+
+    updateDirections();
 
     mainLoopStatistics();
     if ( _verbosity > 0 )
@@ -582,30 +585,9 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                  10 == 0 )
                 _statistics.print();
 
-            if ( _tableau->basisMatrixAvailable() )
-            {
-                explicitBasisBoundTightening();
-                applyAllBoundTightenings();
-                applyAllValidConstraintCaseSplits();
-            }
-
             if ( splitJustPerformed )
             {
-                do
-                {
-                    performSymbolicBoundTightening();
-                }
-                while ( applyAllValidConstraintCaseSplits() );
-
-                struct timespec sstart = TimeUtils::sampleMicro();
-
-                _rowBoundTightener->examineConstraintMatrix( true );
-                _statistics.incNumBoundTighteningOnConstraintMatrix();
-
-                struct timespec send = TimeUtils::sampleMicro();
-                _statistics.addTimeForConstraintMatrixBoundTightening( TimeUtils::timePassed( sstart, send ) );
-                applyAllBoundTightenings();
-                applyAllValidConstraintCaseSplits();
+                performBoundTightening();
 
                 List<GurobiWrapper::Term> obj;
                 _gurobi->setCost( obj );
@@ -624,16 +606,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             if ( _gurobi->haveFeasibleSolution() )
             {
                 collectViolatedPlConstraints();
-                if ( allPlConstraintsHold() )
+                if ( allPlConstraintsHold() ||  performLocalSearch() )
                 {
-                    _exitCode = IEngine::SAT;
-                    return true;
-                }
-                else if ( performLocalSearch() )
-                {
-                    // Either throws InfeasibleQueryException,
-                    // or contains a satisfying assignment
-                    // or conclude that splitting is needed
                     if ( _verbosity > 0 )
                     {
                         printf( "\nEngine::solve: sat assignment found\n" );
@@ -703,6 +677,26 @@ void Engine::mainLoopStatistics()
     struct timespec start = TimeUtils::sampleMicro();
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForStatistics( TimeUtils::timePassed( start, end ) );
+}
+
+void Engine::performBoundTightening()
+{
+    if ( _tableau->basisMatrixAvailable() )
+    {
+        explicitBasisBoundTightening();
+        applyAllBoundTightenings();
+        applyAllValidConstraintCaseSplits();
+    }
+
+    tightenBoundsOnConstraintMatrix();
+    applyAllBoundTightenings();
+    applyAllValidConstraintCaseSplits();
+
+    do
+    {
+        performSymbolicBoundTightening();
+    }
+    while ( applyAllValidConstraintCaseSplits() );
 }
 
 bool Engine::processInputQuery( InputQuery &inputQuery )
@@ -1108,6 +1102,9 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
     struct timespec start = TimeUtils::sampleMicro();
 
+    for ( const auto &constraint : inputQuery.getPiecewiseLinearConstraints() )
+        constraint->initializeCDOs( &_context );
+
     _originalInputQuery = inputQuery;
 
     try
@@ -1143,7 +1140,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         for ( const auto &constraint : _plConstraints )
         {
             constraint->registerConstraintBoundTightener( _constraintBoundTightener );
-            constraint->registerGurobi( &( *_gurobi ) );
             constraint->registerBoundManager( &_boundManager );
             constraint->registerAsWatcher( _tableau );
             constraint->setStatistics( &_statistics );
@@ -1406,12 +1402,8 @@ void Engine::tightenBoundsOnConstraintMatrix()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
-    if ( _statistics.getNumMainLoopIterations() %
-         GlobalConfiguration::BOUND_TIGHTING_ON_CONSTRAINT_MATRIX_FREQUENCY == 0 )
-    {
-        _rowBoundTightener->examineConstraintMatrix( true );
-        _statistics.incNumBoundTighteningOnConstraintMatrix();
-    }
+    _rowBoundTightener->examineConstraintMatrix( true );
+    _statistics.incNumBoundTighteningOnConstraintMatrix();
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForConstraintMatrixBoundTightening( TimeUtils::timePassed( start, end ) );

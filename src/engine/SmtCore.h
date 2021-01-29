@@ -56,17 +56,6 @@ public:
     void reportRandomFlip();
 
     /*
-      Inform the SMT core that a PL constraint is violated.
-    */
-    void reportViolatedConstraint( PiecewiseLinearConstraint *constraint );
-
-    /*
-      Get the number of times a specific PL constraint has been reported as
-      violated.
-    */
-    unsigned getViolationCounts( PiecewiseLinearConstraint* constraint ) const;
-
-    /*
       Reset all reported violation counts.
     */
     void resetReportedViolations();
@@ -109,12 +98,6 @@ public:
     */
     void setStatistics( Statistics *statistics );
 
-    /*
-      Have the SMT core choose, among a set of violated PL constraints, which
-      constraint should be repaired (without splitting)
-    */
-    PiecewiseLinearConstraint *chooseViolatedConstraintForFixing( Vector<PiecewiseLinearConstraint *> &_violatedPlConstraints ) const;
-
     void setConstraintViolationThreshold( unsigned threshold );
 
     /*
@@ -133,12 +116,6 @@ private:
       CVC4 Context, constructed in Engine
     */
     CVC4::context::Context& _context;
-
-    /*
-      Trail is context dependent and contains all the asserted PWLCaseSplits.
-      TODO: Abstract from PWLCaseSplits to Literals
-    */
-    CVC4::context::CDList<SmtStackEntry> _trail;
 
     /*
       Collect and print various statistics.
@@ -160,22 +137,6 @@ private:
     */
     bool _needToSplit;
     PiecewiseLinearConstraint *_constraintForSplitting;
-
-    /*
-      Count how many times each constraint has been violated.
-    */
-    Map<PiecewiseLinearConstraint *, unsigned> _constraintToViolationCount;
-
-    /*
-      For debugging purposes only
-    */
-    Map<unsigned, double> _debuggingSolution;
-
-    /*
-      A unique ID allocated to every state that is stored, for
-      debugging purposes.
-    */
-    unsigned _stateId;
 
     /*
       Split when some relu has been violated for this many times

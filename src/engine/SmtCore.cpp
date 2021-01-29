@@ -28,7 +28,6 @@ using namespace CVC4::context;
 
 SmtCore::SmtCore( IEngine *engine, Context &ctx )
     : _context( ctx )
-    , _trail( &_context )
     , _statistics( NULL )
     , _engine( engine )
     , _needToSplit( false )
@@ -59,7 +58,7 @@ void SmtCore::reset()
     _impliedValidSplitsAtRoot.clear();
     _needToSplit = false;
     _constraintForSplitting = NULL;
-    _constraintToViolationCount.clear();
+    _numberOfRandomFlips = 0;
 }
 
 void SmtCore::reportRandomFlip()
