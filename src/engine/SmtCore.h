@@ -123,13 +123,6 @@ public:
     */
     bool pickSplitPLConstraint();
 
-    /*
-      For debugging purposes only - store a correct possible solution
-    */
-    void storeDebuggingSolution( const Map<unsigned, double> &debuggingSolution );
-    bool checkSkewFromDebuggingSolution();
-    bool splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, String &error ) const;
-
 private:
     /*
       Valid splits that were implied by level 0 of the stack.

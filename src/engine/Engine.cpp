@@ -376,7 +376,7 @@ bool Engine::concretizeAndCheckInputAssignment()
     concretizeInputAssignment();
     if ( checkAssignmentFromNetworkLevelReasoner() )
     {
-        ENGINE_LOG( "Current tableau input assignment valid!" );
+        ENGINE_LOG( "Current input assignment valid!" );
         return true;
     }
     return false;
@@ -713,19 +713,6 @@ bool Engine::solve( unsigned timeoutInSeconds )
 void Engine::mainLoopStatistics()
 {
     struct timespec start = TimeUtils::sampleMicro();
-
-    unsigned activeConstraints = 0;
-    for ( const auto &constraint : _plConstraints )
-        if ( constraint->isActive() )
-            ++activeConstraints;
-
-    _statistics.setNumActivePlConstraints( activeConstraints );
-    _statistics.setNumPlValidSplits( _numPlConstraintsDisabledByValidSplits );
-    _statistics.setNumPlSMTSplits( _plConstraints.size() -
-                                   activeConstraints - _numPlConstraintsDisabledByValidSplits );
-
-    _statistics.incNumMainLoopIterations();
-
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForStatistics( TimeUtils::timePassed( start, end ) );
 }
@@ -1217,7 +1204,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
                 }
         });
 
-    _smtCore.storeDebuggingSolution( _preprocessedQuery._debuggingSolution );
     return true;
 }
 
