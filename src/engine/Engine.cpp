@@ -1653,11 +1653,7 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
     ENGINE_LOG( Stringf( "Picking a split PLConstraint..." ).ascii() );
 
     PiecewiseLinearConstraint *candidatePLConstraint = NULL;
-    if ( _splittingStrategy == DivideStrategy::Polarity )
-        candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
-    //if ( _splittingStrategy == DivideStrategy::BABSR )
-    //    candidatePLConstraint = pickSplitPLConstraintBABSR();
-    else if ( _splittingStrategy == DivideStrategy::EarliestReLU )
+    if ( _splittingStrategy == DivideStrategy::EarliestReLU )
         candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
     else if ( _splittingStrategy == DivideStrategy::LargestInterval )
     {
@@ -1667,6 +1663,10 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
             candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
         else
             candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
+    }
+    else
+    {
+            ASSERT( false );
     }
     ENGINE_LOG( Stringf( ( candidatePLConstraint ?
                            "Picked..." :
