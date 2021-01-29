@@ -16,6 +16,7 @@
 #ifndef __Tableau_h__
 #define __Tableau_h__
 
+#include "BoundManager.h"
 #include "GurobiWrapper.h"
 #include "IBasisFactorization.h"
 #include "ITableau.h"
@@ -53,18 +54,6 @@ public:
     void setConstraintMatrix( const double *A );
 
     /*
-      Set which variable will enter the basis. The input is the
-      index of the non basic variable, in the range [0, n-m).
-    */
-    void setEnteringVariableIndex( unsigned nonBasic );
-
-    /*
-      Set which variable will leave the basis. The input is the
-      index of the basic variable, in the range [0, m).
-    */
-    void setLeavingVariableIndex( unsigned basic );
-
-    /*
       Get the current set of basic variables
     */
     Set<unsigned> getBasicVariables() const;
@@ -98,22 +87,10 @@ public:
     void assignIndexToBasicVariable( unsigned variable, unsigned index );
 
     /*
-      A method for adding an additional equation to the tableau. The
-      method returns the index of the fresh auxiliary variable assigned
-      to the equation
-    */
-    unsigned addEquation( const Equation &equation );
-
-    /*
       Get the Tableau's dimensions.
     */
     unsigned getM() const;
     unsigned getN() const;
-
-    /*
-      Get the assignment of a variable, either basic or non-basic
-    */
-    double getValue( unsigned variable );
 
     /*
       Given an index of a non-basic variable in the range [0,n-m),
@@ -135,153 +112,9 @@ public:
     unsigned variableToIndex( unsigned index ) const;
 
     /*
-      Set the lower/upper bounds for a variable. These functions are
-      meant to be used as part of the initialization of the tableau.
-    */
-    void setLowerBound( unsigned variable, double value );
-    void setUpperBound( unsigned variable, double value );
-
-    /*
-      Get the lower/upper bounds for a variable.
-    */
-    double getLowerBound( unsigned variable ) const;
-    double getUpperBound( unsigned variable ) const;
-
-    /*
-      Get all lower and upper bounds.
-    */
-    const double *getLowerBounds() const;
-    const double *getUpperBounds() const;
-
-    /*
-      Recomputes bound valid status for all variables.
-    */
-    void checkBoundsValid();
-
-    /*
-      Sets bound valid flag to false if bounds are invalid
-      on the given variable.
-    */
-    void checkBoundsValid( unsigned variable );
-
-    /*
-      Returns whether any variable's bounds are invalid.
-    */
-    bool allBoundsValid() const;
-
-    /*
-      Tighten the lower/upper bound for a variable. These functions
-      are meant to be used during the solution process, when a tighter
-      bound has been discovered.
-    */
-    void tightenLowerBound( unsigned variable, double value );
-    void tightenUpperBound( unsigned variable, double value );
-
-    /*
-      Return the current status of the basic variable
-    */
-    unsigned getBasicStatus( unsigned basic );
-    unsigned getBasicStatusByIndex( unsigned basicIndex );
-
-    /*
-      True if there exists some out-of-bounds basic
-    */
-    bool existsBasicOutOfBounds() const;
-
-    /*
-      Compute the basic assignment from scratch.
-    */
-    void computeAssignment();
-
-    /*
-      Check whether a given value falls within a variable's bounds,
-      i.e. lowerBound <= value <= upperBound.
-    */
-    bool checkValueWithinBounds( unsigned variable, double value );
-
-    /*
-      Compute the status of the basic variable based on current assignment
-    */
-    void computeBasicStatus();
-    void computeBasicStatus( unsigned basic );
-
-    /*
-      Picks the entering variable.
-    */
-    bool eligibleForEntry( unsigned nonBasic, const double *costFunction ) const;
-    unsigned getEnteringVariable() const;
-    unsigned getEnteringVariableIndex() const;
-    bool nonBasicCanIncrease( unsigned nonBasic ) const;
-    bool nonBasicCanDecrease( unsigned nonBasic ) const;
-
-    /*
-      Pick the leaving variable according to the entering variable.
-      d is the column vector for the entering variable (length m)
-    */
-    void pickLeavingVariable();
-    void pickLeavingVariable( double *d );
-    unsigned getLeavingVariable() const;
-    unsigned getLeavingVariableIndex() const;
-    double getChangeRatio() const;
-    void setChangeRatio( double changeRatio );
-
-    /*
-      Returns true iff the current iteration is a fake pivot, i.e. the
-      entering variable jumping from one bound to the other.
-    */
-    bool performingFakePivot() const;
-
-    /*
-      Performs the pivot operation after the entering and leaving
-      variables have been selected
-    */
-    void performPivot();
-
-    /*
-      Performs a degenerate pivot: just switches the entering and
-      leaving variable. The leaving variable is required to be within
-      bounds, so that is remains within bounds as a non-basic
-      variable. Assignment values are unchanged (and the assignment is
-      remains valid).
-     */
-    void performDegeneratePivot();
-
-    /*
-      Calculate the ratio constraint for the entering variable
-      imposed by a basic variable.
-      Coefficient is the relevant coefficient in the tableau.
-      Decrease is true iff the entering variable is decreasing.
-    */
-    double ratioConstraintPerBasic( unsigned basicIndex, double coefficient, bool decrease );
-
-    /*
       True iff the variable is basic
     */
     bool isBasic( unsigned variable ) const;
-
-    /*
-      Set the assignment of a non-basic variable to a given value.
-      If updateBasics is true, also update any basic variables that depend on this non-basic.
-    */
-    void setNonBasicAssignment( unsigned variable, double value, bool updateBasics );
-
-    /*
-      Compute the cost function (for all variables).
-    */
-    void computeCostFunction();
-
-    /*
-      Updat the cost function for an adjacement basis. Requires the
-      change column and pivot row to have been computed previously.
-    */
-    void updateCostFunctionForPivot();
-
-    /*
-      Get a list of non-basic variables eligible for entry into the
-      basis, i.e. variables that can be changed in a way that would
-      reduce the cost value.
-    */
-    void getEntryCandidates( List<unsigned> &candidates ) const;
 
     /*
       Compute the multipliers for a given list of row coefficient.
@@ -289,32 +122,9 @@ public:
     void computeMultipliers( double *rowCoefficients );
 
     /*
-      Access the cost function.
-    */
-    const double *getCostFunction() const;
-
-    /*
-      Compute the "change column" d, given by inv(B) * a. This is the column
-      that tells us the change rates for the basic variables, when the entering
-      variable changes.
-
-      Can also get the column or manually set it.
-    */
-    void computeChangeColumn();
-    const double *getChangeColumn() const;
-    void setChangeColumn( const double *column );
-
-    /*
-      Compute the pivot row.
-    */
-    void computePivotRow();
-    const TableauRow *getPivotRow() const;
-
-    /*
       Dump the tableau (debug)
     */
     void dump() const;
-    void dumpAssignment();
     void dumpEquations();
 
     /*
@@ -334,21 +144,6 @@ public:
     const SparseUnsortedList *getSparseARow( unsigned row ) const;
 
     /*
-      Store and restore the Tableau's state. Needed for case splitting
-      and backtracking. The stored elements are the current:
-
-      - Tableau dimensions
-      - The current matrix A
-      - Lower and upper bounds
-      - Basic variables
-      - Basic and non-basic assignments
-      - The current indexing
-      - The current basis
-    */
-    void storeState( TableauState &state ) const;
-    void restoreState( const TableauState &state );
-
-    /*
       Register or unregister to watch a variable.
     */
     void registerToWatchAllVariables( VariableWatcher *watcher );
@@ -356,20 +151,9 @@ public:
     void unregisterToWatchVariable( VariableWatcher *watcher, unsigned variable );
 
     /*
-      Register to watch for tableau dimension changes.
-    */
-    void registerResizeWatcher( ResizeWatcher *watcher );
-
-    /*
-      Register the cost function manager.
-    */
-    void registerCostFunctionManager( ICostFunctionManager *costFunctionManager );
-
-    /*
       Notify all watchers of the given variable of a value update,
       or of changes to its bounds.
     */
-    void notifyVariableValue( unsigned variable, double value );
     void notifyLowerBound( unsigned variable, double bound );
     void notifyUpperBound( unsigned variable, double bound );
 
@@ -377,25 +161,6 @@ public:
       Have the Tableau start reporting statistics.
      */
     void setStatistics( Statistics *statistics );
-
-    /*
-      Compute the current sum of infeasibilities
-    */
-    double getSumOfInfeasibilities() const;
-
-    /*
-      The current state and values of the basic assignment
-    */
-    BasicAssignmentStatus getBasicAssignmentStatus() const;
-    double getBasicAssignment( unsigned basicIndex ) const;
-    void setBasicAssignmentStatus( ITableau::BasicAssignmentStatus status );
-
-    /*
-      True if the basic variable is out of bounds
-    */
-    bool basicOutOfBounds( unsigned basic ) const;
-    bool basicTooHigh( unsigned basic ) const;
-    bool basicTooLow( unsigned basic ) const;
 
     /*
       Methods for accessing the basis matrix and extracting
@@ -408,43 +173,11 @@ public:
       Can also extract the inverse basis matrix.
     */
     bool basisMatrixAvailable() const;
-    void makeBasisMatrixAvailable();
     double *getInverseBasisMatrix() const;
 
     void getColumnOfBasis( unsigned column, double *result ) const;
     void getColumnOfBasis( unsigned column, SparseUnsortedList *result ) const;
     void getSparseBasis( SparseColumnsOfBasis &basis ) const;
-
-    /*
-      Trigger a re-computing of the basis factorization. This can
-      be triggered, e.g., if a high numerical degradation has
-      been observed.
-    */
-    void refreshBasisFactorization();
-
-    /*
-      Merge two columns of the constraint matrix and re-initialize
-      the tableau.
-    */
-    void mergeColumns( unsigned x1, unsigned x2 );
-
-    /*
-      Check whether two variables are linearly dependent. If so, the function
-      returns true and places in coefficient the value c such that
-
-        x2 = ... + c * x1 + ...
-
-      The inverse coefficient is just 1/c.
-    */
-    bool areLinearlyDependent( unsigned x1, unsigned x2, double &coefficient, double &inverseCoefficient );
-
-    /*
-      When we start merging columns, variables effectively get renamed.
-      Further, it is possible that x1 is renamed to x2, and x2 is then
-      renamed to x3. This function returns the final name of its input
-      variable, after the merging has been applied.
-     */
-    unsigned getVariableAfterMerging( unsigned variable ) const;
 
 private:
     /*
@@ -453,11 +186,6 @@ private:
     typedef List<VariableWatcher *> VariableWatchers;
     HashMap<unsigned, VariableWatchers> _variableToWatchers;
     List<VariableWatcher *> _globalWatchers;
-
-    /*
-      Resize watchers
-    */
-    List<ResizeWatcher *> _resizeWatchers;
 
     /*
       The dimensions of matrix A
@@ -474,16 +202,6 @@ private:
     SparseUnsortedList **_sparseColumnsOfA;
     SparseUnsortedList **_sparseRowsOfA;
     double *_denseA;
-
-    /*
-      Used to compute inv(B)*a
-    */
-    double *_changeColumn;
-
-    /*
-      Used to store the pivot row
-    */
-    TableauRow *_pivotRow;
 
     /*
       The right hand side vector of Ax = b
@@ -532,73 +250,9 @@ private:
     Set<unsigned> _basicVariables;
 
     /*
-      The assignment of the non basic variables.
-    */
-    double *_nonBasicAssignment;
-
-    /*
-      Upper and lower bounds for all variables
-    */
-    double *_lowerBounds;
-    double *_upperBounds;
-
-    /*
-      Whether all variables have valid bounds (l <= u).
-    */
-    bool _boundsValid;
-
-    /*
-      The current assignment for the basic variables
-    */
-    double *_basicAssignment;
-
-    /*
-      The current status of the basic variabels
-    */
-    unsigned *_basicStatus;
-
-    /*
-      A non-basic variable chosen to become basic in this iteration
-    */
-    unsigned _enteringVariable;
-
-    /*
-      A basic variable chosen to become non-basic in this iteration
-    */
-    unsigned _leavingVariable;
-
-    /*
-      The amount by which the entering variable should change in this
-      pivot step
-    */
-    double _changeRatio;
-
-    /*
-      True if the leaving variable increases, false otherwise
-    */
-    bool _leavingVariableIncreases;
-
-    /*
-      The status of the basic assignment
-    */
-    BasicAssignmentStatus _basicAssignmentStatus;
-
-    /*
       Statistics collection
     */
     Statistics *_statistics;
-
-    /*
-      The cost function manager
-    */
-    ICostFunctionManager *_costFunctionManager;
-
-    /*
-      _mergedVariables[x] = y means that x = y, and that
-      variable x has been merged into variable y. So, when
-      extracting a solution for x, we should read the value of y.
-     */
-    Map<unsigned, unsigned> _mergedVariables;
 
     /*
       True if and only if the rhs vector _b is all zeros. This can
@@ -610,23 +264,6 @@ private:
       Free all allocated memory.
     */
     void freeMemoryIfNeeded();
-
-    /*
-      Resize the relevant data structures to add a new row to the tableau.
-    */
-    void addRow();
-
-    /*
-      Update the variable assignment to reflect a pivot operation,
-      without re-computing it from scratch.
-     */
-    void updateAssignmentForPivot();
-
-    /*
-      Ratio tests for determining the leaving variable
-    */
-    void standardRatioTest( double *changeColumn );
-    void harrisRatioTest( double *changeColumn );
 
     /*
       For debugging purposes only

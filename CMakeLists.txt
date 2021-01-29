@@ -365,8 +365,7 @@ endif()
 
 # Add the input parsers
 add_custom_target(build_input_parsers)
-add_dependencies(build_input_parsers ${MPS_PARSER} ${ACAS_PARSER}
-    ${BERKELEY_PARSER})
+add_dependencies(build_input_parsers ${ACAS_PARSER})
 
 add_subdirectory(${SRC_DIR})
 add_subdirectory(${TOOLS_DIR})

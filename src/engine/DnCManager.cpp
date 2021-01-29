@@ -55,7 +55,8 @@ void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine
                       timeoutFactor, divideStrategy, verbosity );
     while ( !shouldQuitSolving.load() )
     {
-        worker.popOneSubQueryAndSolve( restoreTreeStates );
+        std::cout << restoreTreeStates << std::endl;
+        worker.popOneSubQueryAndSolve();
     }
 }
 
@@ -266,9 +267,6 @@ void DnCManager::getSolution( std::map<int, double> &ret,
                               InputQuery &inputQuery )
 {
     ASSERT( _engineWithSATAssignment != nullptr );
-    TableauState tableauStateWithSolution;
-    _engineWithSATAssignment->storeTableauState( tableauStateWithSolution );
-    _baseEngine->restoreTableauState( tableauStateWithSolution );
     _baseEngine->extractSolution( inputQuery );
 
     for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )

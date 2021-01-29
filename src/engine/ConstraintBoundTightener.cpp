@@ -18,8 +18,10 @@
 #include "MarabouError.h"
 #include "Statistics.h"
 
-ConstraintBoundTightener::ConstraintBoundTightener( const ITableau &tableau )
+ConstraintBoundTightener::ConstraintBoundTightener( const ITableau &tableau,
+                                                    BoundManager &boundManager )
     : _tableau( tableau )
+    , _boundManager( boundManager )
     , _lowerBounds( NULL )
     , _upperBounds( NULL )
     , _tightenedLower( NULL )
@@ -61,8 +63,8 @@ void ConstraintBoundTightener::resetBounds()
 
     for ( unsigned i = 0; i < _n; ++i )
     {
-        _lowerBounds[i] = _tableau.getLowerBound( i );
-        _upperBounds[i] = _tableau.getUpperBound( i );
+        _lowerBounds[i] = _boundManager.getLowerBound( i );
+        _upperBounds[i] = _boundManager.getUpperBound( i );
     }
 }
 

@@ -17,7 +17,7 @@
 #define __NetworkLevelReasoner_h__
 
 #include "DeepPolyAnalysis.h"
-#include "ITableau.h"
+#include "BoundManager.h"
 #include "Layer.h"
 #include "LayerOwner.h"
 #include "Map.h"
@@ -102,8 +102,8 @@ public:
           discovered by the NLR.
     */
 
-    void setTableau( const ITableau *tableau );
-    const ITableau *getTableau() const;
+    void setBoundManager( BoundManager *boundManager );
+    BoundManager *getBoundManager();
 
     void obtainCurrentBounds();
     void intervalArithmeticBoundPropagation();
@@ -187,7 +187,7 @@ public:
 
 private:
     Map<unsigned, Layer *> _layerIndexToLayer;
-    const ITableau *_tableau;
+    BoundManager *_boundManager;
 
     // Tightenings discovered by the various layers
     List<Tightening> _boundTightenings;

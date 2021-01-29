@@ -16,6 +16,8 @@
 #ifndef __SmtCore_h__
 #define __SmtCore_h__
 
+#include "context/context.h"
+#include "context/cdlist.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearConstraint.h"
 #include "SmtState.h"
@@ -35,7 +37,7 @@ class String;
 class SmtCore
 {
 public:
-    SmtCore( IEngine *engine );
+    SmtCore( IEngine *engine, CVC4::context::Context &context );
     ~SmtCore();
 
     /*
@@ -116,16 +118,6 @@ public:
     void setConstraintViolationThreshold( unsigned threshold );
 
     /*
-      Replay a stackEntry
-    */
-    void replaySmtStackEntry( SmtStackEntry *stackEntry );
-
-    /*
-      Store the current state of the SmtCore into smtState
-    */
-    void storeSmtState( SmtState &smtState );
-
-    /*
       Pick the piecewise linear constraint for splitting, returns true
       if a constraint for splitting is successfully picked
     */
@@ -143,6 +135,17 @@ private:
       Valid splits that were implied by level 0 of the stack.
     */
     List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;
+
+    /*
+      CVC4 Context, constructed in Engine
+    */
+    CVC4::context::Context& _context;
+
+    /*
+      Trail is context dependent and contains all the asserted PWLCaseSplits.
+      TODO: Abstract from PWLCaseSplits to Literals
+    */
+    CVC4::context::CDList<SmtStackEntry> _trail;
 
     /*
       Collect and print various statistics.

@@ -22,9 +22,9 @@
 class AutoConstraintBoundTightener
 {
 public:
-	AutoConstraintBoundTightener( const ITableau &tableau )
+        AutoConstraintBoundTightener( const ITableau &tableau, BoundManager &boundManager )
 	{
-		_constraintBoundTightener = T::createConstraintBoundTightener( tableau );
+            _constraintBoundTightener = T::createConstraintBoundTightener( tableau, boundManager );
 	}
 
 	~AutoConstraintBoundTightener()

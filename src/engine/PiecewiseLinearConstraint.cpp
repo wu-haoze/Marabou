@@ -18,7 +18,8 @@
 #include "Statistics.h"
 
 PiecewiseLinearConstraint::PiecewiseLinearConstraint()
-    : _constraintActive( true )
+    : _boundManager( NULL )
+    , _constraintActive( true )
     , _phaseStatus( PHASE_NOT_FIXED )
     , _score( FloatUtils::negativeInfinity() )
     , _constraintBoundTightener( NULL )

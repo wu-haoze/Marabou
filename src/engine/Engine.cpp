@@ -18,7 +18,6 @@
 #include "Debug.h"
 #include "DisjunctionConstraint.h"
 #include "Engine.h"
-#include "EngineState.h"
 #include "InfeasibleQueryException.h"
 #include "InputQuery.h"
 #include "MStringf.h"
@@ -35,13 +34,13 @@
 Engine::Engine()
     : _context()
     , _boundManager( _context )
-    , _rowBoundTightener( *_tableau )
-    , _smtCore( this )
+    , _rowBoundTightener( *_tableau, _boundManager )
+    , _smtCore( this, _context )
     , _numPlConstraintsDisabledByValidSplits( 0 )
     , _preprocessingEnabled( false )
     , _quitRequested( false )
     , _exitCode( Engine::NOT_DONE )
-    , _constraintBoundTightener( *_tableau )
+    , _constraintBoundTightener( *_tableau, _boundManager )
     , _networkLevelReasoner( NULL )
     , _verbosity( Options::get()->getInt( Options::VERBOSITY ) )
     , _splittingStrategy( Options::get()->getDivideStrategy() )
@@ -57,6 +56,7 @@ Engine::Engine()
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
+    _tableau->setBoundManager( &_boundManager );
     _rowBoundTightener->setStatistics( &_statistics );
     _constraintBoundTightener->setStatistics( &_statistics );
     _preprocessor.setStatistics( &_statistics );
@@ -536,7 +536,7 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
     updateDirections();
 
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau, true ) );
+    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager, true ) );
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
     _tableau->setGurobi( &(*_gurobi) );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
@@ -617,12 +617,6 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                 _statistics.addTimeForConstraintMatrixBoundTightening( TimeUtils::timePassed( sstart, send ) );
                 applyAllBoundTightenings();
                 applyAllValidConstraintCaseSplits();
-
-                if ( !_tableau->allBoundsValid() )
-                {
-                    // Some variable bounds are invalid, so the query is unsat
-                    throw InfeasibleQueryException();
-                }
 
                 List<GurobiWrapper::Term> obj;
                 _gurobi->setCost( obj );
@@ -1106,17 +1100,16 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
     // Populate constriant matrix
     _tableau->setConstraintMatrix( constraintMatrix );
 
-    for ( unsigned i = 0; i < n; ++i )
+    _boundManager.initialize( _preprocessedQuery.getNumberOfVariables() );
+
+    for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
     {
-        _tableau->setLowerBound( i, _preprocessedQuery.getLowerBound( i ) );
-        _tableau->setUpperBound( i, _preprocessedQuery.getUpperBound( i ) );
+        _boundManager.setLowerBound( i, _preprocessedQuery.getLowerBound( i ) );
+        _boundManager.setUpperBound( i, _preprocessedQuery.getUpperBound( i ) );
     }
 
     _tableau->registerToWatchAllVariables( _rowBoundTightener );
-    _tableau->registerResizeWatcher( _rowBoundTightener );
-
     _tableau->registerToWatchAllVariables( _constraintBoundTightener );
-    _tableau->registerResizeWatcher( _constraintBoundTightener );
 
     _rowBoundTightener->setDimensions();
     _constraintBoundTightener->setDimensions();
@@ -1128,6 +1121,7 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
     _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
     for ( const auto &constraint : _plConstraints )
     {
+        constraint->registerBoundManager( &_boundManager );
         constraint->registerAsWatcher( _tableau );
         constraint->setStatistics( &_statistics );
     }
@@ -1142,7 +1136,7 @@ void Engine::initializeNetworkLevelReasoning()
     _networkLevelReasoner = _preprocessedQuery.getNetworkLevelReasoner();
 
     if ( _networkLevelReasoner )
-        _networkLevelReasoner->setTableau( _tableau );
+        _networkLevelReasoner->setBoundManager( &_boundManager );
 }
 
 bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
@@ -1256,10 +1250,10 @@ void Engine::performMILPSolverBoundedTightening()
         for ( const auto &tightening : tightenings )
         {
             if ( tightening._type == Tightening::LB )
-                _tableau->tightenLowerBound( tightening._variable, tightening._value );
+                _boundManager.tightenLowerBound( tightening._variable, tightening._value );
 
             else if ( tightening._type == Tightening::UB )
-                _tableau->tightenUpperBound( tightening._variable, tightening._value );
+                _boundManager.tightenUpperBound( tightening._variable, tightening._value );
         }
     }
 }
@@ -1323,59 +1317,6 @@ bool Engine::allPlConstraintsHold()
     return _violatedPlConstraints.empty();
 }
 
-void Engine::storeTableauState( TableauState &state ) const
-{
-    _tableau->storeState( state );
-}
-
-void Engine::restoreTableauState( const TableauState &state )
-{
-    ENGINE_LOG( "\tRestoring tableau state" );
-    _tableau->restoreState( state );
-}
-
-void Engine::storeState( EngineState &state, bool storeAlsoTableauState ) const
-{
-    if ( storeAlsoTableauState )
-    {
-        _tableau->storeState( state._tableauState );
-        state._tableauStateIsStored = true;
-    }
-    else
-        state._tableauStateIsStored = false;
-
-    for ( const auto &constraint : _plConstraints )
-        state._plConstraintToState[constraint] = constraint->duplicateConstraint();
-
-    state._numPlConstraintsDisabledByValidSplits = _numPlConstraintsDisabledByValidSplits;
-}
-
-void Engine::restoreState( const EngineState &state )
-{
-    ENGINE_LOG( "Restore state starting" );
-
-    ENGINE_LOG( "\tRestoring tableau state" );
-    _tableau->restoreState( state._tableauState );
-
-    ENGINE_LOG( "\tRestoring constraint states" );
-    for ( auto &constraint : _plConstraints )
-    {
-        if ( !state._plConstraintToState.exists( constraint ) )
-            throw MarabouError( MarabouError::MISSING_PL_CONSTRAINT_STATE );
-
-        constraint->restoreState( state._plConstraintToState[constraint] );
-    }
-
-    _numPlConstraintsDisabledByValidSplits = state._numPlConstraintsDisabledByValidSplits;
-
-    // Make sure the data structures are initialized to the correct size
-    _rowBoundTightener->setDimensions();
-    _constraintBoundTightener->setDimensions();
-
-    // Reset the violation counts in the SMT core
-    _smtCore.resetReportedViolations();
-}
-
 void Engine::setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints )
 {
     _numPlConstraintsDisabledByValidSplits = numConstraints;
@@ -1395,12 +1336,12 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
         if ( bound._type == Tightening::LB )
         {
             ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", bound._variable, bound._value ).ascii() );
-            _tableau->tightenLowerBound( bound._variable, bound._value );
+            _boundManager.tightenLowerBound( bound._variable, bound._value );
         }
         else
         {
             ENGINE_LOG( Stringf( "x%u: upper bound set to %.3lf", bound._variable, bound._value ).ascii() );
-            _tableau->tightenUpperBound( bound._variable, bound._value );
+            _boundManager.tightenUpperBound( bound._variable, bound._value );
         }
     }
     ENGINE_LOG( "Done with split\n" );
@@ -1414,9 +1355,9 @@ void Engine::applyAllRowTightenings()
     for ( const auto &tightening : rowTightenings )
     {
         if ( tightening._type == Tightening::LB )
-            _tableau->tightenLowerBound( tightening._variable, tightening._value );
+            _boundManager.tightenLowerBound( tightening._variable, tightening._value );
         else
-            _tableau->tightenUpperBound( tightening._variable, tightening._value );
+            _boundManager.tightenUpperBound( tightening._variable, tightening._value );
     }
 }
 
@@ -1431,9 +1372,9 @@ void Engine::applyAllConstraintTightenings()
         _statistics.incNumBoundsProposedByPlConstraints();
 
         if ( tightening._type == Tightening::LB )
-            _tableau->tightenLowerBound( tightening._variable, tightening._value );
+            _boundManager.tightenLowerBound( tightening._variable, tightening._value );
         else
-            _tableau->tightenUpperBound( tightening._variable, tightening._value );
+            _boundManager.tightenUpperBound( tightening._variable, tightening._value );
     }
 }
 
@@ -1589,16 +1530,16 @@ void Engine::performSymbolicBoundTightening()
     {
 
         if ( tightening._type == Tightening::LB &&
-             FloatUtils::gt( tightening._value, _tableau->getLowerBound( tightening._variable ) ) )
+             FloatUtils::gt( tightening._value, _boundManager.getLowerBound( tightening._variable ) ) )
         {
-            _tableau->tightenLowerBound( tightening._variable, tightening._value );
+            _boundManager.tightenLowerBound( tightening._variable, tightening._value );
             ++numTightenedBounds;
         }
 
         if ( tightening._type == Tightening::UB &&
-             FloatUtils::lt( tightening._value, _tableau->getUpperBound( tightening._variable ) ) )
+             FloatUtils::lt( tightening._value, _boundManager.getUpperBound( tightening._variable ) ) )
         {
-            _tableau->tightenUpperBound( tightening._variable, tightening._value );
+            _boundManager.tightenUpperBound( tightening._variable, tightening._value );
             ++numTightenedBounds;
         }
     }
@@ -1733,8 +1674,8 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnIntervalWidth()
     double largestIntervalSoFar = 0;
     for ( const auto &variable : _preprocessedQuery.getInputVariables() )
     {
-        double interval = _tableau->getUpperBound( variable ) -
-            _tableau->getLowerBound( variable );
+        double interval = _boundManager.getUpperBound( variable ) -
+            _boundManager.getLowerBound( variable );
         if ( interval > largestIntervalSoFar )
         {
             inputVariableWithLargestInterval = variable;
@@ -1746,8 +1687,8 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnIntervalWidth()
         return NULL;
     else
     {
-        double mid = ( _tableau->getLowerBound( inputVariableWithLargestInterval )
-                       + _tableau->getUpperBound( inputVariableWithLargestInterval )
+        double mid = ( _boundManager.getLowerBound( inputVariableWithLargestInterval )
+                       + _boundManager.getUpperBound( inputVariableWithLargestInterval )
                        ) / 2;
         PiecewiseLinearCaseSplit s1;
         s1.storeBoundTightening( Tightening( inputVariableWithLargestInterval,
@@ -1807,64 +1748,6 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraintSnC( SnCDivideStrategy s
     return candidatePLConstraint;
 }
 
-bool Engine::restoreSmtState( SmtState & smtState )
-{
-    try
-    {
-        ASSERT( _smtCore.getStackDepth() == 0 );
-
-        // Step 1: all implied valid splits at root
-        for ( auto &validSplit : smtState._impliedValidSplitsAtRoot )
-        {
-            applySplit( validSplit );
-            _smtCore.recordImpliedValidSplit( validSplit );
-        }
-
-        tightenBoundsOnConstraintMatrix();
-        applyAllBoundTightenings();
-        do
-            performSymbolicBoundTightening();
-        while ( applyAllValidConstraintCaseSplits() );
-
-        // Step 2: replay the stack
-        for ( auto &stackEntry : smtState._stack )
-        {
-            _smtCore.replaySmtStackEntry( stackEntry );
-            // Do all the bound propagation, and set ReLU constraints to inactive (at
-            // least the one corresponding to the _activeSplit applied above.
-            tightenBoundsOnConstraintMatrix();
-            applyAllBoundTightenings();
-            do
-                performSymbolicBoundTightening();
-            while ( applyAllValidConstraintCaseSplits() );
-
-        }
-    }
-    catch ( const InfeasibleQueryException & )
-    {
-        // The current query is unsat, and we need to pop.
-        // If we're at level 0, the whole query is unsat.
-        if ( !_smtCore.popSplit() )
-        {
-            if ( _verbosity > 0 )
-            {
-                printf( "\nEngine::solve: UNSAT query\n" );
-                _statistics.print();
-            }
-            _exitCode = Engine::UNSAT;
-            for ( PiecewiseLinearConstraint *p : _plConstraints )
-                p->setActiveConstraint( true );
-            return false;
-        }
-    }
-    return true;
-}
-
-void Engine::storeSmtState( SmtState & smtState )
-{
-    _smtCore.storeSmtState( smtState );
-}
-
 bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 {
     try
@@ -1890,7 +1773,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
+    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager ) );
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
 
@@ -1954,4 +1837,14 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
             inputQuery.setSolutionValue( i, assignment[variableName] );
         }
     }
+}
+
+void Engine::pushContext()
+{
+    _context.push();
+}
+
+void Engine::popContext()
+{
+    _context.pop();
 }

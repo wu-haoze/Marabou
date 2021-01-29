@@ -22,39 +22,39 @@
 class AutoRowBoundTightener
 {
 public:
-	AutoRowBoundTightener( const ITableau &tableau )
-	{
-		_rowBoundTightener = T::createRowBoundTightener( tableau );
-	}
+    AutoRowBoundTightener( const ITableau &tableau, BoundManager &boundManager )
+    {
+        _rowBoundTightener = T::createRowBoundTightener( tableau, boundManager );
+    }
 
-	~AutoRowBoundTightener()
-	{
-		T::discardRowBoundTightener( _rowBoundTightener );
-		_rowBoundTightener = 0;
-	}
+    ~AutoRowBoundTightener()
+    {
+        T::discardRowBoundTightener( _rowBoundTightener );
+        _rowBoundTightener = 0;
+    }
 
-	operator IRowBoundTightener &()
-	{
-		return *_rowBoundTightener;
-	}
+    operator IRowBoundTightener &()
+    {
+        return *_rowBoundTightener;
+    }
 
-	operator IRowBoundTightener *()
-	{
-		return _rowBoundTightener;
-	}
+    operator IRowBoundTightener *()
+    {
+        return _rowBoundTightener;
+    }
 
-	IRowBoundTightener *operator->()
-	{
-		return _rowBoundTightener;
-	}
+    IRowBoundTightener *operator->()
+    {
+        return _rowBoundTightener;
+    }
 
-	const IRowBoundTightener *operator->() const
-	{
-		return _rowBoundTightener;
-	}
+    const IRowBoundTightener *operator->() const
+    {
+        return _rowBoundTightener;
+    }
 
 private:
-	IRowBoundTightener *_rowBoundTightener;
+    IRowBoundTightener *_rowBoundTightener;
 };
 
 #endif // __AutoRowBoundTightener_h__

@@ -16,6 +16,7 @@
 #ifndef __PiecewiseLinearConstraint_h__
 #define __PiecewiseLinearConstraint_h__
 
+#include "BoundManager.h"
 #include "FloatUtils.h"
 #include "GurobiWrapper.h"
 #include "ITableau.h"
@@ -307,7 +308,13 @@ public:
 
     virtual void extractVariableValueFromGurobi( GurobiWrapper & ){};
 
+    void registerBoundManager( BoundManager *boundManager )
+    {
+        _boundManager = boundManager;
+    }
+
 protected:
+    BoundManager *_boundManager;
     bool _constraintActive;
     PhaseStatus _phaseStatus;
     Map<unsigned, double> _assignment;

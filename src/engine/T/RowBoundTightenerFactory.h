@@ -23,16 +23,16 @@ class ITableau;
 
 namespace T
 {
-	IRowBoundTightener *createRowBoundTightener( const ITableau &tableau );
-	void discardRowBoundTightener( IRowBoundTightener *rowBoundTightener );
+    IRowBoundTightener *createRowBoundTightener( const ITableau &tableau, BoundManager &boundManager );
+    void discardRowBoundTightener( IRowBoundTightener *rowBoundTightener );
 }
 
 CXXTEST_SUPPLY( createRowBoundTightener,
-				IRowBoundTightener *,
-				createRowBoundTightener,
-				( const ITableau &tableau ),
-				T::createRowBoundTightener,
-				( tableau ) );
+                IRowBoundTightener *,
+                createRowBoundTightener,
+                ( const ITableau &tableau, BoundManager &boundManager ),
+                T::createRowBoundTightener,
+                ( tableau, boundManager ) );
 
 CXXTEST_SUPPLY_VOID( discardRowBoundTightener,
 					 discardRowBoundTightener,

@@ -14,7 +14,6 @@
 **/
 
 #include "Debug.h"
-#include "EngineState.h"
 #include "FloatUtils.h"
 #include "PolarityBasedDivider.h"
 #include "MStringf.h"
@@ -94,14 +93,12 @@ void PolarityBasedDivider::createSubQueries( unsigned numNewSubqueries, const
 PiecewiseLinearConstraint *PolarityBasedDivider::getPLConstraintToSplit
 ( const PiecewiseLinearCaseSplit &split )
 {
-    EngineState *engineStateBeforeSplit = new EngineState();
-    _engine->storeState( *engineStateBeforeSplit, true );
+    _engine->pushContext();
     _engine->applySplit( split );
 
     PiecewiseLinearConstraint *constraintToSplit = NULL;
     constraintToSplit = _engine->pickSplitPLConstraintSnC( SnCDivideStrategy::Polarity );
-    _engine->restoreState( *engineStateBeforeSplit );
-    delete engineStateBeforeSplit;
+    _engine->popContext();
     return constraintToSplit;
 }
 

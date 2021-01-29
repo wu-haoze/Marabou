@@ -20,8 +20,9 @@
 #include "SparseUnsortedList.h"
 #include "Statistics.h"
 
-RowBoundTightener::RowBoundTightener( const ITableau &tableau )
+RowBoundTightener::RowBoundTightener( const ITableau &tableau, BoundManager &boundManager )
     : _tableau( tableau )
+    , _boundManager( boundManager )
     , _lowerBounds( NULL )
     , _upperBounds( NULL )
     , _tightenedLower( NULL )
@@ -89,8 +90,8 @@ void RowBoundTightener::resetBounds()
 
     for ( unsigned i = 0; i < _n; ++i )
     {
-        _lowerBounds[i] = _tableau.getLowerBound( i );
-        _upperBounds[i] = _tableau.getUpperBound( i );
+        _lowerBounds[i] = _boundManager.getLowerBound( i );
+        _upperBounds[i] = _boundManager.getUpperBound( i );
     }
 }
 
@@ -101,8 +102,8 @@ void RowBoundTightener::clear()
 
     for ( unsigned i = 0; i < _n; ++i )
     {
-        _lowerBounds[i] = _tableau.getLowerBound( i );
-        _upperBounds[i] = _tableau.getUpperBound( i );
+        _lowerBounds[i] = _boundManager.getLowerBound( i );
+        _upperBounds[i] = _boundManager.getUpperBound( i );
     }
 }
 
@@ -635,18 +636,6 @@ unsigned RowBoundTightener::tightenOnSingleConstraintRow( unsigned row )
     }
 
     return result;
-}
-
-void RowBoundTightener::examinePivotRow()
-{
-	if ( _statistics )
-        _statistics->incNumRowsExaminedByRowTightener();
-
-    const TableauRow &row( *_tableau.getPivotRow() );
-    unsigned newBoundsLearned = tightenOnSingleInvertedBasisRow( row );
-
-    if ( _statistics && ( newBoundsLearned > 0 ) )
-        _statistics->incNumTighteningsFromRows( newBoundsLearned );
 }
 
 void RowBoundTightener::getRowTightenings( List<Tightening> &tightenings ) const

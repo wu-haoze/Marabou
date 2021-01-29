@@ -23,14 +23,14 @@ class ITableau;
 
 namespace T
 {
-	IConstraintBoundTightener *createConstraintBoundTightener( const ITableau &tableau );
-	void discardConstraintBoundTightener( IConstraintBoundTightener *constraintBoundTightener );
+    IConstraintBoundTightener *createConstraintBoundTightener( const ITableau &tableau, BoundManager &boundManager );
+    void discardConstraintBoundTightener( IConstraintBoundTightener *constraintBoundTightener );
 }
 
 CXXTEST_SUPPLY( createConstraintBoundTightener,
 				IConstraintBoundTightener *,
 				createConstraintBoundTightener,
-				( const ITableau &tableau ),
+                                ( const ITableau &tableau, BoundManager &boundManager ),
 				T::createConstraintBoundTightener,
 				( tableau ) );
 

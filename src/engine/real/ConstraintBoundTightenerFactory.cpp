@@ -17,15 +17,15 @@
 
 namespace T
 {
-	IConstraintBoundTightener *createConstraintBoundTightener( const ITableau &tableau )
-	{
-		return new ConstraintBoundTightener( tableau );
-	}
+    IConstraintBoundTightener *createConstraintBoundTightener( const ITableau &tableau, BoundManager &boundManager  )
+    {
+        return new ConstraintBoundTightener( tableau, boundManager );
+    }
 
-	void discardConstraintBoundTightener( IConstraintBoundTightener *constraintBoundTightener )
-	{
-		delete constraintBoundTightener;
-	}
+    void discardConstraintBoundTightener( IConstraintBoundTightener *constraintBoundTightener )
+    {
+        delete constraintBoundTightener;
+    }
 }
 
 //

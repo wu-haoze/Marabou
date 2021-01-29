@@ -137,17 +137,6 @@ public:
     void setVerbosity( unsigned verbosity );
 
     /*
-      Apply the stack to the newly created SmtCore, returns false if UNSAT is
-      found in this process.
-    */
-    bool restoreSmtState( SmtState &smtState );
-
-    /*
-      Store the current stack of the smtCore into smtState
-    */
-    void storeSmtState( SmtState &smtState );
-
-    /*
       Pick the piecewise linear constraint for splitting
     */
     PiecewiseLinearConstraint *pickSplitPLConstraint();
@@ -448,6 +437,10 @@ private:
                           const Map<unsigned, double> assignments );
 
     /****************************** local search ****************************/
+    void pushContext();
+
+    void popContext();
+
     /*
       Copy of the original input query
     */

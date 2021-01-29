@@ -16,9 +16,9 @@
 #ifndef __MILPEncoder_h__
 #define __MILPEncoder_h__
 
+#include "BoundManager.h"
 #include "GurobiWrapper.h"
 #include "InputQuery.h"
-#include "ITableau.h"
 #include "MStringf.h"
 
 #include "Map.h"
@@ -26,7 +26,7 @@
 class MILPEncoder
 {
 public:
-    MILPEncoder( const ITableau &tableau, bool relax=false );
+    MILPEncoder( BoundManager &boundManager, bool relax=false );
 
     /*
       Encode the input query as a Gurobi query, variables and inequalities
@@ -42,9 +42,9 @@ public:
 private:
 
     /*
-      Tableau has the latest bound
+      BoundManager has the latest bound
     */
-    const ITableau &_tableau;
+    BoundManager &_boundManager;
 
     /*
       Create LP relaxtion

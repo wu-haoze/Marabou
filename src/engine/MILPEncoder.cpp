@@ -17,8 +17,8 @@
 #include "FloatUtils.h"
 #include "MILPEncoder.h"
 
-MILPEncoder::MILPEncoder( const ITableau &tableau, bool relax )
-    : _tableau( tableau )
+MILPEncoder::MILPEncoder( BoundManager &boundManager, bool relax )
+    : _boundManager( boundManager )
     , _relax( relax )
 {}
 
@@ -29,8 +29,8 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
     // Add variables
     for ( unsigned var = 0; var < inputQuery.getNumberOfVariables(); var++ )
     {
-        double lb = _tableau.getLowerBound( var );
-        double ub = _tableau.getUpperBound( var );
+        double lb = _boundManager.getLowerBound( var );
+        double ub = _boundManager.getUpperBound( var );
         String varName = Stringf( "x%u", var );
         gurobi.addVariable( varName, lb, ub );
         _variableToVariableName[var] = varName;
@@ -98,11 +98,11 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
     if ( !relu->isActive() || relu->phaseFixed() )
     {
         ASSERT( relu->auxVariableInUse() );
-        ASSERT( ( FloatUtils::gte( _tableau.getLowerBound( relu->getB() ),  0 ) &&
-                  FloatUtils::lte( _tableau.getLowerBound( relu->getAux() ), 0 ) )
+        ASSERT( ( FloatUtils::gte( _boundManager.getLowerBound( relu->getB() ),  0 ) &&
+                  FloatUtils::lte( _boundManager.getLowerBound( relu->getAux() ), 0 ) )
                 ||
-                ( FloatUtils::lte( _tableau.getUpperBound( relu->getB() ), 0 ) &&
-                  FloatUtils::lte( _tableau.getUpperBound( relu->getF() ), 0 ) ) );
+                ( FloatUtils::lte( _boundManager.getUpperBound( relu->getB() ), 0 ) &&
+                  FloatUtils::lte( _boundManager.getUpperBound( relu->getF() ), 0 ) ) );
         return;
     }
 
@@ -115,8 +115,8 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
 
         unsigned sourceVariable = relu->getB();
         unsigned targetVariable = relu->getF();
-        double sourceLb = _tableau.getLowerBound( sourceVariable );
-        double sourceUb = _tableau.getUpperBound( sourceVariable );
+        double sourceLb = _boundManager.getLowerBound( sourceVariable );
+        double sourceUb = _boundManager.getUpperBound( sourceVariable );
 
         List<GurobiWrapper::Term> terms;
         terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
@@ -133,8 +133,8 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
     {
         unsigned sourceVariable = relu->getB();
         unsigned targetVariable = relu->getF();
-        double sourceLb = _tableau.getLowerBound( sourceVariable );
-        double sourceUb = _tableau.getUpperBound( sourceVariable );
+        double sourceLb = _boundManager.getLowerBound( sourceVariable );
+        double sourceUb = _boundManager.getUpperBound( sourceVariable );
 
         List<GurobiWrapper::Term> terms;
         terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
@@ -176,7 +176,7 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
                             GurobiWrapper::BINARY );
 
         terms.append( GurobiWrapper::Term( 1, Stringf( "a%u_%u", _binVarIndex, x ) ) );
-        ubq.push( { _tableau.getUpperBound( x ), x } );
+        ubq.push( { _boundManager.getUpperBound( x ), x } );
     }
 
     // add constraint: a_1 + a_2 + ... + a_m = 1
@@ -199,8 +199,8 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
             umax = ubMax2.first;
         terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", y ) ) );
         terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", x ) ) );
-        terms.append( GurobiWrapper::Term( umax - _tableau.getLowerBound( x ), Stringf( "a%u_%u", _binVarIndex, x ) ) );
-        gurobi.addLeqConstraint( terms, umax - _tableau.getLowerBound( x ) );
+        terms.append( GurobiWrapper::Term( umax - _boundManager.getLowerBound( x ), Stringf( "a%u_%u", _binVarIndex, x ) ) );
+        gurobi.addLeqConstraint( terms, umax - _boundManager.getLowerBound( x ) );
 
         terms.clear();
     }

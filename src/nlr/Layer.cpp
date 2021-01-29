@@ -341,8 +341,8 @@ void Layer::obtainCurrentBounds()
         if ( _neuronToVariable.exists( i ) )
         {
             unsigned variable = _neuronToVariable[i];
-            _lb[i] = _layerOwner->getTableau()->getLowerBound( variable );
-            _ub[i] = _layerOwner->getTableau()->getUpperBound( variable );
+            _lb[i] = _layerOwner->getBoundManager()->getLowerBound( variable );
+            _ub[i] = _layerOwner->getBoundManager()->getUpperBound( variable );
         }
         else
         {

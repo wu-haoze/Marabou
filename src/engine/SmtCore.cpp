@@ -15,7 +15,6 @@
 
 #include "Debug.h"
 #include "DivideStrategy.h"
-#include "EngineState.h"
 #include "FloatUtils.h"
 #include "GlobalConfiguration.h"
 #include "IEngine.h"
@@ -25,8 +24,12 @@
 #include "ReluConstraint.h"
 #include "SmtCore.h"
 
-SmtCore::SmtCore( IEngine *engine )
-    : _statistics( NULL )
+using namespace CVC4::context;
+
+SmtCore::SmtCore( IEngine *engine, Context &ctx )
+    : _context( ctx )
+    , _trail( &_context )
+    , _statistics( NULL )
     , _engine( engine )
     , _needToSplit( false )
     , _constraintForSplitting( NULL )
@@ -44,7 +47,6 @@ void SmtCore::freeMemory()
 {
     for ( const auto &stackEntry : _stack )
     {
-        delete stackEntry->_engineState;
         delete stackEntry;
     }
 
@@ -105,19 +107,14 @@ void SmtCore::performSplit()
     ASSERT( splits.size() >= 2 ); // Not really necessary, can add code to handle this case.
     _constraintForSplitting->setActiveConstraint( false );
 
-    // Obtain the current state of the engine
-    EngineState *stateBeforeSplits = new EngineState;
-    _engine->storeState( *stateBeforeSplits, true );
-
     SmtStackEntry *stackEntry = new SmtStackEntry;
     // Perform the first split: add bounds and equations
     List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
 
+    _engine->pushContext();
     _engine->applySplit( *split );
     stackEntry->_activeSplit = *split;
 
-    // Store the remaining splits on the stack, for later
-    stackEntry->_engineState = stateBeforeSplits;
     ++split;
     while ( split != splits.end() )
     {
@@ -170,10 +167,9 @@ bool SmtCore::popSplit()
             throw MarabouError( MarabouError::DEBUGGING_ERROR );
         }
 
-        delete _stack.back()->_engineState;
-
         delete _stack.back();
         _stack.popBack();
+        _engine->popContext();
 
         if ( _stack.empty() )
             return false;
@@ -188,17 +184,13 @@ bool SmtCore::popSplit()
 
     SmtStackEntry *stackEntry = _stack.back();
 
-    // Restore the state of the engine
-    SMT_LOG( "\tRestoring engine state..." );
-    _engine->restoreState( *( stackEntry->_engineState ) );
-    SMT_LOG( "\tRestoring engine state - DONE" );
-
     // Apply the new split and erase it from the list
     auto split = stackEntry->_alternativeSplits.begin();
 
     // Erase any valid splits that were learned using the split we just popped
     stackEntry->_impliedValidSplits.clear();
 
+    _engine->pushContext();
     SMT_LOG( "\tApplying new split..." );
     _engine->applySplit( *split );
     SMT_LOG( "\tApplying new split - DONE" );
@@ -350,44 +342,6 @@ bool SmtCore::splitAllowsStoredSolution( const PiecewiseLinearCaseSplit &split, 
     }
 
     return true;
-}
-
-void SmtCore::replaySmtStackEntry( SmtStackEntry *stackEntry )
-{
-    struct timespec start = TimeUtils::sampleMicro();
-
-    if ( _statistics )
-    {
-        _statistics->incNumSplits();
-        _statistics->incNumVisitedTreeStates();
-    }
-
-    // Obtain the current state of the engine
-    EngineState *stateBeforeSplits = new EngineState;
-    _engine->storeState( *stateBeforeSplits, true );
-    stackEntry->_engineState = stateBeforeSplits;
-
-    // Apply all the splits
-    _engine->applySplit( stackEntry->_activeSplit );
-    for ( const auto &impliedSplit : stackEntry->_impliedValidSplits )
-        _engine->applySplit( impliedSplit );
-
-    _stack.append( stackEntry );
-
-    if ( _statistics )
-    {
-        _statistics->setCurrentStackDepth( getStackDepth() );
-        struct timespec end = TimeUtils::sampleMicro();
-        _statistics->addTimeSmtCore( TimeUtils::timePassed( start, end ) );
-    }
-}
-
-void SmtCore::storeSmtState( SmtState &smtState )
-{
-    smtState._impliedValidSplitsAtRoot = _impliedValidSplitsAtRoot;
-
-    for ( auto &stackEntry : _stack )
-        smtState._stack.append( stackEntry->duplicateSmtStackEntry() );
 }
 
 bool SmtCore::pickSplitPLConstraint()

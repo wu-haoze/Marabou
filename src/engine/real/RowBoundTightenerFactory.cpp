@@ -17,15 +17,15 @@
 
 namespace T
 {
-	IRowBoundTightener *createRowBoundTightener( const ITableau &tableau )
-	{
-		return new RowBoundTightener( tableau );
-	}
+    IRowBoundTightener *createRowBoundTightener( const ITableau &tableau, BoundManager &boundManager )
+    {
+        return new RowBoundTightener( tableau, boundManager );
+    }
 
-	void discardRowBoundTightener( IRowBoundTightener *rowBoundTightener )
-	{
-		delete rowBoundTightener;
-	}
+    void discardRowBoundTightener( IRowBoundTightener *rowBoundTightener )
+    {
+        delete rowBoundTightener;
+    }
 }
 
 //

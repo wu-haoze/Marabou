@@ -16,12 +16,14 @@
 #ifndef __ConstraintBoundTightener_h__
 #define __ConstraintBoundTightener_h__
 
+#include "BoundManager.h"
 #include "IConstraintBoundTightener.h"
 
 class ConstraintBoundTightener : public IConstraintBoundTightener
 {
 public:
-    ConstraintBoundTightener( const ITableau &tableau );
+    ConstraintBoundTightener( const ITableau &tableau,
+                              BoundManager &boundManager );
     ~ConstraintBoundTightener();
 
     /*
@@ -65,6 +67,7 @@ public:
 
 private:
     const ITableau &_tableau;
+    BoundManager &_boundManager;
     unsigned _n;
     unsigned _m;
 

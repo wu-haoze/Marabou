@@ -16,7 +16,6 @@
 #ifndef __SmtStackEntry_h__
 #define __SmtStackEntry_h__
 
-#include "EngineState.h"
 #include "PiecewiseLinearCaseSplit.h"
 
 /*
@@ -30,7 +29,6 @@ public:
     PiecewiseLinearCaseSplit _activeSplit;
     List<PiecewiseLinearCaseSplit> _impliedValidSplits;
     List<PiecewiseLinearCaseSplit> _alternativeSplits;
-    EngineState *_engineState;
 
     /*
       Create a copy of the SmtStackEntry on the stack and returns a pointer to
@@ -45,7 +43,6 @@ public:
         copy->_activeSplit = _activeSplit;
         copy->_impliedValidSplits = _impliedValidSplits;
         copy->_alternativeSplits = _alternativeSplits;
-        copy->_engineState = NULL;
 
         return copy;
     }

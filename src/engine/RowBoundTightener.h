@@ -16,6 +16,7 @@
 #ifndef __RowBoundTightener_h__
 #define __RowBoundTightener_h__
 
+#include "BoundManager.h"
 #include "Equation.h"
 #include "IRowBoundTightener.h"
 #include "ITableau.h"
@@ -26,7 +27,7 @@
 class RowBoundTightener : public IRowBoundTightener
 {
 public:
-    RowBoundTightener( const ITableau &tableau );
+    RowBoundTightener( const ITableau &tableau, BoundManager &boundManager );
     ~RowBoundTightener();
 
     /*
@@ -82,13 +83,6 @@ public:
     void examineConstraintMatrix( bool untilSaturation );
 
     /*
-      Derive and enqueue new bounds immedaitely following a pivot
-      operation in the given tableau. The tightening is performed for
-      the entering variable (which is now basic).
-    */
-    void examinePivotRow();
-
-    /*
       Get the tightenings entailed by the constraint.
     */
     void getRowTightenings( List<Tightening> &tightenings ) const;
@@ -100,6 +94,7 @@ public:
 
 private:
     const ITableau &_tableau;
+    BoundManager &_boundManager;
     unsigned _n;
     unsigned _m;
 

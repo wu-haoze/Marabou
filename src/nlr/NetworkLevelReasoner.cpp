@@ -34,7 +34,7 @@
 namespace NLR {
 
 NetworkLevelReasoner::NetworkLevelReasoner()
-    : _tableau( NULL )
+    : _boundManager( NULL )
     , _deepPolyAnalysis( nullptr )
 {
 }
@@ -216,19 +216,19 @@ void NetworkLevelReasoner::updateVariableIndices( const Map<unsigned, unsigned> 
 
 void NetworkLevelReasoner::obtainCurrentBounds()
 {
-    ASSERT( _tableau );
+    ASSERT( _boundManager );
     for ( const auto &layer : _layerIndexToLayer )
         layer.second->obtainCurrentBounds();
 }
 
-void NetworkLevelReasoner::setTableau( const ITableau *tableau )
+void NetworkLevelReasoner::setBoundManager( BoundManager *boundManager )
 {
-    _tableau = tableau;
+    _boundManager = boundManager;
 }
 
-const ITableau *NetworkLevelReasoner::getTableau() const
+BoundManager *NetworkLevelReasoner::getBoundManager()
 {
-    return _tableau;
+    return _boundManager;
 }
 
 void NetworkLevelReasoner::eliminateVariable( unsigned variable, double value )

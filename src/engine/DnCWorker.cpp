@@ -17,7 +17,6 @@
 #include "SnCDivideStrategy.h"
 #include "DnCWorker.h"
 #include "IEngine.h"
-#include "EngineState.h"
 #include "LargestIntervalDivider.h"
 #include "MarabouError.h"
 #include "MStringf.h"
@@ -46,10 +45,6 @@ DnCWorker::DnCWorker( WorkerQueue *workload, std::shared_ptr<IEngine> engine,
     , _verbosity( verbosity )
 {
     setQueryDivider( divideStrategy );
-
-    // Obtain the current state of the engine
-    _initialState = std::make_shared<EngineState>();
-    _engine->storeState( *_initialState, true );
 }
 
 void DnCWorker::setQueryDivider( SnCDivideStrategy divideStrategy )
@@ -65,7 +60,7 @@ void DnCWorker::setQueryDivider( SnCDivideStrategy divideStrategy )
     }
 }
 
-void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
+void DnCWorker::popOneSubQueryAndSolve()
 {
     SubQuery *subQuery = NULL;
     // Boost queue stores the next element into the passed-in pointer
@@ -77,12 +72,9 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
         unsigned depth = subQuery->_depth;
         auto split = std::move( subQuery->_split );
         std::unique_ptr<SmtState> smtState = nullptr;
-        if ( restoreTreeStates && subQuery->_smtState )
-            smtState = std::move( subQuery->_smtState );
         unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
 
         // Reset the engine state
-        _engine->restoreState( *_initialState );
         _engine->reset();
 
         // TODO: each worker is going to keep a map from *CaseSplit to an
@@ -92,20 +84,8 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
         // Apply the split and solve
         _engine->applySplit( *split );
 
-        bool fullSolveNeeded = true; // denotes whether we need to solve the subquery
-        if ( restoreTreeStates && smtState )
-            fullSolveNeeded = _engine->restoreSmtState( *smtState );
-        IEngine::ExitCode result = IEngine::NOT_DONE;
-        if ( fullSolveNeeded )
-        {
-            _engine->solve( timeoutInSeconds );
-            result = _engine->getExitCode();
-        }
-        else
-        {
-            // UNSAT is proven when replaying stack-entries
-            result = IEngine::UNSAT;
-        }
+        _engine->solve( timeoutInSeconds );
+        auto result = _engine->getExitCode();
 
         if ( _verbosity > 0 )
             printProgress( queryId, result );
@@ -127,29 +107,12 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
                                     0 : ( unsigned ) timeoutInSeconds * _timeoutFactor );
             unsigned numNewSubQueries = pow( 2, _onlineDivides );
             std::vector<std::unique_ptr<SmtState>> newSmtStates;
-            if ( restoreTreeStates )
-            {
-                // create |numNewSubQueries| copies of the current SmtState
-                for ( unsigned i = 0; i < numNewSubQueries; ++i )
-                {
-                    newSmtStates.push_back( std::unique_ptr<SmtState>
-                                            ( new SmtState() ) );
-                    _engine->storeSmtState( *( newSmtStates[i] ) );
-                }
-            }
 
             _queryDivider->createSubQueries( numNewSubQueries, queryId, depth,
                                              *split, newTimeout, subQueries );
 
-            unsigned i = 0;
             for ( auto &newSubQuery : subQueries )
             {
-                // Store the SmtCore state
-                if ( restoreTreeStates )
-                {
-                    newSubQuery->_smtState = std::move( newSmtStates[i++] );
-                }
-
                 if ( !_workload->push( std::move( newSubQuery ) ) )
                 {
                     throw MarabouError( MarabouError::UNSUCCESSFUL_QUEUE_PUSH );

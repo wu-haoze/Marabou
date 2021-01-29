@@ -19,7 +19,7 @@
 #include "ITableau.h"
 #include "Tightening.h"
 
-class IRowBoundTightener : public ITableau::VariableWatcher, public ITableau::ResizeWatcher
+class IRowBoundTightener : public ITableau::VariableWatcher
 {
 public:
     virtual ~IRowBoundTightener() {};
@@ -63,13 +63,6 @@ public:
       new bounds are learned.
     */
     virtual void examineConstraintMatrix( bool untilSaturation ) = 0;
-
-    /*
-      Derive and enqueue new bounds immedaitely following a pivot
-      operation in the given tableau. The tightening is performed for
-      the entering variable (which is now basic).
-    */
-    virtual void examinePivotRow() = 0;
 
     /*
       Get the tightenings entailed by the constraint.

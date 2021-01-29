@@ -19,7 +19,7 @@
 #include "ITableau.h"
 #include "Tightening.h"
 
-class IConstraintBoundTightener : public ITableau::VariableWatcher, public ITableau::ResizeWatcher
+class IConstraintBoundTightener : public ITableau::VariableWatcher
 {
 public:
     virtual ~IConstraintBoundTightener() {};
