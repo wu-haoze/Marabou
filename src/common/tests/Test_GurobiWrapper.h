@@ -109,11 +109,11 @@ public:
 
         TS_ASSERT_THROWS_NOTHING( gurobi.solve() );
 
-        TS_ASSERT( gurobi.infeasbile() );
+        TS_ASSERT( gurobi.infeasible() );
 
         TS_ASSERT_THROWS_NOTHING( gurobi.setLowerBound( "y", 2 ) );
 
-        TS_ASSERT( !gurobi.infeasbile() );
+        TS_ASSERT( !gurobi.infeasible() );
         TS_ASSERT( !gurobi.haveFeasibleSolution() );
 
         TS_ASSERT_THROWS_NOTHING( gurobi.solve() );

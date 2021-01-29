@@ -91,7 +91,7 @@ public:
     bool cutoffOccurred();
 
     // Returns true iff the instance is infeasible
-    bool infeasbile();
+    bool infeasible();
 
     // Returns true iff the instance timed out
     bool timeout();
@@ -180,7 +180,7 @@ public:
     void resetModel() {}
     bool optimal() { return true; }
     bool cutoffOccurred() { return false; };
-    bool infeasbile() { return false; };
+    bool infeasible() { return false; };
     bool timeout() { return false; };
     bool haveFeasibleSolution() { return true; };
     void setTimeLimit( double ) {};

@@ -626,7 +626,7 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             struct timespec simplexEnd = TimeUtils::sampleMicro();
             _statistics.addTimeSimplexSteps( TimeUtils::timePassed( simplexStart, simplexEnd ) );
             ENGINE_LOG( "Solving LP with Gurobi - done" );
-            if ( _gurobi->infeasbile() )
+            if ( _gurobi->infeasible() )
             {
                 ENGINE_LOG( "Infeasible!" );
                 throw InfeasibleQueryException();
@@ -1753,7 +1753,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         _exitCode = IEngine::SAT;
         return true;
     }
-    else if ( _gurobi->infeasbile() )
+    else if ( _gurobi->infeasible() )
         _exitCode = IEngine::UNSAT;
     else if ( _gurobi->timeout() )
         _exitCode = IEngine::TIMEOUT;
