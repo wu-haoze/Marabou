@@ -682,55 +682,20 @@ void Engine::mainLoopStatistics()
 
 void Engine::performBoundTightening()
 {
-    std::cout << "tightening about to  perform: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-    for ( const auto &plConstraint : _plConstraints )
-        {
-            if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-                std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-        }
-
-
     if ( _tableau->basisMatrixAvailable() )
     {
         explicitBasisBoundTightening();
-        std::cout << "explicit just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-        for ( const auto &plConstraint : _plConstraints )
-            {
-                if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-                    std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-            }
-
         applyAllBoundTightenings();
-        std::cout << "explicit just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-        for ( const auto &plConstraint : _plConstraints )
-            {
-                if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-                    std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-            }
-
         applyAllValidConstraintCaseSplits();
     }
 
     tightenBoundsOnConstraintMatrix();
-    std::cout << "cm just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-    for ( const auto &plConstraint : _plConstraints )
-        {
-            if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-                std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-        }
     applyAllBoundTightenings();
     applyAllValidConstraintCaseSplits();
 
     do
     {
         performSymbolicBoundTightening();
-        std::cout << "sbt just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-        for ( const auto &plConstraint : _plConstraints )
-            {
-                if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-                    std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-            }
-
     }
     while ( applyAllValidConstraintCaseSplits() );
 }
@@ -1818,30 +1783,11 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
 void Engine::pushContext()
 {
     _context.push();
-    std::cout << "Push just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-    for ( const auto &plConstraint : _plConstraints )
-    {
-        if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-            std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-    }
 }
 
 void Engine::popContext()
 {
-    std::cout << "Pop about to perform: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-    for ( const auto &plConstraint : _plConstraints )
-    {
-        if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-            std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-    }
-
     _context.pop();
-    std::cout << "Pop just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
-    for ( const auto &plConstraint : _plConstraints )
-    {
-        if ( plConstraint->getParticipatingVariables().exists( 853 ) )
-            std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
-    }
 
     for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
     {

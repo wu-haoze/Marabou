@@ -308,7 +308,6 @@ PiecewiseLinearCaseSplit ReluConstraint::getActiveSplit() const
 
 bool ReluConstraint::phaseFixed() const
 {
-    std::cout << "Phase status: " << *_phaseStatus << std::endl;
     if ( *_phaseStatus == RELU_PHASE_ACTIVE && _boundManager )
     {
         if ( FloatUtils::isNegative( _boundManager->getLowerBound( _b ) ) )
