@@ -1350,20 +1350,6 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
     ENGINE_LOG( "Done with split\n" );
 }
 
-void Engine::applyAllRowTightenings()
-{
-    List<Tightening> rowTightenings;
-    _rowBoundTightener->getRowTightenings( rowTightenings );
-
-    for ( const auto &tightening : rowTightenings )
-    {
-        if ( tightening._type == Tightening::LB )
-            _boundManager.tightenLowerBound( tightening._variable, tightening._value );
-        else
-            _boundManager.tightenUpperBound( tightening._variable, tightening._value );
-    }
-}
-
 void Engine::applyAllConstraintTightenings()
 {
     List<Tightening> entailedTightenings;
@@ -1386,7 +1372,6 @@ void Engine::applyAllBoundTightenings()
     struct timespec start = TimeUtils::sampleMicro();
 
     applyAllRowTightenings();
-    applyAllConstraintTightenings();
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForApplyingStoredTightenings( TimeUtils::timePassed( start, end ) );
@@ -1566,7 +1551,6 @@ void Engine::reset()
     resetStatistics();
     clearViolatedPLConstraints();
     resetSmtCore();
-    resetBoundTighteners();
     resetExitCode();
 }
 
@@ -1594,11 +1578,6 @@ void Engine::resetSmtCore()
 void Engine::resetExitCode()
 {
     _exitCode = Engine::NOT_DONE;
-}
-
-void Engine::resetBoundTighteners()
-{
-    _rowBoundTightener->resetBounds();
 }
 
 void Engine::updateDirections()
