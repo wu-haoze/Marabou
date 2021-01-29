@@ -16,7 +16,6 @@
 #ifndef __Engine_h__
 #define __Engine_h__
 
-#include "AutoConstraintBoundTightener.h"
 #include "AutoRowBoundTightener.h"
 #include "AutoTableau.h"
 #include "BoundManager.h"
@@ -238,12 +237,6 @@ private:
       A code indicating how the run terminated.
     */
     ExitCode _exitCode;
-
-    /*
-      An object in charge of managing bound tightenings
-      proposed by the PiecewiseLinearConstriants.
-    */
-    AutoConstraintBoundTightener _constraintBoundTightener;
 
     /*
       The number of visited states when we performed the previous
@@ -545,7 +538,7 @@ private:
     */
     void dumpHeuristicCost();
     double computeHeuristicCost();
-
+    void checkBoundConsistency();
 };
 
 #endif // __Engine_h__

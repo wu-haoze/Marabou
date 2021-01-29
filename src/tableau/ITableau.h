@@ -65,6 +65,8 @@ public:
 
     virtual ~ITableau() {};
 
+    virtual void notifyLowerBound( unsigned /* variable */, double /* bound */ ) = 0;
+    virtual void notifyUpperBound( unsigned /* variable */, double /* bound */ ) = 0;
     virtual void setDimensions( unsigned m, unsigned n ) = 0;
     virtual void setConstraintMatrix( const double *A ) = 0;
     virtual void setRightHandSide( const double *b ) = 0;

@@ -40,7 +40,6 @@ Engine::Engine()
     , _preprocessingEnabled( false )
     , _quitRequested( false )
     , _exitCode( Engine::NOT_DONE )
-    , _constraintBoundTightener( *_tableau, _boundManager )
     , _networkLevelReasoner( NULL )
     , _verbosity( Options::get()->getInt( Options::VERBOSITY ) )
     , _splittingStrategy( Options::get()->getDivideStrategy() )
@@ -58,7 +57,6 @@ Engine::Engine()
     _tableau->setStatistics( &_statistics );
     _tableau->setBoundManager( &_boundManager );
     _rowBoundTightener->setStatistics( &_statistics );
-    _constraintBoundTightener->setStatistics( &_statistics );
     _preprocessor.setStatistics( &_statistics );
 
     _statistics.stampStartingTime();
@@ -587,7 +585,11 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 
             if ( splitJustPerformed )
             {
+                checkBoundConsistency();
+
                 performBoundTightening();
+
+                checkBoundConsistency();
 
                 List<GurobiWrapper::Term> obj;
                 _gurobi->setCost( obj );
@@ -628,7 +630,6 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             ENGINE_LOG( "Solving LP with Gurobi - done" );
             if ( _gurobi->infeasible() )
             {
-                ENGINE_LOG( "Infeasible!" );
                 throw InfeasibleQueryException();
             }
         }
@@ -681,20 +682,55 @@ void Engine::mainLoopStatistics()
 
 void Engine::performBoundTightening()
 {
+    std::cout << "tightening about to  perform: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+    for ( const auto &plConstraint : _plConstraints )
+        {
+            if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+                std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+        }
+
+
     if ( _tableau->basisMatrixAvailable() )
     {
         explicitBasisBoundTightening();
+        std::cout << "explicit just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+        for ( const auto &plConstraint : _plConstraints )
+            {
+                if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+                    std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+            }
+
         applyAllBoundTightenings();
+        std::cout << "explicit just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+        for ( const auto &plConstraint : _plConstraints )
+            {
+                if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+                    std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+            }
+
         applyAllValidConstraintCaseSplits();
     }
 
     tightenBoundsOnConstraintMatrix();
+    std::cout << "cm just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+    for ( const auto &plConstraint : _plConstraints )
+        {
+            if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+                std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+        }
     applyAllBoundTightenings();
     applyAllValidConstraintCaseSplits();
 
     do
     {
         performSymbolicBoundTightening();
+        std::cout << "sbt just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+        for ( const auto &plConstraint : _plConstraints )
+            {
+                if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+                    std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+            }
+
     }
     while ( applyAllValidConstraintCaseSplits() );
 }
@@ -1078,12 +1114,12 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
     }
 
     _tableau->registerToWatchAllVariables( _rowBoundTightener );
-    _tableau->registerToWatchAllVariables( _constraintBoundTightener );
 
     _rowBoundTightener->setDimensions();
-    _constraintBoundTightener->setDimensions();
 
     _tableau->initializeTableau( initialBasis );
+
+    _boundManager.registerTableauReference( _tableau );
 
     _statistics.setNumPlConstraints( _plConstraints.size() );
 }
@@ -1139,7 +1175,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
         for ( const auto &constraint : _plConstraints )
         {
-            constraint->registerConstraintBoundTightener( _constraintBoundTightener );
             constraint->registerBoundManager( &_boundManager );
             constraint->registerAsWatcher( _tableau );
             constraint->setStatistics( &_statistics );
@@ -1333,7 +1368,7 @@ void Engine::applyAllConstraintTightenings()
 {
     List<Tightening> entailedTightenings;
 
-    _constraintBoundTightener->getConstraintTightenings( entailedTightenings );
+    _boundManager.getTightenings( entailedTightenings );
 
     for ( const auto &tightening : entailedTightenings )
     {
@@ -1542,7 +1577,6 @@ void Engine::resetStatistics()
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
     _rowBoundTightener->setStatistics( &_statistics );
-    _constraintBoundTightener->setStatistics( &_statistics );
     _preprocessor.setStatistics( &_statistics );
     _statistics.stampStartingTime();
 }
@@ -1564,7 +1598,6 @@ void Engine::resetExitCode()
 
 void Engine::resetBoundTighteners()
 {
-    _constraintBoundTightener->resetBounds();
     _rowBoundTightener->resetBounds();
 }
 
@@ -1806,9 +1839,55 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
 void Engine::pushContext()
 {
     _context.push();
+    std::cout << "Push just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+            std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+    }
 }
 
 void Engine::popContext()
 {
+    std::cout << "Pop about to perform: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+            std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+    }
+
     _context.pop();
+    std::cout << "Pop just performed: Lower bound x853: " << _boundManager.getLowerBound( 853 ) << std::endl;
+    for ( const auto &plConstraint : _plConstraints )
+    {
+        if ( plConstraint->getParticipatingVariables().exists( 853 ) )
+            std::cout << "Phase: " << plConstraint->getPhaseStatus() << std::endl;
+    }
+
+    for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+    {
+        _gurobi->setLowerBound( Stringf( "x%u", i ), _boundManager.getLowerBound( i ) );
+        _gurobi->setUpperBound( Stringf( "x%u", i ), _boundManager.getUpperBound( i ) );
+    }
+}
+
+void Engine::checkBoundConsistency()
+{
+    DEBUG({
+            for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+            {
+                if ( !FloatUtils::areEqual( _gurobi->getLowerBound( i ), _boundManager.getLowerBound( i ) ) )
+                {
+                    printf( "x%u lower bound inconsistent! In Gurobi: %f, in BoundManager %f",
+                            i, _gurobi->getLowerBound( i ), _boundManager.getLowerBound( i ) );
+                    ASSERT( false );
+                }
+                if ( !FloatUtils::areEqual( _gurobi->getUpperBound( i ), _boundManager.getUpperBound( i ) ) )
+                {
+                    printf( "x%u upper bound inconsistent! In Gurobi: %f, in BoundManager %f",
+                            i, _gurobi->getUpperBound( i ), _boundManager.getUpperBound( i ) );
+                    ASSERT( false );
+                }
+            }
+        });
 }

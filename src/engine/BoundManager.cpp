@@ -140,7 +140,7 @@ double BoundManager::getUpperBound( unsigned variable )
   return *_upperBounds[variable];
 }
 
-void BoundManager::registerTableauReference( Tableau *ptrTableau )
+void BoundManager::registerTableauReference( ITableau *ptrTableau )
 {
     _tableau = ptrTableau;
 }

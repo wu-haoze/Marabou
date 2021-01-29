@@ -77,15 +77,12 @@ bool SmtCore::needToSplit() const
 
 void SmtCore::performSplit()
 {
+    SMT_LOG( Stringf( "Performing a case split @ level %u", _context.getLevel() ).ascii() );
+
     ASSERT( _needToSplit );
 
     // Maybe the constraint has already become inactive - if so, ignore
-    if ( !_constraintForSplitting->isActive() )
-    {
-        _needToSplit = false;
-        _constraintForSplitting = NULL;
-        return;
-    }
+    ASSERT( _constraintForSplitting->isActive() );
 
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -98,19 +95,22 @@ void SmtCore::performSplit()
         _statistics->incNumVisitedTreeStates();
     }
 
+    _constraintForSplitting->setActiveConstraint( false );
+
+    _engine->pushContext();
+    SMT_LOG( Stringf( "Pushed context. Current level: %u", _context.getLevel() ).ascii() );
+
     // Before storing the state of the engine, we:
     //   1. Obtain the splits.
     //   2. Disable the constraint, so that it is marked as disbaled in the EngineState.
     List<PiecewiseLinearCaseSplit> splits = _constraintForSplitting->getCaseSplits();
     ASSERT( !splits.empty() );
     ASSERT( splits.size() >= 2 ); // Not really necessary, can add code to handle this case.
-    _constraintForSplitting->setActiveConstraint( false );
 
     SmtStackEntry *stackEntry = new SmtStackEntry;
     // Perform the first split: add bounds and equations
     List<PiecewiseLinearCaseSplit>::iterator split = splits.begin();
 
-    _engine->pushContext();
     _engine->applySplit( *split );
     stackEntry->_activeSplit = *split;
 
@@ -140,12 +140,16 @@ unsigned SmtCore::getStackDepth() const
 
 bool SmtCore::popSplit()
 {
-    SMT_LOG( "Performing a pop" );
+    SMT_LOG( Stringf( "Backtracking @ level %u", _context.getLevel() ).ascii() );
 
     if ( _stack.empty() )
+    {
+        ASSERT( _context.getLevel() == 0 );
         return false;
+    }
 
     struct timespec start = TimeUtils::sampleMicro();
+
 
     if ( _statistics )
     {
@@ -159,15 +163,17 @@ bool SmtCore::popSplit()
     String error;
     while ( _stack.back()->_alternativeSplits.empty() )
     {
-
         delete _stack.back();
         _stack.popBack();
-        _engine->popContext();
+        _context.pop();
+        SMT_LOG( Stringf( "Popped context. Current level: %u", _context.getLevel() ).ascii() );
 
         if ( _stack.empty() )
             return false;
     }
 
+    _engine->popContext();
+    SMT_LOG( Stringf( "Popped context. Current level: %u", _context.getLevel() ).ascii() );
     SmtStackEntry *stackEntry = _stack.back();
 
     // Apply the new split and erase it from the list
@@ -177,6 +183,7 @@ bool SmtCore::popSplit()
     stackEntry->_impliedValidSplits.clear();
 
     _engine->pushContext();
+    SMT_LOG( Stringf( "Pushed context. Current level: %u", _context.getLevel() ).ascii() );
     SMT_LOG( "\tApplying new split..." );
     _engine->applySplit( *split );
     SMT_LOG( "\tApplying new split - DONE" );

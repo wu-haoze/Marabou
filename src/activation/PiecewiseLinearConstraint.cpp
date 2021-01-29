@@ -24,7 +24,6 @@ PiecewiseLinearConstraint::PiecewiseLinearConstraint()
     , _constraintActive( NULL )
     , _phaseStatus( NULL )
     , _score( FloatUtils::negativeInfinity() )
-    , _constraintBoundTightener( NULL )
     , _statistics( NULL )
     , _phaseOfHeuristicCost( PHASE_NOT_FIXED )
 {
@@ -33,11 +32,6 @@ PiecewiseLinearConstraint::PiecewiseLinearConstraint()
 void PiecewiseLinearConstraint::setStatistics( Statistics *statistics )
 {
     _statistics = statistics;
-}
-
-void PiecewiseLinearConstraint::registerConstraintBoundTightener( IConstraintBoundTightener *tightener )
-{
-    _constraintBoundTightener = tightener;
 }
 
 //

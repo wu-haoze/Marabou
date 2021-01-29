@@ -19,9 +19,9 @@
 #include "context/cdo.h"
 #include "context/context.h"
 #include "List.h"
+#include "ITableau.h"
 #include "Vector.h"
 
-class Tableau;
 class Tightening;
 class BoundManager
 {
@@ -56,12 +56,12 @@ public:
 
     unsigned getSize(); //TODO: Rename to getNumberOfVariables
 
-    void registerTableauReference( Tableau *tableau );
+    void registerTableauReference( ITableau *tableau );
 
 private:
 
     CVC4::context::Context &_context;
-    Tableau *_tableau = nullptr;
+    ITableau *_tableau = nullptr;
     unsigned _size; // TODO: Make context sensitive, to account for growing
     // For now, assume variable number is the vector index
     Vector<CVC4::context::CDO<double> *> _lowerBounds;

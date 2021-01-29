@@ -1,5 +1,4 @@
 /*********************                                                        */
-/*! \file IConstraintBoundTightener.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Guy Katz
@@ -13,16 +12,12 @@
 
 **/
 
-#ifndef __IConstraintBoundTightener_h__
-#define __IConstraintBoundTightener_h__
 
 #include "ITableau.h"
 #include "Tightening.h"
 
-class IConstraintBoundTightener : public ITableau::VariableWatcher
 {
 public:
-    virtual ~IConstraintBoundTightener() {};
 
     /*
       Allocate internal work memory according to the tableau size.
@@ -64,7 +59,6 @@ public:
     virtual void getConstraintTightenings( List<Tightening> &tightenings ) const = 0;
 };
 
-#endif // __IConstraintBoundTightener_h__
 
 //
 // Local Variables:

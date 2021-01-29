@@ -33,7 +33,6 @@
 #include "context/cdlist.h"
 
 class Equation;
-class IConstraintBoundTightener;
 class ITableau;
 class InputQuery;
 class String;
@@ -196,13 +195,6 @@ public:
     virtual String serializeToString() const = 0;
 
     /*
-      Register a constraint bound tightener. If a tightener is registered,
-      this piecewise linear constraint will inform the tightener whenever
-      it discovers a tighter (entailed) bound.
-    */
-    void registerConstraintBoundTightener( IConstraintBoundTightener *tightener );
-
-    /*
       Return true if and only if this piecewise linear constraint supports
       the polarity metric
     */
@@ -317,6 +309,11 @@ public:
         _phaseStatus = new (true) CVC4::context::CDO<PhaseStatus>( _context, PHASE_NOT_FIXED );
     }
 
+    PhaseStatus getPhaseStatus() const
+    {
+        return *_phaseStatus;
+    };
+
 protected:
     BoundManager *_boundManager;
     GurobiWrapper *_gurobi;
@@ -335,8 +332,6 @@ protected:
      */
     double _score;
 
-    IConstraintBoundTightener *_constraintBoundTightener;
-
     /*
       Statistics collection
     */
@@ -352,11 +347,6 @@ protected:
     {
         ASSERT( _phaseStatus );
         *_phaseStatus = phase;
-    };
-
-    PhaseStatus getPhaseStatus() const
-    {
-        return *_phaseStatus;
     };
 
     void reinitializeCDOs()
