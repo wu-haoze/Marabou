@@ -17,7 +17,7 @@
 
 namespace T
 {
-    IConstraintBoundTightener *createConstraintBoundTightener( const ITableau &tableau, BoundManager &boundManager  )
+    IConstraintBoundTightener *createConstraintBoundTightener( const ITableau &tableau, BoundManager &boundManager )
     {
         return new ConstraintBoundTightener( tableau, boundManager );
     }

@@ -74,8 +74,6 @@ public:
     virtual Set<unsigned> getBasicVariables() const = 0;
     virtual bool isBasic( unsigned variable ) const = 0;
     virtual void computeMultipliers( double *rowCoefficients ) = 0;
-    virtual void dump() const = 0;
-    virtual void dumpEquations() = 0;
     virtual unsigned nonBasicIndexToVariable( unsigned index ) const = 0;
     virtual unsigned basicIndexToVariable( unsigned index ) const = 0;
     virtual void assignIndexToBasicVariable( unsigned variable, unsigned index ) = 0;

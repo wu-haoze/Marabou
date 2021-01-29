@@ -260,61 +260,6 @@ bool ReluConstraint::satisfied() const
         return !FloatUtils::isPositive( bValue );
 }
 
-List<PiecewiseLinearConstraint::Fix> ReluConstraint::getPossibleFixes() const
-{
-    ASSERT( !satisfied() );
-    ASSERT( _assignment.exists( _b ) );
-    ASSERT( _assignment.exists( _f ) );
-
-    double bValue = _assignment.get( _b );
-    double fValue = _assignment.get( _f );
-
-    ASSERT( !FloatUtils::isNegative( fValue ) );
-
-    List<PiecewiseLinearConstraint::Fix> fixes;
-
-    // Possible violations:
-    //   1. f is positive, b is positive, b and f are disequal
-    //   2. f is positive, b is non-positive
-    //   3. f is zero, b is positive
-    if ( FloatUtils::isPositive( fValue ) )
-    {
-        if ( FloatUtils::isPositive( bValue ) )
-        {
-            fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
-            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
-        }
-        else
-        {
-            if ( _direction == RELU_PHASE_INACTIVE )
-            {
-                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
-                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
-            }
-            else
-            {
-                fixes.append( PiecewiseLinearConstraint::Fix( _b, fValue ) );
-                fixes.append( PiecewiseLinearConstraint::Fix( _f, 0 ) );
-            }
-        }
-    }
-    else
-    {
-        if ( _direction == RELU_PHASE_ACTIVE )
-        {
-            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
-            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
-        }
-        else
-        {
-            fixes.append( PiecewiseLinearConstraint::Fix( _b, 0 ) );
-            fixes.append( PiecewiseLinearConstraint::Fix( _f, bValue ) );
-        }
-    }
-
-    return fixes;
-}
-
 List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
 {
     if ( _phaseStatus != PHASE_NOT_FIXED )

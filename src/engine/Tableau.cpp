@@ -330,19 +330,6 @@ bool Tableau::isBasic( unsigned variable ) const
     return _basicVariables.exists( variable );
 }
 
-void Tableau::dump() const
-{
-    printf( "\nDumping A:\n" );
-    for ( unsigned i = 0; i < _m; ++i )
-    {
-        for ( unsigned j = 0; j < _n; ++j )
-        {
-            printf( "%5.1lf ", _A->get( i, j ) );
-        }
-        printf( "\n" );
-    }
-}
-
 unsigned Tableau::getM() const
 {
     return _m;

@@ -24,7 +24,6 @@
 #undef ERROR
 #endif
 
-class EngineState;
 class Equation;
 class PiecewiseLinearCaseSplit;
 class SmtState;
@@ -33,8 +32,6 @@ class PiecewiseLinearConstraint;
 class IEngine
 {
 public:
-    virtual ~IEngine() {};
-
     enum ExitCode {
         UNSAT = 0,
         SAT = 1,
@@ -80,8 +77,8 @@ public:
     virtual PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy
                                                                  strategy ) = 0;
 
-    virtual void pushContext();
-    virtual void popContext();
+    virtual void pushContext() = 0;
+    virtual void popContext() = 0;
 };
 
 #endif // __IEngine_h__

@@ -122,12 +122,6 @@ public:
     void computeMultipliers( double *rowCoefficients );
 
     /*
-      Dump the tableau (debug)
-    */
-    void dump() const;
-    void dumpEquations();
-
-    /*
       Extract a row from the tableau.
     */
     void getTableauRow( unsigned index, TableauRow *row );
