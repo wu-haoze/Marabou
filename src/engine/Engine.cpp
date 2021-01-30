@@ -1102,6 +1102,8 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         if ( _verbosity > 0 )
             printInputBounds( inputQuery );
 
+        _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
+
         double *constraintMatrix = createConstraintMatrix();
         removeRedundantEquations( constraintMatrix );
 
@@ -1124,7 +1126,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
         delete[] constraintMatrix;
 
-        _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
         for ( const auto &constraint : _plConstraints )
         {
             constraint->registerBoundManager( &_boundManager );

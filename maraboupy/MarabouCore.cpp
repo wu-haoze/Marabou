@@ -446,18 +446,5 @@ PYBIND11_MODULE(MarabouCore, m) {
         .value("LE", Equation::EquationType::LE)
         .export_values();
     py::class_<Statistics>(m, "Statistics")
-        .def("getMaxStackDepth", &Statistics::getMaxStackDepth)
-        .def("getNumPops", &Statistics::getNumPops)
-        .def("getNumVisitedTreeStates", &Statistics::getNumVisitedTreeStates)
-        .def("getNumSplits", &Statistics::getNumSplits)
-        .def("getTotalTime", &Statistics::getTotalTime)
-        .def("getNumTableauPivots", &Statistics::getNumTableauPivots)
-        .def("getMaxDegradation", &Statistics::getMaxDegradation)
-        .def("getNumPrecisionRestorations", &Statistics::getNumPrecisionRestorations)
-        .def("getNumSimplexPivotSelectionsIgnoredForStability", &Statistics::getNumSimplexPivotSelectionsIgnoredForStability)
-        .def("getNumSimplexUnstablePivots", &Statistics::getNumSimplexUnstablePivots)
-        .def("getNumMainLoopIterations", &Statistics::getNumMainLoopIterations)
-        .def("getTimeSimplexStepsMicro", &Statistics::getTimeSimplexStepsMicro)
-        .def("getNumConstraintFixingSteps", &Statistics::getNumConstraintFixingSteps)
         .def("hasTimedOut", &Statistics::hasTimedOut);
 }
