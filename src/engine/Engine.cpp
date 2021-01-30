@@ -1178,43 +1178,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
     return true;
 }
 
-void Engine::performMILPSolverBoundedTightening()
-{
-    if ( _networkLevelReasoner && Options::get()->gurobiEnabled() )
-    {
-        _networkLevelReasoner->obtainCurrentBounds();
-
-        switch ( Options::get()->getMILPSolverBoundTighteningType() )
-        {
-        case MILPSolverBoundTighteningType::LP_RELAXATION:
-        case MILPSolverBoundTighteningType::LP_RELAXATION_INCREMENTAL:
-            _networkLevelReasoner->lpRelaxationPropagation();
-            break;
-
-        case MILPSolverBoundTighteningType::MILP_ENCODING:
-        case MILPSolverBoundTighteningType::MILP_ENCODING_INCREMENTAL:
-            _networkLevelReasoner->MILPPropagation();
-            break;
-        case MILPSolverBoundTighteningType::ITERATIVE_PROPAGATION:
-            _networkLevelReasoner->iterativePropagation();
-            break;
-        case MILPSolverBoundTighteningType::NONE:
-            return;
-        }
-        List<Tightening> tightenings;
-        _networkLevelReasoner->getConstraintTightenings( tightenings );
-
-        for ( const auto &tightening : tightenings )
-        {
-            if ( tightening._type == Tightening::LB )
-                _boundManager.tightenLowerBound( tightening._variable, tightening._value );
-
-            else if ( tightening._type == Tightening::UB )
-                _boundManager.tightenUpperBound( tightening._variable, tightening._value );
-        }
-    }
-}
-
 void Engine::extractSolution( InputQuery &inputQuery )
 {
     if ( _solutionFoundAndStoredInOriginalQuery )
@@ -1493,6 +1456,64 @@ void Engine::performSymbolicBoundTightening()
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.incLongAttr( Statistics::TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
     _statistics.incLongAttr( Statistics::NUM_SYMBOLIC_BOUND_TIGHTENING, numTightenedBounds );
+    _statistics.incLongAttr( Statistics::NUM_SYMBOLIC_BOUND_TIGHTENING_ATTEMPT, 1 );
+}
+
+
+void Engine::performMILPSolverBoundedTightening()
+{
+    if ( _networkLevelReasoner && Options::get()->gurobiEnabled() )
+    {
+
+        struct timespec start = TimeUtils::sampleMicro();
+
+        unsigned numTightenedBounds = 0;
+
+        _networkLevelReasoner->obtainCurrentBounds();
+
+        switch ( Options::get()->getMILPSolverBoundTighteningType() )
+        {
+        case MILPSolverBoundTighteningType::LP_RELAXATION:
+        case MILPSolverBoundTighteningType::LP_RELAXATION_INCREMENTAL:
+            _networkLevelReasoner->lpRelaxationPropagation();
+            break;
+
+        case MILPSolverBoundTighteningType::MILP_ENCODING:
+        case MILPSolverBoundTighteningType::MILP_ENCODING_INCREMENTAL:
+            _networkLevelReasoner->MILPPropagation();
+            break;
+        case MILPSolverBoundTighteningType::ITERATIVE_PROPAGATION:
+            _networkLevelReasoner->iterativePropagation();
+            break;
+        case MILPSolverBoundTighteningType::NONE:
+            return;
+        }
+
+        List<Tightening> tightenings;
+        _networkLevelReasoner->getConstraintTightenings( tightenings );
+
+        for ( const auto &tightening : tightenings )
+        {
+            if ( tightening._type == Tightening::LB &&
+                 FloatUtils::gt( tightening._value, _boundManager.getLowerBound( tightening._variable ) ) )
+            {
+                _boundManager.tightenLowerBound( tightening._variable, tightening._value );
+                ++numTightenedBounds;
+            }
+
+            if ( tightening._type == Tightening::UB &&
+                 FloatUtils::lt( tightening._value, _boundManager.getUpperBound( tightening._variable ) ) )
+            {
+                _boundManager.tightenUpperBound( tightening._variable, tightening._value );
+                ++numTightenedBounds;
+            }
+        }
+
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics.incLongAttr( Statistics::TIME_LP_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
+        _statistics.incLongAttr( Statistics::NUM_LP_BOUND_TIGHTENING, numTightenedBounds );
+        _statistics.incLongAttr( Statistics::NUM_LP_BOUND_TIGHTENING_ATTEMPT, 1 );
+    }
 }
 
 bool Engine::shouldExitDueToTimeout( unsigned timeout ) const
