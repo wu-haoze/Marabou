@@ -590,12 +590,14 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                 collectViolatedPlConstraints();
                 if ( allPlConstraintsHold() ||  performLocalSearch() )
                 {
+                    struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+                    _statistics.incLongAttr( Statistics::TIME_MAIN_LOOP_MICRO,
+                                             TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
                     if ( _verbosity > 0 )
                     {
                         printf( "\nEngine::solve: sat assignment found\n" );
                         _statistics.print();
                     }
-
                     _exitCode = Engine::SAT;
                     return true;
                 }
@@ -616,6 +618,9 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             // If we're at level 0, the whole query is unsat.
             if ( !_smtCore.popSplit() )
             {
+                struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+                _statistics.incLongAttr( Statistics::TIME_MAIN_LOOP_MICRO,
+                                         TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
                 if ( _verbosity > 0 )
                 {
                     printf( "\nEngine::solve: unsat query\n" );
