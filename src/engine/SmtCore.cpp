@@ -83,7 +83,8 @@ void SmtCore::performSplit()
 
     ASSERT( _needToSplit );
     ASSERT( _constraintForSplitting->isActive() );
-    _needToSplit = false;
+
+    resetReportedViolations();
 
     if ( _statistics )
     {
