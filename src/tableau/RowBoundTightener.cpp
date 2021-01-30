@@ -144,7 +144,7 @@ void RowBoundTightener::examineImplicitInvertedBasisMatrix( bool untilSaturation
         newBoundsLearned = onePassOverInvertedBasisRows();
 
         if ( _statistics && ( newBoundsLearned > 0 ) )
-            _statistics->incNumTighteningsFromExplicitBasis( newBoundsLearned );
+            _statistics->incLongAttr( Statistics::NUM_EXPLICIT_BASIS_BOUND_TIGHTENING, newBoundsLearned );
 
         --maxNumberOfIterations;
     }
@@ -205,7 +205,7 @@ void RowBoundTightener::examineInvertedBasisMatrix( bool untilSaturation )
             newBoundsLearned = onePassOverInvertedBasisRows();
 
             if ( _statistics && ( newBoundsLearned > 0 ) )
-                _statistics->incNumTighteningsFromExplicitBasis( newBoundsLearned );
+                _statistics->incLongAttr( Statistics::NUM_EXPLICIT_BASIS_BOUND_TIGHTENING, newBoundsLearned );
 
             --maxNumberOfIterations;
         }
@@ -401,7 +401,7 @@ void RowBoundTightener::examineConstraintMatrix( bool untilSaturation )
         newBoundsLearned = onePassOverConstraintMatrix();
 
         if ( _statistics && ( newBoundsLearned > 0 ) )
-            _statistics->incNumTighteningsFromConstraintMatrix( newBoundsLearned );
+            _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING,  newBoundsLearned );
 
         --maxNumberOfIterations;
     }

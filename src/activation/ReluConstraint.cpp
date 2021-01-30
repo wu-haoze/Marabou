@@ -110,7 +110,7 @@ void ReluConstraint::unregisterAsWatcher( ITableau *tableau )
 void ReluConstraint::notifyLowerBound( unsigned variable, double bound )
 {
     if ( _statistics )
-        _statistics->incNumBoundNotificationsPlConstraints();
+        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
 
     if ( !_boundManager )
     {
@@ -172,7 +172,7 @@ void ReluConstraint::notifyLowerBound( unsigned variable, double bound )
 void ReluConstraint::notifyUpperBound( unsigned variable, double bound )
 {
     if ( _statistics )
-        _statistics->incNumBoundNotificationsPlConstraints();
+        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
 
     if ( !_boundManager )
     {
@@ -236,7 +236,7 @@ List<unsigned> ReluConstraint::getParticipatingVariables() const
 bool ReluConstraint::satisfied() const
 {
     if ( !_gurobi )
-        throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
+        throw MarabouError( MarabouError::GUROBI_NOT_AVAILABLE );
 
     double bValue = _gurobi->getValue( _b );
     double fValue = _gurobi->getValue( _f );

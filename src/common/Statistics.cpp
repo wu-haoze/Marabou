@@ -18,64 +18,68 @@
 #include "TimeUtils.h"
 
 Statistics::Statistics()
-    : _numMainLoopIterations( 0 )
-    , _numPlConstraints( 0 )
-    , _numActivePlConstraints( 0 )
-    , _numPlValidSplits( 0 )
-    , _numPlSmtOriginatedSplits( 0 )
-    , _currentDegradation( 0.0 )
-    , _maxDegradation( 0.0 )
-    , _numPrecisionRestorations( 0 )
-    , _numSimplexSteps( 0 )
-    , _timeSimplexStepsMicro( 0 )
-    , _timeMainLoopMicro( 0 )
-    , _timeConstraintFixingStepsMicro( 0 )
-    , _numConstraintFixingSteps( 0 )
-    , _currentStackDepth( 0 )
-    , _maxStackDepth( 0 )
-    , _numSplits( 0 )
-    , _numPops( 0 )
-    , _numVisitedTreeStates( 1 )
-    , _numTableauPivots( 0 )
-    , _numTableauDegeneratePivots( 0 )
-    , _numTableauDegeneratePivotsByRequest( 0 )
-    , _timePivotsMicro( 0 )
-    , _numSimplexPivotSelectionsIgnoredForStability( 0 )
-    , _numSimplexUnstablePivots( 0 )
-    , _numAddedRows( 0 )
-    , _numMergedColumns( 0 )
-    , _currentTableauM( 0 )
-    , _currentTableauN( 0 )
-    , _numTableauBoundHopping( 0 )
-    , _numTightenedBounds( 0 )
-    , _numTighteningsFromSymbolicBoundTightening( 0 )
-    , _numRowsExaminedByRowTightener( 0 )
-    , _numTighteningsFromRows( 0 )
-    , _numBoundTighteningsOnExplicitBasis( 0 )
-    , _numTighteningsFromExplicitBasis( 0 )
-    , _numBoundNotificationsToPlConstraints( 0 )
-    , _numBoundsProposedByPlConstraints( 0 )
-    , _numBoundTighteningsOnConstraintMatrix( 0 )
-    , _numTighteningsFromConstraintMatrix( 0 )
-    , _numBasisRefactorizations( 0 )
-    , _pseNumIterations( 0 )
-    , _pseNumResetReferenceSpace( 0 )
-    , _ppNumEliminatedVars( 0 )
-    , _ppNumTighteningIterations( 0 )
-    , _ppNumConstraintsRemoved( 0 )
-    , _ppNumEquationsRemoved( 0 )
-    , _totalTimePerformingValidCaseSplitsMicro( 0 )
-    , _totalTimePerformingSymbolicBoundTightening( 0 )
-    , _totalTimeHandlingStatisticsMicro( 0 )
-    , _totalNumberOfValidCaseSplits( 0 )
-    , _totalTimeExplicitBasisBoundTighteningMicro( 0 )
-    , _totalTimeDegradationChecking( 0 )
-    , _totalTimePrecisionRestoration( 0 )
-    , _totalTimeConstraintMatrixBoundTighteningMicro( 0 )
-    , _totalTimeApplyingStoredTighteningsMicro( 0 )
-    , _totalTimeSmtCoreMicro( 0 )
-    , _timedOut( false )
+    : _timedOut( false )
 {
+    /*************************** Unsigned Attributes **************************/
+    // Overall
+    _unsignedAttributes[NUM_PIECEWISE_LINEAR_CONSTRAINTS] = 0;
+    _unsignedAttributes[NUM_ACTIVE_PIECEWISE_LINEAR_CONSTRAINTS] = 0;
+
+    // Preprocessing
+    _unsignedAttributes[NUM_EQUATIONS_REMOVED_BY_PREPROCESSING] = 0;
+    _unsignedAttributes[NUM_CONSTRAINTS_REMOVED_BY_PREPROCESSING] = 0;
+    _unsignedAttributes[NUM_VARIABLES_REMOVED_BY_PREPROCESSING] = 0;
+
+    // Search
+    _unsignedAttributes[CURRENT_STACK_DEPTH] = 0;
+    _unsignedAttributes[MAX_STACK_DEPTH] = 0;
+    _unsignedAttributes[NUM_VISITED_TREE_STATES] = 1;
+
+    /***************************** Long Attributes ****************************/
+     // Overall
+    _longAttributes[NUM_MAIN_LOOP_ITERATIONS] = 0;
+    _longAttributes[TIME_MAIN_LOOP_MICRO] = 0;
+
+    // Preprocessing
+    _longAttributes[TIME_PREPROCESSING_MICRO] = 0;
+
+    // Search
+    _longAttributes[TIME_SMT_CORE_MICRO] = 0;
+
+    // Simplex
+    _longAttributes[NUM_SIMPLIEX_STEPS] = 0;
+    _longAttributes[NUM_SIMPLIEX_CALLS] = 0;
+    _longAttributes[NUM_PROPOSED_FLIPS] = 0;
+    _longAttributes[NUM_REJECTED_FLIPS] = 0;
+    _longAttributes[NUM_ACCEPTED_FLIPS] = 0;
+    _longAttributes[TIME_SIMPLEX_STEPS_MICRO] = 0;
+    _longAttributes[TIME_UPDATING_COST_FUNCTION_MICRO] = 0;
+    _longAttributes[TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO] = 0;
+
+    // Tightening
+    _longAttributes[NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT] = 0;
+    _longAttributes[NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING_ATTEMPT] = 0;
+    _longAttributes[NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT] = 0;
+    _longAttributes[NUM_SYMBOLIC_BOUND_TIGHTENING_ATTEMPT] = 0;
+    _longAttributes[NUM_LP_BOUND_TIGHTENING_ATTEMPT] = 0;
+    _longAttributes[NUM_EXPLICIT_BASIS_BOUND_TIGHTENING] = 0;
+    _longAttributes[NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING] = 0;
+    _longAttributes[NUM_CONSTRAINT_BOUND_TIGHTENING] = 0;
+    _longAttributes[NUM_SYMBOLIC_BOUND_TIGHTENING] = 0;
+    _longAttributes[NUM_LP_BOUND_TIGHTENING] = 0;
+    _longAttributes[TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_CONSTRAINT_BOUND_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_LP_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_APPLYING_STORED_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_PERFORMING_VALID_CASE_SPLITS_MICRO] = 0;
+
+    // Statistics
+    _longAttributes[TIME_HANDLING_STATISTICS_MICRO] = 0;
+
+    /***************************** Long Attributes ****************************/
+    _doubleAttributes[MINIMAL_COST_SO_FAR] = 0;
 }
 
 void Statistics::print()
@@ -94,20 +98,21 @@ void Statistics::print()
     printf( "\tTotal time elapsed: %llu milli (%02u:%02u:%02u)\n",
             totalElapsed / 1000, hours, minutes - ( hours * 60 ), seconds - ( minutes * 60 ) );
 
-    seconds = _timeMainLoopMicro / 1000000;
+    unsigned long long timeMainLoopMicro = getLongAttr( TIME_MAIN_LOOP_MICRO );
+    seconds = timeMainLoopMicro / 1000000;
     minutes = seconds / 60;
     hours = minutes / 60;
     printf( "\t\tMain loop: %llu milli (%02u:%02u:%02u)\n",
-            _timeMainLoopMicro / 1000, hours, minutes - ( hours * 60 ), seconds - ( minutes * 60 ) );
+            timeMainLoopMicro / 1000, hours, minutes - ( hours * 60 ), seconds - ( minutes * 60 ) );
 
-    seconds = _preprocessingTimeMicro / 1000000;
+    unsigned long long timePreprocessingMicro = getLongAttr( TIME_PREPROCESSING_MICRO );
+    seconds = timePreprocessingMicro / 1000000;
     minutes = seconds / 60;
     hours = minutes / 60;
     printf( "\t\tPreprocessing time: %llu milli (%02u:%02u:%02u)\n",
-            _preprocessingTimeMicro / 1000, hours, minutes - ( hours * 60 ), seconds - ( minutes * 60 ) );
+            timePreprocessingMicro / 1000, hours, minutes - ( hours * 60 ), seconds - ( minutes * 60 ) );
 
-    unsigned long long totalUnknown = totalElapsed - _timeMainLoopMicro - _preprocessingTimeMicro;
-
+    unsigned long long totalUnknown = totalElapsed - timeMainLoopMicro - timePreprocessingMicro;
     seconds = totalUnknown / 1000000;
     minutes = seconds / 60;
     hours = minutes / 60;
@@ -115,178 +120,202 @@ void Statistics::print()
             totalUnknown / 1000, hours, minutes - ( hours * 60 ), seconds - ( minutes * 60 ) );
 
     printf( "\tBreakdown for main loop:\n" );
-    printf( "\t\t[%.2lf%%] Simplex steps: %llu milli\n"
-            , printPercents( _timeSimplexStepsMicro, _timeMainLoopMicro )
-            , _timeSimplexStepsMicro / 1000
-            );
-    printf( "\t\t[%.2lf%%] Explicit-basis bound tightening: %llu milli\n"
-            , printPercents( _totalTimeExplicitBasisBoundTighteningMicro, _timeMainLoopMicro )
-            , _totalTimeExplicitBasisBoundTighteningMicro / 1000
-            );
-    printf( "\t\t[%.2lf%%] Constraint-matrix bound tightening: %llu milli\n"
-            , printPercents( _totalTimeConstraintMatrixBoundTighteningMicro, _timeMainLoopMicro )
-            , _totalTimeConstraintMatrixBoundTighteningMicro / 1000
-            );
-    printf( "\t\t[%.2lf%%] Degradation checking: %llu milli\n"
-            , printPercents( _totalTimeDegradationChecking, _timeMainLoopMicro )
-            , _totalTimeDegradationChecking / 1000
-            );
-    printf( "\t\t[%.2lf%%] Precision restoration: %llu milli\n"
-            , printPercents( _totalTimePrecisionRestoration, _timeMainLoopMicro )
-            , _totalTimePrecisionRestoration / 1000
-            );
-    printf( "\t\t[%.2lf%%] Statistics handling: %llu milli\n"
-            , printPercents( _totalTimeHandlingStatisticsMicro, _timeMainLoopMicro )
-            , _totalTimeHandlingStatisticsMicro / 1000
-            );
-    printf( "\t\t[%.2lf%%] Constraint-fixing steps: %llu milli\n"
-            , printPercents( _timeConstraintFixingStepsMicro, _timeMainLoopMicro )
-            , _timeConstraintFixingStepsMicro / 1000
-            );
-    printf( "\t\t[%.2lf%%] Valid case splits: %llu milli. Average per split: %.2lf milli\n"
-            , printPercents( _totalTimePerformingValidCaseSplitsMicro, _timeMainLoopMicro )
-            , _totalTimePerformingValidCaseSplitsMicro / 1000
-            , printAverage( _totalTimePerformingValidCaseSplitsMicro / 1000,
-                            _totalNumberOfValidCaseSplits )
-            );
-    printf( "\t\t[%.2lf%%] Applying stored bound-tightening: %llu milli\n"
-            , printPercents( _totalTimeApplyingStoredTighteningsMicro, _timeMainLoopMicro )
-            , _totalTimeApplyingStoredTighteningsMicro / 1000
-            );
+    unsigned long long total = 0;
 
+    unsigned long long val = getLongAttr( TIME_SMT_CORE_MICRO );
+    total += val;
     printf( "\t\t[%.2lf%%] SMT core: %llu milli\n"
-            , printPercents( _totalTimeSmtCoreMicro, _timeMainLoopMicro )
-            , _totalTimeSmtCoreMicro / 1000
-            );
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
+    val = getLongAttr( TIME_SIMPLEX_STEPS_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Simplex steps: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_UPDATING_COST_FUNCTION_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Upating Cost Function: %llu milli.\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Explicit-basis bound tightening: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Constraint-matrix bound tightening: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_CONSTRAINT_BOUND_TIGHTENING_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Constraint bound tightening: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO );
+    total += val;
     printf( "\t\t[%.2lf%%] Symbolic Bound Tightening: %llu milli\n"
-            , printPercents( _totalTimePerformingSymbolicBoundTightening, _timeMainLoopMicro )
-            , _totalTimePerformingSymbolicBoundTightening / 1000
-            );
+            , printPercents( val, timeMainLoopMicro ) , val / 1000 );
 
-    unsigned long long total =
-        _timeSimplexStepsMicro +
-        _timeConstraintFixingStepsMicro +
-        _totalTimePerformingValidCaseSplitsMicro +
-        _totalTimeHandlingStatisticsMicro +
-        _totalTimeExplicitBasisBoundTighteningMicro +
-        _totalTimeDegradationChecking +
-        _totalTimePrecisionRestoration +
-        _totalTimeConstraintMatrixBoundTighteningMicro +
-        _totalTimeApplyingStoredTighteningsMicro +
-        _totalTimeSmtCoreMicro +
-        _totalTimePerformingSymbolicBoundTightening;
+    val = getLongAttr( TIME_LP_TIGHTENING_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] LP-based Bound Tightening: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ) , val / 1000 );
+
+    val = getLongAttr( TIME_APPLYING_STORED_TIGHTENING_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Applying stored bound-tightening: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_PERFORMING_VALID_CASE_SPLITS_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Valid case splits: %llu milli.\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Time collecting violated PlConstraints: %llu milli.\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_HANDLING_STATISTICS_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Handling statistics: %llu milli.\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     printf( "\t\t[%.2lf%%] Unaccounted for: %llu milli\n"
-            , printPercents( _timeMainLoopMicro - total, _timeMainLoopMicro )
-            , _timeMainLoopMicro > total ? ( _timeMainLoopMicro - total ) / 1000 : 0
+            , printPercents( timeMainLoopMicro + timePreprocessingMicro - total,
+                             timeMainLoopMicro + timePreprocessingMicro )
+            , timeMainLoopMicro + timePreprocessingMicro >
+            total ? ( timeMainLoopMicro + timePreprocessingMicro - total ) / 1000 : 0
             );
 
     printf( "\t--- Preprocessor Statistics ---\n" );
-    printf( "\tNumber of preprocessor bound-tightening loop iterations: %u\n",
-            _ppNumTighteningIterations );
     printf( "\tNumber of eliminated variables: %u\n",
-            _ppNumEliminatedVars );
+            getUnsignedAttr( NUM_VARIABLES_REMOVED_BY_PREPROCESSING ) );
     printf( "\tNumber of constraints removed due to variable elimination: %u\n",
-            _ppNumConstraintsRemoved );
+            getUnsignedAttr( NUM_CONSTRAINTS_REMOVED_BY_PREPROCESSING ) );
     printf( "\tNumber of equations removed due to variable elimination: %u\n",
-            _ppNumEquationsRemoved );
+            getUnsignedAttr( NUM_EQUATIONS_REMOVED_BY_PREPROCESSING ) );
 
     printf( "\t--- Engine Statistics ---\n" );
     printf( "\tNumber of main loop iterations: %llu\n"
-            "\t\t%llu iterations were simplex steps. Total time: %llu milli. Average: %.2lf milli.\n"
-            "\t\t%llu iterations were constraint-fixing steps. "
-            "Total time: %llu milli. Average: %.2lf milli\n"
-            , _numMainLoopIterations
-            , _numSimplexSteps
-            , _timeSimplexStepsMicro / 1000
-            , printAverage( _timeSimplexStepsMicro / 1000, _numSimplexSteps )
-            , _numConstraintFixingSteps
-            , _timeConstraintFixingStepsMicro / 1000
-            , printAverage( _timeConstraintFixingStepsMicro / 1000, _numConstraintFixingSteps )
+            , getLongAttr( NUM_MAIN_LOOP_ITERATIONS )
             );
     printf( "\tNumber of active piecewise-linear constraints: %u / %u\n"
-            "\t\tConstraints disabled by valid splits: %u. "
-            "By SMT-originated splits: %u\n"
-            , _numActivePlConstraints
-            , _numPlConstraints
-            , _numPlValidSplits
-            , _numPlSmtOriginatedSplits
+            , getUnsignedAttr( NUM_ACTIVE_PIECEWISE_LINEAR_CONSTRAINTS )
+            , getUnsignedAttr( NUM_PIECEWISE_LINEAR_CONSTRAINTS )
             );
-    printf( "\tLast reported degradation: %.10lf. Max degradation so far: %.10lf. "
-            "Restorations so far: %u\n"
-            , _currentDegradation
-            , _maxDegradation
-            , _numPrecisionRestorations
-            );
-    printf( "\tNumber of simplex pivots we attempted to skip because of instability: %llu.\n"
-            "\tUnstable pivots performed anyway: %llu\n"
-            , _numSimplexPivotSelectionsIgnoredForStability
-            , _numSimplexUnstablePivots );
 
-    printf( "\t--- Tableau Statistics ---\n" );
-    printf( "\tTotal number of pivots performed: %llu\n", _numTableauPivots );
-    printf( "\t\tReal pivots: %llu. Degenerate: %llu (%.2lf%%)\n"
-            , _numTableauPivots - _numTableauDegeneratePivots
-            , _numTableauDegeneratePivots
-            , printPercents( _numTableauDegeneratePivots, _numTableauPivots ) );
-
-    printf( "\t\tDegenerate pivots by request (e.g., to fix a PL constraint): %llu (%.2lf%%)\n"
-            , _numTableauDegeneratePivotsByRequest
-            , printPercents( _numTableauDegeneratePivotsByRequest, _numTableauDegeneratePivots ) );
-
-    printf( "\t\tAverage time per pivot: %.2lf milli\n",
-            printAverage( _timePivotsMicro / 1000, _numTableauPivots ) );
-
-    printf( "\tTotal number of fake pivots performed: %llu\n", _numTableauBoundHopping );
-    printf( "\tTotal number of rows added: %llu. Number of merged columns: %llu\n"
-            , _numAddedRows
-            , _numMergedColumns );
-    printf( "\tCurrent tableau dimensions: M = %u, N = %u\n"
-            , _currentTableauM
-            , _currentTableauN );
-
-    printf( "\t--- SMT Core Statistics ---\n" );
-    printf( "\tTotal depth is %u. Total visited states: %u. Number of splits: %u. Number of pops: %u\n"
-            , _currentStackDepth
-            , _numVisitedTreeStates
-            , _numSplits
-            , _numPops );
+    printf( "\t--- SmtCore Statistics ---\n" );
+    printf( "\tCurrent depth is %u. Total visited states: %u. \n"
+            , getUnsignedAttr( CURRENT_STACK_DEPTH )
+            , getUnsignedAttr( NUM_VISITED_TREE_STATES ) );
     printf( "\tMax stack depth: %u\n"
-            , _maxStackDepth );
+            , getUnsignedAttr( MAX_STACK_DEPTH ) );
 
     printf( "\t--- Bound Tightening Statistics ---\n" );
-    printf( "\tNumber of tightened bounds: %llu.\n", _numTightenedBounds );
-    printf( "\t\tNumber of rows examined by row tightener: %llu. Consequent tightenings: %llu\n"
-            , _numRowsExaminedByRowTightener
-            , _numTighteningsFromRows );
-
     printf( "\t\tNumber of explicit basis matrices examined by row tightener: %llu. Consequent tightenings: %llu\n"
-            , _numBoundTighteningsOnExplicitBasis
-            , _numTighteningsFromExplicitBasis );
+            , getLongAttr( NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT )
+            , getLongAttr( NUM_EXPLICIT_BASIS_BOUND_TIGHTENING ) );
 
     printf( "\t\tNumber of bound tightening rounds on the entire constraint matrix: %llu. "
             "Consequent tightenings: %llu\n"
-            , _numBoundTighteningsOnConstraintMatrix
-            , _numTighteningsFromConstraintMatrix );
+            , getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING_ATTEMPT )
+            , getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING ) );
 
     printf( "\t\tNumber of bound notifications sent to PL constraints: %llu. Tightenings proposed: %llu\n"
-            , _numBoundNotificationsToPlConstraints
-            , _numBoundsProposedByPlConstraints );
+            , getLongAttr( NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT )
+            , getLongAttr( NUM_CONSTRAINT_BOUND_TIGHTENING ) );
 
-    printf( "\t--- Basis Factorization statistics ---\n" );
-    printf( "\tNumber of basis refactorizations: %llu\n",
-            _numBasisRefactorizations );
+    printf( "\t\tNumber of Symbolic Bound Tightening Rounds: %llu. Tightenings proposed: %llu\n"
+            , getLongAttr( NUM_SYMBOLIC_BOUND_TIGHTENING_ATTEMPT )
+            , getLongAttr( NUM_SYMBOLIC_BOUND_TIGHTENING ) );
 
-    printf( "\t--- Projected Steepest Edge Statistics ---\n" );
-    printf( "\tNumber of iterations: %llu.\n", _pseNumIterations );
-    printf( "\tNumber of resets to reference space: %llu. Avg. iterations per reset: %u\n"
-            , _pseNumResetReferenceSpace
-            , _pseNumResetReferenceSpace > 0 ?
-            (unsigned)((double)_pseNumIterations / _pseNumResetReferenceSpace) : 0 );
+    printf( "\t\tNumber of MILP  Bound Tightening Rounds: %llu. Tightenings proposed: %llu\n"
+            , getLongAttr( NUM_LP_BOUND_TIGHTENING_ATTEMPT )
+            , getLongAttr( NUM_LP_BOUND_TIGHTENING ) );
 
-    printf( "\t--- SBT ---\n" );
-    printf( "\tNumber of tightened bounds: %llu\n", _numTighteningsFromSymbolicBoundTightening );
+    printf( "\t--- Simplex Statistics ---\n" );
+    printf( "\tNumber of Simplex steps performed: %llu. \n"
+            , getLongAttr( NUM_SIMPLIEX_STEPS ) );
+    printf( "\tNumber of Simplex calls: %llu. \n"
+            , getLongAttr( NUM_SIMPLIEX_CALLS ) );
+
+    unsigned long long numProposed = getLongAttr( NUM_PROPOSED_FLIPS );
+    unsigned long long numAccepted = getLongAttr( NUM_ACCEPTED_FLIPS );
+    unsigned long long numRejected = getLongAttr( NUM_REJECTED_FLIPS );
+
+    printf( "\tFlip proposed %llu. Acceptance rate: %llu (%.2lf%%). Flip rejected: %llu. \n"
+            , numProposed
+            , numAccepted
+            , printPercents( numAccepted, numProposed )
+            , numRejected );
+}
+
+void Statistics::stampStartingTime()
+{
+    _startTime = TimeUtils::sampleMicro();
+}
+
+void Statistics::setUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value )
+{
+    _unsignedAttributes[attr] = value;
+}
+
+void Statistics::setLongAttr( StatisticsLongAttr attr, unsigned long long value )
+{
+    _longAttributes[attr] = value;
+}
+
+void Statistics::setDoubleAttr( StatisticsDoubleAttr attr, double value )
+{
+    _doubleAttributes[attr] = value;
+}
+
+void Statistics::incUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value )
+{
+    _unsignedAttributes[attr] += value;
+}
+
+void Statistics::incLongAttr( StatisticsLongAttr attr, unsigned long long value )
+{
+    _longAttributes[attr] += value;
+}
+
+void Statistics::incDoubleAttr( StatisticsDoubleAttr attr, double value )
+{
+    _doubleAttributes[attr] += value;
+}
+
+unsigned Statistics::getUnsignedAttr( StatisticsUnsignedAttr attr ) const
+{
+    return _unsignedAttributes[attr];
+}
+
+unsigned long long Statistics::getLongAttr( StatisticsLongAttr attr ) const
+{
+    return _longAttributes[attr];
+}
+
+double Statistics::getDoubleAttr( StatisticsDoubleAttr attr ) const
+{
+    return _doubleAttributes[attr];
+}
+
+unsigned long long Statistics::getTotalTime() const
+{
+    struct timespec now = TimeUtils::sampleMicro();
+    return TimeUtils::timePassed( _startTime, now );
+}
+
+void Statistics::timeout()
+{
+    _timedOut = true;
+}
+
+bool Statistics::hasTimedOut() const
+{
+    return _timedOut;
 }
 
 double Statistics::printPercents( unsigned long long part, unsigned long long total ) const
@@ -304,391 +333,3 @@ double Statistics::printAverage( unsigned long long part, unsigned long long tot
 
     return (double)part / total;
 }
-
-void Statistics::incNumMainLoopIterations()
-{
-    ++_numMainLoopIterations;
-}
-
-void Statistics::setNumPlConstraints( unsigned numberOfConstraints )
-{
-    _numPlConstraints = numberOfConstraints;
-}
-
-void Statistics::setNumActivePlConstraints( unsigned numberOfConstraints )
-{
-    _numActivePlConstraints = numberOfConstraints;
-}
-
-void Statistics::setNumPlValidSplits( unsigned numberOfSplits )
-{
-    _numPlValidSplits = numberOfSplits;
-}
-
-void Statistics::setNumPlSMTSplits( unsigned numberOfSplits )
-{
-    _numPlSmtOriginatedSplits = numberOfSplits;
-}
-
-void Statistics::incNumSimplexSteps()
-{
-    ++_numSimplexSteps;
-}
-
-void Statistics::incNumPrecisionRestorations()
-{
-    ++_numPrecisionRestorations;
-}
-
-void Statistics::addTimeSimplexSteps( unsigned long long time )
-{
-    _timeSimplexStepsMicro += time;
-}
-
-void Statistics::addTimeMainLoop( unsigned long long time )
-{
-    _timeMainLoopMicro += time;
-}
-
-void Statistics::addTimeConstraintFixingSteps( unsigned long long time )
-{
-    _timeConstraintFixingStepsMicro += time;
-}
-
-void Statistics::incNumConstraintFixingSteps()
-{
-    ++_numConstraintFixingSteps;
-}
-
-unsigned long long Statistics::getNumMainLoopIterations() const
-{
-    return _numMainLoopIterations;
-}
-
-void Statistics::setCurrentStackDepth( unsigned depth )
-{
-    _currentStackDepth = depth;
-
-    if ( _currentStackDepth > _maxStackDepth )
-        _maxStackDepth = _currentStackDepth;
-}
-
-unsigned Statistics::getMaxStackDepth() const
-{
-    return _maxStackDepth;
-}
-
-void Statistics::incNumSplits()
-{
-    ++_numSplits;
-}
-
-void Statistics::incNumPops()
-{
-    ++_numPops;
-}
-
-unsigned Statistics::getNumPops() const
-{
-    return _numPops;
-}
-
-void Statistics::incNumTableauPivots()
-{
-    ++_numTableauPivots;
-}
-
-void Statistics::incNumTableauBoundHopping()
-{
-    ++_numTableauBoundHopping;
-}
-
-void Statistics::incNumTableauDegeneratePivots()
-{
-    ++_numTableauDegeneratePivots;
-}
-
-void Statistics::incNumTableauDegeneratePivotsByRequest()
-{
-    ++_numTableauDegeneratePivotsByRequest;
-}
-
-void Statistics::addTimePivots( unsigned long long time )
-{
-    _timePivotsMicro += time;
-}
-
-unsigned Statistics::getAveragePivotTimeInMicro() const
-{
-    if ( _numTableauPivots == 0 )
-        return 0;
-
-    return _timePivotsMicro / _numTableauPivots;
-}
-
-void Statistics::incNumSimplexPivotSelectionsIgnoredForStability()
-{
-    ++_numSimplexPivotSelectionsIgnoredForStability;
-}
-
-void Statistics::incNumSimplexUnstablePivots()
-{
-    ++_numSimplexUnstablePivots;
-}
-
-void Statistics::incNumAddedRows()
-{
-    ++_numAddedRows;
-}
-
-void Statistics::incNumMergedColumns()
-{
-    ++_numMergedColumns;
-}
-
-void Statistics::setCurrentTableauDimension( unsigned m, unsigned n )
-{
-    _currentTableauM = m;
-    _currentTableauN = n;
-}
-
-void Statistics::incNumTightenedBounds()
-{
-    ++_numTightenedBounds;
-}
-
-void Statistics::incNumRowsExaminedByRowTightener()
-{
-    ++_numRowsExaminedByRowTightener;
-}
-
-void Statistics::incNumTighteningsFromRows( unsigned increment )
-{
-    _numTighteningsFromRows += increment;
-}
-
-void Statistics::incNumBoundTighteningsOnExplicitBasis()
-{
-    ++_numBoundTighteningsOnExplicitBasis;
-}
-
-void Statistics::incNumTighteningsFromExplicitBasis( unsigned increment )
-{
-    _numTighteningsFromExplicitBasis += increment;
-}
-
-void Statistics::incNumBoundNotificationsPlConstraints()
-{
-    ++_numBoundNotificationsToPlConstraints;
-}
-
-void Statistics::incNumBoundsProposedByPlConstraints()
-{
-    ++_numBoundsProposedByPlConstraints;
-}
-
-void Statistics::incNumBoundTighteningOnConstraintMatrix()
-{
-    ++_numBoundTighteningsOnConstraintMatrix;
-}
-
-void Statistics::incNumTighteningsFromConstraintMatrix( unsigned increment )
-{
-    _numTighteningsFromConstraintMatrix += increment;
-}
-
-void Statistics::incNumBasisRefactorizations()
-{
-    ++_numBasisRefactorizations;
-}
-
-void Statistics::pseIncNumIterations()
-{
-    ++_pseNumIterations;
-}
-
-void Statistics::pseIncNumResetReferenceSpace()
-{
-    ++_pseNumResetReferenceSpace;
-}
-
-void Statistics::setCurrentDegradation( double degradation )
-{
-    _currentDegradation = degradation;
-    if ( FloatUtils::gt( _currentDegradation, _maxDegradation ) )
-        _maxDegradation = _currentDegradation;
-}
-
-void Statistics::setPreprocessingTime( unsigned long long micro )
-{
-    _preprocessingTimeMicro = micro;
-}
-
-void Statistics::stampStartingTime()
-{
-    _startTime = TimeUtils::sampleMicro();
-}
-
-void Statistics::ppSetNumEliminatedVars( unsigned eliminatedVars )
-{
-    _ppNumEliminatedVars = eliminatedVars;
-}
-
-void Statistics::ppIncNumTighteningIterations()
-{
-    ++_ppNumTighteningIterations;
-}
-
-void Statistics::ppIncNumConstraintsRemoved()
-{
-    ++_ppNumConstraintsRemoved;
-}
-
-void Statistics::ppIncNumEquationsRemoved()
-{
-    ++_ppNumEquationsRemoved;
-}
-
-void Statistics::addTimeForValidCaseSplit( unsigned long long time )
-{
-    _totalTimePerformingValidCaseSplitsMicro += time;
-    ++_totalNumberOfValidCaseSplits;
-}
-
-void Statistics::addTimeForSymbolicBoundTightening( unsigned long long time )
-{
-    _totalTimePerformingSymbolicBoundTightening += time;
-}
-
-void Statistics::addTimeForStatistics( unsigned long long time )
-{
-    _totalTimeHandlingStatisticsMicro += time;
-}
-
-void Statistics::addTimeForExplicitBasisBoundTightening( unsigned long long time )
-{
-    _totalTimeExplicitBasisBoundTighteningMicro += time;
-}
-
-void Statistics::addTimeForDegradationChecking( unsigned long long time )
-{
-    _totalTimeDegradationChecking += time;
-}
-
-void Statistics::addTimeForPrecisionRestoration( unsigned long long time )
-{
-    _totalTimePrecisionRestoration += time;
-}
-
-void Statistics::addTimeForConstraintMatrixBoundTightening( unsigned long long time )
-{
-    _totalTimeConstraintMatrixBoundTighteningMicro += time;
-}
-
-void Statistics::addTimeForApplyingStoredTightenings( unsigned long long time )
-{
-    _totalTimeApplyingStoredTighteningsMicro += time;
-}
-
-void Statistics::addTimeSmtCore( unsigned long long time )
-{
-    _totalTimeSmtCoreMicro += time;
-}
-
-void Statistics::incNumVisitedTreeStates()
-{
-    ++_numVisitedTreeStates;
-}
-
-unsigned Statistics::getNumVisitedTreeStates() const
-{
-    return _numVisitedTreeStates;
-}
-
-unsigned Statistics::getNumSplits() const
-{
-    return _numSplits;
-}
-
-unsigned long long Statistics::getNumTableauPivots() const
-{
-    return _numTableauPivots;
-}
-
-double Statistics::getMaxDegradation() const
-{
-    return _maxDegradation;
-}
-
-unsigned Statistics::getNumPrecisionRestorations() const
-{
-    return _numPrecisionRestorations;
-}
-
-unsigned long long Statistics::getTimeSimplexStepsMicro() const
-{
-    return _timeSimplexStepsMicro;
-}
-
-unsigned long long Statistics::getNumConstraintFixingSteps() const
-{
-    return _numConstraintFixingSteps;
-}
-
-unsigned long long Statistics::getNumSimplexPivotSelectionsIgnoredForStability() const
-{
-    return _numSimplexPivotSelectionsIgnoredForStability;
-}
-
-unsigned long long Statistics::getNumSimplexUnstablePivots() const
-{
-    return _numSimplexUnstablePivots;
-}
-
-unsigned long long Statistics::getTotalTime() const
-{
-    unsigned long long total =
-        _timeSimplexStepsMicro +
-        _timeConstraintFixingStepsMicro +
-        _totalTimePerformingValidCaseSplitsMicro +
-        _totalTimeHandlingStatisticsMicro +
-        _totalTimeExplicitBasisBoundTighteningMicro +
-        _totalTimeDegradationChecking +
-        _totalTimePrecisionRestoration +
-        _totalTimeConstraintMatrixBoundTighteningMicro +
-        _totalTimeApplyingStoredTighteningsMicro +
-        _totalTimeSmtCoreMicro +
-        _totalTimePerformingSymbolicBoundTightening;
-
-    // Total is in micro seconds, and we need to return milliseconds
-    return total / 1000;
-}
-
-void Statistics::timeout()
-{
-    _timedOut = true;
-}
-
-bool Statistics::hasTimedOut() const
-{
-    return _timedOut;
-}
-
-void Statistics::printStartingIteration( unsigned long long iteration, String message )
-{
-    if ( _numMainLoopIterations >= iteration )
-        printf( "DBG_PRINT: %s\n", message.ascii() );
-}
-
-void Statistics::incNumTighteningsFromSymbolicBoundTightening( unsigned increment )
-{
-    _numTighteningsFromSymbolicBoundTightening += increment;
-}
-
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//

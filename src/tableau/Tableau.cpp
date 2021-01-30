@@ -220,9 +220,6 @@ void Tableau::setDimensions( unsigned m, unsigned n )
     _workN = new double[n];
     if ( !_workN )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::work" );
-
-    if ( _statistics )
-        _statistics->setCurrentTableauDimension( _m, _n );
 }
 
 void Tableau::setConstraintMatrix( const double *A )

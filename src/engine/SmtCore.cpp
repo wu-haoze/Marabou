@@ -77,22 +77,17 @@ bool SmtCore::needToSplit() const
 
 void SmtCore::performSplit()
 {
+    struct timespec start = TimeUtils::sampleMicro();
+
     SMT_LOG( Stringf( "Performing a case split @ level %u", _context.getLevel() ).ascii() );
 
     ASSERT( _needToSplit );
-
-    // Maybe the constraint has already become inactive - if so, ignore
-    ASSERT( _constraintForSplitting->isActive() );
-
-    struct timespec start = TimeUtils::sampleMicro();
-
     ASSERT( _constraintForSplitting->isActive() );
     _needToSplit = false;
 
     if ( _statistics )
     {
-        _statistics->incNumSplits();
-        _statistics->incNumVisitedTreeStates();
+        _statistics->incUnsignedAttr( Statistics::NUM_VISITED_TREE_STATES, 1 );
     }
 
     _constraintForSplitting->setActiveConstraint( false );
@@ -123,14 +118,15 @@ void SmtCore::performSplit()
 
     _stack.append( stackEntry );
 
+    _constraintForSplitting = NULL;
+
     if ( _statistics )
     {
-        _statistics->setCurrentStackDepth( getStackDepth() );
+        _statistics->setUnsignedAttr( Statistics::CURRENT_STACK_DEPTH, getStackDepth() );
         struct timespec end = TimeUtils::sampleMicro();
-        _statistics->addTimeSmtCore( TimeUtils::timePassed( start, end ) );
+        _statistics->incLongAttr( Statistics::TIME_SMT_CORE_MICRO,
+                                  TimeUtils::timePassed( start, end ) );
     }
-
-    _constraintForSplitting = NULL;
 }
 
 unsigned SmtCore::getStackDepth() const
@@ -140,6 +136,8 @@ unsigned SmtCore::getStackDepth() const
 
 bool SmtCore::popSplit()
 {
+    struct timespec start = TimeUtils::sampleMicro();
+
     SMT_LOG( Stringf( "Backtracking @ level %u", _context.getLevel() ).ascii() );
 
     if ( _stack.empty() )
@@ -148,15 +146,9 @@ bool SmtCore::popSplit()
         return false;
     }
 
-    struct timespec start = TimeUtils::sampleMicro();
-
-
     if ( _statistics )
     {
-        _statistics->incNumPops();
-        // A pop always sends us to a state that we haven't seen before - whether
-        // from a sibling split, or from a lower level of the tree.
-        _statistics->incNumVisitedTreeStates();
+        _statistics->incUnsignedAttr( Statistics::NUM_VISITED_TREE_STATES, 1 );
     }
 
     // Remove any entries that have no alternatives
@@ -193,9 +185,10 @@ bool SmtCore::popSplit()
 
     if ( _statistics )
     {
-        _statistics->setCurrentStackDepth( getStackDepth() );
+        _statistics->setUnsignedAttr( Statistics::CURRENT_STACK_DEPTH, getStackDepth() );
         struct timespec end = TimeUtils::sampleMicro();
-        _statistics->addTimeSmtCore( TimeUtils::timePassed( start, end ) );
+        _statistics->incLongAttr( Statistics::TIME_SMT_CORE_MICRO,
+                                  TimeUtils::timePassed( start, end ) );
     }
 
     return true;

@@ -449,6 +449,8 @@ private:
 
     void performBoundTightening();
 
+    void solveLPWithGurobi( List<GurobiWrapper::Term> &cost );
+
     bool solveWithGurobi( unsigned timeoutInSeconds );
 
     /*
@@ -496,17 +498,6 @@ private:
           If the local optima is zero, we add more PLConstraints to the cost function.
     */
     void updateHeuristicCost();
-
-    /*
-      Heuristic to flip the cost component of a PLConstraint
-      following the heuristics from WalkSAT
-      flip the cost term of the first PLConstraint that reduces the cost
-
-      if not available,
-      with probability p, flip the cost term of the first PLConstraint that increases the cost the least.
-      with probability 1- p, flip the cost term of a randomly chosen PLConstraint
-    */
-    void updateHeuristicCostWalkSAT();
 
     /*
       Heuristic to flip the cost component of a PLConstraint:

@@ -150,6 +150,8 @@ void Engine::initiateCostFunctionForLocalSearchRandomly
 
 void Engine::initiateCostFunctionForLocalSearch()
 {
+    struct timespec start = TimeUtils::sampleMicro();
+
     SOI_LOG( Stringf( "Initiating cost function for local search with strategy %s...",
                       _initializationStrategy.ascii() ).ascii() );
 
@@ -163,12 +165,21 @@ void Engine::initiateCostFunctionForLocalSearch()
         initiateCostFunctionForLocalSearchBasedOnInputAssignment( _plConstraints );
     else if ( _initializationStrategy == "random" )
         initiateCostFunctionForLocalSearchRandomly( _plConstraints );
+    else
+        throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
+                            Stringf( "Unknown initialization stategy %s", _initializationStrategy.ascii() ).ascii() );
 
     SOI_LOG( "initiating cost function for local search - done" );
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::updateCostTermsForSatisfiedPLConstraints()
 {
+    struct timespec start = TimeUtils::sampleMicro();
+
     SOI_LOG( "Updating cost terms for satisfied constraint..." );
     SOI_LOG( Stringf( "Heuristic cost before updating cost terms for satisfied constraint: %f",
                       computeHeuristicCost() ).ascii() );
@@ -192,55 +203,10 @@ void Engine::updateCostTermsForSatisfiedPLConstraints()
     SOI_LOG( Stringf( "Heuristic cost after updating cost terms for satisfied constraint: %f",
                       computeHeuristicCost() ).ascii() );
     SOI_LOG( "Updating cost terms for satisfied constraint - done\n" );
-}
 
-void Engine::updateHeuristicCostWalkSAT()
-{
-    PiecewiseLinearConstraint *plConstraintToFlip = NULL;
-    PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
-
-    SOI_LOG( Stringf( "Heuristic cost before updates: %f", computeHeuristicCost() ).ascii() ) ;
-
-    // Flip the cost term that reduces the cost by the most
-    SOI_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
-    double maxReducedCost = FloatUtils::negativeInfinity();
-    for ( const auto &plConstraint : _violatedPlConstraints )
-    {
-        double reducedCost = 0;
-        PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
-        ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
-        plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-
-        if ( reducedCost > maxReducedCost )
-        {
-            maxReducedCost = reducedCost;
-            plConstraintToFlip = plConstraint;
-            phaseStatusToFlipTo = phaseStatusOfReducedCost;
-        }
-    }
-
-    ASSERT( plConstraintToFlip );
-    if ( maxReducedCost < 0 )
-    {
-        bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
-        if ( useNoiseStrategy )
-        {
-            // If using noise stategy, we just flip a random
-            // PLConstraint.
-            SOI_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
-            unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
-            plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
-            Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
-            unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
-            phaseStatusToFlipTo = phaseStatuses[phaseIndex];
-
-            _smtCore.reportRandomFlip();
-        }
-    }
-
-    ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
-    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-    return;
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::updateHeuristicCostGWSAT()
@@ -291,39 +257,42 @@ void Engine::updateHeuristicCostGWSAT()
         unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
         _smtCore.reportRandomFlip();
+        _statistics.incLongAttr( Statistics::NUM_PROPOSED_FLIPS, 1 );
+        _statistics.incLongAttr( Statistics::NUM_ACCEPTED_FLIPS, 1 );
     }
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-    return;
 }
 
 void Engine::updateHeuristicCost()
 {
+    struct timespec start = TimeUtils::sampleMicro();
+
     SOI_LOG( Stringf( "Updating heuristic cost with strategy %s", _flippingStrategy.ascii() ).ascii() );
 
     if ( _flippingStrategy == "gwsat" )
         updateHeuristicCostGWSAT();
-    else if ( _flippingStrategy == "walksat" )
-        updateHeuristicCostWalkSAT();
+    else
+        throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
+                            Stringf( "Unknown flipping stategy %s", _flippingStrategy.ascii() ).ascii() );
 
     SOI_LOG( Stringf( "Heuristic cost after updates: %f", computeHeuristicCost() ).ascii() ) ;
     SOI_LOG( "Updating heuristic cost - done\n" );
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::optimizeForHeuristicCost()
 {
-    struct timespec start = TimeUtils::sampleMicro();
     List<GurobiWrapper::Term> terms;
     for ( const auto &term : _heuristicCost )
         terms.append( GurobiWrapper::Term( term.second,
                                            Stringf( "x%u", term.first ) ) );
-    _gurobi->setCost( terms );
-    _gurobi->solve();
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeSimplexSteps( TimeUtils::timePassed( start, end ) );
 
-    SOI_LOG( "Optimizing w.r.t. the current heuristic cost - done\n" );
+    solveLPWithGurobi( terms );
 }
 
 bool Engine::performLocalSearch()
@@ -518,6 +487,23 @@ bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double
     return true;
 }
 
+void Engine::solveLPWithGurobi( List<GurobiWrapper::Term> &cost )
+{
+    struct timespec simplexStart = TimeUtils::sampleMicro();
+
+    ENGINE_LOG( "Solving LP with Gurobi..." );
+    _gurobi->setCost( cost );
+    _gurobi->solve();
+    ENGINE_LOG( "Solving LP with Gurobi - done" );
+
+    struct timespec simplexEnd = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_SIMPLEX_STEPS_MICRO,
+                             TimeUtils::timePassed( simplexStart, simplexEnd ) );
+    _statistics.incLongAttr( Statistics::NUM_SIMPLIEX_CALLS, 1 );
+    _statistics.incLongAttr( Statistics::NUM_SIMPLIEX_STEPS,
+                             _gurobi->getNumberOfSimplexIterations() );
+}
+
 bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 {
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
@@ -546,7 +532,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
     while ( true )
     {
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
-        _statistics.addTimeMainLoop( TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+        _statistics.incLongAttr( Statistics::TIME_MAIN_LOOP_MICRO,
+                                 TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
         mainLoopStart = mainLoopEnd;
 
         if ( shouldExitDueToTimeout( timeoutInSeconds ) )
@@ -579,22 +566,15 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
         try
         {
             mainLoopStatistics();
-            if ( _verbosity > 1 &&  _statistics.getNumMainLoopIterations() %
-                 10 == 0 )
+            if ( _verbosity > 1 &&  _statistics.getLongAttr( Statistics::NUM_MAIN_LOOP_ITERATIONS ) %
+                 100 == 0 )
                 _statistics.print();
 
             if ( splitJustPerformed )
             {
-                checkBoundConsistency();
-
                 performBoundTightening();
-
-                checkBoundConsistency();
-
-                List<GurobiWrapper::Term> obj;
-                _gurobi->setCost( obj );
-
                 splitJustPerformed = false;
+                DEBUG({ checkBoundConsistency(); });
             }
 
             // Perform any SmtCore-initiated case splits
@@ -622,12 +602,9 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                 continue;
             }
 
-            ENGINE_LOG( "Solving LP with Gurobi..." );
-            struct timespec simplexStart = TimeUtils::sampleMicro();
-            _gurobi->solve();
-            struct timespec simplexEnd = TimeUtils::sampleMicro();
-            _statistics.addTimeSimplexSteps( TimeUtils::timePassed( simplexStart, simplexEnd ) );
-            ENGINE_LOG( "Solving LP with Gurobi - done" );
+            // The linear portion is not satisfied, call Simplex
+            List<GurobiWrapper::Term> obj;
+            solveLPWithGurobi( obj );
             if ( _gurobi->infeasible() )
             {
                 throw InfeasibleQueryException();
@@ -676,8 +653,17 @@ bool Engine::solve( unsigned timeoutInSeconds )
 void Engine::mainLoopStatistics()
 {
     struct timespec start = TimeUtils::sampleMicro();
+    unsigned activeConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+        if ( constraint->isActive() )
+            ++activeConstraints;
+
+    _statistics.setUnsignedAttr( Statistics::NUM_ACTIVE_PIECEWISE_LINEAR_CONSTRAINTS,
+                                 activeConstraints );
+    _statistics.incLongAttr( Statistics::NUM_MAIN_LOOP_ITERATIONS, 1 );
     struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForStatistics( TimeUtils::timePassed( start, end ) );
+    _statistics.incLongAttr( Statistics::TIME_HANDLING_STATISTICS_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::performBoundTightening()
@@ -1086,7 +1072,8 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
 
     _boundManager.registerTableauReference( _tableau );
 
-    _statistics.setNumPlConstraints( _plConstraints.size() );
+    _statistics.setUnsignedAttr( Statistics::NUM_PIECEWISE_LINEAR_CONSTRAINTS,
+                                 _plConstraints.size() );
 }
 
 void Engine::initializeNetworkLevelReasoning()
@@ -1163,14 +1150,16 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         }
 
         struct timespec end = TimeUtils::sampleMicro();
-        _statistics.setPreprocessingTime( TimeUtils::timePassed( start, end ) );
+        _statistics.setLongAttr( Statistics::TIME_PREPROCESSING_MICRO,
+                                 TimeUtils::timePassed( start, end ) );
     }
     catch ( const InfeasibleQueryException & )
     {
         ENGINE_LOG( "processInputQuery done\n" );
 
         struct timespec end = TimeUtils::sampleMicro();
-        _statistics.setPreprocessingTime( TimeUtils::timePassed( start, end ) );
+        _statistics.setLongAttr( Statistics::TIME_PREPROCESSING_MICRO,
+                                 TimeUtils::timePassed( start, end ) );
 
         _exitCode = Engine::UNSAT;
         return false;
@@ -1272,12 +1261,18 @@ bool Engine::allVarsWithinBounds() const
 
 void Engine::collectViolatedPlConstraints()
 {
+    struct timespec start = TimeUtils::sampleMicro();
+
     _violatedPlConstraints.clear();
     for ( const auto &constraint : _plConstraints )
     {
         if ( constraint->isActive() && !constraint->satisfied() )
             _violatedPlConstraints.append( constraint );
     }
+    struct timespec end = TimeUtils::sampleMicro();
+
+    _statistics.incLongAttr( Statistics::TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 bool Engine::allPlConstraintsHold()
@@ -1323,8 +1318,7 @@ void Engine::applyAllConstraintTightenings()
 
     for ( const auto &tightening : entailedTightenings )
     {
-        _statistics.incNumBoundsProposedByPlConstraints();
-
+        _statistics.incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING, 1 );
         if ( tightening._type == Tightening::LB )
             _boundManager.tightenLowerBound( tightening._variable, tightening._value );
         else
@@ -1339,7 +1333,8 @@ void Engine::applyAllBoundTightenings()
     applyAllConstraintTightenings();
 
     struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForApplyingStoredTightenings( TimeUtils::timePassed( start, end ) );
+    _statistics.incLongAttr( Statistics::TIME_APPLYING_STORED_TIGHTENING_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 bool Engine::applyAllValidConstraintCaseSplits()
@@ -1352,7 +1347,8 @@ bool Engine::applyAllValidConstraintCaseSplits()
             appliedSplit = true;
 
     struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForValidCaseSplit( TimeUtils::timePassed( start, end ) );
+    _statistics.incLongAttr( Statistics::TIME_PERFORMING_VALID_CASE_SPLITS_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 
     return appliedSplit;
 }
@@ -1388,10 +1384,11 @@ void Engine::tightenBoundsOnConstraintMatrix()
     struct timespec start = TimeUtils::sampleMicro();
 
     _rowBoundTightener->examineConstraintMatrix( true );
-    _statistics.incNumBoundTighteningOnConstraintMatrix();
+    _statistics.incLongAttr( Statistics::NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING_ATTEMPT, 1 );
 
     struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForConstraintMatrixBoundTightening( TimeUtils::timePassed( start, end ) );
+    _statistics.incLongAttr( Statistics::TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::explicitBasisBoundTightening()
@@ -1400,7 +1397,7 @@ void Engine::explicitBasisBoundTightening()
 
     bool saturation = GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION;
 
-    _statistics.incNumBoundTighteningsOnExplicitBasis();
+    _statistics.incLongAttr( Statistics::NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT, 1 );
 
     switch ( GlobalConfiguration::EXPLICIT_BASIS_BOUND_TIGHTENING_TYPE )
     {
@@ -1417,7 +1414,7 @@ void Engine::explicitBasisBoundTightening()
     }
 
     struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForExplicitBasisBoundTightening( TimeUtils::timePassed( start, end ) );
+    _statistics.incLongAttr( Statistics::TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
 }
 
 const Statistics *Engine::getStatistics() const
@@ -1494,21 +1491,21 @@ void Engine::performSymbolicBoundTightening()
     }
 
     struct timespec end = TimeUtils::sampleMicro();
-    _statistics.addTimeForSymbolicBoundTightening( TimeUtils::timePassed( start, end ) );
-    _statistics.incNumTighteningsFromSymbolicBoundTightening( numTightenedBounds );
+    _statistics.incLongAttr( Statistics::TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
+    _statistics.incLongAttr( Statistics::NUM_SYMBOLIC_BOUND_TIGHTENING, numTightenedBounds );
 }
 
 bool Engine::shouldExitDueToTimeout( unsigned timeout ) const
 {
     enum {
-        MILLISECONDS_TO_SECONDS = 1000,
+        MICROSECONDS_TO_SECONDS = 1000000,
     };
 
     // A timeout value of 0 means no time limit
     if ( timeout == 0 )
         return false;
 
-    return _statistics.getTotalTime() / MILLISECONDS_TO_SECONDS > timeout;
+    return _statistics.getTotalTime() / MICROSECONDS_TO_SECONDS > timeout;
 }
 
 void Engine::reset()
@@ -1799,21 +1796,19 @@ void Engine::popContext()
 
 void Engine::checkBoundConsistency()
 {
-    DEBUG({
-            for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
-            {
-                if ( !FloatUtils::areEqual( _gurobi->getLowerBound( i ), _boundManager.getLowerBound( i ) ) )
-                {
-                    printf( "x%u lower bound inconsistent! In Gurobi: %f, in BoundManager %f",
-                            i, _gurobi->getLowerBound( i ), _boundManager.getLowerBound( i ) );
-                    ASSERT( false );
-                }
-                if ( !FloatUtils::areEqual( _gurobi->getUpperBound( i ), _boundManager.getUpperBound( i ) ) )
-                {
-                    printf( "x%u upper bound inconsistent! In Gurobi: %f, in BoundManager %f",
-                            i, _gurobi->getUpperBound( i ), _boundManager.getUpperBound( i ) );
-                    ASSERT( false );
-                }
-            }
-        });
+    for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+    {
+        if ( !FloatUtils::areEqual( _gurobi->getLowerBound( i ), _boundManager.getLowerBound( i ) ) )
+        {
+            printf( "x%u lower bound inconsistent! In Gurobi: %f, in BoundManager %f",
+                    i, _gurobi->getLowerBound( i ), _boundManager.getLowerBound( i ) );
+            ASSERT( false );
+        }
+        if ( !FloatUtils::areEqual( _gurobi->getUpperBound( i ), _boundManager.getUpperBound( i ) ) )
+        {
+            printf( "x%u upper bound inconsistent! In Gurobi: %f, in BoundManager %f",
+                    i, _gurobi->getUpperBound( i ), _boundManager.getUpperBound( i ) );
+            ASSERT( false );
+        }
+    }
 }

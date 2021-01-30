@@ -204,11 +204,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         // Field #3: number of visited tree states
         summaryFile.write( Stringf( "%u ",
-                                    _engine.getStatistics()->getNumVisitedTreeStates() ) );
-
-        // Field #4: average pivot time in micro seconds
-        summaryFile.write( Stringf( "%u",
-                                    _engine.getStatistics()->getAveragePivotTimeInMicro() ) );
+                                    _engine.getStatistics()->getUnsignedAttr( Statistics::NUM_VISITED_TREE_STATES ) ) );
 
         summaryFile.write( "\n" );
     }

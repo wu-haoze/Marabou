@@ -16,8 +16,6 @@
 #ifndef __GurobiWrapper_h__
 #define __GurobiWrapper_h__
 
-#ifdef ENABLE_GUROBI
-
 #include "MString.h"
 #include "Map.h"
 
@@ -121,6 +119,8 @@ public:
     // default
     void dumpModel( String name );
 
+    unsigned getNumberOfSimplexIterations();
+
 private:
     GRBEnv *_environment;
     GRBModel *_model;
@@ -134,62 +134,6 @@ private:
 
     static void log( const String &message );
 };
-
-#else
-
-#include "MString.h"
-#include "Map.h"
-
-class GurobiWrapper
-{
-public:
-    /*
-      This is a DUMMY class, for compilation purposes when Gurobi is
-      disabled.
-    */
-    enum VariableType {
-        CONTINUOUS = 0,
-        BINARY = 1,
-    };
-
-    struct Term
-    {
-        Term( double, String ) {}
-        Term() {}
-    };
-
-    GurobiWrapper() {}
-    ~GurobiWrapper() {}
-
-    void addVariable( String, double, double, VariableType type = CONTINUOUS ) { (void)type; }
-    double getLowerBound( unsigned ) {};
-    double getUpperBound( unsigned ) {};
-    void setLowerBound( String, double ) {};
-    void setUpperBound( String, double ) {};
-    void addLeqConstraint( const List<Term> &, double ) {}
-    void addGeqConstraint( const List<Term> &, double ) {}
-    void addEqConstraint( const List<Term> &, double ) {}
-    void setCost( const List<Term> & ) {}
-    void setObjective( const List<Term> & ) {}
-    void setCutoff( double ) {};
-    void solve() {}
-    double getValue( unsigned ){ return 0; };
-    double getObjective(){ return 0; };
-    void extractSolution( Map<String, double> &, double & ) {}
-    void reset() {}
-    void resetModel() {}
-    bool optimal() { return true; }
-    bool cutoffOccurred() { return false; };
-    bool infeasible() { return false; };
-    bool timeout() { return false; };
-    bool haveFeasibleSolution() { return true; };
-    void setTimeLimit( double ) {};
-    double getObjectiveBound() { return 0; };
-    void dump() {}
-    static void log( const String & );
-};
-
-#endif // ENABLE_GUROBI
 
 #endif // __GurobiWrapper_h__
 

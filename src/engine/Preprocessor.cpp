@@ -100,9 +100,6 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
         continueTightening = processConstraints() || continueTightening;
         if ( attemptVariableElimination )
             continueTightening = processIdenticalVariables() || continueTightening;
-
-        if ( _statistics )
-            _statistics->ppIncNumTighteningIterations();
     }
 
     collectFixedValues();
@@ -608,7 +605,8 @@ void Preprocessor::eliminateVariables()
         return;
 
     if ( _statistics )
-        _statistics->ppSetNumEliminatedVars( _fixedVariables.size() + _mergedVariables.size() );
+        _statistics->setUnsignedAttr( Statistics::NUM_VARIABLES_REMOVED_BY_PREPROCESSING,
+                                      _fixedVariables.size() + _mergedVariables.size() );
 
     // Check and remove any fixed variables from the debugging solution
     for ( unsigned i = 0; i < _preprocessed.getNumberOfVariables(); ++i )
@@ -719,7 +717,7 @@ void Preprocessor::eliminateVariables()
         if ( equation->_addends.empty() )
         {
             if ( _statistics )
-                _statistics->ppIncNumEquationsRemoved();
+                _statistics->incUnsignedAttr( Statistics::NUM_EQUATIONS_REMOVED_BY_PREPROCESSING, 1 );
 
             // No addends left, scalar should be 0
             if ( !FloatUtils::isZero( equation->_scalar ) )
@@ -747,7 +745,7 @@ void Preprocessor::eliminateVariables()
         if ( (*constraint)->constraintObsolete() )
         {
             if ( _statistics )
-                _statistics->ppIncNumConstraintsRemoved();
+                _statistics->incUnsignedAttr( Statistics::NUM_CONSTRAINTS_REMOVED_BY_PREPROCESSING, 1 );
 
             if ( _preprocessed._networkLevelReasoner )
                 _preprocessed._networkLevelReasoner->

@@ -373,6 +373,12 @@ void GurobiWrapper::dumpModel( String name )
     _model->write( name.ascii() );
 }
 
+unsigned GurobiWrapper::getNumberOfSimplexIterations()
+{
+    return _model->get( GRB_DoubleAttr_IterCount );
+}
+
+
 void GurobiWrapper::log( const String &message )
 {
     if ( GlobalConfiguration::GUROBI_LOGGING )
