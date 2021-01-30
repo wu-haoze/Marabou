@@ -567,7 +567,7 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
         {
             mainLoopStatistics();
             if ( _verbosity > 1 &&  _statistics.getLongAttr( Statistics::NUM_MAIN_LOOP_ITERATIONS ) %
-                 100 == 0 )
+                 20 == 0 )
                 _statistics.print();
 
             if ( splitJustPerformed )
