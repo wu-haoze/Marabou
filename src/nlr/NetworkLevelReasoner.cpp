@@ -205,6 +205,8 @@ void NetworkLevelReasoner::storeIntoOther( NetworkLevelReasoner &other ) const
     // Other has fresh copies of the PLCs, so its topological order
     // shouldn't contain any stale data
     other._constraintsInTopologicalOrder.clear();
+    other._indexToPiecewiseLinearConstraint.clear();
+    other._piecewiseLinearConstraintToIndex.clear();
 }
 
 void NetworkLevelReasoner::updateVariableIndices( const Map<unsigned, unsigned> &oldIndexToNewIndex,

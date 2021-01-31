@@ -123,7 +123,7 @@ void Engine::initiateCostFunctionForLocalSearchBasedOnInputAssignment
         ASSERT( !_plConstraintsInHeuristicCost.exists( plConstraint ) );
         if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
         {
-            auto index = _networkLevelReasoner->getNeuronIndexFromPLConstraint( plConstraint );
+            NLR::NeuronIndex index = _networkLevelReasoner->getNeuronIndexFromPLConstraint( plConstraint );
             double value = _networkLevelReasoner->getLayer( index._layer )->getAssignment()[index._neuron];
             plConstraint->addCostFunctionComponentByOutputValue( _heuristicCost, value );
             _plConstraintsInHeuristicCost.append( plConstraint );

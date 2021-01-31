@@ -791,9 +791,10 @@ void ReluConstraint::addCostFunctionComponent( Map<unsigned, double> &cost )
 
 void ReluConstraint::addCostFunctionComponentByOutputValue( Map<unsigned, double> &cost, double fValue )
 {
-    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
+    PLConstraint_LOG( Stringf( "Relu constraint. b: %u, bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, "
+                               "currentfValue: %.2lf, fValue: %.2lf. ",
                                _b, _gurobi->getValue( _b ), _boundManager->getLowerBound( _b ),
-                               _boundManager->getUpperBound( _b ), _f, _gurobi->getValue( _f ) ).ascii() );
+                               _boundManager->getUpperBound( _b ), _f, _gurobi->getValue( _f ), fValue ).ascii() );
 
     // If the constraint is not active or is fixed, it contributes nothing
     if( !isActive() || phaseFixed() )

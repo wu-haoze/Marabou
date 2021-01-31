@@ -105,7 +105,7 @@ const bool GlobalConfiguration::QUERY_LOADER_LOGGING = false;
 const bool GlobalConfiguration::SYMBOLIC_BOUND_TIGHTENER_LOGGING = false;
 const bool GlobalConfiguration::NETWORK_LEVEL_REASONER_LOGGING = false;
 const bool GlobalConfiguration::MPS_PARSER_LOGGING= false;
-const bool GlobalConfiguration::PLCONSTRAINT_LOGGING= false;
+const bool GlobalConfiguration::PLCONSTRAINT_LOGGING= true;
 const bool GlobalConfiguration::LOCAL_SEARCH_LOGGING= false;
 
 const bool GlobalConfiguration::USE_SMART_FIX = false;
