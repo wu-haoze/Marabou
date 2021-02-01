@@ -103,6 +103,7 @@ void HeuristicCostManager::updateHeuristicCost()
     COST_LOG( "Updating heuristic cost - done\n" );
 
     struct timespec end = TimeUtils::sampleMicro();
+    _statistics->incLongAttr( Statistics::NUM_PROPOSED_FLIPS, 1 );
     _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
                              TimeUtils::timePassed( start, end ) );
 }
@@ -306,7 +307,6 @@ void HeuristicCostManager::updateHeuristicCostGWSAT()
         unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
         _smtCore->reportRandomFlip();
-        _statistics->incLongAttr( Statistics::NUM_PROPOSED_FLIPS, 1 );
     }
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
