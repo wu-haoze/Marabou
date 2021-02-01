@@ -27,6 +27,7 @@
 #include "GurobiWrapper.h"
 #include "IEngine.h"
 #include "InputQuery.h"
+#include "LPSolver.h"
 #include "Map.h"
 #include "MILPEncoder.h"
 #include "Preprocessor.h"
@@ -147,6 +148,8 @@ public:
     PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy strategy );
 
     Vector<PiecewiseLinearConstraint *> &getViolatedPiecewiseLinearConstraints();
+
+    SmtCore *getSmtCore();
 
     /*
       PSA: The following two methods are for DnC only and should be used very
@@ -284,9 +287,9 @@ private:
     bool _solveWithMILP;
 
     /*
-      GurobiWrapper object
+      LPSolver object
     */
-    std::unique_ptr<GurobiWrapper> _gurobi;
+    std::unique_ptr<LPSolver> _gurobi;
 
     /*
       MILPEncoder
@@ -441,7 +444,7 @@ private:
 
     void performBoundTightening();
 
-    void solveLPWithGurobi( List<GurobiWrapper::Term> &cost );
+    void solveLPWithGurobi( List<LPSolver::Term> &cost );
 
     bool solveWithGurobi( unsigned timeoutInSeconds );
 

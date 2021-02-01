@@ -18,7 +18,7 @@
 
 #include "BoundManager.h"
 #include "FloatUtils.h"
-#include "GurobiWrapper.h"
+#include "LPSolver.h"
 #include "ITableau.h"
 #include "List.h"
 #include "Map.h"
@@ -287,14 +287,14 @@ public:
 
     virtual void removeCostFunctionComponent( Map<unsigned, double> & ) {};
 
-    virtual void extractVariableValueFromGurobi( GurobiWrapper & ){};
+    virtual void extractVariableValueFromGurobi( LPSolver & ){};
 
     void registerBoundManager( BoundManager *boundManager )
     {
         _boundManager = boundManager;
     }
 
-    void registerGurobi( GurobiWrapper *gurobi )
+    void registerGurobi( LPSolver *gurobi )
     {
         _gurobi = gurobi;
     }
@@ -316,7 +316,7 @@ public:
 
 protected:
     BoundManager *_boundManager;
-    GurobiWrapper *_gurobi;
+    LPSolver *_gurobi;
 
     CVC4::context::Context *_context;
     CVC4::context::CDO<bool> *_constraintActive;

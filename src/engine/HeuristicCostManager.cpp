@@ -18,9 +18,9 @@
 
 #include <cstdlib>
 
-HeuristicCostManager::HeuristicCostManager( IEngine *engine, SmtCore *smtCore )
+HeuristicCostManager::HeuristicCostManager( IEngine *engine )
     : _engine( engine )
-    , _smtCore( smtCore )
+    , _smtCore( engine->getSmtCore() )
     , _networkLevelReasoner( NULL )
     , _gurobi( NULL )
     , _statistics( NULL )
@@ -204,7 +204,7 @@ void HeuristicCostManager::setNetworkLevelReasoner( NLR::NetworkLevelReasoner *n
     _networkLevelReasoner = networkLevelReasoner;
 }
 
-void HeuristicCostManager::setGurobi( GurobiWrapper *gurobi )
+void HeuristicCostManager::setGurobi( LPSolver *gurobi )
 {
     _gurobi = gurobi;
 }

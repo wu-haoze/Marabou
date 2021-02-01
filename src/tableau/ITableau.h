@@ -23,7 +23,7 @@
 class BoundManager;
 class EntrySelectionStrategy;
 class Equation;
-class GurobiWrapper;
+class LPSolver;
 class ICostFunctionManager;
 class PiecewiseLinearCaseSplit;
 class SparseMatrix;
@@ -96,11 +96,11 @@ public:
     virtual void verifyInvariants() = 0;
     virtual bool basisMatrixAvailable() const = 0;
     virtual double *getInverseBasisMatrix() const = 0;
-    void setGurobi( GurobiWrapper *gurobi ) { _gurobi = gurobi; }
+    void setGurobi( LPSolver *gurobi ) { _gurobi = gurobi; }
     void setBoundManager( BoundManager *boundManager ){ _boundManager = boundManager; };
 
 protected:
-    GurobiWrapper *_gurobi = NULL;
+    LPSolver *_gurobi = NULL;
     BoundManager *_boundManager = NULL;
 };
 

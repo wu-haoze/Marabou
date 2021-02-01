@@ -28,6 +28,7 @@
 class Equation;
 class PiecewiseLinearCaseSplit;
 class SmtState;
+class SmtCore;
 class PiecewiseLinearConstraint;
 
 class IEngine
@@ -82,6 +83,7 @@ public:
     virtual Vector<PiecewiseLinearConstraint *> &getViolatedPiecewiseLinearConstraints() = 0;
     virtual void pushContext() = 0;
     virtual void popContext() = 0;
+    virtual SmtCore *getSmtCore() = 0;
 };
 
 #endif // __IEngine_h__

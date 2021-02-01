@@ -22,7 +22,7 @@ MILPEncoder::MILPEncoder( BoundManager &boundManager, bool relax )
     , _relax( relax )
 {}
 
-void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
+void MILPEncoder::encodeInputQuery( LPSolver &gurobi,
                                     const InputQuery &inputQuery )
 {
     gurobi.reset();
@@ -55,7 +55,7 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
             break;
         default:
             throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
-                                "GurobiWrapper::encodeInputQuery: "
+                                "LPSolver::encodeInputQuery: "
                                 "Only ReLU and Max are supported\n" );
         }
     }
@@ -68,12 +68,12 @@ String MILPEncoder::getVariableNameFromVariable( unsigned variable )
     return _variableToVariableName[variable];
 }
 
-void MILPEncoder::encodeEquation( GurobiWrapper &gurobi, const Equation &equation )
+void MILPEncoder::encodeEquation( LPSolver &gurobi, const Equation &equation )
 {
-    List<GurobiWrapper::Term> terms;
+    List<LPSolver::Term> terms;
     double scalar = equation._scalar;
     for ( const auto &term : equation._addends )
-        terms.append( GurobiWrapper::Term
+        terms.append( LPSolver::Term
                       ( term._coefficient,
                         Stringf( "x%u", term._variable ) ) );
     switch ( equation._type )
@@ -92,7 +92,7 @@ void MILPEncoder::encodeEquation( GurobiWrapper &gurobi, const Equation &equatio
     }
 }
 
-void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *relu)
+void MILPEncoder::encodeReLUConstraint( LPSolver &gurobi, ReluConstraint *relu)
 {
 
     if ( !relu->isActive() || relu->phaseFixed() )
@@ -111,22 +111,22 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
         gurobi.addVariable( Stringf( "a%u", _binVarIndex ),
                             0,
                             1,
-                            GurobiWrapper::BINARY );
+                            LPSolver::BINARY );
 
         unsigned sourceVariable = relu->getB();
         unsigned targetVariable = relu->getF();
         double sourceLb = _boundManager.getLowerBound( sourceVariable );
         double sourceUb = _boundManager.getUpperBound( sourceVariable );
 
-        List<GurobiWrapper::Term> terms;
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
-        terms.append( GurobiWrapper::Term( -sourceLb, Stringf( "a%u", _binVarIndex ) ) );
+        List<LPSolver::Term> terms;
+        terms.append( LPSolver::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( LPSolver::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+        terms.append( LPSolver::Term( -sourceLb, Stringf( "a%u", _binVarIndex ) ) );
         gurobi.addLeqConstraint( terms, -sourceLb );
 
         terms.clear();
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -sourceUb, Stringf( "a%u", _binVarIndex++ ) ) );
+        terms.append( LPSolver::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( LPSolver::Term( -sourceUb, Stringf( "a%u", _binVarIndex++ ) ) );
         gurobi.addLeqConstraint( terms, 0 );
     }
     else
@@ -136,14 +136,14 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
         double sourceLb = _boundManager.getLowerBound( sourceVariable );
         double sourceUb = _boundManager.getUpperBound( sourceVariable );
 
-        List<GurobiWrapper::Term> terms;
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -sourceUb / ( sourceUb - sourceLb ), Stringf( "x%u", sourceVariable ) ) );
+        List<LPSolver::Term> terms;
+        terms.append( LPSolver::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( LPSolver::Term( -sourceUb / ( sourceUb - sourceLb ), Stringf( "x%u", sourceVariable ) ) );
         gurobi.addLeqConstraint( terms, ( -sourceUb * sourceLb ) / ( sourceUb - sourceLb ) );
     }
 }
 
-void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max )
+void MILPEncoder::encodeMaxConstraint( LPSolver &gurobi, MaxConstraint *max )
 {
     if ( !max->isActive() )
         return;
@@ -163,7 +163,7 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
     std::priority_queue<qtype, std::vector<qtype>, decltype( cmp )> ubq( cmp );
 
     // terms for Gurobi
-    List<GurobiWrapper::Term> terms;
+    List<LPSolver::Term> terms;
 
     for ( const auto &x : xs ) 
     {
@@ -173,9 +173,9 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
         gurobi.addVariable( Stringf( "a%u_%u", _binVarIndex, x ),
                             0,
                             1,
-                            GurobiWrapper::BINARY );
+                            LPSolver::BINARY );
 
-        terms.append( GurobiWrapper::Term( 1, Stringf( "a%u_%u", _binVarIndex, x ) ) );
+        terms.append( LPSolver::Term( 1, Stringf( "a%u_%u", _binVarIndex, x ) ) );
         ubq.push( { _boundManager.getUpperBound( x ), x } );
     }
 
@@ -197,9 +197,9 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
             umax = ubMax1.first;
         else
             umax = ubMax2.first;
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", y ) ) );
-        terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", x ) ) );
-        terms.append( GurobiWrapper::Term( umax - _boundManager.getLowerBound( x ), Stringf( "a%u_%u", _binVarIndex, x ) ) );
+        terms.append( LPSolver::Term( 1, Stringf( "x%u", y ) ) );
+        terms.append( LPSolver::Term( -1, Stringf( "x%u", x ) ) );
+        terms.append( LPSolver::Term( umax - _boundManager.getLowerBound( x ), Stringf( "a%u_%u", _binVarIndex, x ) ) );
         gurobi.addLeqConstraint( terms, umax - _boundManager.getLowerBound( x ) );
 
         terms.clear();

@@ -206,6 +206,18 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
         summaryFile.write( Stringf( "%u ",
                                     _engine.getStatistics()->getUnsignedAttr( Statistics::NUM_VISITED_TREE_STATES ) ) );
 
+        // Field #4: number of flips
+        summaryFile.write( Stringf( "%llu ",
+                                    _engine.getStatistics()->getLongAttr( Statistics::NUM_PROPOSED_FLIPS ) ) );
+
+        // Field #5: number of accepted flips
+        summaryFile.write( Stringf( "%llu ",
+                                    _engine.getStatistics()->getLongAttr( Statistics::NUM_ACCEPTED_FLIPS ) ) );
+
+        // Field #6: number of rejected flips
+        summaryFile.write( Stringf( "%llu",
+                                    _engine.getStatistics()->getLongAttr( Statistics::NUM_REJECTED_FLIPS ) ) );
+
         summaryFile.write( "\n" );
     }
 }

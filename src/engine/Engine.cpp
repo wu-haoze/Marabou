@@ -51,7 +51,7 @@ Engine::Engine()
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
     , _probabilityDensityParameter( Options::get()->getFloat( Options::PROBABILITY_DENSITY_PARAMETER ) )
-    , _heuristicCostManager( this, &_smtCore )
+    , _heuristicCostManager( this )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -73,9 +73,9 @@ void Engine::setVerbosity( unsigned verbosity )
 void Engine::optimizeForHeuristicCost()
 {
     Map<unsigned, double> &heuristicCost = _heuristicCostManager.getHeuristicCost();
-    List<GurobiWrapper::Term> terms;
+    List<LPSolver::Term> terms;
     for ( const auto &term : heuristicCost )
-        terms.append( GurobiWrapper::Term( term.second,
+        terms.append( LPSolver::Term( term.second,
                                            Stringf( "x%u", term.first ) ) );
 
     solveLPWithGurobi( terms );
@@ -314,7 +314,7 @@ bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double
     return true;
 }
 
-void Engine::solveLPWithGurobi( List<GurobiWrapper::Term> &cost )
+void Engine::solveLPWithGurobi( List<LPSolver::Term> &cost )
 {
     struct timespec simplexStart = TimeUtils::sampleMicro();
 
@@ -433,7 +433,7 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             }
 
             // The linear portion is not satisfied, call Simplex
-            List<GurobiWrapper::Term> obj;
+            List<LPSolver::Term> obj;
             solveLPWithGurobi( obj );
             if ( _gurobi->infeasible() )
             {
@@ -1674,4 +1674,9 @@ void Engine::checkBoundConsistency()
             ASSERT( false );
         }
     }
+}
+
+SmtCore *Engine::getSmtCore()
+{
+    return &_smtCore;
 }

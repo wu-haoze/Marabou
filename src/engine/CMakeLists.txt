@@ -16,6 +16,8 @@ macro(engine_add_unit_test name)
         USE_MOCK_ENGINE "unit")
 endmacro()
 
+engine_add_unit_test(HeuristicCostManager)
+
 if (${BUILD_PYTHON})
     target_include_directories(${MARABOU_PY} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()

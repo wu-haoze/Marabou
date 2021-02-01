@@ -17,7 +17,7 @@
 #define __Tableau_h__
 
 #include "BoundManager.h"
-#include "GurobiWrapper.h"
+#include "LPSolver.h"
 #include "IBasisFactorization.h"
 #include "ITableau.h"
 #include "MString.h"

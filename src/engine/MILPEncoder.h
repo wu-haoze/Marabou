@@ -17,7 +17,7 @@
 #define __MILPEncoder_h__
 
 #include "BoundManager.h"
-#include "GurobiWrapper.h"
+#include "LPSolver.h"
 #include "InputQuery.h"
 #include "MStringf.h"
 
@@ -32,7 +32,7 @@ public:
       Encode the input query as a Gurobi query, variables and inequalities
       are from inputQuery, and latest variable bounds are from tableau
     */
-    void encodeInputQuery( GurobiWrapper &gurobi, const InputQuery &inputQuery );
+    void encodeInputQuery( LPSolver &gurobi, const InputQuery &inputQuery );
 
     /*
       get variable name from a variable in the encoded inputquery
@@ -64,7 +64,7 @@ private:
     /*
       Encode an (in)equality into Gurobi.
     */
-    void encodeEquation( GurobiWrapper &gurobi, const Equation &Equation );
+    void encodeEquation( LPSolver &gurobi, const Equation &Equation );
 
     /*
       Encode a ReLU constraint f = ReLU(b) into Gurobi using the same encoding in
@@ -79,7 +79,7 @@ private:
       The other two constraints f >= b and f >= 0 are encoded already when
       preprocessing
     */
-    void encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *relu );
+    void encodeReLUConstraint( LPSolver &gurobi, ReluConstraint *relu );
 
     /*
       Encode a MAX constraint y = max(x_1, x_2, ... ,x_m) into Gurobi using the same encoding in
@@ -91,7 +91,7 @@ private:
       a_1 + a_2 + ... + a_m = 1
       a_i \in {0, 1} (i = 1 ~ m)
     */
-    void encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max );
+    void encodeMaxConstraint( LPSolver &gurobi, MaxConstraint *max );
 };
 
 #endif // __MILPEncoder_h__

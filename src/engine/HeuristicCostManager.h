@@ -17,9 +17,9 @@
 #define __HeuristicCostManager_h__
 
 #include "GlobalConfiguration.h"
-#include "GurobiWrapper.h"
 #include "IEngine.h"
 #include "List.h"
+#include "LPSolver.h"
 #include "NetworkLevelReasoner.h"
 #include "PiecewiseLinearConstraint.h"
 #include "SmtCore.h"
@@ -34,7 +34,7 @@ class HeuristicCostManager
 {
 public:
 
-    HeuristicCostManager( IEngine *engine, SmtCore *smtCore );
+    HeuristicCostManager( IEngine *engine );
 
     /*
       Reset the HeuristicCostManager
@@ -72,7 +72,7 @@ public:
 
     void setNetworkLevelReasoner( NLR::NetworkLevelReasoner *networkLevelReasoner );
 
-    void setGurobi( GurobiWrapper *gurobi );
+    void setGurobi( LPSolver *gurobi );
 
     void dumpHeuristicCost();
 
@@ -81,7 +81,7 @@ private:
     IEngine *_engine;
     SmtCore *_smtCore;
     NLR::NetworkLevelReasoner *_networkLevelReasoner;
-    GurobiWrapper *_gurobi;
+    LPSolver *_gurobi;
     Statistics *_statistics;
 
     List<PiecewiseLinearConstraint *> _plConstraints;

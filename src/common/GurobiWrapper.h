@@ -16,40 +16,15 @@
 #ifndef __GurobiWrapper_h__
 #define __GurobiWrapper_h__
 
+#include "LPSolver.h"
 #include "MString.h"
 #include "Map.h"
 
 #include "gurobi_c++.h"
 
-class GurobiWrapper
+class GurobiWrapper : public LPSolver
 {
 public:
-    enum VariableType {
-        CONTINUOUS = 0,
-        BINARY = 1,
-    };
-
-    /*
-      A term has the form: coefficient * variable
-    */
-    struct Term
-    {
-        Term( double coefficient, String variable )
-            : _coefficient( coefficient )
-            , _variable( variable )
-        {
-        }
-
-        Term()
-            : _coefficient( 0 )
-            , _variable( "" )
-        {
-        }
-
-        double _coefficient;
-        String _variable;
-    };
-
     GurobiWrapper();
     ~GurobiWrapper();
 
@@ -64,17 +39,17 @@ public:
     void setUpperBound( String, double ub );
 
     // Add a new LEQ constraint, e.g. 3x + 4y <= -5
-    void addLeqConstraint( const List<Term> &terms, double scalar );
+    void addLeqConstraint( const List<LPSolver::Term> &terms, double scalar );
 
     // Add a new GEQ constraint, e.g. 3x + 4y >= -5
-    void addGeqConstraint( const List<Term> &terms, double scalar );
+    void addGeqConstraint( const List<LPSolver::Term> &terms, double scalar );
 
     // Add a new EQ constraint, e.g. 3x + 4y = -5
-    void addEqConstraint( const List<Term> &terms, double scalar );
+    void addEqConstraint( const List<LPSolver::Term> &terms, double scalar );
 
     // A cost function to minimize, or an objective function to maximize
-    void setCost( const List<Term> &terms );
-    void setObjective( const List<Term> &terms );
+    void setCost( const List<LPSolver::Term> &terms );
+    void setObjective( const List<LPSolver::Term> &terms );
 
     // Set a cutoff value for the objective function. For example, if
     // maximizing x with cutoff value 0, Gurobi will return the
@@ -127,7 +102,7 @@ private:
     Map<String, GRBVar *> _nameToVariable;
     double _timeoutInSeconds;
 
-    void addConstraint( const List<Term> &terms, double scalar, char sense );
+    void addConstraint( const List<LPSolver::Term> &terms, double scalar, char sense );
 
     void freeModelIfNeeded();
     void freeMemoryIfNeeded();
