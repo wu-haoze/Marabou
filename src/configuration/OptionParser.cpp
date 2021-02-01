@@ -51,6 +51,9 @@ void OptionParser::initialize()
         ( "dump-bounds",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::DUMP_BOUNDS]) ),
           "Dump the bounds after preprocessing" )
+        ( "local-search",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::LOCAL_SEARCH]) ),
+          "Local search" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )

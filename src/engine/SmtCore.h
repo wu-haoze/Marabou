@@ -143,6 +143,8 @@ private:
     */
     unsigned _constraintViolationThreshold;
 
+    bool _localSearch;
+
     unsigned _numberOfRandomFlips;
 };
 

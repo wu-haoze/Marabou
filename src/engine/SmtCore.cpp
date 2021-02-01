@@ -33,6 +33,7 @@ SmtCore::SmtCore( IEngine *engine, Context &ctx )
     , _needToSplit( false )
     , _constraintForSplitting( NULL )
     , _constraintViolationThreshold( Options::get()->getInt( Options::CONSTRAINT_VIOLATION_THRESHOLD ) )
+    , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
     , _numberOfRandomFlips( 0 )
 {
 }
@@ -63,6 +64,8 @@ void SmtCore::reset()
 
 void SmtCore::reportRandomFlip()
 {
+    if ( _localSearch )
+        return;
     if ( _numberOfRandomFlips++ >= _constraintViolationThreshold )
     {
         _needToSplit = true;

@@ -53,6 +53,8 @@ public:
 
         // Solve the input query with a MILP solver
         SOLVE_WITH_MILP,
+
+        LOCAL_SEARCH,
     };
 
     enum IntOptions {
