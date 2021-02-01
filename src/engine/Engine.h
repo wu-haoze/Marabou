@@ -435,6 +435,8 @@ private:
     */
     unsigned _seed;
 
+    double _probabilityDensityParameter;
+
     HeuristicCostManager _heuristicCostManager;
 
     void performBoundTightening();
