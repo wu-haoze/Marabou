@@ -50,7 +50,7 @@ Engine::Engine()
     , _milpEncoder( nullptr )
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
-    , _probabilityDensityParameter( GlobalConfiguration::PROBABILITY_DENSITY_PARAMETER )
+    , _probabilityDensityParameter( Options::get()->getFloat( Options::PROBABILITY_DENSITY_PARAMETER ) )
     , _heuristicCostManager( this, &_smtCore )
 {
     _smtCore.setStatistics( &_statistics );

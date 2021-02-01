@@ -30,21 +30,6 @@
 
 #define COST_LOG( x, ... ) LOG( GlobalConfiguration::HEURISTIC_COST_MANAGER_LOGGING, "HeuristicCostManager: %s\n", x )
 
-struct HeuristicCostUpdate
-{
-    void reset()
-    {
-        _update.clear();
-    }
-
-    void addUpdate( PiecewiseLinearConstraint *constraint, PhaseStatus phase )
-    {
-        _update[constraint] = phase;
-    }
-
-    Map<PiecewiseLinearConstraint *, PhaseStatus> _update;
-};
-
 class HeuristicCostManager
 {
 public:
@@ -113,8 +98,8 @@ private:
     String _flippingStrategy;
 
     Map<unsigned, double> _heuristicCost;
+    Map<PiecewiseLinearConstraint *, PhaseStatus> _previousHeuristicCost;
     Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
-    HeuristicCostUpdate _lastHeuristicCostUpdate;
 
     /*
       Based on current assignment

@@ -39,7 +39,7 @@ void HeuristicCostManager::reset()
     for ( const auto &plConstraint : _plConstraintsInHeuristicCost )
         plConstraint->resetCostFunctionComponent();
     _plConstraintsInHeuristicCost.clear();
-    _lastHeuristicCostUpdate = HeuristicCostUpdate();
+    _previousHeuristicCost.clear();
 }
 
 Map<unsigned, double> &HeuristicCostManager::getHeuristicCost()
@@ -91,7 +91,7 @@ void HeuristicCostManager::updateHeuristicCost()
 
     COST_LOG( Stringf( "Updating heuristic cost with strategy %s", _flippingStrategy.ascii() ).ascii() );
 
-    _lastHeuristicCostUpdate.reset();
+    _previousHeuristicCost.clear();
 
     if ( _flippingStrategy == "gwsat" )
         updateHeuristicCostGWSAT();
@@ -109,7 +109,7 @@ void HeuristicCostManager::updateHeuristicCost()
 
 void HeuristicCostManager::undoLastHeuristicCostUpdate()
 {
-    for ( const auto &pair : _lastHeuristicCostUpdate._update )
+    for ( const auto &pair : _previousHeuristicCost )
         pair.first->addCostFunctionComponent( _heuristicCost, pair.second );
 }
 
@@ -142,7 +142,6 @@ void HeuristicCostManager::updateCostTermsForSatisfiedPLConstraints()
             plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
             if ( FloatUtils::isPositive( reducedCost ) )
             {
-                _lastHeuristicCostUpdate.addUpdate( plConstraint, plConstraint->getPhaseOfHeuristicCost() );
                 // We can make the heuristic cost 0 by just flipping the cost term.
                 plConstraint->addCostFunctionComponent
                     ( _heuristicCost, phaseStatusOfReducedCost );
@@ -312,6 +311,5 @@ void HeuristicCostManager::updateHeuristicCostGWSAT()
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
 
-    _lastHeuristicCostUpdate.addUpdate( plConstraintToFlip, plConstraintToFlip->getPhaseOfHeuristicCost() );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
 }

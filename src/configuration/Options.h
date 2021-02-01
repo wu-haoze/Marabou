@@ -85,6 +85,9 @@ public:
 
         // Probabiltiy to use the noise strategy in local search
         NOISE_PARAMETER,
+
+        // Controls MCMC behavior
+        PROBABILITY_DENSITY_PARAMETER,
     };
 
     enum StringOptions {
