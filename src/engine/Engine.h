@@ -21,6 +21,7 @@
 #include "BoundManager.h"
 #include "context/context.h"
 #include "DivideStrategy.h"
+#include "HeuristicCostManager.h"
 #include "SnCDivideStrategy.h"
 #include "GlobalConfiguration.h"
 #include "GurobiWrapper.h"
@@ -144,6 +145,8 @@ public:
       Pick the piecewise linear constraint for splitting
     */
     PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy strategy );
+
+    Vector<PiecewiseLinearConstraint *> &getViolatedPiecewiseLinearConstraints();
 
     /*
       PSA: The following two methods are for DnC only and should be used very
@@ -432,20 +435,7 @@ private:
     */
     unsigned _seed;
 
-    /*
-      The probability to use a noise strategy in local search
-    */
-    float _noiseParameter;
-
-    /*
-      The strategies of local search
-    */
-    String _flippingStrategy;
-    String _initializationStrategy;
-
-    Map<unsigned, double> _heuristicCost;
-
-    Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
+    HeuristicCostManager _heuristicCostManager;
 
     void performBoundTightening();
 
@@ -461,69 +451,15 @@ private:
     */
     bool performLocalSearch();
 
-    /*
-      Create the initial cost function for local search
-    */
-    void initiateCostFunctionForLocalSearch();
-
-    /*
-      Based on current assignment
-    */
-    void initiateCostFunctionForLocalSearchBasedOnCurrentAssignment
-    ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
-
-    /*
-      Based on input assignment
-    */
-    void initiateCostFunctionForLocalSearchBasedOnInputAssignment
-    ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
-
-    /*
-      Pick a phase at uniform random
-    */
-    void initiateCostFunctionForLocalSearchRandomly
-    ( const List<PiecewiseLinearConstraint *> &plConstraintsToAdd );
-
     // Optimize w.r.t. the current heuristic cost function
     void optimizeForHeuristicCost();
-
-    /*
-      Called when local optima is reached but not all PLConstraint is satisfied.
-
-      There are two scenarios:
-      scenario 1:
-         If the local optima is not zero, we flip the cost term for certain PLConstraint already in the cost function.
-
-      scenario 2:
-          If the local optima is zero, we add more PLConstraints to the cost function.
-    */
-    void updateHeuristicCost();
-
-    /*
-      Heuristic to flip the cost component of a PLConstraint:
-      following the heuristics from
-      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
-      with probability p, flip the cost term of a randomly chosen PLConstraint
-      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
-    */
-    void updateHeuristicCostGWSAT();
-
-    /*
-      SOI helper functions
-    */
-    // Go through the cost term for each PLConstraint, check whether it is satisfied.
-    // If it is satisfied but the cost term is not zero, flip the cost term so that
-    // the cost term is zero.
-    void updateCostTermsForSatisfiedPLConstraints();
 
     // Notify the plConstraints of the assignments from Gurobi
     void notifyPLConstraintsAssignments();
 
     /*
-      For SOI Debugging
+      For Debugging
     */
-    void dumpHeuristicCost();
-    double computeHeuristicCost();
     void checkBoundConsistency();
 };
 

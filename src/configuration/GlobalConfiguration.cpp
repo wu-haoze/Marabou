@@ -107,6 +107,7 @@ const bool GlobalConfiguration::NETWORK_LEVEL_REASONER_LOGGING = false;
 const bool GlobalConfiguration::MPS_PARSER_LOGGING= false;
 const bool GlobalConfiguration::PLCONSTRAINT_LOGGING= true;
 const bool GlobalConfiguration::LOCAL_SEARCH_LOGGING= false;
+const bool GlobalConfiguration::HEURISTIC_COST_MANAGER_LOGGING= true;
 
 const bool GlobalConfiguration::USE_SMART_FIX = false;
 const bool GlobalConfiguration::USE_LEAST_FIX = false;

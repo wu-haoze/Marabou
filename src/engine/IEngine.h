@@ -19,6 +19,7 @@
 #include "DivideStrategy.h"
 #include "SnCDivideStrategy.h"
 #include "List.h"
+#include "Vector.h"
 
 #ifdef _WIN32
 #undef ERROR
@@ -77,6 +78,8 @@ public:
     virtual PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy
                                                                  strategy ) = 0;
 
+    virtual void concretizeInputAssignment() = 0;
+    virtual Vector<PiecewiseLinearConstraint *> &getViolatedPiecewiseLinearConstraints() = 0;
     virtual void pushContext() = 0;
     virtual void popContext() = 0;
 };

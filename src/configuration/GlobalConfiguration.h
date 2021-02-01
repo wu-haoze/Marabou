@@ -241,7 +241,7 @@ public:
     static const bool MPS_PARSER_LOGGING;
     static const bool PLCONSTRAINT_LOGGING;
     static const bool LOCAL_SEARCH_LOGGING;
-
+    static const bool HEURISTIC_COST_MANAGER_LOGGING;
 };
 
 #endif // __GlobalConfiguration_h__
