@@ -97,7 +97,7 @@ bool Engine::performLocalSearch()
         collectViolatedPlConstraints();
         if ( allPlConstraintsHold() )
         {
-            ASSERT( FloatUtils::isZero( computeHeuristicCost() ) );
+            ASSERT( FloatUtils::isZero( _heuristicCostManager.computeHeuristicCost() ) );
             ENGINE_LOG( "Performing local search - done" );
             return true;
         }
