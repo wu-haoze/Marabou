@@ -93,8 +93,8 @@ bool HeuristicCostManager::updateHeuristicCost()
 
     if ( _flippingStrategy == "gwsat" )
         _lastHeuristicCostUpdate = updateHeuristicCostGWSAT();
-    if ( _flippingStrategy == "mcmc1" )
-        _lastHeuristicCostUpdate = updateHeuristicCostMCMC1();
+    //if ( _flippingStrategy == "mcmc1" )
+    //    _lastHeuristicCostUpdate = updateHeuristicCostMCMC1();
     else
         throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
                             Stringf( "Unknown flipping stategy %s", _flippingStrategy.ascii() ).ascii() );
@@ -327,14 +327,9 @@ HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostGWSAT()
     return update;
 }
 
+/*
 HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostMCMC1()
 {
-    /*
-      Following the heuristics from
-      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
-      with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
-      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
-    */
     bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
 
     PiecewiseLinearConstraint *plConstraintToFlip = NULL;
@@ -391,3 +386,4 @@ HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostMCMC1()
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
     return update;
 }
+*/
