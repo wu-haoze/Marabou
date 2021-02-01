@@ -459,6 +459,8 @@ private:
     // Notify the plConstraints of the assignments from Gurobi
     void notifyPLConstraintsAssignments();
 
+    bool acceptProposedUpdate( double preivousCost, double currentCost );
+
     /*
       For Debugging
     */

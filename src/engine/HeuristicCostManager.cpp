@@ -85,16 +85,16 @@ void HeuristicCostManager::initiateCostFunctionForLocalSearch()
   scenario 1:
   If the local optima is not zero, we flip the cost term for certain PLConstraint already in the cost function.
 */
-bool HeuristicCostManager::updateHeuristicCost()
+void HeuristicCostManager::updateHeuristicCost()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
     COST_LOG( Stringf( "Updating heuristic cost with strategy %s", _flippingStrategy.ascii() ).ascii() );
 
+    _lastHeuristicCostUpdate.reset();
+
     if ( _flippingStrategy == "gwsat" )
-        _lastHeuristicCostUpdate = updateHeuristicCostGWSAT();
-    //if ( _flippingStrategy == "mcmc1" )
-    //    _lastHeuristicCostUpdate = updateHeuristicCostMCMC1();
+        updateHeuristicCostGWSAT();
     else
         throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
                             Stringf( "Unknown flipping stategy %s", _flippingStrategy.ascii() ).ascii() );
@@ -105,18 +105,12 @@ bool HeuristicCostManager::updateHeuristicCost()
     struct timespec end = TimeUtils::sampleMicro();
     _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
                              TimeUtils::timePassed( start, end ) );
-
-    return _lastHeuristicCostUpdate._descenceGuaranteed;
 }
 
 void HeuristicCostManager::undoLastHeuristicCostUpdate()
 {
-    if ( _lastHeuristicCostUpdate._constraint == NULL )
-        return;
-
-    _lastHeuristicCostUpdate._constraint->
-        addCostFunctionComponent( _heuristicCost,
-                                  _lastHeuristicCostUpdate._originalPhaseOfHeuristicCost );
+    for ( const auto &pair : _lastHeuristicCostUpdate._update )
+        pair.first->addCostFunctionComponent( _heuristicCost, pair.second );
 }
 
 void HeuristicCostManager::removeCostComponentFromHeuristicCost
@@ -148,6 +142,7 @@ void HeuristicCostManager::updateCostTermsForSatisfiedPLConstraints()
             plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
             if ( FloatUtils::isPositive( reducedCost ) )
             {
+                _lastHeuristicCostUpdate.addUpdate( plConstraint, plConstraint->getPhaseOfHeuristicCost() );
                 // We can make the heuristic cost 0 by just flipping the cost term.
                 plConstraint->addCostFunctionComponent
                     ( _heuristicCost, phaseStatusOfReducedCost );
@@ -262,7 +257,7 @@ void HeuristicCostManager::initiateCostFunctionForLocalSearchRandomly
     }
 }
 
-HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostGWSAT()
+void HeuristicCostManager::updateHeuristicCostGWSAT()
 {
     /*
       Following the heuristics from
@@ -277,7 +272,6 @@ HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostGWSAT()
 
     COST_LOG( Stringf( "Heuristic cost before updates: %f", computeHeuristicCost() ).ascii() ) ;
 
-    bool descenceGuaranteed = true;
     if ( !useNoiseStrategy )
     {
         // Flip the cost term that reduces the cost by the most
@@ -307,7 +301,6 @@ HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostGWSAT()
         // If using noise stategy, we just flip a random
         // PLConstraint.
         COST_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
-        descenceGuaranteed = false;
         unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
         plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
         Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
@@ -315,75 +308,10 @@ HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostGWSAT()
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
         _smtCore->reportRandomFlip();
         _statistics->incLongAttr( Statistics::NUM_PROPOSED_FLIPS, 1 );
-        _statistics->incLongAttr( Statistics::NUM_ACCEPTED_FLIPS, 1 );
     }
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
 
-    HeuristicCostUpdate update = HeuristicCostUpdate( plConstraintToFlip,
-                                                      plConstraintToFlip->getPhaseOfHeuristicCost(),
-                                                      descenceGuaranteed );
+    _lastHeuristicCostUpdate.addUpdate( plConstraintToFlip, plConstraintToFlip->getPhaseOfHeuristicCost() );
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-    return update;
 }
-
-/*
-HeuristicCostUpdate HeuristicCostManager::updateHeuristicCostMCMC1()
-{
-    bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
-
-    PiecewiseLinearConstraint *plConstraintToFlip = NULL;
-    PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
-
-    COST_LOG( Stringf( "Heuristic cost before updates: %f", computeHeuristicCost() ).ascii() ) ;
-
-    bool descenceGuaranteed = true;
-    if ( !useNoiseStrategy )
-    {
-        // Flip the cost term that reduces the cost by the most
-        COST_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
-        double maxReducedCost = 0;
-        Vector<PiecewiseLinearConstraint *> &violatedPlConstraints =
-            _engine->getViolatedPiecewiseLinearConstraints();
-        for ( const auto &plConstraint : violatedPlConstraints )
-        {
-            double reducedCost = 0;
-            PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
-            ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
-            plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-
-            if ( reducedCost > maxReducedCost )
-            {
-                maxReducedCost = reducedCost;
-                plConstraintToFlip = plConstraint;
-                phaseStatusToFlipTo = phaseStatusOfReducedCost;
-            }
-        }
-    }
-
-    if ( !plConstraintToFlip ||  useNoiseStrategy )
-    {
-        // Assume violated pl constraints has been updated.
-        // If using noise stategy, we just flip a random
-        // PLConstraint.
-        COST_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
-        descenceGuaranteed = false;
-        unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
-        plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
-        Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
-        unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
-        phaseStatusToFlipTo = phaseStatuses[phaseIndex];
-        _smtCore->reportRandomFlip();
-        _statistics->incLongAttr( Statistics::NUM_PROPOSED_FLIPS, 1 );
-        _statistics->incLongAttr( Statistics::NUM_ACCEPTED_FLIPS, 1 );
-    }
-
-    ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
-
-    HeuristicCostUpdate update = HeuristicCostUpdate( plConstraintToFlip,
-                                                      plConstraintToFlip->getPhaseOfHeuristicCost(),
-                                                      descenceGuaranteed );
-    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-    return update;
-}
-*/

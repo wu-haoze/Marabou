@@ -28,6 +28,7 @@
 #include "Preprocessor.h"
 #include "TimeUtils.h"
 
+#include "math.h"
 #include <cstdlib>
 #include <string.h>
 
@@ -80,6 +81,27 @@ void Engine::optimizeForHeuristicCost()
     solveLPWithGurobi( terms );
 }
 
+bool Engine::acceptProposedUpdate( double previousCost, double currentCost )
+{
+    /*
+      Following the strategy from https://cs.stanford.edu/people/eschkufz/docs/asplos_13.pdf
+    */
+    if ( previousCost == FloatUtils::infinity() || currentCost < previousCost )
+    {
+        SOI_LOG( Stringf( "Previous Cost: %.2lf. Cost after proposed flip: %.2lf. "
+                          "Accept the flip!", previousCost, currentCost ).ascii() );
+        return true;
+    }
+    else
+    {
+        double prob = exp( -_probabilityDensityParameter * ( currentCost - previousCost ) );
+        SOI_LOG( Stringf( "Previous Cost: %.2f. Cost after proposed flip: %.2f."
+                          "Probability to accept the flip: %.2lf%%", previousCost, currentCost,
+                          prob ).ascii() );
+        return ( (float) rand() / RAND_MAX ) < prob;
+    }
+}
+
 bool Engine::performLocalSearch()
 {
     ENGINE_LOG( "Performing local search..." );
@@ -89,10 +111,14 @@ bool Engine::performLocalSearch()
     _heuristicCostManager.initiateCostFunctionForLocalSearch();
     ASSERT( allVarsWithinBounds() );
 
+    double previousCost = FloatUtils::infinity();
+    unsigned iterations = 0;
     while ( !_smtCore.needToSplit() )
     {
-        optimizeForHeuristicCost();
+        if ( _verbosity > 1 &&  ++iterations % 100 == 0 )
+            _statistics.print();
 
+        optimizeForHeuristicCost();
         _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
 
         collectViolatedPlConstraints();
@@ -104,6 +130,17 @@ bool Engine::performLocalSearch()
         }
         else
         {
+            double currentCost = _heuristicCostManager.computeHeuristicCost();
+            if ( !acceptProposedUpdate( previousCost, currentCost ) )
+            {
+                _statistics.incLongAttr( Statistics::NUM_REJECTED_FLIPS, 1 );
+                _heuristicCostManager.undoLastHeuristicCostUpdate();
+            }
+            else
+            {
+                _statistics.incLongAttr( Statistics::NUM_ACCEPTED_FLIPS, 1 );
+                previousCost = currentCost;
+            }
             _heuristicCostManager.updateHeuristicCost();
             continue;
         }

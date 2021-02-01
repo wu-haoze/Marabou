@@ -32,21 +32,17 @@
 
 struct HeuristicCostUpdate
 {
-    HeuristicCostUpdate( PiecewiseLinearConstraint *constraint,
-                         PhaseStatus phase, bool descenceGuaranteed )
-        : _constraint(constraint )
-        , _originalPhaseOfHeuristicCost( phase )
-        , _descenceGuaranteed( descenceGuaranteed )
-    {}
+    void reset()
+    {
+        _update.clear();
+    }
 
-    HeuristicCostUpdate()
-        : _constraint( NULL )
-        , _descenceGuaranteed( false )
-    {}
+    void addUpdate( PiecewiseLinearConstraint *constraint, PhaseStatus phase )
+    {
+        _update[constraint] = phase;
+    }
 
-    PiecewiseLinearConstraint *_constraint;
-    PhaseStatus _originalPhaseOfHeuristicCost;
-    bool _descenceGuaranteed;
+    Map<PiecewiseLinearConstraint *, PhaseStatus> _update;
 };
 
 class HeuristicCostManager
@@ -72,7 +68,7 @@ public:
 
       Return whether after the update, the heuristic cost is guaranteed to descend
     */
-    bool updateHeuristicCost();
+    void updateHeuristicCost();
 
     void undoLastHeuristicCostUpdate();
 
@@ -145,7 +141,15 @@ private:
       with probability p, flip the cost term of a randomly chosen PLConstraint
       with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
     */
-    HeuristicCostUpdate updateHeuristicCostGWSAT();
+    void updateHeuristicCostGWSAT();
+
+    /*
+      Heuristic to flip the cost component of a PLConstraint:
+
+      Aggressively flip all cost term that will reduce the cost.
+      Then flip a random one.
+    */
+    //void updateHeuristicCostMCMC1();
 };
 
 #endif // __HeuristicCostManager_h__
