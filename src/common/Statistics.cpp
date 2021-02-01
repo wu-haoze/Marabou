@@ -69,7 +69,6 @@ Statistics::Statistics()
     _longAttributes[NUM_LP_BOUND_TIGHTENING] = 0;
     _longAttributes[TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO] = 0;
-    _longAttributes[TIME_CONSTRAINT_BOUND_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_LP_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_APPLYING_STORED_TIGHTENING_MICRO] = 0;
@@ -145,11 +144,6 @@ void Statistics::print()
     val = getLongAttr( TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO );
     total += val;
     printf( "\t\t[%.2lf%%] Constraint-matrix bound tightening: %llu milli\n"
-            , printPercents( val, timeMainLoopMicro ), val / 1000 );
-
-    val = getLongAttr( TIME_CONSTRAINT_BOUND_TIGHTENING_MICRO );
-    total += val;
-    printf( "\t\t[%.2lf%%] Constraint bound tightening: %llu milli\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO );

@@ -1071,33 +1071,6 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
     ENGINE_LOG( "Done with split\n" );
 }
 
-void Engine::applyAllConstraintTightenings()
-{
-    List<Tightening> entailedTightenings;
-
-    _boundManager.getTightenings( entailedTightenings );
-
-    for ( const auto &tightening : entailedTightenings )
-    {
-        _statistics.incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING, 1 );
-        if ( tightening._type == Tightening::LB )
-            _boundManager.tightenLowerBound( tightening._variable, tightening._value );
-        else
-            _boundManager.tightenUpperBound( tightening._variable, tightening._value );
-    }
-}
-
-void Engine::applyAllBoundTightenings()
-{
-    struct timespec start = TimeUtils::sampleMicro();
-
-    applyAllConstraintTightenings();
-
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.incLongAttr( Statistics::TIME_APPLYING_STORED_TIGHTENING_MICRO,
-                             TimeUtils::timePassed( start, end ) );
-}
-
 bool Engine::applyAllValidConstraintCaseSplits()
 {
     struct timespec start = TimeUtils::sampleMicro();
@@ -1173,34 +1146,42 @@ void Engine::explicitBasisBoundTightening()
     _statistics.incLongAttr( Statistics::TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
 }
 
-const Statistics *Engine::getStatistics() const
+void Engine::applyAllConstraintTightenings()
 {
-    return &_statistics;
+    List<Tightening> entailedTightenings;
+
+    unsigned numTightenedBounds = 0;
+
+    _boundManager.getTightenings( entailedTightenings );
+
+    for ( const auto &tightening : entailedTightenings )
+    {
+        if ( tightening._type == Tightening::LB &&
+             FloatUtils::gt( tightening._value, _boundManager.getLowerBound( tightening._variable ) ) )
+        {
+            _boundManager.tightenLowerBound( tightening._variable, tightening._value );
+            ++numTightenedBounds;
+        }
+
+        if ( tightening._type == Tightening::UB &&
+             FloatUtils::lt( tightening._value, _boundManager.getUpperBound( tightening._variable ) ) )
+        {
+            _boundManager.tightenUpperBound( tightening._variable, tightening._value );
+            ++numTightenedBounds;
+        }
+    }
+    _statistics.incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING, numTightenedBounds );
 }
 
-InputQuery *Engine::getInputQuery()
+void Engine::applyAllBoundTightenings()
 {
-    return &_preprocessedQuery;
-}
+    struct timespec start = TimeUtils::sampleMicro();
 
-void Engine::quitSignal()
-{
-    _quitRequested = true;
-}
+    applyAllConstraintTightenings();
 
-Engine::ExitCode Engine::getExitCode() const
-{
-    return _exitCode;
-}
-
-std::atomic_bool *Engine::getQuitRequested()
-{
-    return &_quitRequested;
-}
-
-List<unsigned> Engine::getInputVariables() const
-{
-    return _preprocessedQuery.getInputVariables();
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_APPLYING_STORED_TIGHTENING_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::performSymbolicBoundTightening()
@@ -1307,6 +1288,36 @@ void Engine::performMILPSolverBoundedTightening()
         _statistics.incLongAttr( Statistics::NUM_LP_BOUND_TIGHTENING, numTightenedBounds );
         _statistics.incLongAttr( Statistics::NUM_LP_BOUND_TIGHTENING_ATTEMPT, 1 );
     }
+}
+
+const Statistics *Engine::getStatistics() const
+{
+    return &_statistics;
+}
+
+InputQuery *Engine::getInputQuery()
+{
+    return &_preprocessedQuery;
+}
+
+void Engine::quitSignal()
+{
+    _quitRequested = true;
+}
+
+Engine::ExitCode Engine::getExitCode() const
+{
+    return _exitCode;
+}
+
+std::atomic_bool *Engine::getQuitRequested()
+{
+    return &_quitRequested;
+}
+
+List<unsigned> Engine::getInputVariables() const
+{
+    return _preprocessedQuery.getInputVariables();
 }
 
 bool Engine::shouldExitDueToTimeout( unsigned timeout ) const

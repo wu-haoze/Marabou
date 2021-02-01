@@ -109,9 +109,6 @@ void ReluConstraint::unregisterAsWatcher( ITableau *tableau )
 
 void ReluConstraint::notifyLowerBound( unsigned variable, double bound )
 {
-    if ( _statistics )
-        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
     if ( !_boundManager )
     {
         if ( _lowerBounds.exists( variable ) && !FloatUtils::gt( bound, _lowerBounds[variable] ) )
@@ -129,6 +126,9 @@ void ReluConstraint::notifyLowerBound( unsigned variable, double bound )
 
     if ( isActive() && _boundManager )
     {
+        if ( _statistics )
+            _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
+
         // A positive lower bound is always propagated between f and b
         if ( ( variable == _f || variable == _b ) && bound > 0 )
         {
@@ -171,9 +171,6 @@ void ReluConstraint::notifyLowerBound( unsigned variable, double bound )
 
 void ReluConstraint::notifyUpperBound( unsigned variable, double bound )
 {
-    if ( _statistics )
-        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
     if ( !_boundManager )
     {
         if ( _upperBounds.exists( variable ) && !FloatUtils::lt( bound, _upperBounds[variable] ) )
@@ -190,6 +187,9 @@ void ReluConstraint::notifyUpperBound( unsigned variable, double bound )
 
     if ( isActive() && _boundManager )
     {
+        if ( _statistics )
+            _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
+
         if ( variable == _f )
         {
             // Any bound that we learned of f should be propagated to b
