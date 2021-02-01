@@ -73,9 +73,12 @@ void HeuristicCostManager::initiateCostFunctionForLocalSearch()
 
     COST_LOG( "initiating cost function for local search - done" );
 
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
-                             TimeUtils::timePassed( start, end ) );
+    if ( _statistics )
+    {
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
+                                  TimeUtils::timePassed( start, end ) );
+    }
 }
 
 /*
@@ -92,6 +95,10 @@ void HeuristicCostManager::updateHeuristicCost()
     COST_LOG( Stringf( "Updating heuristic cost with strategy %s", _flippingStrategy.ascii() ).ascii() );
 
     _previousHeuristicCost.clear();
+    for ( const auto &constraint : _plConstraints )
+    {
+        _previousHeuristicCost[constraint] = constraint->getPhaseOfHeuristicCost();
+    }
 
     if ( _flippingStrategy == "gwsat" )
         updateHeuristicCostGWSAT();
@@ -102,10 +109,13 @@ void HeuristicCostManager::updateHeuristicCost()
     COST_LOG( Stringf( "Heuristic cost after updates: %f", computeHeuristicCost() ).ascii() ) ;
     COST_LOG( "Updating heuristic cost - done\n" );
 
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics->incLongAttr( Statistics::NUM_PROPOSED_FLIPS, 1 );
-    _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
-                             TimeUtils::timePassed( start, end ) );
+    if ( _statistics )
+    {
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics->incLongAttr( Statistics::NUM_PROPOSED_FLIPS, 1 );
+        _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
+                                 TimeUtils::timePassed( start, end ) );
+    }
 }
 
 void HeuristicCostManager::undoLastHeuristicCostUpdate()
@@ -153,9 +163,12 @@ void HeuristicCostManager::updateCostTermsForSatisfiedPLConstraints()
                       computeHeuristicCost() ).ascii() );
     COST_LOG( "Updating cost terms for satisfied constraint - done\n" );
 
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
-                             TimeUtils::timePassed( start, end ) );
+    if ( _statistics )
+    {
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
+                                  TimeUtils::timePassed( start, end ) );
+    }
 }
 
 void HeuristicCostManager::dumpHeuristicCost()

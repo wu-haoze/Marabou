@@ -108,6 +108,7 @@ bool Engine::performLocalSearch()
 
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
+    //if ( _costFunctionInitialized )
     _heuristicCostManager.initiateCostFunctionForLocalSearch();
     ASSERT( allVarsWithinBounds() );
 
@@ -1679,4 +1680,9 @@ void Engine::checkBoundConsistency()
 SmtCore *Engine::getSmtCore()
 {
     return &_smtCore;
+}
+
+List<PiecewiseLinearConstraint *> &Engine::getPiecewiseLinearConstraints()
+{
+    return _plConstraints;
 }
