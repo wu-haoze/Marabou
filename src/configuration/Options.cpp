@@ -68,7 +68,7 @@ void Options::initializeDefaultValues()
     _floatOptions[PREPROCESSOR_BOUND_TOLERANCE] = \
         GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
     _floatOptions[NOISE_PARAMETER] = 0.0;
-    _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 2.0;
+    _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 1.0;
 
     /*
       String options

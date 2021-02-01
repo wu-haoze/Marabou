@@ -123,7 +123,7 @@ void OptionParser::initialize()
           "The probability to use the noise strategy in local search. default: 0.0" )
         ( "mcmc-beta",
           boost::program_options::value<float>( &((*_floatOptions)[Options::PROBABILITY_DENSITY_PARAMETER]) ),
-          "beta parameter in MCMC search. default: 2.0" )
+          "beta parameter in MCMC search. default: 1.0" )
 #ifdef ENABLE_GUROBI
         ( "milp",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::SOLVE_WITH_MILP]) ),
