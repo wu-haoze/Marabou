@@ -83,7 +83,7 @@ public:
     void addActivationSource( unsigned sourceLayer,
                               unsigned sourceNeuron,
                               unsigned targetNeuron );
-    List<NeuronIndex> getActivationSources( unsigned neuron ) const;
+    const List<NeuronIndex> &getActivationSources( unsigned neuron ) const;
 
     void setNeuronVariable( unsigned neuron, unsigned variable );
     bool neuronHasVariable( unsigned neuron ) const;

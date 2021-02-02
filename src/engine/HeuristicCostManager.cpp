@@ -42,11 +42,6 @@ void HeuristicCostManager::reset()
     _previousHeuristicCost.clear();
 }
 
-Map<unsigned, double> &HeuristicCostManager::getHeuristicCost()
-{
-    return _heuristicCost;
-}
-
 /*
   Create the initial cost function for local search
 */

@@ -42,7 +42,7 @@ void DeepPolyMaxPoolElement::execute( const Map<unsigned, DeepPolyElement *>
     for ( unsigned i = 0; i < _size; ++i )
     {
         log( Stringf( "Handling Neuron %u_%u...", _layerIndex, i ) );
-        List<NeuronIndex> sources = _layer->getActivationSources( i );
+        const List<NeuronIndex> &sources = _layer->getActivationSources( i );
 
         NeuronIndex indexOfMaxLowerBound = *( sources.begin() );
         double maxLowerBound = FloatUtils::negativeInfinity();

@@ -41,7 +41,10 @@ public:
     */
     void reset();
 
-    Map<unsigned, double> &getHeuristicCost();
+    inline Map<unsigned, double> &getHeuristicCost()
+    {
+        return _heuristicCost;
+    }
 
     /*
       Create the initial cost function for local search
