@@ -951,8 +951,7 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
     ENGINE_LOG( "Applying a split. " );
 
     List<Tightening> bounds = split.getBoundTightenings();
-    List<Equation> equations = split.getEquations();
-    ASSERT( equations.size() == 0 );
+    ASSERT( split.getEquations().size() == 0 );
 
     for ( auto &bound : bounds )
     {
