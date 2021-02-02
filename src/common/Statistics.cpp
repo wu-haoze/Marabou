@@ -256,51 +256,6 @@ void Statistics::stampStartingTime()
     _startTime = TimeUtils::sampleMicro();
 }
 
-void Statistics::setUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value )
-{
-    _unsignedAttributes[attr] = value;
-}
-
-void Statistics::setLongAttr( StatisticsLongAttr attr, unsigned long long value )
-{
-    _longAttributes[attr] = value;
-}
-
-void Statistics::setDoubleAttr( StatisticsDoubleAttr attr, double value )
-{
-    _doubleAttributes[attr] = value;
-}
-
-void Statistics::incUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value )
-{
-    _unsignedAttributes[attr] += value;
-}
-
-void Statistics::incLongAttr( StatisticsLongAttr attr, unsigned long long value )
-{
-    _longAttributes[attr] += value;
-}
-
-void Statistics::incDoubleAttr( StatisticsDoubleAttr attr, double value )
-{
-    _doubleAttributes[attr] += value;
-}
-
-unsigned Statistics::getUnsignedAttr( StatisticsUnsignedAttr attr ) const
-{
-    return _unsignedAttributes[attr];
-}
-
-unsigned long long Statistics::getLongAttr( StatisticsLongAttr attr ) const
-{
-    return _longAttributes[attr];
-}
-
-double Statistics::getDoubleAttr( StatisticsDoubleAttr attr ) const
-{
-    return _doubleAttributes[attr];
-}
-
 unsigned long long Statistics::getTotalTime() const
 {
     struct timespec now = TimeUtils::sampleMicro();

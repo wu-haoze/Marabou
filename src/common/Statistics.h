@@ -101,17 +101,50 @@ public:
     */
     void stampStartingTime();
 
-    void setUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value );
-    void setLongAttr( StatisticsLongAttr attr, unsigned long long value );
-    void setDoubleAttr( StatisticsDoubleAttr attr, double value );
+    inline void setUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value )
+    {
+        _unsignedAttributes[attr] = value;
+    }
 
-    void incUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value );
-    void incLongAttr( StatisticsLongAttr attr, unsigned long long value );
-    void incDoubleAttr( StatisticsDoubleAttr attr, double value );
+    inline void setLongAttr( StatisticsLongAttr attr, unsigned long long value )
+    {
+        _longAttributes[attr] = value;
+    }
 
-    unsigned getUnsignedAttr( StatisticsUnsignedAttr attr ) const;
-    unsigned long long  getLongAttr( StatisticsLongAttr attr ) const;
-    double getDoubleAttr( StatisticsDoubleAttr attr ) const;
+    inline void setDoubleAttr( StatisticsDoubleAttr attr, double value )
+    {
+        _doubleAttributes[attr] = value;
+    }
+
+    inline void incUnsignedAttr( StatisticsUnsignedAttr attr, unsigned value )
+    {
+        _unsignedAttributes[attr] += value;
+    }
+
+    inline void incLongAttr( StatisticsLongAttr attr, unsigned long long value )
+    {
+        _longAttributes[attr] += value;
+    }
+
+    inline void incDoubleAttr( StatisticsDoubleAttr attr, double value )
+    {
+        _doubleAttributes[attr] += value;
+    }
+
+    inline unsigned getUnsignedAttr( StatisticsUnsignedAttr attr ) const
+    {
+        return _unsignedAttributes[attr];
+    }
+
+    inline unsigned long long  getLongAttr( StatisticsLongAttr attr ) const
+    {
+        return _longAttributes[attr];
+    }
+
+    inline double getDoubleAttr( StatisticsDoubleAttr attr ) const
+    {
+        return _doubleAttributes[attr];
+    }
 
     /*
       Report a timeout, or check whether a timeout has occurred

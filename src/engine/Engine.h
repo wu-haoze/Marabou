@@ -93,25 +93,6 @@ public:
     */
     void quitSignal();
 
-    const Statistics *getStatistics() const;
-
-    InputQuery *getInputQuery();
-
-    /*
-      Get the exit code
-    */
-    Engine::ExitCode getExitCode() const;
-
-    /*
-      Get the quitRequested flag
-    */
-    std::atomic_bool *getQuitRequested();
-
-    /*
-      Get the list of input variables
-    */
-    List<unsigned> getInputVariables() const;
-
     /*
       Add equations and tightenings from a split.
     */
@@ -149,11 +130,41 @@ public:
     */
     PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy strategy );
 
-    Vector<PiecewiseLinearConstraint *> &getViolatedPiecewiseLinearConstraints();
+    inline Vector<PiecewiseLinearConstraint *> &getViolatedPiecewiseLinearConstraints()
+    {
+        return _violatedPlConstraints;
+    }
 
-    SmtCore *getSmtCore();
+    inline SmtCore *getSmtCore()
+    {
+        return &_smtCore;
+    }
 
-    List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints();
+    inline List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints()
+    {
+        return _plConstraints;
+    }
+
+
+    const Statistics *getStatistics() const;
+
+    InputQuery *getInputQuery();
+
+    /*
+      Get the exit code
+    */
+    Engine::ExitCode getExitCode() const;
+
+    /*
+      Get the quitRequested flag
+    */
+    std::atomic_bool *getQuitRequested();
+
+    /*
+      Get the list of input variables
+    */
+    List<unsigned> getInputVariables() const;
+
 
     /*
       PSA: The following two methods are for DnC only and should be used very

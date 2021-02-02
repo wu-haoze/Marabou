@@ -181,11 +181,6 @@ void Engine::concretizeInputAssignment()
     delete[] inputAssignment;
 }
 
-Vector<PiecewiseLinearConstraint *> &Engine::getViolatedPiecewiseLinearConstraints()
-{
-    return _violatedPlConstraints;
-}
-
 void Engine::solveLPWithGurobi( List<LPSolver::Term> &cost )
 {
     struct timespec simplexStart = TimeUtils::sampleMicro();
@@ -1334,7 +1329,7 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
     }
     else
     {
-            ASSERT( false );
+        ASSERT( false );
     }
     ENGINE_LOG( Stringf( ( candidatePLConstraint ?
                            "Picked..." :
@@ -1477,14 +1472,4 @@ void Engine::checkBoundConsistency()
             ASSERT( false );
         }
     }
-}
-
-SmtCore *Engine::getSmtCore()
-{
-    return &_smtCore;
-}
-
-List<PiecewiseLinearConstraint *> &Engine::getPiecewiseLinearConstraints()
-{
-    return _plConstraints;
 }
