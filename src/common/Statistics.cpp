@@ -214,13 +214,18 @@ void Statistics::print()
             , getLongAttr( NUM_EXPLICIT_BASIS_BOUND_TIGHTENING ) );
 
     printf( "\t\tNumber of bound tightening rounds on the entire constraint matrix: %llu. "
-            "Consequent tightenings: %llu\n"
+            "Consequent tightenings: %llu(%.1f per millisecond).\n"
             , getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING_ATTEMPT )
-            , getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING ) );
+            , getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING )
+            , printAverage( getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING ),
+                            getLongAttr( TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO ) / 1000 ) );
 
-    printf( "\t\tNumber of Symbolic Bound Tightening Rounds: %llu. Tightenings proposed: %llu\n"
+    printf( "\t\tNumber of Symbolic Bound Tightening Rounds: %llu. Tightenings proposed: %llu"
+            "(%.1f per millisecond).\n"
             , getLongAttr( NUM_SYMBOLIC_BOUND_TIGHTENING_ATTEMPT )
-            , getLongAttr( NUM_SYMBOLIC_BOUND_TIGHTENING ) );
+            , getLongAttr( NUM_SYMBOLIC_BOUND_TIGHTENING )
+            , printAverage( getLongAttr( NUM_SYMBOLIC_BOUND_TIGHTENING ),
+                            getLongAttr( TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO ) / 1000 ) );
 
     printf( "\t\tNumber of MILP  Bound Tightening Rounds: %llu. Tightenings proposed: %llu\n"
             , getLongAttr( NUM_LP_BOUND_TIGHTENING_ATTEMPT )
