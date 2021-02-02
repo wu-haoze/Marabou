@@ -950,7 +950,7 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
     ENGINE_LOG( "" );
     ENGINE_LOG( "Applying a split. " );
 
-    List<Tightening> bounds = split.getBoundTightenings();
+    const List<Tightening> &bounds = split.getBoundTightenings();
     ASSERT( split.getEquations().size() == 0 );
 
     for ( auto &bound : bounds )
@@ -1218,7 +1218,7 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnPolarity()
     if ( !_networkLevelReasoner )
         throw MarabouError( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
 
-    List<PiecewiseLinearConstraint *> constraints =
+    List<PiecewiseLinearConstraint *> &constraints =
         _networkLevelReasoner->getConstraintsInTopologicalOrder();
 
     Map<double, PiecewiseLinearConstraint *> scoreToConstraint;
