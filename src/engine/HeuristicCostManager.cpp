@@ -314,8 +314,9 @@ void HeuristicCostManager::updateHeuristicCostGWSAT()
         Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
         unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
-        _smtCore->reportRandomFlip();
     }
+
+    _smtCore->reportRandomFlip();
 
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
 
