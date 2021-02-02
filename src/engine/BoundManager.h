@@ -52,8 +52,6 @@ public:
     double getLowerBound( unsigned variable );
     double getUpperBound( unsigned variable );
 
-    void getTightenings( List<Tightening> &tightenings );
-
     unsigned getSize(); //TODO: Rename to getNumberOfVariables
 
     void registerTableauReference( ITableau *tableau );
@@ -66,11 +64,6 @@ private:
     // For now, assume variable number is the vector index
     Vector<CVC4::context::CDO<double> *> _lowerBounds;
     Vector<CVC4::context::CDO<double> *> _upperBounds;
-    Vector<CVC4::context::CDO<bool> *> _tightenedLower;
-    Vector<CVC4::context::CDO<bool> *> _tightenedUpper;
-
-
-
 };
 
 

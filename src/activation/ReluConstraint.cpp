@@ -125,9 +125,6 @@ void ReluConstraint::notifyLowerBound( unsigned variable, double bound )
 
     if ( isActive() && _boundManager )
     {
-        if ( _statistics )
-            _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
         // A positive lower bound is always propagated between f and b
         if ( ( variable == _f || variable == _b ) && bound > 0 )
         {
@@ -186,9 +183,6 @@ void ReluConstraint::notifyUpperBound( unsigned variable, double bound )
 
     if ( isActive() && _boundManager )
     {
-        if ( _statistics )
-            _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
         if ( variable == _f )
         {
             // Any bound that we learned of f should be propagated to b

@@ -60,19 +60,16 @@ Statistics::Statistics()
     // Tightening
     _longAttributes[NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT] = 0;
     _longAttributes[NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING_ATTEMPT] = 0;
-    _longAttributes[NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT] = 0;
     _longAttributes[NUM_SYMBOLIC_BOUND_TIGHTENING_ATTEMPT] = 0;
     _longAttributes[NUM_LP_BOUND_TIGHTENING_ATTEMPT] = 0;
     _longAttributes[NUM_EXPLICIT_BASIS_BOUND_TIGHTENING] = 0;
     _longAttributes[NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING] = 0;
-    _longAttributes[NUM_CONSTRAINT_BOUND_TIGHTENING] = 0;
     _longAttributes[NUM_SYMBOLIC_BOUND_TIGHTENING] = 0;
     _longAttributes[NUM_LP_BOUND_TIGHTENING] = 0;
     _longAttributes[TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_LP_TIGHTENING_MICRO] = 0;
-    _longAttributes[TIME_APPLYING_STORED_TIGHTENING_MICRO] = 0;
     _longAttributes[TIME_PERFORMING_VALID_CASE_SPLITS_MICRO] = 0;
 
     // Statistics
@@ -127,7 +124,7 @@ void Statistics::print()
     printf( "\t\t[%.2lf%%] SMT core push: %llu milli\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
-    val = getLongAttr( TIME_SMT_CORE_PUSH_MICRO );
+    val = getLongAttr( TIME_SMT_CORE_POP_MICRO );
     total += val;
     printf( "\t\t[%.2lf%%] SMT core pop: %llu milli\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
@@ -166,11 +163,6 @@ void Statistics::print()
     total += val;
     printf( "\t\t[%.2lf%%] LP-based Bound Tightening: %llu milli\n"
             , printPercents( val, timeMainLoopMicro ) , val / 1000 );
-
-    val = getLongAttr( TIME_APPLYING_STORED_TIGHTENING_MICRO );
-    total += val;
-    printf( "\t\t[%.2lf%%] Applying stored bound-tightening: %llu milli\n"
-            , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_PERFORMING_VALID_CASE_SPLITS_MICRO );
     total += val;
@@ -225,10 +217,6 @@ void Statistics::print()
             "Consequent tightenings: %llu\n"
             , getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING_ATTEMPT )
             , getLongAttr( NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING ) );
-
-    printf( "\t\tNumber of bound notifications sent to PL constraints: %llu. Tightenings proposed: %llu\n"
-            , getLongAttr( NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT )
-            , getLongAttr( NUM_CONSTRAINT_BOUND_TIGHTENING ) );
 
     printf( "\t\tNumber of Symbolic Bound Tightening Rounds: %llu. Tightenings proposed: %llu\n"
             , getLongAttr( NUM_SYMBOLIC_BOUND_TIGHTENING_ATTEMPT )

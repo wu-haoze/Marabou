@@ -110,9 +110,6 @@ void AbsoluteValueConstraint::unregisterAsWatcher( ITableau *tableau )
 
 void AbsoluteValueConstraint::notifyLowerBound( unsigned variable, double bound )
 {
-    if ( _statistics )
-        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
     if ( _lowerBounds.exists( variable ) &&
          !FloatUtils::gt( bound, _lowerBounds[variable] ) )
         return;
@@ -161,9 +158,6 @@ void AbsoluteValueConstraint::notifyLowerBound( unsigned variable, double bound 
 
 void AbsoluteValueConstraint::notifyUpperBound( unsigned variable, double bound )
 {
-    if ( _statistics )
-        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
     if ( _upperBounds.exists( variable ) && !FloatUtils::lt( bound, _upperBounds[variable] ) )
         return;
 

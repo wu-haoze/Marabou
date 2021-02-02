@@ -64,9 +64,6 @@ void DisjunctionConstraint::unregisterAsWatcher( ITableau *tableau )
 
 void DisjunctionConstraint::notifyLowerBound( unsigned variable, double bound )
 {
-    if ( _statistics )
-        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
     if ( _lowerBounds.exists( variable ) && !FloatUtils::gt( bound, _lowerBounds[variable] ) )
         return;
 
@@ -77,9 +74,6 @@ void DisjunctionConstraint::notifyLowerBound( unsigned variable, double bound )
 
 void DisjunctionConstraint::notifyUpperBound( unsigned variable, double bound )
 {
-    if ( _statistics )
-        _statistics->incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING_ATTEMPT, 1 );
-
     if ( _upperBounds.exists( variable ) && !FloatUtils::lt( bound, _upperBounds[variable] ) )
         return;
 

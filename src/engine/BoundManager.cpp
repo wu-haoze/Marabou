@@ -34,8 +34,6 @@ BoundManager::~BoundManager()
     {
         _lowerBounds[i]->deleteSelf();
         _upperBounds[i]->deleteSelf();
-        _tightenedLower[i]->deleteSelf();
-        _tightenedUpper[i]->deleteSelf();
     }
 };
 
@@ -43,26 +41,17 @@ unsigned BoundManager::registerNewVariable()
 {
     ASSERT( _lowerBounds.size() == _size );
     ASSERT( _upperBounds.size() == _size );
-    ASSERT( _tightenedLower.size() == _size );
-    ASSERT( _tightenedUpper.size() == _size );
 
     unsigned newVar = _size++;
 
     _lowerBounds.append( new (true) CDO<double>( &_context ) );
     _upperBounds.append( new (true) CDO<double>( &_context ) );
-    _tightenedLower.append( new (true) CDO<bool>( &_context ) );
-    _tightenedUpper.append( new (true) CDO<bool>( &_context ) );
 
     *_lowerBounds[newVar] = FloatUtils::negativeInfinity();
     *_upperBounds[newVar] = FloatUtils::infinity();
 
-    *_tightenedLower[newVar] = false;
-    *_tightenedUpper[newVar] = false;
-
     ASSERT( _lowerBounds.size() == _size );
     ASSERT( _upperBounds.size() == _size );
-    ASSERT( _tightenedLower.size() == _size );
-    ASSERT( _tightenedUpper.size() == _size );
 
     return newVar;
 }
@@ -99,7 +88,6 @@ bool BoundManager::setLowerBound( unsigned variable, double value )
     if ( value > getLowerBound( variable ) )
     {
         *_lowerBounds[variable] = value;
-        *_tightenedLower[variable] = true;
         if ( !boundValid( variable ) )
             throw InfeasibleQueryException();
         return true;
@@ -113,7 +101,6 @@ bool BoundManager::setUpperBound( unsigned variable, double value )
     if ( value < getUpperBound( variable ) )
     {
         *_upperBounds[variable] = value ;
-        *_tightenedUpper[variable] = true;
         if ( !boundValid( variable ) )
             throw InfeasibleQueryException();
         return true;
@@ -139,25 +126,6 @@ double BoundManager::getUpperBound( unsigned variable )
   ASSERT( variable < _size );
   return *_upperBounds[variable];
 }
-
-void BoundManager::getTightenings( List<Tightening> &tightenings )
-{
-    for ( unsigned i = 0; i < _size; ++i )
-    {
-        if ( *_tightenedLower[i] )
-        {
-            tightenings.append( Tightening( i, *_lowerBounds[i], Tightening::LB ) );
-            *_tightenedLower[i] = false;
-        }
-
-        if ( *_tightenedUpper[i] )
-        {
-            tightenings.append( Tightening( i, *_upperBounds[i], Tightening::UB ) );
-            *_tightenedUpper[i] = false;
-        }
-    }
-}
-
 
 void BoundManager::registerTableauReference( ITableau *ptrTableau )
 {

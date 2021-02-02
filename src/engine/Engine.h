@@ -295,17 +295,6 @@ private:
     bool allPlConstraintsHold();
 
     /*
-      Apply all bound tightenings (row and matrix-based) in
-      the queue.
-    */
-    void applyAllBoundTightenings();
-
-    /*
-      Apply any bound tightenings entailed by the constraints.
-    */
-    void applyAllConstraintTightenings();
-
-    /*
       Apply all valid case splits proposed by the constraints.
       Return true if a valid case split has been applied.
     */

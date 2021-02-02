@@ -379,12 +379,10 @@ void Engine::performBoundTightening()
          _tableau->basisMatrixAvailable() )
     {
         explicitBasisBoundTightening();
-        applyAllBoundTightenings();
         applyAllValidConstraintCaseSplits();
     }
 
     tightenBoundsOnConstraintMatrix();
-    applyAllBoundTightenings();
     applyAllValidConstraintCaseSplits();
 
     do
@@ -1051,44 +1049,6 @@ void Engine::explicitBasisBoundTightening()
     _statistics.incLongAttr( Statistics::TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
 }
 
-void Engine::applyAllConstraintTightenings()
-{
-    List<Tightening> entailedTightenings;
-
-    unsigned numTightenedBounds = 0;
-
-    _boundManager.getTightenings( entailedTightenings );
-
-    for ( const auto &tightening : entailedTightenings )
-    {
-        if ( tightening._type == Tightening::LB &&
-             FloatUtils::gt( tightening._value, _boundManager.getLowerBound( tightening._variable ) ) )
-        {
-            _boundManager.tightenLowerBound( tightening._variable, tightening._value );
-            ++numTightenedBounds;
-        }
-
-        if ( tightening._type == Tightening::UB &&
-             FloatUtils::lt( tightening._value, _boundManager.getUpperBound( tightening._variable ) ) )
-        {
-            _boundManager.tightenUpperBound( tightening._variable, tightening._value );
-            ++numTightenedBounds;
-        }
-    }
-    _statistics.incLongAttr( Statistics::NUM_CONSTRAINT_BOUND_TIGHTENING, numTightenedBounds );
-}
-
-void Engine::applyAllBoundTightenings()
-{
-    struct timespec start = TimeUtils::sampleMicro();
-
-    applyAllConstraintTightenings();
-
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.incLongAttr( Statistics::TIME_APPLYING_STORED_TIGHTENING_MICRO,
-                             TimeUtils::timePassed( start, end ) );
-}
-
 void Engine::performSymbolicBoundTightening()
 {
     if ( _symbolicBoundTighteningType == SymbolicBoundTighteningType::NONE ||
@@ -1416,7 +1376,6 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         if ( _tableau->basisMatrixAvailable() )
         {
 	    explicitBasisBoundTightening();
-	    applyAllBoundTightenings();
 	    applyAllValidConstraintCaseSplits();
 	}
 	do

@@ -27,7 +27,6 @@ struct SmtStackEntry
 {
 public:
     PiecewiseLinearCaseSplit _activeSplit;
-    List<PiecewiseLinearCaseSplit> _impliedValidSplits;
     List<PiecewiseLinearCaseSplit> _alternativeSplits;
 
     /*
@@ -41,7 +40,6 @@ public:
         SmtStackEntry *copy = new SmtStackEntry();
 
         copy->_activeSplit = _activeSplit;
-        copy->_impliedValidSplits = _impliedValidSplits;
         copy->_alternativeSplits = _alternativeSplits;
 
         return copy;
