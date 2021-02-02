@@ -63,7 +63,10 @@ public:
     /*
       Returns true iff the SMT core wants to perform a case split.
     */
-    bool needToSplit() const;
+    inline bool needToSplit() const
+    {
+        return _needToSplit;
+    }
 
     /*
       Perform the split according to the constraint marked for

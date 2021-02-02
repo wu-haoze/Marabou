@@ -72,11 +72,6 @@ void SmtCore::reportRandomFlip()
     }
 }
 
-bool SmtCore::needToSplit() const
-{
-    return _needToSplit;
-}
-
 void SmtCore::performSplit()
 {
     struct timespec start = TimeUtils::sampleMicro();
