@@ -161,13 +161,6 @@ public:
     */
     double computePolarity() const;
 
-    /*
-      Update the preferred direction for fixing and handling case split
-    */
-    void updateDirection();
-
-    PhaseStatus getDirection() const;
-
     void updateScoreBasedOnPolarity();
 
     void addCostFunctionComponent( Map<unsigned, double> &costTerms, PhaseStatus phaseStatus );
@@ -186,12 +179,6 @@ private:
     unsigned _b, _f;
     bool _auxVarInUse;
     unsigned _aux;
-
-    /*
-      Denotes which case split to handle first.
-      And which phase status to repair a relu into.
-    */
-    PhaseStatus _direction;
 
     PiecewiseLinearCaseSplit getInactiveSplit() const;
     PiecewiseLinearCaseSplit getActiveSplit() const;

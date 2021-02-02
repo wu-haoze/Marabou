@@ -87,7 +87,7 @@ set(BUILD_TYPES Release Debug MinSizeRel RelWithDebInfo)
 # Set the default build type to Production
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE
-      Release CACHE STRING "Options are: Release Debug MinSizeRel RelWithDebInfo" FORCE)
+      Release CACHE STRING "Options are: Release Debug Profile MinSizeRel RelWithDebInfo" FORCE)
   # Provide drop down menu options in cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${BUILD_TYPES})
 endif()
@@ -101,6 +101,11 @@ if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_BUILD_TYPE MA
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILER_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 endif()
+
+if(CMAKE_BUILD_TYPE MATCHES Profile)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+endif()
+
 
 # We build a static library that is the core of the project, the link it to the
 # API's (executable and python at the moment)

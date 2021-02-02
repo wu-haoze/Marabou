@@ -37,7 +37,6 @@ Engine::Engine()
     , _boundManager( _context )
     , _rowBoundTightener( *_tableau, _boundManager )
     , _smtCore( this, _context )
-    , _numPlConstraintsDisabledByValidSplits( 0 )
     , _preprocessingEnabled( false )
     , _quitRequested( false )
     , _exitCode( Engine::NOT_DONE )
@@ -52,6 +51,8 @@ Engine::Engine()
     , _seed( 1219 )
     , _probabilityDensityParameter( Options::get()->getFloat( Options::PROBABILITY_DENSITY_PARAMETER ) )
     , _heuristicCostManager( this )
+    , _costFunctionInitialized( false )
+    , _alwaysReinitializeCost( Options::get()->getBool( Options::ALWAYS_REINITIALIZE_COST ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -88,15 +89,15 @@ bool Engine::acceptProposedUpdate( double previousCost, double currentCost )
     */
     if ( previousCost == FloatUtils::infinity() || currentCost < previousCost )
     {
-        SOI_LOG( Stringf( "Previous Cost: %.2lf. Cost after proposed flip: %.2lf. "
-                          "Accept the flip!", previousCost, currentCost ).ascii() );
+        ENGINE_LOG( Stringf( "Previous Cost: %.2lf. Cost after proposed flip: %.2lf. "
+                             "Accept the flip!", previousCost, currentCost ).ascii() );
         return true;
     }
     else
     {
         double prob = exp( -_probabilityDensityParameter * ( currentCost - previousCost ) );
-        SOI_LOG( Stringf( "Previous Cost: %.2f. Cost after proposed flip: %.2f."
-                          "Probability to accept the flip: %.2lf%%", previousCost, currentCost,
+        ENGINE_LOG( Stringf( "Previous Cost: %.2f. Cost after proposed flip: %.2f."
+                             "Probability to accept the flip: %.2lf%%", previousCost, currentCost,
                           prob ).ascii() );
         return ( (float) rand() / RAND_MAX ) < prob;
     }
@@ -108,17 +109,17 @@ bool Engine::performLocalSearch()
 
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
-    //if ( _costFunctionInitialized )
-    _heuristicCostManager.initiateCostFunctionForLocalSearch();
+    if ( ( !_costFunctionInitialized ) || _alwaysReinitializeCost )
+    {
+        _heuristicCostManager.initiateCostFunctionForLocalSearch();
+        _costFunctionInitialized = true;
+    }
+
     ASSERT( allVarsWithinBounds() );
 
     double previousCost = FloatUtils::infinity();
-    unsigned iterations = 0;
     while ( !_smtCore.needToSplit() )
     {
-        if ( _verbosity > 1 &&  ++iterations % 100 == 0 )
-            _statistics.print();
-
         optimizeForHeuristicCost();
         _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
 
@@ -147,17 +148,6 @@ bool Engine::performLocalSearch()
         }
     }
     ENGINE_LOG( "Performing local search - done" );
-    return false;
-}
-
-bool Engine::concretizeAndCheckInputAssignment()
-{
-    concretizeInputAssignment();
-    if ( checkAssignmentFromNetworkLevelReasoner() )
-    {
-        ENGINE_LOG( "Current input assignment valid!" );
-        return true;
-    }
     return false;
 }
 
@@ -196,125 +186,6 @@ Vector<PiecewiseLinearConstraint *> &Engine::getViolatedPiecewiseLinearConstrain
     return _violatedPlConstraints;
 }
 
-bool Engine::checkAssignmentFromNetworkLevelReasoner()
-{
-    if ( !_networkLevelReasoner )
-        return false;
-
-    Map<unsigned, double> assignments;
-    // Try to update as many variables as possible to match their assignment
-    for ( unsigned i = 0; i < _networkLevelReasoner->getNumberOfLayers(); ++i )
-    {
-        const NLR::Layer *layer = _networkLevelReasoner->getLayer( i );
-        unsigned layerSize = layer->getSize();
-        const double *assignment = layer->getAssignment();
-
-        for ( unsigned j = 0; j < layerSize; ++j )
-        {
-            if ( layer->neuronHasVariable( j ) )
-            {
-                unsigned variable = layer->neuronToVariable( j );
-                double value = assignment[j];
-                assignments[variable] = value;
-            }
-        }
-    }
-
-    bool assignmentValid = checkAssignment( _originalInputQuery, assignments );
-
-    if ( !assignmentValid )
-    {
-        // TODO: Get explanation where it fails.
-    }
-
-    return assignmentValid;
-}
-
-bool Engine::checkAssignment( InputQuery &inputQuery, const Map<unsigned, double> assignments )
-{
-    Map<unsigned, double> assignmentsWithCorrectIndices;
-    Set<unsigned> unassigned;
-
-    for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
-    {
-        if ( _preprocessingEnabled )
-        {
-            // Has the variable been merged into another?
-            unsigned variable = i;
-            while ( _preprocessor.variableIsMerged( variable ) )
-                variable = _preprocessor.getMergedIndex( variable );
-
-            // Fixed variables are easy: return the value they've been fixed to.
-            if ( _preprocessor.variableIsFixed( variable ) )
-            {
-                assignmentsWithCorrectIndices[i] = _preprocessor.getFixedValue( variable );
-                continue;
-            }
-
-            // We know which variable to look for, but it may have been assigned
-            // a new index, due to variable elimination
-            variable = _preprocessor.getNewIndex( variable );
-
-            if ( assignments.exists( variable ) )
-                assignmentsWithCorrectIndices[i] = assignments[variable];
-            else
-                unassigned.insert( i );
-        }
-        else
-        {
-            if ( assignments.exists( i ) )
-                assignmentsWithCorrectIndices[i] = assignments[i];
-            else
-                unassigned.insert( i );
-        }
-        if ( FloatUtils::gt( assignmentsWithCorrectIndices[i], inputQuery.getUpperBound( i ) ) ||
-             FloatUtils::lt( assignmentsWithCorrectIndices[i], inputQuery.getLowerBound( i ) ) )
-            return false;
-    }
-
-    for ( const auto &eq : inputQuery.getEquations() )
-    {
-        auto addends = eq._addends;
-        double scalar = eq._scalar;
-        auto type = eq._type;
-        double sum = 0;
-
-        bool hasUnassigned = false;
-        unsigned unassignedCoeff = 0;
-        unsigned unassignedVar = 0;
-
-        for ( const auto &addend : addends )
-        {
-            if ( unassigned.exists( addend._variable ) )
-            {
-                if ( hasUnassigned )
-                    return false;
-                hasUnassigned = true;
-                unassignedCoeff = addend._coefficient;
-                unassignedVar = addend._variable;
-            }
-            sum += addend._coefficient *  addend._variable;
-        }
-
-        if ( hasUnassigned )
-            assignmentsWithCorrectIndices[unassignedVar] = ( scalar - sum ) / unassignedCoeff;
-
-        if ( type == Equation::EQ && ( !FloatUtils::areEqual( sum, scalar ) ) )
-            return false;
-        if ( type == Equation::GE && ( !FloatUtils::gte( sum, scalar ) ) )
-            return false;
-        if ( type == Equation::LE && ( !FloatUtils::lte( sum, scalar ) ) )
-            return false;
-    }
-
-    ASSERT( assignmentsWithCorrectIndices.size() == inputQuery.getNumberOfVariables() );
-    for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
-        inputQuery.setSolutionValue( i, assignmentsWithCorrectIndices[i] );
-
-    _solutionFoundAndStoredInOriginalQuery = true;
-    return true;
-}
-
 void Engine::solveLPWithGurobi( List<LPSolver::Term> &cost )
 {
     struct timespec simplexStart = TimeUtils::sampleMicro();
@@ -344,8 +215,6 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
     _tableau->setGurobi( &(*_gurobi) );
     _heuristicCostManager.setGurobi( &(*_gurobi) );
 
-    updateDirections();
-
     mainLoopStatistics();
     if ( _verbosity > 0 )
     {
@@ -365,6 +234,7 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
                                  TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
         mainLoopStart = mainLoopEnd;
 
+        struct timespec checkStart = TimeUtils::sampleMicro();
         if ( shouldExitDueToTimeout( timeoutInSeconds ) )
         {
             if ( _verbosity > 0 )
@@ -391,6 +261,9 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             _exitCode = Engine::QUIT_REQUESTED;
             return false;
         }
+        struct timespec checkEnd = TimeUtils::sampleMicro();
+        _statistics.incLongAttr( Statistics::TIME_CHECKING_QUIT_CONDITION_MICRO,
+                                 TimeUtils::timePassed( checkStart, checkEnd ) );
 
         try
         {
@@ -502,7 +375,8 @@ void Engine::mainLoopStatistics()
 
 void Engine::performBoundTightening()
 {
-    if ( _tableau->basisMatrixAvailable() )
+    if ( _smtCore.getStackDepth() <= GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD &&
+         _tableau->basisMatrixAvailable() )
     {
         explicitBasisBoundTightening();
         applyAllBoundTightenings();
@@ -1080,11 +954,6 @@ bool Engine::allPlConstraintsHold()
     return _violatedPlConstraints.empty();
 }
 
-void Engine::setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints )
-{
-    _numPlConstraintsDisabledByValidSplits = numConstraints;
-}
-
 void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
 {
     ENGINE_LOG( "" );
@@ -1136,10 +1005,7 @@ bool Engine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constrain
                              constraintString.ascii() ).ascii() );
         constraint->setActiveConstraint( false );
         PiecewiseLinearCaseSplit validSplit = constraint->getValidCaseSplit();
-        _smtCore.recordImpliedValidSplit( validSplit );
         applySplit( validSplit );
-        ++_numPlConstraintsDisabledByValidSplits;
-
         _heuristicCostManager.removeCostComponentFromHeuristicCost( constraint );
         return true;
     }
@@ -1404,15 +1270,6 @@ void Engine::resetSmtCore()
 void Engine::resetExitCode()
 {
     _exitCode = Engine::NOT_DONE;
-}
-
-void Engine::updateDirections()
-{
-    if ( GlobalConfiguration::USE_POLARITY_BASED_DIRECTION_HEURISTICS )
-        for ( const auto &constraint : _plConstraints )
-            if ( constraint->supportPolarity() &&
-                 constraint->isActive() && !constraint->phaseFixed() )
-                constraint->updateDirection();
 }
 
 PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnPolarity()

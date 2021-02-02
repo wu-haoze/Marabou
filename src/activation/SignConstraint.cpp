@@ -28,7 +28,6 @@
 SignConstraint::SignConstraint( unsigned b, unsigned f )
     : _b( b )
     , _f( f )
-    , _direction( PHASE_NOT_FIXED )
     , _haveEliminatedVariables( false )
 {
 }
@@ -104,24 +103,18 @@ List<PiecewiseLinearCaseSplit> SignConstraint::getCaseSplits() const
 
     List <PiecewiseLinearCaseSplit> splits;
 
-    if ( _direction == SIGN_PHASE_NEGATIVE )
+    if ( _phaseOfHeuristicCost == SIGN_PHASE_POSITIVE )
+    {
+        splits.append( getPositiveSplit() );
+        splits.append( getNegativeSplit() );
+        return splits;
+    }
+    else
     {
       splits.append( getNegativeSplit() );
       splits.append( getPositiveSplit() );
       return splits;
     }
-    if ( _direction == SIGN_PHASE_POSITIVE )
-    {
-      splits.append( getPositiveSplit() );
-      splits.append( getNegativeSplit() );
-      return splits;
-    }
-
-    // Default
-    splits.append( getNegativeSplit() );
-    splits.append( getPositiveSplit() );
-
-    return splits;
 }
 
 PiecewiseLinearCaseSplit SignConstraint::getNegativeSplit() const
@@ -389,17 +382,6 @@ double SignConstraint::computePolarity() const
   double width = currentUb - currentLb;
   double sum = currentUb + currentLb;
   return sum / width;
-}
-
-void SignConstraint::updateDirection()
-{
-    _direction = ( FloatUtils::isNegative( computePolarity() ) ) ?
-        SIGN_PHASE_NEGATIVE : SIGN_PHASE_POSITIVE;
-}
-
-PhaseStatus SignConstraint::getDirection() const
-{
-  return _direction;
 }
 
 void SignConstraint::updateScoreBasedOnPolarity()

@@ -149,23 +149,10 @@ public:
   */
   double computePolarity() const;
 
-  /*
-    Update the preferred direction for fixing and handling case split
-  */
-  void updateDirection();
-
-  PhaseStatus getDirection() const;
-
   void updateScoreBasedOnPolarity();
 
 private:
     unsigned _b, _f;
-
-    /*
-      Denotes which case split to handle first.
-      And which phase status to repair a constraint into.
-    */
-    PhaseStatus _direction;
 
     PiecewiseLinearCaseSplit getNegativeSplit() const;
     PiecewiseLinearCaseSplit getPositiveSplit() const;

@@ -155,6 +155,8 @@ public:
       Explicit (Reluplex-style) bound tightening options
     */
 
+    static const unsigned EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD;
+
     enum ExplicitBasisBoundTighteningType {
         // Compute the inverse basis matrix and use it
         COMPUTE_INVERTED_BASIS_MATRIX = 0,

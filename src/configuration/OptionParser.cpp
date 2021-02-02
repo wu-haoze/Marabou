@@ -54,6 +54,9 @@ void OptionParser::initialize()
         ( "local-search",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::LOCAL_SEARCH]) ),
           "Local search" )
+        ( "reinit-cost",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::ALWAYS_REINITIALIZE_COST]) ),
+          "Always reinitialize cost" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )
@@ -71,10 +74,10 @@ void OptionParser::initialize()
           "Query dump file" )
         ( "flip-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::FLIPPING_STRATEGY]) ),
-          "Strategy of local search: currentAssignment/inputAssignment/random. default: currentAssignment" )
-        ( "initialization-strategy",
+          "Strategy of local search: currentAssignment/inputAssignment/random. default: inputAssignment" )
+        ( "init-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INITIALIZATION_STRATEGY]) ),
-          "Strategy of local search: gwsat/walksat. default: gwsat" )
+          "Strategy of local search: gwsat. default: gwsat" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )

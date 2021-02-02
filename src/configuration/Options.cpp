@@ -48,6 +48,7 @@ void Options::initializeDefaultValues()
     _boolOptions[DUMP_BOUNDS] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
     _boolOptions[LOCAL_SEARCH] = false;
+    _boolOptions[ALWAYS_REINITIALIZE_COST] = false;
 
     /*
       Int options
@@ -83,7 +84,7 @@ void Options::initializeDefaultValues()
     _stringOptions[MILP_SOLVER_BOUND_TIGHTENING_TYPE] = "none";
     _stringOptions[QUERY_DUMP_FILE] = "";
     _stringOptions[FLIPPING_STRATEGY] = "gwsat";
-    _stringOptions[INITIALIZATION_STRATEGY] = "currentAssignment";
+    _stringOptions[INITIALIZATION_STRATEGY] = "inputAssignment";
 }
 
 void Options::parseOptions( int argc, char **argv )

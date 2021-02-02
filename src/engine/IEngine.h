@@ -49,8 +49,6 @@ public:
     */
     virtual void applySplit( const PiecewiseLinearCaseSplit &split ) = 0;
 
-    virtual void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints ) = 0;
-
     /*
       Solve the encoded query.
     */

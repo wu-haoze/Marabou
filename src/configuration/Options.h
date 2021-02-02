@@ -54,7 +54,11 @@ public:
         // Solve the input query with a MILP solver
         SOLVE_WITH_MILP,
 
+        // Stay at the top level forever
         LOCAL_SEARCH,
+
+        // Always reinitialize the cost
+        ALWAYS_REINITIALIZE_COST,
     };
 
     enum IntOptions {

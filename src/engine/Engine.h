@@ -45,7 +45,6 @@
 #endif
 
 #define ENGINE_LOG(x, ...) LOG(GlobalConfiguration::ENGINE_LOGGING, "Engine: %s\n", x)
-#define SOI_LOG(x, ...) LOG(GlobalConfiguration::LOCAL_SEARCH_LOGGING, "Local search: %s\n", x)
 
 class EngineState;
 class InputQuery;
@@ -84,7 +83,6 @@ public:
     void restoreTableauState( const TableauState &state );
     void storeState( EngineState &state, bool storeAlsoTableauState ) const;
     void restoreState( const EngineState &state );
-    void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints );
 
     /*
       A request from the user to terminate
@@ -217,11 +215,6 @@ private:
     SmtCore _smtCore;
 
     /*
-      Number of pl constraints disabled by valid splits.
-    */
-    unsigned _numPlConstraintsDisabledByValidSplits;
-
-    /*
       Query preprocessor.
     */
     Preprocessor _preprocessor;
@@ -232,11 +225,6 @@ private:
     bool _preprocessingEnabled;
 
     /*
-      Is the initial state stored?
-    */
-    bool _initialStateStored;
-
-    /*
       Indicates a user/DnCManager request to quit
     */
     std::atomic_bool _quitRequested;
@@ -245,13 +233,6 @@ private:
       A code indicating how the run terminated.
     */
     ExitCode _exitCode;
-
-    /*
-      The number of visited states when we performed the previous
-      restoration. This field serves as an indication of whether or
-      not progress has been made since the previous restoration.
-    */
-    unsigned long long _numVisitedStatesAtPreviousRestoration;
 
     /*
       An object that knows the topology of the network being checked,
@@ -368,12 +349,6 @@ private:
     void performMILPSolverBoundedTightening();
 
     /*
-      Update the preferred direction to perform fixes and the preferred order
-      to handle case splits
-    */
-    void updateDirections();
-
-    /*
       Among the earliest K ReLUs, pick the one with Polarity closest to 0.
       K is equal to GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD
     */
@@ -399,30 +374,16 @@ private:
     */
     void extractSolutionFromGurobi( InputQuery &inputQuery );
 
-    bool concretizeAndCheckInputAssignment();
-
     /*
       Evaluate the input assignment in the tableau with the network-level reasoner.
     */
     void concretizeInputAssignment();
 
     /*
-      Check whether the assignment from the network level reasoner is a valid one.
-      If so, store the assignment in the tableau.
-    */
-    bool checkAssignmentFromNetworkLevelReasoner();
-
-    /*
       Perform bound tightening operations that require
       access to the explicit basis matrix.
     */
     void explicitBasisBoundTightening();
-
-    /*
-      Check whether the assignment is satisfying for the inputQuery.
-    */
-    bool checkAssignment( InputQuery &inputQuery,
-                          const Map<unsigned, double> assignments );
 
     /****************************** local search ****************************/
     void pushContext();
@@ -443,6 +404,10 @@ private:
     double _probabilityDensityParameter;
 
     HeuristicCostManager _heuristicCostManager;
+
+    bool _costFunctionInitialized;
+
+    bool _alwaysReinitializeCost;
 
     void performBoundTightening();
 

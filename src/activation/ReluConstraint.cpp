@@ -37,7 +37,6 @@ ReluConstraint::ReluConstraint( unsigned b, unsigned f )
     : _b( b )
     , _f( f )
     , _auxVarInUse( false )
-    , _direction( PHASE_NOT_FIXED )
     , _haveEliminatedVariables( false )
 {
 }
@@ -257,20 +256,18 @@ List<PiecewiseLinearCaseSplit> ReluConstraint::getCaseSplits() const
 
     List<PiecewiseLinearCaseSplit> splits;
 
-    if ( _direction == RELU_PHASE_INACTIVE )
-    {
-        splits.append( getInactiveSplit() );
-        splits.append( getActiveSplit() );
-        return splits;
-    }
-    if ( _direction == RELU_PHASE_ACTIVE )
+    if ( _phaseOfHeuristicCost == RELU_PHASE_ACTIVE )
     {
         splits.append( getActiveSplit() );
         splits.append( getInactiveSplit() );
         return splits;
     }
-
-    return splits;
+    else
+    {
+        splits.append( getInactiveSplit() );
+        splits.append( getActiveSplit() );
+        return splits;
+    }
 }
 
 PiecewiseLinearCaseSplit ReluConstraint::getInactiveSplit() const
@@ -692,16 +689,6 @@ double ReluConstraint::computePolarity() const
     return sum / width;
 }
 
-void ReluConstraint::updateDirection()
-{
-    _direction = ( computePolarity() > 0 ) ? RELU_PHASE_ACTIVE : RELU_PHASE_INACTIVE;
-}
-
-PhaseStatus ReluConstraint::getDirection() const
-{
-    return _direction;
-}
-
 void ReluConstraint::updateScoreBasedOnPolarity()
 {
     _score = std::abs( computePolarity() );
@@ -822,6 +809,11 @@ void ReluConstraint::addCostFunctionComponentByOutputValue( Map<unsigned, double
 void ReluConstraint::getReducedHeuristicCost( double &reducedCost,
                                               PhaseStatus &phaseStatusOfReducedCost )
 {
+    PLConstraint_LOG( Stringf( "Getting reduced heuristic cost for relu constraint. b: %u, "
+                               "bValue: %.2lf. blb: %.2lf, bub: %.2lf f: %u, fValue: %.2lf. ",
+                               _b, _gurobi->getValue( _b ), _boundManager->getLowerBound( _b ),
+                               _boundManager->getUpperBound( _b ), _f, _gurobi->getValue( _f ) ).ascii() );
+
     ASSERT( _phaseOfHeuristicCost != PHASE_NOT_FIXED );
     double bValue = _gurobi->getValue( _b );
 

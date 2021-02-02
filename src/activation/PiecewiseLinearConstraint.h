@@ -203,13 +203,6 @@ public:
         return false;
     }
 
-    /*
-      Update the preferred direction to take first when splitting on this PLConstraint
-    */
-    virtual void updateDirection()
-    {
-    }
-
     double getScore() const
     {
         return _score;

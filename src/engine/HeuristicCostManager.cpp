@@ -95,7 +95,7 @@ void HeuristicCostManager::updateHeuristicCost()
     COST_LOG( Stringf( "Updating heuristic cost with strategy %s", _flippingStrategy.ascii() ).ascii() );
 
     _previousHeuristicCost.clear();
-    for ( const auto &constraint : _plConstraints )
+    for ( const auto &constraint : _plConstraintsInHeuristicCost )
     {
         _previousHeuristicCost[constraint] = constraint->getPhaseOfHeuristicCost();
     }

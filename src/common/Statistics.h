@@ -37,7 +37,6 @@ public:
 
      // Search
      CURRENT_STACK_DEPTH,
-     MAX_STACK_DEPTH,
      NUM_VISITED_TREE_STATES,
     };
 
@@ -51,7 +50,9 @@ public:
      TIME_PREPROCESSING_MICRO,
 
      // Search
-     TIME_SMT_CORE_MICRO,
+     TIME_SMT_CORE_PUSH_MICRO,
+     TIME_SMT_CORE_POP_MICRO,
+     TIME_CHECKING_QUIT_CONDITION_MICRO,
 
      // Simplex
      NUM_SIMPLIEX_STEPS,

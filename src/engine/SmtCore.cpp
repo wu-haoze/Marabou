@@ -56,7 +56,6 @@ void SmtCore::freeMemory()
 void SmtCore::reset()
 {
     freeMemory();
-    _impliedValidSplitsAtRoot.clear();
     _needToSplit = false;
     _constraintForSplitting = NULL;
     _numberOfRandomFlips = 0;
@@ -128,7 +127,7 @@ void SmtCore::performSplit()
     {
         _statistics->setUnsignedAttr( Statistics::CURRENT_STACK_DEPTH, getStackDepth() );
         struct timespec end = TimeUtils::sampleMicro();
-        _statistics->incLongAttr( Statistics::TIME_SMT_CORE_MICRO,
+        _statistics->incLongAttr( Statistics::TIME_SMT_CORE_PUSH_MICRO,
                                   TimeUtils::timePassed( start, end ) );
     }
 }
@@ -165,7 +164,16 @@ bool SmtCore::popSplit()
         SMT_LOG( Stringf( "Popped context. Current level: %u", _context.getLevel() ).ascii() );
 
         if ( _stack.empty() )
+        {
+            if ( _statistics )
+            {
+                _statistics->setUnsignedAttr( Statistics::CURRENT_STACK_DEPTH, getStackDepth() );
+                struct timespec end = TimeUtils::sampleMicro();
+                _statistics->incLongAttr( Statistics::TIME_SMT_CORE_POP_MICRO,
+                                          TimeUtils::timePassed( start, end ) );
+            }
             return false;
+        }
     }
 
     _engine->popContext();
@@ -174,9 +182,6 @@ bool SmtCore::popSplit()
 
     // Apply the new split and erase it from the list
     auto split = stackEntry->_alternativeSplits.begin();
-
-    // Erase any valid splits that were learned using the split we just popped
-    stackEntry->_impliedValidSplits.clear();
 
     _engine->pushContext();
     SMT_LOG( Stringf( "Pushed context. Current level: %u", _context.getLevel() ).ascii() );
@@ -191,7 +196,7 @@ bool SmtCore::popSplit()
     {
         _statistics->setUnsignedAttr( Statistics::CURRENT_STACK_DEPTH, getStackDepth() );
         struct timespec end = TimeUtils::sampleMicro();
-        _statistics->incLongAttr( Statistics::TIME_SMT_CORE_MICRO,
+        _statistics->incLongAttr( Statistics::TIME_SMT_CORE_POP_MICRO,
                                   TimeUtils::timePassed( start, end ) );
     }
 
@@ -204,29 +209,6 @@ void SmtCore::resetReportedViolations()
     _needToSplit = false;
 }
 
-void SmtCore::recordImpliedValidSplit( PiecewiseLinearCaseSplit &validSplit )
-{
-    if ( _stack.empty() )
-        _impliedValidSplitsAtRoot.append( validSplit );
-    else
-        _stack.back()->_impliedValidSplits.append( validSplit );
-}
-
-void SmtCore::allSplitsSoFar( List<PiecewiseLinearCaseSplit> &result ) const
-{
-    result.clear();
-
-    for ( const auto &it : _impliedValidSplitsAtRoot )
-        result.append( it );
-
-    for ( const auto &it : _stack )
-    {
-        result.append( it->_activeSplit );
-        for ( const auto &impliedSplit : it->_impliedValidSplits )
-            result.append( impliedSplit );
-    }
-}
-
 void SmtCore::setStatistics( Statistics *statistics )
 {
     _statistics = statistics;
@@ -234,6 +216,7 @@ void SmtCore::setStatistics( Statistics *statistics )
 
 bool SmtCore::pickSplitPLConstraint()
 {
+
     if ( _needToSplit )
         _constraintForSplitting = _engine->pickSplitPLConstraint();
     return _constraintForSplitting != NULL;

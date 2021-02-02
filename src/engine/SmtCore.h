@@ -83,17 +83,6 @@ public:
     unsigned getStackDepth() const;
 
     /*
-      Let the smt core know of an implied valid case split that was discovered.
-    */
-    void recordImpliedValidSplit( PiecewiseLinearCaseSplit &validSplit );
-
-    /*
-      Return a list of all splits performed so far, both SMT-originating and valid ones,
-      in the correct order.
-    */
-    void allSplitsSoFar( List<PiecewiseLinearCaseSplit> &result ) const;
-
-    /*
       Have the SMT core start reporting statistics.
     */
     void setStatistics( Statistics *statistics );
@@ -107,11 +96,6 @@ public:
     bool pickSplitPLConstraint();
 
 private:
-    /*
-      Valid splits that were implied by level 0 of the stack.
-    */
-    List<PiecewiseLinearCaseSplit> _impliedValidSplitsAtRoot;
-
     /*
       CVC4 Context, constructed in Engine
     */

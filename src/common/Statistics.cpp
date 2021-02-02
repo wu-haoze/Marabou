@@ -32,7 +32,6 @@ Statistics::Statistics()
 
     // Search
     _unsignedAttributes[CURRENT_STACK_DEPTH] = 0;
-    _unsignedAttributes[MAX_STACK_DEPTH] = 0;
     _unsignedAttributes[NUM_VISITED_TREE_STATES] = 1;
 
     /***************************** Long Attributes ****************************/
@@ -44,7 +43,9 @@ Statistics::Statistics()
     _longAttributes[TIME_PREPROCESSING_MICRO] = 0;
 
     // Search
-    _longAttributes[TIME_SMT_CORE_MICRO] = 0;
+    _longAttributes[TIME_SMT_CORE_PUSH_MICRO] = 0;
+    _longAttributes[TIME_SMT_CORE_POP_MICRO] = 0;
+    _longAttributes[TIME_CHECKING_QUIT_CONDITION_MICRO] = 0;
 
     // Simplex
     _longAttributes[NUM_SIMPLIEX_STEPS] = 0;
@@ -121,14 +122,24 @@ void Statistics::print()
     printf( "\tBreakdown for main loop:\n" );
     unsigned long long total = 0;
 
-    unsigned long long val = getLongAttr( TIME_SMT_CORE_MICRO );
+    unsigned long long val = getLongAttr( TIME_SMT_CORE_PUSH_MICRO );
     total += val;
-    printf( "\t\t[%.2lf%%] SMT core: %llu milli\n"
+    printf( "\t\t[%.2lf%%] SMT core push: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_SMT_CORE_PUSH_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] SMT core pop: %llu milli\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_SIMPLEX_STEPS_MICRO );
     total += val;
     printf( "\t\t[%.2lf%%] Simplex steps: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_CHECKING_QUIT_CONDITION_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Checking quit condition: %llu milli\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_UPDATING_COST_FUNCTION_MICRO );
@@ -204,8 +215,6 @@ void Statistics::print()
     printf( "\tCurrent depth is %u. Total visited states: %u. \n"
             , getUnsignedAttr( CURRENT_STACK_DEPTH )
             , getUnsignedAttr( NUM_VISITED_TREE_STATES ) );
-    printf( "\tMax stack depth: %u\n"
-            , getUnsignedAttr( MAX_STACK_DEPTH ) );
 
     printf( "\t--- Bound Tightening Statistics ---\n" );
     printf( "\t\tNumber of explicit basis matrices examined by row tightener: %llu. Consequent tightenings: %llu\n"
@@ -244,6 +253,9 @@ void Statistics::print()
             , numAccepted
             , printPercents( numAccepted, numProposed )
             , numRejected );
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _longAttributes[TIME_HANDLING_STATISTICS_MICRO] += TimeUtils::timePassed( now, end );
 }
 
 void Statistics::stampStartingTime()
