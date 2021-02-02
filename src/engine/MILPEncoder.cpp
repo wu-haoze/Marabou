@@ -59,6 +59,7 @@ void MILPEncoder::encodeInputQuery( LPSolver &gurobi,
                                 "Only ReLU and Max are supported\n" );
         }
     }
+    gurobi.updateModel();
 }
 
 String MILPEncoder::getVariableNameFromVariable( unsigned variable )

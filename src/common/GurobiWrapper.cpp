@@ -133,20 +133,17 @@ void GurobiWrapper::setLowerBound( String name, double lb )
 {
     GRBVar var = _model->getVarByName( name.ascii() );
     var.set( GRB_DoubleAttr_LB, lb );
-    //_model->update();
 }
 
 void GurobiWrapper::setUpperBound( String name, double ub )
 {
     GRBVar var = _model->getVarByName( name.ascii() );
     var.set( GRB_DoubleAttr_UB, ub );
-    //_model->update();
 }
 
 void GurobiWrapper::setCutoff( double cutoff )
 {
     _model->set( GRB_DoubleParam_Cutoff, cutoff );
-    //_model->update();
 }
 
 void GurobiWrapper::addLeqConstraint( const List<Term> &terms, double scalar )
@@ -178,7 +175,6 @@ void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char 
         }
 
         _model->addConstr( constraint, sense, scalar );
-        _model->update();
     }
     catch ( GRBException e )
     {
@@ -202,7 +198,6 @@ void GurobiWrapper::setCost( const List<Term> &terms )
         }
 
         _model->setObjective( cost, GRB_MINIMIZE );
-        _model->update();
     }
     catch ( GRBException e )
     {
@@ -226,7 +221,6 @@ void GurobiWrapper::setObjective( const List<Term> &terms )
         }
 
         _model->setObjective( cost, GRB_MAXIMIZE );
-        _model->update();
     }
     catch ( GRBException e )
     {
@@ -240,7 +234,6 @@ void GurobiWrapper::setObjective( const List<Term> &terms )
 void GurobiWrapper::setTimeLimit( double seconds )
 {
     _model->set( GRB_DoubleParam_TimeLimit, seconds );
-    _model->update();
 }
 
 void GurobiWrapper::solve()
