@@ -73,7 +73,7 @@ const double GlobalConfiguration::ABS_CONSTRAINT_COMPARISON_TOLERANCE = 0.000000
 
 const bool GlobalConfiguration::ONLY_AUX_INITIAL_BASIS = false;
 
-const unsigned GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD = 10;
+const unsigned GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD = 0;
 const GlobalConfiguration::ExplicitBasisBoundTighteningType GlobalConfiguration::EXPLICIT_BASIS_BOUND_TIGHTENING_TYPE =
     GlobalConfiguration::COMPUTE_INVERTED_BASIS_MATRIX;
 const bool GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION = false;
