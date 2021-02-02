@@ -114,19 +114,6 @@ bool BoundManager::boundValid( unsigned variable )
     return FloatUtils::gte( getUpperBound( variable ), getLowerBound( variable ) );
 }
 
-double BoundManager::getLowerBound( unsigned variable )
-{
-  ASSERT( variable < _size );
-  return *_lowerBounds[variable];
-}
-
-
-double BoundManager::getUpperBound( unsigned variable )
-{
-  ASSERT( variable < _size );
-  return *_upperBounds[variable];
-}
-
 void BoundManager::registerTableauReference( ITableau *ptrTableau )
 {
     _tableau = ptrTableau;

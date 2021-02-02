@@ -17,7 +17,7 @@
 #define __GurobiWrapper_h__
 
 #include "LPSolver.h"
-#include "MString.h"
+#include "MStringf.h"
 #include "Map.h"
 
 #include "gurobi_c++.h"
@@ -31,8 +31,15 @@ public:
     // Add a new variabel to the model
     void addVariable( String name, double lb, double ub, VariableType type = CONTINUOUS );
 
-    double getLowerBound( unsigned );
-    double getUpperBound( unsigned );
+    inline double getLowerBound( unsigned var )
+    {
+        return _model->getVarByName( Stringf("x%u", var ).ascii() ).get( GRB_DoubleAttr_LB );
+    }
+
+    inline double getUpperBound( unsigned var )
+    {
+        return _model->getVarByName( Stringf("x%u", var ).ascii() ).get( GRB_DoubleAttr_UB );
+    }
 
     // Set the lower or upper bound for an existing variable
     void setLowerBound( String, double lb );

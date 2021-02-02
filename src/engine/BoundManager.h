@@ -49,8 +49,17 @@ public:
     */
     bool boundValid( unsigned variable );
 
-    double getLowerBound( unsigned variable );
-    double getUpperBound( unsigned variable );
+    inline double getLowerBound( unsigned variable )
+    {
+        ASSERT( variable < _size );
+        return *_lowerBounds[variable];
+    }
+
+    inline double getUpperBound( unsigned variable )
+    {
+        ASSERT( variable < _size );
+        return *_upperBounds[variable];
+    }
 
     unsigned getSize(); //TODO: Rename to getNumberOfVariables
 
