@@ -119,6 +119,8 @@ public:
     virtual void dumpModel( String name ) = 0;
 
     virtual unsigned getNumberOfSimplexIterations() = 0;
+
+    virtual void updateModel() {};
 };
 
 #endif // __LPSolver_h__

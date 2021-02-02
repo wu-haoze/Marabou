@@ -424,8 +424,10 @@ void Tableau::registerToWatchAllVariables( VariableWatcher *watcher )
 void Tableau::notifyLowerBound( unsigned variable, double bound )
 {
     if ( _gurobi )
+    {
         _gurobi->setLowerBound( Stringf( "x%u", variable ), bound );
-
+        _gurobi->updateModel();
+    }
     for ( auto &watcher : _globalWatchers )
         watcher->notifyLowerBound( variable, bound );
 
@@ -439,8 +441,10 @@ void Tableau::notifyLowerBound( unsigned variable, double bound )
 void Tableau::notifyUpperBound( unsigned variable, double bound )
 {
     if ( _gurobi )
+    {
         _gurobi->setUpperBound( Stringf( "x%u", variable ), bound );
-
+        _gurobi->updateModel();
+    }
     for ( auto &watcher : _globalWatchers )
         watcher->notifyUpperBound( variable, bound );
 

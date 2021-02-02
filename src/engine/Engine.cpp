@@ -1472,6 +1472,7 @@ void Engine::popContext()
         _gurobi->setLowerBound( Stringf( "x%u", i ), _boundManager.getLowerBound( i ) );
         _gurobi->setUpperBound( Stringf( "x%u", i ), _boundManager.getUpperBound( i ) );
     }
+    _gurobi->updateModel();
 }
 
 void Engine::checkBoundConsistency()

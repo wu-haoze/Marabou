@@ -133,20 +133,20 @@ void GurobiWrapper::setLowerBound( String name, double lb )
 {
     GRBVar var = _model->getVarByName( name.ascii() );
     var.set( GRB_DoubleAttr_LB, lb );
-    _model->update();
+    //_model->update();
 }
 
 void GurobiWrapper::setUpperBound( String name, double ub )
 {
     GRBVar var = _model->getVarByName( name.ascii() );
     var.set( GRB_DoubleAttr_UB, ub );
-    _model->update();
+    //_model->update();
 }
 
 void GurobiWrapper::setCutoff( double cutoff )
 {
     _model->set( GRB_DoubleParam_Cutoff, cutoff );
-    _model->update();
+    //_model->update();
 }
 
 void GurobiWrapper::addLeqConstraint( const List<Term> &terms, double scalar )

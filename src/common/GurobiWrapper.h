@@ -103,6 +103,11 @@ public:
 
     unsigned getNumberOfSimplexIterations();
 
+    void updateModel()
+    {
+        _model->update();
+    }
+
 private:
     GRBEnv *_environment;
     GRBModel *_model;
