@@ -82,7 +82,29 @@ public:
     /*
       Check if the constraint's phase has been fixed.
     */
-    bool phaseFixed() const;
+    inline bool phaseFixed() const
+    {
+        DEBUG({
+
+                if ( *_phaseStatus == RELU_PHASE_ACTIVE && _boundManager )
+                    {
+                        if ( FloatUtils::isNegative( _boundManager->getLowerBound( _b ) ) )
+                            {
+                                printf( "x%u >= %f\n", _b, _boundManager->getLowerBound( _b ) );
+                                ASSERT( false );
+                            }
+                    }
+                if ( *_phaseStatus == RELU_PHASE_INACTIVE && _boundManager )
+                    {
+                        if ( FloatUtils::isPositive( _boundManager->getUpperBound( _b ) ) )
+                            {
+                                printf( "x%u <= %f\n", _b, _boundManager->getUpperBound( _b ) );
+                                ASSERT( false );
+                            }
+                    }
+            });
+        return *_phaseStatus != PHASE_NOT_FIXED;
+    }
 
     /*
       If the constraint's phase has been fixed, get the (valid) case split.

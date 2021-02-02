@@ -233,17 +233,12 @@ public:
         return _upperBounds[i];
     }
 
-    PhaseStatus getAddedHeuristicCost() const
-    {
-        return _phaseOfHeuristicCost;
-    }
-
-    void setAddedHeuristicCost( PhaseStatus phaseStatus )
+    inline void setAddedHeuristicCost( PhaseStatus phaseStatus )
     {
         _phaseOfHeuristicCost = phaseStatus;
     }
 
-    void resetCostFunctionComponent()
+    inline void resetCostFunctionComponent()
     {
         _phaseOfHeuristicCost = PHASE_NOT_FIXED;
     }
@@ -273,7 +268,7 @@ public:
         return Vector<PhaseStatus>();
     }
 
-    PhaseStatus getPhaseOfHeuristicCost() const
+    inline PhaseStatus getPhaseOfHeuristicCost() const
     {
         return _phaseOfHeuristicCost;
     }

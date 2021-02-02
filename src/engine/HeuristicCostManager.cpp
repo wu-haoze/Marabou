@@ -295,7 +295,7 @@ void HeuristicCostManager::updateHeuristicCostGWSAT()
         for ( const auto &plConstraint : violatedPlConstraints )
         {
             double reducedCost = 0;
-            PhaseStatus phaseStatusOfReducedCost = plConstraint->getAddedHeuristicCost();
+            PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
             ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
             plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
 

@@ -297,28 +297,6 @@ PiecewiseLinearCaseSplit ReluConstraint::getActiveSplit() const
     return activePhase;
 }
 
-bool ReluConstraint::phaseFixed() const
-{
-    if ( *_phaseStatus == RELU_PHASE_ACTIVE && _boundManager )
-    {
-        if ( FloatUtils::isNegative( _boundManager->getLowerBound( _b ) ) )
-        {
-            printf( "x%u >= %f\n", _b, _boundManager->getLowerBound( _b ) );
-            ASSERT( false );
-        }
-    }
-    if ( *_phaseStatus == RELU_PHASE_INACTIVE && _boundManager )
-    {
-        if ( FloatUtils::isPositive( _boundManager->getUpperBound( _b ) ) )
-        {
-            printf( "x%u <= %f\n", _b, _boundManager->getUpperBound( _b ) );
-            ASSERT( false );
-        }
-    }
-
-    return *_phaseStatus != PHASE_NOT_FIXED;
-}
-
 PiecewiseLinearCaseSplit ReluConstraint::getValidCaseSplit() const
 {
     ASSERT( *_phaseStatus != PHASE_NOT_FIXED );
@@ -866,11 +844,3 @@ Vector<PhaseStatus> ReluConstraint::getAlternativeHeuristicPhaseStatus()
         alternatives.append( RELU_PHASE_ACTIVE );
     return alternatives;
 }
-
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
