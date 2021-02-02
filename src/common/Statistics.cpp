@@ -141,7 +141,7 @@ void Statistics::print()
 
     val = getLongAttr( TIME_UPDATING_COST_FUNCTION_MICRO );
     total += val;
-    printf( "\t\t[%.2lf%%] Upating Cost Function: %llu milli.\n"
+    printf( "\t\t[%.2lf%%] Updating Cost Function: %llu milli.\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO );
