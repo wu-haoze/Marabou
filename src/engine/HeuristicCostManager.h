@@ -22,7 +22,6 @@
 #include "LPSolver.h"
 #include "NetworkLevelReasoner.h"
 #include "PiecewiseLinearConstraint.h"
-#include "SmtCore.h"
 #include "Statistics.h"
 #include "Vector.h"
 
@@ -82,7 +81,6 @@ public:
 private:
 
     IEngine *_engine;
-    SmtCore *_smtCore;
     NLR::NetworkLevelReasoner *_networkLevelReasoner;
     LPSolver *_gurobi;
     Statistics *_statistics;
@@ -130,6 +128,10 @@ private:
       with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
     */
     void updateHeuristicCostGWSAT();
+
+    void updateHeuristicCostMCMC1();
+
+    void updateHeuristicCostMCMC2();
 
     /*
       Heuristic to flip the cost component of a PLConstraint:

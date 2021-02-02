@@ -136,6 +136,7 @@ bool Engine::performLocalSearch()
             if ( !acceptProposedUpdate( previousCost, currentCost ) )
             {
                 _statistics.incLongAttr( Statistics::NUM_REJECTED_FLIPS, 1 );
+                _smtCore.reportRandomFlip();
                 _heuristicCostManager.undoLastHeuristicCostUpdate();
             }
             else

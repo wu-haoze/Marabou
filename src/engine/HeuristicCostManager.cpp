@@ -20,7 +20,6 @@
 
 HeuristicCostManager::HeuristicCostManager( IEngine *engine )
     : _engine( engine )
-    , _smtCore( engine->getSmtCore() )
     , _networkLevelReasoner( NULL )
     , _gurobi( NULL )
     , _statistics( NULL )
@@ -97,6 +96,8 @@ void HeuristicCostManager::updateHeuristicCost()
 
     if ( _flippingStrategy == "gwsat" )
         updateHeuristicCostGWSAT();
+    else if ( _flippingStrategy == "mcmc1" )
+        updateHeuristicCostMCMC1();
     else
         throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
                             Stringf( "Unknown flipping stategy %s", _flippingStrategy.ascii() ).ascii() );
@@ -316,9 +317,46 @@ void HeuristicCostManager::updateHeuristicCostGWSAT()
         phaseStatusToFlipTo = phaseStatuses[phaseIndex];
     }
 
-    _smtCore->reportRandomFlip();
-
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
 
+    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+}
+
+void HeuristicCostManager::updateHeuristicCostMCMC1()
+{
+    // 1. Flip all the cost term that can improve the cost.
+    // 2. If no such cost terms, randomly propose one to flip.
+
+    // Flip the cost term that reduces the cost by the most
+    COST_LOG( "Using strategy mcmc1 to pick a PLConstraint and flip its heuristic cost..." );
+    Vector<PiecewiseLinearConstraint *> &violatedPlConstraints =
+        _engine->getViolatedPiecewiseLinearConstraints();
+
+    unsigned numFlipped = 0;
+    for ( const auto &plConstraint : violatedPlConstraints )
+    {
+        double reducedCost = 0;
+        PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
+        ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
+        plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
+
+        if ( reducedCost > 0 )
+        {
+            plConstraint->addCostFunctionComponent( _heuristicCost, phaseStatusOfReducedCost );
+            ++numFlipped;
+        }
+    }
+    if ( numFlipped > 0 )
+    {
+        COST_LOG( "Cost function guaranteed to reduce. No random proposal." );
+        return;
+    }
+
+    COST_LOG( "Cost function not guaranteed to reduce." );
+    unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
+    PiecewiseLinearConstraint *plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
+    Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+    unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+    PhaseStatus phaseStatusToFlipTo = phaseStatuses[phaseIndex];
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
 }
