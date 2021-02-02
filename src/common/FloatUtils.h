@@ -35,9 +35,15 @@ public:
     static String doubleToString( double x,
                                   unsigned precision = GlobalConfiguration::DEFAULT_DOUBLE_TO_STRING_PRECISION );
 
-    static bool isNan( double x );
+    inline static bool isNan( double x )
+    {
+        return std::isnan( x );
+    }
 
-    static bool isInf( double x );
+    inline static bool isInf( double x )
+    {
+        return std::isinf( x );
+    }
 
     static bool isZero( double x, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
@@ -47,19 +53,19 @@ public:
         return ( x - upper ) * ( x - lower ) <= 0;
     }
 
-    static bool isPositive( double x, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static bool isPositive( double x, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         ASSERT( epsilon > 0 ); 
         return x > epsilon;
     }
 
-    static bool isNegative( double x, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static bool isNegative( double x, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         ASSERT( epsilon > 0 ); 
         return x < -epsilon;
     }
 
-    static double abs( double x )
+    inline static double abs( double x )
     {
         return fabs( x );
     }
@@ -71,57 +77,57 @@ public:
         return !areEqual( x, y, epsilon );
     }
 
-    static double roundToZero( double x, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static double roundToZero( double x, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         return isZero( x, epsilon ) ? 0.0 : x;
     }
 
-    static bool gt( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static bool gt( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         return isPositive( x - y, epsilon );
     }
 
-    static bool gte( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static bool gte( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         return !isNegative( x - y, epsilon );
     }
 
-    static bool lt( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static bool lt( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         return gt( y, x, epsilon );
     }
 
-    static bool lte( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static bool lte( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         return gte( y, x, epsilon );
     }
 
-    static double min( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static double min( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         return lt( x, y, epsilon ) ? x : y;
     }
 
-    static double max( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
+    inline static double max( double x, double y, double epsilon = GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS )
     {
         return gt( x, y, epsilon ) ? x : y;
     }
 
-    static double infinity()
+    inline static double infinity()
     {
         return DBL_MAX;
     }
 
-    static double negativeInfinity()
+    inline static double negativeInfinity()
     {
         return -DBL_MAX;
     }
 
-    static bool isFinite( double x )
+    inline static bool isFinite( double x )
     {
         return ( x != infinity() ) && ( x != negativeInfinity() );
     }
 
-    static bool wellFormed( double x )
+    inline static bool wellFormed( double x )
     {
         return !isNan( x ) && !isInf( x );
     }
@@ -129,11 +135,3 @@ public:
 };
 
 #endif // __FloatUtils_h__
-
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//

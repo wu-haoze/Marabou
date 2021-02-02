@@ -51,21 +51,3 @@ String FloatUtils::doubleToString( double x, unsigned precision )
 
     return str;
 }
-
-bool FloatUtils::isNan( double x )
-{
-    return std::isnan( x );
-}
-
-bool FloatUtils::isInf( double x )
-{
-    return std::isinf( x );
-}
-
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
