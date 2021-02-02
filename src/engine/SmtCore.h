@@ -83,7 +83,10 @@ public:
     /*
       The current stack depth.
     */
-    unsigned getStackDepth() const;
+    inline unsigned getStackDepth() const
+    {
+        return _stack.size();
+    }
 
     /*
       Have the SMT core start reporting statistics.

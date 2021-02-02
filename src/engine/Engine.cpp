@@ -205,16 +205,6 @@ void Engine::solveLPWithGurobi( List<LPSolver::Term> &cost )
 
 bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 {
-    _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager, true ) );
-    _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
-    ENGINE_LOG( "Query encoded in Gurobi...\n" );
-
-    for ( const auto &constraint : _plConstraints )
-        constraint->registerGurobi( &( *_gurobi ) );
-    _tableau->setGurobi( &(*_gurobi) );
-    _heuristicCostManager.setGurobi( &(*_gurobi) );
-
     mainLoopStatistics();
     if ( _verbosity > 0 )
     {
@@ -858,6 +848,19 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
                 DivideStrategy::LargestInterval : DivideStrategy::EarliestReLU;
         }
 
+        if ( !_solveWithMILP )
+        {
+            _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+            _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager, true ) );
+            _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
+            ENGINE_LOG( "Query encoded in Gurobi...\n" );
+
+            for ( const auto &constraint : _plConstraints )
+                constraint->registerGurobi( &( *_gurobi ) );
+            _tableau->setGurobi( &(*_gurobi) );
+            _heuristicCostManager.setGurobi( &(*_gurobi) );
+        }
+
         struct timespec end = TimeUtils::sampleMicro();
         _statistics.setLongAttr( Statistics::TIME_PREPROCESSING_MICRO,
                                  TimeUtils::timePassed( start, end ) );
@@ -1185,19 +1188,6 @@ List<unsigned> Engine::getInputVariables() const
     return _preprocessedQuery.getInputVariables();
 }
 
-bool Engine::shouldExitDueToTimeout( unsigned timeout ) const
-{
-    enum {
-        MICROSECONDS_TO_SECONDS = 1000000,
-    };
-
-    // A timeout value of 0 means no time limit
-    if ( timeout == 0 )
-        return false;
-
-    return _statistics.getTotalTime() / MICROSECONDS_TO_SECONDS > timeout;
-}
-
 void Engine::reset()
 {
     resetStatistics();
@@ -1456,11 +1446,6 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
             inputQuery.setSolutionValue( i, assignment[variableName] );
         }
     }
-}
-
-void Engine::pushContext()
-{
-    _context.push();
 }
 
 void Engine::popContext()

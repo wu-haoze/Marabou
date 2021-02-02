@@ -54,6 +54,10 @@ class String;
 class Engine : public IEngine, public SignalHandler::Signalable
 {
 public:
+    enum {
+          MICROSECONDS_TO_SECONDS = 1000000,
+    };
+
     Engine();
 
     /*
@@ -320,7 +324,10 @@ private:
     /*
       Check whether a timeout value has been provided and exceeded.
     */
-    bool shouldExitDueToTimeout( unsigned timeout ) const;
+    inline bool shouldExitDueToTimeout( unsigned timeout ) const
+    {
+        return timeout != 0 && _statistics.getTotalTime() / MICROSECONDS_TO_SECONDS > timeout;
+    }
 
     /*
       Helper functions for input query preprocessing
@@ -375,7 +382,10 @@ private:
     void explicitBasisBoundTightening();
 
     /****************************** local search ****************************/
-    void pushContext();
+    inline void pushContext()
+    {
+        _context.push();
+    }
 
     void popContext();
 

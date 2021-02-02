@@ -127,11 +127,6 @@ void SmtCore::performSplit()
     }
 }
 
-unsigned SmtCore::getStackDepth() const
-{
-    return _stack.size();
-}
-
 bool SmtCore::popSplit()
 {
     struct timespec start = TimeUtils::sampleMicro();

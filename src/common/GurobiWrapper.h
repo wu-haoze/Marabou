@@ -65,19 +65,34 @@ public:
     void setCutoff( double cutoff );
 
     // Returns true iff an optimal solution has been found
-    bool optimal();
+    inline bool optimal()
+    {
+        return _model->get( GRB_IntAttr_Status ) == GRB_OPTIMAL;
+    }
 
     // Returns true iff the cutoff value was used
-    bool cutoffOccurred();
+    inline bool cutoffOccurred()
+    {
+        return _model->get( GRB_IntAttr_Status ) == GRB_CUTOFF;
+    }
 
     // Returns true iff the instance is infeasible
-    bool infeasible();
+    inline bool infeasible()
+    {
+        return _model->get( GRB_IntAttr_Status ) == GRB_INFEASIBLE;
+    }
 
     // Returns true iff the instance timed out
-    bool timeout();
+    inline bool timeout()
+    {
+        return _model->get( GRB_IntAttr_Status ) == GRB_TIME_LIMIT;
+    }
 
     // Returns true iff a feasible solution has been found
-    bool haveFeasibleSolution();
+    inline bool haveFeasibleSolution()
+    {
+        return _model->get( GRB_IntAttr_SolCount ) > 0;
+    }
 
     // Specify a time limit, in seconds
     void setTimeLimit( double seconds );
