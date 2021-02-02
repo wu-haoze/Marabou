@@ -945,11 +945,6 @@ void Engine::collectViolatedPlConstraints()
                              TimeUtils::timePassed( start, end ) );
 }
 
-bool Engine::allPlConstraintsHold()
-{
-    return _violatedPlConstraints.empty();
-}
-
 void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
 {
     ENGINE_LOG( "" );

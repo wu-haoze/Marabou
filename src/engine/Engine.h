@@ -307,7 +307,10 @@ private:
     /*
       Return true iff all piecewise linear constraints hold.
     */
-    bool allPlConstraintsHold();
+    inline bool allPlConstraintsHold()
+    {
+        return _violatedPlConstraints.empty();
+    }
 
     /*
       Apply all valid case splits proposed by the constraints.
