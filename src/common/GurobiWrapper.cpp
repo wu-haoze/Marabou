@@ -283,12 +283,6 @@ bool GurobiWrapper::haveFeasibleSolution()
     return _model->get( GRB_IntAttr_SolCount ) > 0;
 }
 
-double GurobiWrapper::getValue( unsigned variable )
-{
-    return _nameToVariable[Stringf("x%u", variable)]->get( GRB_DoubleAttr_X );
-
-}
-
 double GurobiWrapper::getObjective()
 {
     try

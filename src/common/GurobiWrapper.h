@@ -85,7 +85,11 @@ public:
     // Solve and extract the solution, or the best known bound on the
     // objective function
     void solve();
-    double getValue( unsigned variable );
+    inline double getValue( unsigned variable )
+    {
+        return _nameToVariable[Stringf("x%u", variable)]->get( GRB_DoubleAttr_X );
+    }
+
     double getObjective();
     void extractSolution( Map<String, double> &values, double &costOrObjective );
     double getObjectiveBound();
