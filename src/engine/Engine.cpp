@@ -109,43 +109,46 @@ bool Engine::performLocalSearch()
 
     // All the linear constraints have been satisfied at this point.
     // Update the cost function
-    if ( ( !_costFunctionInitialized ) || _alwaysReinitializeCost )
-    {
-        _heuristicCostManager.initiateCostFunctionForLocalSearch();
-        _costFunctionInitialized = true;
-    }
+    _heuristicCostManager.initiateCostFunctionForLocalSearch();
+    optimizeForHeuristicCost();
+    _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
+    double previousCost = _heuristicCostManager.computeHeuristicCost();
+    double currentCost = FloatUtils::infinity();
+
 
     ASSERT( allVarsWithinBounds() );
 
-    double previousCost = FloatUtils::infinity();
+    bool lastCostAccepted = true;
     while ( !_smtCore.needToSplit() )
     {
+        if ( lastCostAccepted )
+        {
+            collectViolatedPlConstraints();
+            if ( allPlConstraintsHold() )
+            {
+                ASSERT( FloatUtils::isZero( _heuristicCostManager.computeHeuristicCost() ) );
+                ENGINE_LOG( "Performing local search - done" );
+                return true;
+            }
+        }
+
+        _heuristicCostManager.updateHeuristicCost();
         optimizeForHeuristicCost();
         _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
+        currentCost = _heuristicCostManager.computeHeuristicCost();
 
-        collectViolatedPlConstraints();
-        if ( allPlConstraintsHold() )
+        if ( !acceptProposedUpdate( previousCost, currentCost ) )
         {
-            ASSERT( FloatUtils::isZero( _heuristicCostManager.computeHeuristicCost() ) );
-            ENGINE_LOG( "Performing local search - done" );
-            return true;
+            _smtCore.reportRandomFlip();
+            _heuristicCostManager.undoLastHeuristicCostUpdate();
+            lastCostAccepted = false;
+            _statistics.incLongAttr( Statistics::NUM_REJECTED_FLIPS, 1 );
         }
         else
         {
-            double currentCost = _heuristicCostManager.computeHeuristicCost();
-            if ( !acceptProposedUpdate( previousCost, currentCost ) )
-            {
-                _statistics.incLongAttr( Statistics::NUM_REJECTED_FLIPS, 1 );
-                _smtCore.reportRandomFlip();
-                _heuristicCostManager.undoLastHeuristicCostUpdate();
-            }
-            else
-            {
-                _statistics.incLongAttr( Statistics::NUM_ACCEPTED_FLIPS, 1 );
-                previousCost = currentCost;
-            }
-            _heuristicCostManager.updateHeuristicCost();
-            continue;
+            previousCost = currentCost;
+            lastCostAccepted = true;
+            _statistics.incLongAttr( Statistics::NUM_ACCEPTED_FLIPS, 1 );
         }
     }
     ENGINE_LOG( "Performing local search - done" );
