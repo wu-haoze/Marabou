@@ -426,6 +426,8 @@ private:
 
     void solveLPWithGurobi( List<LPSolver::Term> &cost );
 
+    void informLPSolverOfBounds();
+
     bool solveWithGurobi( unsigned timeoutInSeconds );
 
     /*

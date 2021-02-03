@@ -202,8 +202,38 @@ void Engine::solveLPWithGurobi( List<LPSolver::Term> &cost )
                              _gurobi->getNumberOfSimplexIterations() );
 }
 
+void Engine::informLPSolverOfBounds()
+{
+    struct timespec start = TimeUtils::sampleMicro();
+    for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+    {
+        _gurobi->setLowerBound( Stringf( "x%u", i ), _boundManager.getLowerBound( i ) );
+        _gurobi->setUpperBound( Stringf( "x%u", i ), _boundManager.getUpperBound( i ) );
+    }
+    _gurobi->updateModel();
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO,
+                             TimeUtils::timePassed( start, end ) );
+
+}
+
 bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 {
+    struct timespec mainLoopStart = TimeUtils::sampleMicro();
+
+    struct timespec start = TimeUtils::sampleMicro();
+    _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager, true ) );
+    _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
+    ENGINE_LOG( "Query encoded in Gurobi...\n" );
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO,
+                             TimeUtils::timePassed( start, end ) );
+
+    for ( const auto &constraint : _plConstraints )
+        constraint->registerGurobi( &( *_gurobi ) );
+    _heuristicCostManager.setGurobi( &(*_gurobi) );
+
     mainLoopStatistics();
     if ( _verbosity > 0 )
     {
@@ -215,7 +245,6 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
     applyAllValidConstraintCaseSplits();
 
     bool splitJustPerformed = true;
-    struct timespec mainLoopStart = TimeUtils::sampleMicro();
     while ( true )
     {
         struct timespec mainLoopEnd = TimeUtils::sampleMicro();
@@ -265,6 +294,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
             {
                 performBoundTightening();
                 splitJustPerformed = false;
+                informLPSolverOfBounds();
+
                 DEBUG({ checkBoundConsistency(); });
             }
 
@@ -845,19 +876,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
                 ( _preprocessedQuery.getInputVariables().size() <
                   GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD ) ?
                 DivideStrategy::LargestInterval : DivideStrategy::EarliestReLU;
-        }
-
-        if ( !_solveWithMILP )
-        {
-            _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-            _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager, true ) );
-            _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
-            ENGINE_LOG( "Query encoded in Gurobi...\n" );
-
-            for ( const auto &constraint : _plConstraints )
-                constraint->registerGurobi( &( *_gurobi ) );
-            _tableau->setGurobi( &(*_gurobi) );
-            _heuristicCostManager.setGurobi( &(*_gurobi) );
         }
 
         struct timespec end = TimeUtils::sampleMicro();
@@ -1444,13 +1462,6 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
 void Engine::popContext()
 {
     _context.pop();
-
-    for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
-    {
-        _gurobi->setLowerBound( Stringf( "x%u", i ), _boundManager.getLowerBound( i ) );
-        _gurobi->setUpperBound( Stringf( "x%u", i ), _boundManager.getUpperBound( i ) );
-    }
-    _gurobi->updateModel();
 }
 
 void Engine::checkBoundConsistency()

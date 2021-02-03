@@ -56,6 +56,7 @@ Statistics::Statistics()
     _longAttributes[TIME_SIMPLEX_STEPS_MICRO] = 0;
     _longAttributes[TIME_UPDATING_COST_FUNCTION_MICRO] = 0;
     _longAttributes[TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO] = 0;
+    _longAttributes[TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO] = 0;
 
     // Tightening
     _longAttributes[NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT] = 0;
@@ -132,6 +133,11 @@ void Statistics::print()
     val = getLongAttr( TIME_SIMPLEX_STEPS_MICRO );
     total += val;
     printf( "\t\t[%.2lf%%] Simplex steps: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Time adding constraints to lp solver: %llu milli.\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_CHECKING_QUIT_CONDITION_MICRO );
