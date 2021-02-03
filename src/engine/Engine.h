@@ -165,6 +165,10 @@ public:
     */
     List<unsigned> getInputVariables() const;
 
+    /*
+      Collect all violated piecewise linear constraints.
+    */
+    void collectViolatedPlConstraints();
 
     /*
       PSA: The following two methods are for DnC only and should be used very
@@ -298,11 +302,6 @@ private:
       Return true iff all variables are within bounds.
      */
     bool allVarsWithinBounds() const;
-
-    /*
-      Collect all violated piecewise linear constraints.
-    */
-    void collectViolatedPlConstraints();
 
     /*
       Return true iff all piecewise linear constraints hold.
