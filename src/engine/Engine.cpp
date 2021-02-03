@@ -1404,6 +1404,9 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     _gurobi->solve();
 
+    _statistics.setUnsignedAttr( Statistics::NUM_VISITED_TREE_STATES, _gurobi->getNumberOfNodes() );
+    if ( _verbosity > 0 )
+        _statistics.print();
     if ( _gurobi->haveFeasibleSolution() )
     {
         _exitCode = IEngine::SAT;

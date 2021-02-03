@@ -121,6 +121,8 @@ public:
     virtual unsigned getNumberOfSimplexIterations() = 0;
 
     virtual void updateModel() {};
+
+    virtual unsigned getNumberOfNodes() { return 0; };
 };
 
 #endif // __LPSolver_h__

@@ -122,6 +122,8 @@ public:
 
     unsigned getNumberOfSimplexIterations();
 
+    unsigned getNumberOfNodes();
+
     void updateModel()
     {
         _model->update();

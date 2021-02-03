@@ -328,6 +328,10 @@ unsigned GurobiWrapper::getNumberOfSimplexIterations()
     return _model->get( GRB_DoubleAttr_IterCount );
 }
 
+unsigned GurobiWrapper::getNumberOfNodes()
+{
+    return _model->get( GRB_DoubleAttr_NodeCount );
+}
 
 void GurobiWrapper::log( const String &message )
 {
