@@ -98,6 +98,8 @@ void HeuristicCostManager::updateHeuristicCost()
         updateHeuristicCostGWSAT();
     else if ( _flippingStrategy == "mcmc1" )
         updateHeuristicCostMCMC1();
+    else if ( _flippingStrategy == "mcmc2" )
+        updateHeuristicCostMCMC2();
     else
         throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
                             Stringf( "Unknown flipping stategy %s", _flippingStrategy.ascii() ).ascii() );
@@ -353,6 +355,17 @@ void HeuristicCostManager::updateHeuristicCostMCMC1()
     }
 
     COST_LOG( "Cost function not guaranteed to reduce." );
+    unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
+    PiecewiseLinearConstraint *plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
+    Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+    unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+    PhaseStatus phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+}
+
+void HeuristicCostManager::updateHeuristicCostMCMC2()
+{
+    // Random flip
     unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
     PiecewiseLinearConstraint *plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
     Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
