@@ -96,6 +96,8 @@ void HeuristicCostManager::updateHeuristicCost()
 
     if ( _flippingStrategy == "gwsat" )
         updateHeuristicCostGWSAT();
+    else if ( _flippingStrategy == "gwsat2" )
+        updateHeuristicCostGWSAT2();
     else if ( _flippingStrategy == "mcmc1" )
         updateHeuristicCostMCMC1();
     else if ( _flippingStrategy == "mcmc2" )
@@ -281,6 +283,49 @@ void HeuristicCostManager::updateHeuristicCostGWSAT()
     Vector<PiecewiseLinearConstraint *> &violatedPlConstraints =
         _engine->getViolatedPiecewiseLinearConstraints();
     for ( const auto &plConstraint : violatedPlConstraints )
+    {
+        double reducedCost = 0;
+        PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
+        ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
+        plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
+
+        if ( reducedCost > maxReducedCost )
+        {
+            maxReducedCost = reducedCost;
+            plConstraintToFlip = plConstraint;
+            phaseStatusToFlipTo = phaseStatusOfReducedCost;
+        }
+    }
+
+    if ( !plConstraintToFlip )
+    {
+        // Assume violated pl constraints has been updated.
+        // If using noise stategy, we just flip a random
+        // PLConstraint.
+        COST_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
+        unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
+        plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
+        Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+        unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+        phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+    }
+
+    ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
+
+    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+}
+
+void HeuristicCostManager::updateHeuristicCostGWSAT2()
+{
+    PiecewiseLinearConstraint *plConstraintToFlip = NULL;
+    PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
+
+    COST_LOG( Stringf( "Heuristic cost before updates: %f", computeHeuristicCost() ).ascii() ) ;
+
+    // Flip the cost term that reduces the cost by the most
+    COST_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
+    double maxReducedCost = 0;
+    for ( const auto &plConstraint : _plConstraintsInHeuristicCost )
     {
         double reducedCost = 0;
         PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();

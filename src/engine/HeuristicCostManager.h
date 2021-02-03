@@ -129,6 +129,8 @@ private:
     */
     void updateHeuristicCostGWSAT();
 
+    void updateHeuristicCostGWSAT2();
+
     void updateHeuristicCostMCMC1();
 
     void updateHeuristicCostMCMC2();
