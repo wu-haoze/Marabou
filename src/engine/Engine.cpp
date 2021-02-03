@@ -52,7 +52,6 @@ Engine::Engine()
     , _probabilityDensityParameter( Options::get()->getFloat( Options::PROBABILITY_DENSITY_PARAMETER ) )
     , _heuristicCostManager( this )
     , _costFunctionInitialized( false )
-    , _alwaysReinitializeCost( Options::get()->getBool( Options::ALWAYS_REINITIALIZE_COST ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
