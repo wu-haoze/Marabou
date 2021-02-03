@@ -270,43 +270,32 @@ void HeuristicCostManager::initiateCostFunctionForLocalSearchRandomly
 
 void HeuristicCostManager::updateHeuristicCostGWSAT()
 {
-    /*
-      Following the heuristics from
-      https://www.researchgate.net/publication/2637561_Noise_Strategies_for_Improving_Local_Search
-      with probability p, flip the cost term of a randomly chosen unsatisfied PLConstraint
-      with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
-    */
-    bool useNoiseStrategy = ( (float) rand() / RAND_MAX ) <= _noiseParameter;
-
     PiecewiseLinearConstraint *plConstraintToFlip = NULL;
     PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
 
     COST_LOG( Stringf( "Heuristic cost before updates: %f", computeHeuristicCost() ).ascii() ) ;
 
-    if ( !useNoiseStrategy )
+    // Flip the cost term that reduces the cost by the most
+    COST_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
+    double maxReducedCost = 0;
+    Vector<PiecewiseLinearConstraint *> &violatedPlConstraints =
+        _engine->getViolatedPiecewiseLinearConstraints();
+    for ( const auto &plConstraint : violatedPlConstraints )
     {
-        // Flip the cost term that reduces the cost by the most
-        COST_LOG( "Using default strategy to pick a PLConstraint and flip its heuristic cost..." );
-        double maxReducedCost = 0;
-        Vector<PiecewiseLinearConstraint *> &violatedPlConstraints =
-            _engine->getViolatedPiecewiseLinearConstraints();
-        for ( const auto &plConstraint : violatedPlConstraints )
-        {
-            double reducedCost = 0;
-            PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
-            ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
-            plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
+        double reducedCost = 0;
+        PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
+        ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
+        plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
 
-            if ( reducedCost > maxReducedCost )
-            {
-                maxReducedCost = reducedCost;
-                plConstraintToFlip = plConstraint;
-                phaseStatusToFlipTo = phaseStatusOfReducedCost;
-            }
+        if ( reducedCost > maxReducedCost )
+        {
+            maxReducedCost = reducedCost;
+            plConstraintToFlip = plConstraint;
+            phaseStatusToFlipTo = phaseStatusOfReducedCost;
         }
     }
 
-    if ( !plConstraintToFlip ||  useNoiseStrategy )
+    if ( !plConstraintToFlip )
     {
         // Assume violated pl constraints has been updated.
         // If using noise stategy, we just flip a random

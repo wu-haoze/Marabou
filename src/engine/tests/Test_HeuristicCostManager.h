@@ -138,7 +138,7 @@ public:
         TS_ASSERT_THROWS_NOTHING( heuristicCostManager.initiateCostFunctionForLocalSearch(); );
 
         solver.setValue( "x0", -1 );
-
+        TS_ASSERT_THROWS_NOTHING( engine.collectViolatedPlConstraints() );
         TS_ASSERT_THROWS_NOTHING( heuristicCostManager.updateHeuristicCost() );
         heuristicCostManager.dumpHeuristicCost();
 
@@ -153,6 +153,7 @@ public:
             TS_ASSERT_EQUALS( pair.second, expectedHeuristicCost[pair.first] );
 
         solver.setValue( "x2", 1 );
+        TS_ASSERT_THROWS_NOTHING( engine.collectViolatedPlConstraints() );
         TS_ASSERT_THROWS_NOTHING( heuristicCostManager.updateHeuristicCost() );
         heuristicCostManager.dumpHeuristicCost();
 
