@@ -58,7 +58,7 @@ public:
         LOCAL_SEARCH,
 
         // Always reinitialize the cost
-        ALWAYS_REINITIALIZE_COST,
+        ADD_COST_LEMMA,
     };
 
     enum IntOptions {

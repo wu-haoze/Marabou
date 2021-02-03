@@ -48,7 +48,7 @@ void Options::initializeDefaultValues()
     _boolOptions[DUMP_BOUNDS] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
     _boolOptions[LOCAL_SEARCH] = false;
-    _boolOptions[ALWAYS_REINITIALIZE_COST] = false;
+    _boolOptions[ADD_COST_LEMMA] = false;
 
     /*
       Int options
