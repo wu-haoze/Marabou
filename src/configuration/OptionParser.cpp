@@ -54,9 +54,9 @@ void OptionParser::initialize()
         ( "local-search",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::LOCAL_SEARCH]) ),
           "Local search" )
-        ( "reinit-cost",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::ALWAYS_REINITIALIZE_COST]) ),
-          "Always reinitialize cost" )
+        ( "cost-lemma",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::ADD_COST_LEMMA]) ),
+          "Add local search result as lemmas" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )
