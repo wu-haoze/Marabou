@@ -112,6 +112,7 @@ bool Engine::performLocalSearch()
     optimizeForHeuristicCost();
     _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
     double previousCost = _heuristicCostManager.computeHeuristicCost();
+    _smtCore.reportRandomFlip();
     double currentCost = FloatUtils::infinity();
 
 
