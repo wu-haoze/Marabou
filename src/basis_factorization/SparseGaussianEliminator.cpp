@@ -206,8 +206,6 @@ void SparseGaussianEliminator::factorize()
 
 void SparseGaussianEliminator::choosePivot()
 {
-    SGAUSSIAN_LOG( "Choose pivot invoked" );
-
     /*
       Apply the Markowitz rule: in the active sub-matrix,
       let p_i denote the number of non-zero elements in the i'th

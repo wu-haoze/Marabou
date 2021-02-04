@@ -36,36 +36,21 @@ public:
     // How often should the main loop print statistics?
     static const unsigned STATISTICS_PRINTING_FREQUENCY;
 
-    // Tolerance when checking whether the value computed for a basic variable is out of bounds
-    static const double BOUND_COMPARISON_ADDITIVE_TOLERANCE;
-    static const double BOUND_COMPARISON_MULTIPLICATIVE_TOLERANCE;
+    static const DivideStrategy SPLITTING_HEURISTICS;
 
-    // Tolerance when checking whether a basic variable depends on a non-basic variable, by looking
-    // at the change column, as part of a pivot operation.
-    static const double PIVOT_CHANGE_COLUMN_TOLERANCE;
+    // The frequency to use interval splitting when largest interval splitting strategy is in use.
+    static const unsigned INTERVAL_SPLITTING_FREQUENCY;
 
-    // Tolerance for the difference when computing the pivot entry by column and by row
-    static const double PIVOT_ROW_AND_COLUMN_TOLERANCE;
+    // When automatically deciding which splitting strategy to use, we use relu-splitting if
+    // the number of inputs is larger than this number.
+    static const unsigned INTERVAL_SPLITTING_THRESHOLD;
 
-    // Tolerance when checking whether a non-basic variable is eligible for being selected as the
-    // entering variable, by its reduced cost
-    static const double ENTRY_ELIGIBILITY_TOLERANCE;
-
-    // Ratio test tolerance constants
-    static const double RATIO_CONSTRAINT_ADDITIVE_TOLERANCE;
-    static const double RATIO_CONSTRAINT_MULTIPLICATIVE_TOLERANCE;
-    static const double HARRIS_RATIO_CONSTRAINT_ADDITIVE_TOLERANCE;
-    static const double HARRIS_RATIO_CONSTRAINT_MULTIPLICATIVE_TOLERANCE;
-
-    // Cost function tolerance constants
-    static const double BASIC_COSTS_ADDITIVE_TOLERANCE;
-    static const double BASIC_COSTS_MULTIPLICATIVE_TOLERANCE;
+    // When the row bound tightener is asked to run until saturation, it can enter an infinite loop
+    // due to tiny increments in bounds. This number limits the number of iterations it can perform.
+    static const unsigned ROW_BOUND_TIGHTENER_SATURATION_ITERATIONS;
 
     // Sparse ForrestTomlin diagonal element tolerance constant
     static const double SPARSE_FORREST_TOMLIN_DIAGONAL_ELEMENT_TOLERANCE;
-
-    // Toggle use of Harris' two-pass ratio test for selecting the leaving variable
-    static const bool USE_HARRIS_RATIO_TEST;
 
     // Toggle query-preprocessing on/off.
     static const bool PREPROCESS_INPUT_QUERY;
@@ -91,59 +76,6 @@ public:
     // respect to the input network.
     static const bool WARM_START;
 
-    // The maximal number of iterations without new tree states being visited, before
-    // the engine performs a precision restoration.
-    static const unsigned MAX_ITERATIONS_WITHOUT_PROGRESS;
-
-    // How often should the main loop check the current degradation?
-    static const unsigned DEGRADATION_CHECKING_FREQUENCY;
-
-    // The threshold of degradation above which restoration is required
-    static const double DEGRADATION_THRESHOLD;
-
-    // If a pivot element in a simplex iteration is smaller than this threshold, the engine will attempt
-    // to pick another element.
-    static const double ACCEPTABLE_SIMPLEX_PIVOT_THRESHOLD;
-
-    // If true, column-merging equations are given special treatment and cause columns in the tableau
-    // to be merged (instead of a new row added).
-    static const bool USE_COLUMN_MERGING_EQUATIONS;
-
-    // If a pivot element in a Gaussian elimination iteration is smaller than this threshold times
-    // the largest element in the column, the elimination engine will attempt to pick another pivot.
-    static const double GAUSSIAN_ELIMINATION_PIVOT_SCALE_THRESHOLD;
-
-    // How many potential pivots should the engine inspect (at most) in every simplex iteration?
-    static const unsigned MAX_SIMPLEX_PIVOT_SEARCH_ITERATIONS;
-
-    static const DivideStrategy SPLITTING_HEURISTICS;
-
-    // The frequency to use interval splitting when largest interval splitting strategy is in use.
-    static const unsigned INTERVAL_SPLITTING_FREQUENCY;
-
-    // When automatically deciding which splitting strategy to use, we use relu-splitting if
-    // the number of inputs is larger than this number.
-    static const unsigned INTERVAL_SPLITTING_THRESHOLD;
-
-    // How often should we perform full bound tightening, on the entire contraints matrix A.
-    static const unsigned BOUND_TIGHTING_ON_CONSTRAINT_MATRIX_FREQUENCY;
-
-    // When the row bound tightener is asked to run until saturation, it can enter an infinite loop
-    // due to tiny increments in bounds. This number limits the number of iterations it can perform.
-    static const unsigned ROW_BOUND_TIGHTENER_SATURATION_ITERATIONS;
-
-    // If the cost function error exceeds this threshold, it is recomputed
-    static const double COST_FUNCTION_ERROR_THRESHOLD;
-
-    // How often should projected steepest edge reset the reference space?
-    static const unsigned PSE_ITERATIONS_BEFORE_RESET;
-
-    // An error threshold which, when crossed, causes projected steepest edge to reset the reference space
-    static const double PSE_GAMMA_ERROR_THRESHOLD;
-
-    // PSE's Gamma function's update tolerance
-    static const double PSE_GAMMA_UPDATE_TOLERANCE;
-
     // The tolerance for checking whether f = Relu( b )
     static const double RELU_CONSTRAINT_COMPARISON_TOLERANCE;
 
@@ -152,6 +84,8 @@ public:
 
     // Should the initial basis be comprised only of auxiliary (row) variables?
     static const bool ONLY_AUX_INITIAL_BASIS;
+
+    static const double GAUSSIAN_ELIMINATION_PIVOT_SCALE_THRESHOLD;
 
     /*
       Explicit (Reluplex-style) bound tightening options
@@ -173,13 +107,6 @@ public:
 
     // When doing explicit bound tightening, should we repeat until saturation?
     static const bool EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION;
-
-    /*
-      Symbolic bound tightening options
-    */
-
-    // Symbolic tightening rounding constant
-    static const double SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT;
 
     /*
       Constraint fixing heuristics
@@ -233,16 +160,12 @@ public:
     static const bool ENGINE_LOGGING;
     static const bool TABLEAU_LOGGING;
     static const bool SMT_CORE_LOGGING;
-    static const bool DANTZIGS_RULE_LOGGING;
     static const bool BASIS_FACTORIZATION_LOGGING;
     static const bool PREPROCESSOR_LOGGING;
     static const bool INPUT_QUERY_LOGGING;
-    static const bool PROJECTED_STEEPEST_EDGE_LOGGING;
     static const bool GAUSSIAN_ELIMINATION_LOGGING;
     static const bool QUERY_LOADER_LOGGING;
-    static const bool SYMBOLIC_BOUND_TIGHTENER_LOGGING;
     static const bool NETWORK_LEVEL_REASONER_LOGGING;
-    static const bool MPS_PARSER_LOGGING;
     static const bool PLCONSTRAINT_LOGGING;
     static const bool LOCAL_SEARCH_LOGGING;
     static const bool HEURISTIC_COST_MANAGER_LOGGING;
