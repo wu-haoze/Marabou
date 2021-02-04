@@ -165,9 +165,9 @@ void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char 
 {
     try
     {
-        GRBLinExpr constraint;
-
         log( Stringf( "Adding constraint (name: %s).", name.ascii() ).ascii() );
+
+        GRBLinExpr constraint;
 
         for ( const auto &term : terms )
         {

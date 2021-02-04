@@ -1454,6 +1454,7 @@ void Engine::popContext()
     // Remove all lemmas added at this level
     if ( _costLemmas )
     {
+        _gurobi->updateModel();
         unsigned level = _context.getLevel();
         for ( unsigned i = 0; i < _costLemmaIndex; ++i )
             _gurobi->removeConstraint( Stringf( "%u_%u", level, i ) );
