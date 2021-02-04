@@ -19,6 +19,7 @@
 #include "AutoRowBoundTightener.h"
 #include "AutoTableau.h"
 #include "BoundManager.h"
+#include "context/cdo.h"
 #include "context/context.h"
 #include "DivideStrategy.h"
 #include "HeuristicCostManager.h"
@@ -418,6 +419,8 @@ private:
     bool _costFunctionInitialized;
 
     bool _costLemmas;
+
+    CVC4::context::CDO<unsigned> _costLemmaIndex;
 
     void performBoundTightening();
 

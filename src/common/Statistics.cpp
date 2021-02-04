@@ -59,6 +59,7 @@ Statistics::Statistics()
     _longAttributes[TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO] = 0;
 
     // Tightening
+    _longAttributes[NUM_COST_LEMMAS] = 0;
     _longAttributes[NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT] = 0;
     _longAttributes[NUM_CONSTRAINT_MATRIX_BOUND_TIGHTENING_ATTEMPT] = 0;
     _longAttributes[NUM_SYMBOLIC_BOUND_TIGHTENING_ATTEMPT] = 0;
@@ -215,6 +216,9 @@ void Statistics::print()
             , getUnsignedAttr( NUM_VISITED_TREE_STATES ) );
 
     printf( "\t--- Bound Tightening Statistics ---\n" );
+    printf( "\t\tNumber of added cost lemmas: %llu.\n"
+            , getLongAttr( NUM_COST_LEMMAS ) );
+
     printf( "\t\tNumber of explicit basis matrices examined by row tightener: %llu. Consequent tightenings: %llu\n"
             , getLongAttr( NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT )
             , getLongAttr( NUM_EXPLICIT_BASIS_BOUND_TIGHTENING ) );

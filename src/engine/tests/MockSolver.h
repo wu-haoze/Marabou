@@ -52,13 +52,15 @@ public:
     }
 
    // Add a new LEQ constraint, e.g. 3x + 4y <= -5
-    void addLeqConstraint( const List<LPSolver::Term> &, double ){}
+    void addLeqConstraint( const List<LPSolver::Term> &, double, String ){}
 
    // Add a new GEQ constraint, e.g. 3x + 4y >= -5
-    void addGeqConstraint( const List<LPSolver::Term> &, double ){}
+    void addGeqConstraint( const List<LPSolver::Term> &, double, String ){}
 
    // Add a new EQ constraint, e.g. 3x + 4y = -5
-    void addEqConstraint( const List<LPSolver::Term> &, double ){}
+    void addEqConstraint( const List<LPSolver::Term> &, double, String ){}
+
+    void removeConstraint( String ){}
 
    // A cost function to minimize, or an objective function to maximize
     void setCost( const List<LPSolver::Term> & ){}

@@ -28,22 +28,6 @@ struct SmtStackEntry
 public:
     PiecewiseLinearCaseSplit _activeSplit;
     List<PiecewiseLinearCaseSplit> _alternativeSplits;
-
-    /*
-      Create a copy of the SmtStackEntry on the stack and returns a pointer to
-      the copy.
-      We do not copy the engineState for now, since where this method is called,
-      we recreate the engineState by replaying the caseSplits.
-    */
-    SmtStackEntry *duplicateSmtStackEntry()
-    {
-        SmtStackEntry *copy = new SmtStackEntry();
-
-        copy->_activeSplit = _activeSplit;
-        copy->_alternativeSplits = _alternativeSplits;
-
-        return copy;
-    }
 };
 
 #endif // __SmtStackEntry_h__

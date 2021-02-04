@@ -52,6 +52,7 @@ Engine::Engine()
     , _heuristicCostManager( this )
     , _costFunctionInitialized( false )
     , _costLemmas( Options::get()->getBool( Options::ADD_COST_LEMMA ) )
+    , _costLemmaIndex( &_context, 0 )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -79,6 +80,14 @@ void Engine::optimizeForHeuristicCost()
                                            Stringf( "x%u", term.first ) ) );
 
     solveLPWithGurobi( terms );
+    if ( _costLemmas )
+    {
+        unsigned index = _costLemmaIndex;
+        _gurobi->addGeqConstraint( terms, _gurobi->getObjective(),
+                                   Stringf( "%u_%u", _context.getLevel(), index ) );
+        _costLemmaIndex = index + 1;
+        _statistics.incLongAttr( Statistics::NUM_COST_LEMMAS, 1 );
+    }
 }
 
 bool Engine::performLocalSearch()
@@ -1442,6 +1451,14 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
 
 void Engine::popContext()
 {
+    // Remove all lemmas added at this level
+    if ( _costLemmas )
+    {
+        unsigned level = _context.getLevel();
+        for ( unsigned i = 0; i < _costLemmaIndex; ++i )
+            _gurobi->removeConstraint( Stringf( "%u_%u", level, i ) );
+    }
+
     _context.pop();
 }
 

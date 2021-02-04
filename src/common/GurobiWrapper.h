@@ -46,13 +46,15 @@ public:
     void setUpperBound( String, double ub );
 
     // Add a new LEQ constraint, e.g. 3x + 4y <= -5
-    void addLeqConstraint( const List<LPSolver::Term> &terms, double scalar );
+    void addLeqConstraint( const List<LPSolver::Term> &terms, double scalar, String name="" );
 
     // Add a new GEQ constraint, e.g. 3x + 4y >= -5
-    void addGeqConstraint( const List<LPSolver::Term> &terms, double scalar );
+    void addGeqConstraint( const List<LPSolver::Term> &terms, double scalar, String name="" );
 
     // Add a new EQ constraint, e.g. 3x + 4y = -5
-    void addEqConstraint( const List<LPSolver::Term> &terms, double scalar );
+    void addEqConstraint( const List<LPSolver::Term> &terms, double scalar, String name="" );
+
+    void removeConstraint( String constraintName );
 
     // A cost function to minimize, or an objective function to maximize
     void setCost( const List<LPSolver::Term> &terms );
@@ -135,7 +137,7 @@ private:
     Map<String, GRBVar *> _nameToVariable;
     double _timeoutInSeconds;
 
-    void addConstraint( const List<LPSolver::Term> &terms, double scalar, char sense );
+    void addConstraint( const List<LPSolver::Term> &terms, double scalar, char sense, String name="" );
 
     void freeModelIfNeeded();
     void freeMemoryIfNeeded();

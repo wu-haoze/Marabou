@@ -77,7 +77,7 @@ void OptionParser::initialize()
           "Strategy of local search: currentAssignment/inputAssignment/random. default: inputAssignment" )
         ( "init-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INITIALIZATION_STRATEGY]) ),
-          "Strategy of local search: gwsat. default: gwsat" )
+          "Strategy of local search: gwsat/gwsat2/mcmc1/mcmc2. default: mcmc2" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )
@@ -126,7 +126,7 @@ void OptionParser::initialize()
           "The probability to use the noise strategy in local search. default: 0.0" )
         ( "mcmc-beta",
           boost::program_options::value<float>( &((*_floatOptions)[Options::PROBABILITY_DENSITY_PARAMETER]) ),
-          "beta parameter in MCMC search. default: 1.0" )
+          "beta parameter in MCMC search. default: 0.5" )
 #ifdef ENABLE_GUROBI
         ( "milp",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::SOLVE_WITH_MILP]) ),

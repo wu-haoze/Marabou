@@ -146,27 +146,28 @@ void GurobiWrapper::setCutoff( double cutoff )
     _model->set( GRB_DoubleParam_Cutoff, cutoff );
 }
 
-void GurobiWrapper::addLeqConstraint( const List<Term> &terms, double scalar )
+void GurobiWrapper::addLeqConstraint( const List<Term> &terms, double scalar, String name )
 {
-    addConstraint( terms, scalar, GRB_LESS_EQUAL );
+    addConstraint( terms, scalar, GRB_LESS_EQUAL, name );
 }
 
-void GurobiWrapper::addGeqConstraint( const List<Term> &terms, double scalar )
+void GurobiWrapper::addGeqConstraint( const List<Term> &terms, double scalar, String name )
 {
-    addConstraint( terms, scalar, GRB_GREATER_EQUAL );
+    addConstraint( terms, scalar, GRB_GREATER_EQUAL, name );
 }
 
-void GurobiWrapper::addEqConstraint( const List<Term> &terms, double scalar )
+void GurobiWrapper::addEqConstraint( const List<Term> &terms, double scalar, String name )
 {
-    addConstraint( terms, scalar, GRB_EQUAL );
+    addConstraint( terms, scalar, GRB_EQUAL, name );
 }
 
-void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char sense )
+void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char sense, String name )
 {
     try
     {
         GRBLinExpr constraint;
 
+        log( Stringf( "Adding constraint (name: %s", name.ascii() ).ascii() );
 
         for ( const auto &term : terms )
         {
@@ -174,7 +175,7 @@ void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char 
             constraint += GRBLinExpr( *_nameToVariable[term._variable], term._coefficient );
         }
 
-        _model->addConstr( constraint, sense, scalar );
+        _model->addConstr( constraint, sense, scalar, name.ascii() );
     }
     catch ( GRBException e )
     {
@@ -184,6 +185,24 @@ void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char 
                                     e.getMessage().c_str() ).ascii() );
     }
 }
+
+void GurobiWrapper::removeConstraint( String constraintName )
+{
+    try
+    {
+        log( Stringf( "Removing constraint (name: %s", constraintName.ascii() ).ascii() );
+
+        _model->remove( _model->getConstrByName( constraintName.ascii() ) );
+    }
+    catch ( GRBException e )
+    {
+        throw CommonError( CommonError::GUROBI_EXCEPTION,
+                           Stringf( "Gurobi exception. Gurobi Code: %u, message: %s\n",
+                                    e.getErrorCode(),
+                                    e.getMessage().c_str() ).ascii() );
+    }
+}
+
 
 void GurobiWrapper::setCost( const List<Term> &terms )
 {

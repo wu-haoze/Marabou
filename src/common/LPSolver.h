@@ -63,13 +63,15 @@ public:
     virtual void setUpperBound( String, double ub ) = 0;
 
     // Add a new LEQ constraint, e.g. 3x + 4y <= -5
-    virtual void addLeqConstraint( const List<Term> &terms, double scalar ) = 0;
+    virtual void addLeqConstraint( const List<Term> &terms, double scalar, String name="" ) = 0;
 
     // Add a new GEQ constraint, e.g. 3x + 4y >= -5
-    virtual void addGeqConstraint( const List<Term> &terms, double scalar ) = 0;
+    virtual void addGeqConstraint( const List<Term> &terms, double scalar, String name="" ) = 0;
 
     // Add a new EQ constraint, e.g. 3x + 4y = -5
-    virtual void addEqConstraint( const List<Term> &terms, double scalar ) = 0;
+    virtual void addEqConstraint( const List<Term> &terms, double scalar, String name="" ) = 0;
+
+    virtual void removeConstraint( String ) = 0;
 
     // A cost function to minimize, or an objective function to maximize
     virtual void setCost( const List<Term> &terms ) = 0;

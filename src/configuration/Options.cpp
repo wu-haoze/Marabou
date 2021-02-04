@@ -69,7 +69,7 @@ void Options::initializeDefaultValues()
     _floatOptions[PREPROCESSOR_BOUND_TOLERANCE] = \
         GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
     _floatOptions[NOISE_PARAMETER] = 0.0;
-    _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 1.0;
+    _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 0.5;
 
     /*
       String options
@@ -83,7 +83,7 @@ void Options::initializeDefaultValues()
     _stringOptions[SYMBOLIC_BOUND_TIGHTENING_TYPE] = "";
     _stringOptions[MILP_SOLVER_BOUND_TIGHTENING_TYPE] = "none";
     _stringOptions[QUERY_DUMP_FILE] = "";
-    _stringOptions[FLIPPING_STRATEGY] = "gwsat";
+    _stringOptions[FLIPPING_STRATEGY] = "mcmc2";
     _stringOptions[INITIALIZATION_STRATEGY] = "inputAssignment";
 }
 
