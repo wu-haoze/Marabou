@@ -167,7 +167,7 @@ void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char 
     {
         GRBLinExpr constraint;
 
-        log( Stringf( "Adding constraint (name: %s", name.ascii() ).ascii() );
+        log( Stringf( "Adding constraint (name: %s).", name.ascii() ).ascii() );
 
         for ( const auto &term : terms )
         {
@@ -190,7 +190,7 @@ void GurobiWrapper::removeConstraint( String constraintName )
 {
     try
     {
-        log( Stringf( "Removing constraint (name: %s", constraintName.ascii() ).ascii() );
+        log( Stringf( "Removing constraint (name: %s).", constraintName.ascii() ).ascii() );
 
         _model->remove( _model->getConstrByName( constraintName.ascii() ) );
     }

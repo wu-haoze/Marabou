@@ -95,9 +95,9 @@ const bool GlobalConfiguration::GUROBI_LOGGING = false;
 
 // Logging - note that it is enabled only in Debug mode
 const bool GlobalConfiguration::DNC_MANAGER_LOGGING = false;
-const bool GlobalConfiguration::ENGINE_LOGGING = true;
+const bool GlobalConfiguration::ENGINE_LOGGING = false;
 const bool GlobalConfiguration::TABLEAU_LOGGING = false;
-const bool GlobalConfiguration::SMT_CORE_LOGGING = false;
+const bool GlobalConfiguration::SMT_CORE_LOGGING = true;
 const bool GlobalConfiguration::DANTZIGS_RULE_LOGGING = false;
 const bool GlobalConfiguration::BASIS_FACTORIZATION_LOGGING = false;
 const bool GlobalConfiguration::PREPROCESSOR_LOGGING = false;
@@ -109,7 +109,7 @@ const bool GlobalConfiguration::SYMBOLIC_BOUND_TIGHTENER_LOGGING = false;
 const bool GlobalConfiguration::NETWORK_LEVEL_REASONER_LOGGING = false;
 const bool GlobalConfiguration::MPS_PARSER_LOGGING= false;
 const bool GlobalConfiguration::PLCONSTRAINT_LOGGING= false;
-const bool GlobalConfiguration::HEURISTIC_COST_MANAGER_LOGGING= true;
+const bool GlobalConfiguration::HEURISTIC_COST_MANAGER_LOGGING= false;
 
 const bool GlobalConfiguration::USE_SMART_FIX = false;
 const bool GlobalConfiguration::USE_LEAST_FIX = false;

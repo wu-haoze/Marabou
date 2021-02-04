@@ -399,6 +399,8 @@ private:
     inline void pushContext()
     {
         _context.push();
+        if ( _costLemmas )
+            _costLemmaIndex = 0;
     }
 
     void popContext();
