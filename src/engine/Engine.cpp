@@ -49,9 +49,9 @@ Engine::Engine()
     , _milpEncoder( nullptr )
     , _solutionFoundAndStoredInOriginalQuery( false )
     , _seed( 1219 )
-    , _probabilityDensityParameter( Options::get()->getFloat( Options::PROBABILITY_DENSITY_PARAMETER ) )
     , _heuristicCostManager( this )
     , _costFunctionInitialized( false )
+    , _costLemmas( Options::get()->getBool( Options::ADD_COST_LEMMA ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -81,27 +81,6 @@ void Engine::optimizeForHeuristicCost()
     solveLPWithGurobi( terms );
 }
 
-bool Engine::acceptProposedUpdate( double previousCost, double currentCost )
-{
-    /*
-      Following the strategy from https://cs.stanford.edu/people/eschkufz/docs/asplos_13.pdf
-    */
-    if ( previousCost == FloatUtils::infinity() || currentCost < previousCost )
-    {
-        ENGINE_LOG( Stringf( "Previous Cost: %.2lf. Cost after proposed flip: %.2lf. "
-                             "Accept the flip!", previousCost, currentCost ).ascii() );
-        return true;
-    }
-    else
-    {
-        double prob = exp( -_probabilityDensityParameter * ( currentCost - previousCost ) );
-        ENGINE_LOG( Stringf( "Previous Cost: %.2f. Cost after proposed flip: %.2f."
-                             "Probability to accept the flip: %.2lf%%", previousCost, currentCost,
-                          prob ).ascii() );
-        return ( (float) rand() / RAND_MAX ) < prob;
-    }
-}
-
 bool Engine::performLocalSearch()
 {
     ENGINE_LOG( "Performing local search..." );
@@ -114,7 +93,6 @@ bool Engine::performLocalSearch()
     double previousCost = _heuristicCostManager.computeHeuristicCost();
     _smtCore.reportRandomFlip();
     double currentCost = FloatUtils::infinity();
-
 
     ASSERT( allVarsWithinBounds() );
 
@@ -137,7 +115,7 @@ bool Engine::performLocalSearch()
         _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
         currentCost = _heuristicCostManager.computeHeuristicCost();
 
-        if ( !acceptProposedUpdate( previousCost, currentCost ) )
+        if ( !_heuristicCostManager.acceptProposedUpdate( previousCost, currentCost ) )
         {
             _smtCore.reportRandomFlip();
             _heuristicCostManager.undoLastHeuristicCostUpdate();

@@ -413,13 +413,11 @@ private:
     */
     unsigned _seed;
 
-    double _probabilityDensityParameter;
-
     HeuristicCostManager _heuristicCostManager;
 
     bool _costFunctionInitialized;
 
-    bool _alwaysReinitializeCost;
+    bool _costLemmas;
 
     void performBoundTightening();
 

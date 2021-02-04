@@ -26,6 +26,7 @@
 #include "Vector.h"
 
 #include <memory>
+#include <random>
 
 #define COST_LOG( x, ... ) LOG( GlobalConfiguration::HEURISTIC_COST_MANAGER_LOGGING, "HeuristicCostManager: %s\n", x )
 
@@ -66,6 +67,8 @@ public:
 
     void removeCostComponentFromHeuristicCost( PiecewiseLinearConstraint *constraint );
 
+    bool acceptProposedUpdate( double previousCost, double currentCost );
+
     double computeHeuristicCost();
 
     void setStatistics( Statistics *statistics );
@@ -101,6 +104,17 @@ private:
     Map<unsigned, double> _heuristicCost;
     Map<PiecewiseLinearConstraint *, PhaseStatus> _previousHeuristicCost;
     Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
+
+    /*
+      Probability distribution to flip the PLConstraint
+      Might need to extend the data structure to handle more than 2 activation phase
+    */
+    std::vector<double> _weights;
+    std::default_random_engine _generator;
+    double _probabilityOfLastProposal = 0;
+    unsigned _lastFlippedConstraintIndex = 0;
+
+    double _probabilityDensityParameter;
 
     /*
       Based on current assignment
