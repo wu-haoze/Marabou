@@ -98,6 +98,8 @@ public:
     */
     void print();
 
+    void resetTimeStatsForMainLoop();
+
     /*
       Set starting time of the main loop.
     */

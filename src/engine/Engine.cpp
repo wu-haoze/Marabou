@@ -208,6 +208,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
 {
     struct timespec mainLoopStart = TimeUtils::sampleMicro();
 
+    _statistics.resetTimeStatsForMainLoop();
+
     struct timespec start = TimeUtils::sampleMicro();
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
     _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager, true ) );

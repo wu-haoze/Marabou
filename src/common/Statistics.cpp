@@ -77,9 +77,38 @@ Statistics::Statistics()
     // Statistics
     _longAttributes[TIME_HANDLING_STATISTICS_MICRO] = 0;
 
-    /***************************** Long Attributes ****************************/
+    /***************************** Double Attributes ****************************/
     _doubleAttributes[MINIMAL_COST_SO_FAR] = 0;
 }
+
+void Statistics::resetTimeStatsForMainLoop()
+{
+    /***************************** Long Attributes ****************************/
+     // Overall
+    _longAttributes[TIME_MAIN_LOOP_MICRO] = 0;
+
+    // Search
+    _longAttributes[TIME_SMT_CORE_PUSH_MICRO] = 0;
+    _longAttributes[TIME_SMT_CORE_POP_MICRO] = 0;
+    _longAttributes[TIME_CHECKING_QUIT_CONDITION_MICRO] = 0;
+
+    // Simplex
+    _longAttributes[TIME_SIMPLEX_STEPS_MICRO] = 0;
+    _longAttributes[TIME_UPDATING_COST_FUNCTION_MICRO] = 0;
+    _longAttributes[TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO] = 0;
+    _longAttributes[TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO] = 0;
+
+    // Tightening
+    _longAttributes[TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_CONSTRAINT_MATRIX_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_SYMBOLIC_BOUND_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_LP_TIGHTENING_MICRO] = 0;
+    _longAttributes[TIME_PERFORMING_VALID_CASE_SPLITS_MICRO] = 0;
+
+    // Statistics
+    _longAttributes[TIME_HANDLING_STATISTICS_MICRO] = 0;
+}
+
 
 void Statistics::print()
 {
@@ -138,7 +167,7 @@ void Statistics::print()
 
     val = getLongAttr( TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO );
     total += val;
-    printf( "\t\t[%.2lf%%] Time adding constraints to lp solver: %llu milli.\n"
+    printf( "\t\t[%.2lf%%] Adding constraints to lp solver: %llu milli.\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_CHECKING_QUIT_CONDITION_MICRO );
@@ -178,7 +207,7 @@ void Statistics::print()
 
     val = getLongAttr( TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO );
     total += val;
-    printf( "\t\t[%.2lf%%] Time collecting violated PlConstraints: %llu milli.\n"
+    printf( "\t\t[%.2lf%%] Collecting violated PlConstraints: %llu milli.\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_HANDLING_STATISTICS_MICRO );
@@ -187,10 +216,10 @@ void Statistics::print()
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     printf( "\t\t[%.2lf%%] Unaccounted for: %llu milli\n"
-            , printPercents( timeMainLoopMicro + timePreprocessingMicro - total,
-                             timeMainLoopMicro + timePreprocessingMicro )
-            , timeMainLoopMicro + timePreprocessingMicro >
-            total ? ( timeMainLoopMicro + timePreprocessingMicro - total ) / 1000 : 0
+            , printPercents( timeMainLoopMicro - total,
+                             timeMainLoopMicro )
+            , timeMainLoopMicro >
+            total ? ( timeMainLoopMicro - total ) / 1000 : 0
             );
 
     printf( "\t--- Preprocessor Statistics ---\n" );
