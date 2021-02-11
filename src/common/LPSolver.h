@@ -125,6 +125,8 @@ public:
     virtual void updateModel() {};
 
     virtual unsigned getNumberOfNodes() { return 0; };
+
+    virtual void setVerbosity( unsigned ) {};
 };
 
 #endif // __LPSolver_h__

@@ -117,6 +117,8 @@ public:
     // Clear the underlying model and create a fresh model
     void resetModel();
 
+    void setVerbosity( unsigned verbosity );
+
     // Dump the model to a file. Note that the suffix of the file is
     // used by Gurobi to determine the format. Using ".lp" is a good
     // default

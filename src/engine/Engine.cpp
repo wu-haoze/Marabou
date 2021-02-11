@@ -857,7 +857,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _splittingStrategy =
                 ( _preprocessedQuery.getInputVariables().size() <
                   GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD ) ?
-                DivideStrategy::LargestInterval : DivideStrategy::EarliestReLU;
+                DivideStrategy::LargestInterval : DivideStrategy::Polarity;
         }
 
         struct timespec end = TimeUtils::sampleMicro();
@@ -1290,6 +1290,8 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
     PiecewiseLinearConstraint *candidatePLConstraint = NULL;
     if ( _splittingStrategy == DivideStrategy::EarliestReLU )
         candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
+    else if ( _splittingStrategy == DivideStrategy::Polarity )
+        candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
     else if ( _splittingStrategy == DivideStrategy::LargestInterval )
     {
         // Conduct interval splitting periodically.
@@ -1351,6 +1353,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                                 : timeoutInSeconds );
     ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
     _gurobi->setTimeLimit( timeoutForGurobi );
+    _gurobi->setVerbosity( _verbosity );
 
     _gurobi->solve();
 

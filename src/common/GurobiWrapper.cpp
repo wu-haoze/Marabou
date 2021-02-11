@@ -84,6 +84,14 @@ void GurobiWrapper::resetModel()
     setTimeLimit( _timeoutInSeconds );
 }
 
+void GurobiWrapper::setVerbosity( unsigned verbosity )
+{
+    if ( verbosity > 0 )
+        _model->getEnv().set( GRB_IntParam_OutputFlag, 1 );
+    else
+        _model->getEnv().set( GRB_IntParam_OutputFlag, 0 );
+}
+
 void GurobiWrapper::reset()
 {
     _model->reset();
@@ -265,6 +273,7 @@ void GurobiWrapper::solve()
             printf( "Number of variables: %u\n", _model->get( GRB_IntAttr_NumVars ) );
             printf( "Number of non-zeros: %u\n", _model->get( GRB_IntAttr_NumNZs ) );
             });
+        //_model->set( GRB_IntParam_VarBranch, 0 );
         _model->optimize();
     }
     catch ( GRBException e )
