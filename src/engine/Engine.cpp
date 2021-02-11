@@ -384,13 +384,6 @@ void Engine::mainLoopStatistics()
 
 void Engine::performBoundTightening()
 {
-    if ( _smtCore.getStackDepth() <= GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD &&
-         _tableau->basisMatrixAvailable() )
-    {
-        explicitBasisBoundTightening();
-        applyAllValidConstraintCaseSplits();
-    }
-
     tightenBoundsOnConstraintMatrix();
     applyAllValidConstraintCaseSplits();
 
@@ -1026,32 +1019,6 @@ void Engine::tightenBoundsOnConstraintMatrix()
                              TimeUtils::timePassed( start, end ) );
 }
 
-void Engine::explicitBasisBoundTightening()
-{
-    struct timespec start = TimeUtils::sampleMicro();
-
-    bool saturation = GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION;
-
-    _statistics.incLongAttr( Statistics::NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT, 1 );
-
-    switch ( GlobalConfiguration::EXPLICIT_BASIS_BOUND_TIGHTENING_TYPE )
-    {
-    case GlobalConfiguration::COMPUTE_INVERTED_BASIS_MATRIX:
-        _rowBoundTightener->examineInvertedBasisMatrix( saturation );
-        break;
-
-    case GlobalConfiguration::USE_IMPLICIT_INVERTED_BASIS_MATRIX:
-        _rowBoundTightener->examineImplicitInvertedBasisMatrix( saturation );
-        break;
-
-    case GlobalConfiguration::DISABLE_EXPLICIT_BASIS_TIGHTENING:
-        break;
-    }
-
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.incLongAttr( Statistics::TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
-}
-
 void Engine::performSymbolicBoundTightening()
 {
     if ( _symbolicBoundTighteningType == SymbolicBoundTighteningType::NONE ||
@@ -1362,17 +1329,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 {
     try
     {
-        // Apply bound tightening before handing to Gurobi
-        if ( _tableau->basisMatrixAvailable() )
-        {
-	    explicitBasisBoundTightening();
-	    applyAllValidConstraintCaseSplits();
-	}
-	do
-	{
-	    performSymbolicBoundTightening();
-	}
-	while ( applyAllValidConstraintCaseSplits() );
+        performBoundTightening();
     }
     catch ( const InfeasibleQueryException & )
     {
@@ -1380,11 +1337,15 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         return false;
     }
 
+    struct timespec start = TimeUtils::sampleMicro();
     ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
     _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( _boundManager ) );
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO, TimeUtils::timePassed( start, end ) );
 
     double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
                                 : timeoutInSeconds );
