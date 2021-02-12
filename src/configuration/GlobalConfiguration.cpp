@@ -20,6 +20,8 @@
 
 const double GlobalConfiguration::SOFTMAX_BETA = 100;
 
+const double GlobalConfiguration::EXPONENTIAL_MOVING_AVERAGE_ALPHA = 0.5;
+
 // Use the polarity metrics to decide which branch to take first in a case split
 // and how to repair a ReLU constraint.
 const bool GlobalConfiguration::USE_POLARITY_BASED_DIRECTION_HEURISTICS = true;

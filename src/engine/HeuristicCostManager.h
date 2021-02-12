@@ -22,6 +22,7 @@
 #include "LPSolver.h"
 #include "NetworkLevelReasoner.h"
 #include "PiecewiseLinearConstraint.h"
+#include "PseudoCostTracker.h"
 #include "Statistics.h"
 #include "Vector.h"
 

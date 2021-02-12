@@ -32,6 +32,7 @@
 #include "Map.h"
 #include "MILPEncoder.h"
 #include "Preprocessor.h"
+#include "PseudoCostTracker.h"
 #include "SignalHandler.h"
 #include "SmtCore.h"
 #include "Statistics.h"

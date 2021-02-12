@@ -25,6 +25,8 @@ public:
 
     static const double SOFTMAX_BETA;
 
+    static const double EXPONENTIAL_MOVING_AVERAGE_ALPHA;
+
     static const bool USE_POLARITY_BASED_DIRECTION_HEURISTICS;
 
     // The default epsilon used for comparing doubles
