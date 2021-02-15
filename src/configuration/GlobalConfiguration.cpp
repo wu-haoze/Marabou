@@ -83,6 +83,7 @@ const bool GlobalConfiguration::QUERY_LOADER_LOGGING = false;
 const bool GlobalConfiguration::NETWORK_LEVEL_REASONER_LOGGING = false;
 const bool GlobalConfiguration::PLCONSTRAINT_LOGGING= false;
 const bool GlobalConfiguration::HEURISTIC_COST_MANAGER_LOGGING= false;
+const bool GlobalConfiguration::PSEUDO_COST_TRACKER_LOGGING= false;
 
 const bool GlobalConfiguration::USE_SMART_FIX = false;
 const bool GlobalConfiguration::USE_LEAST_FIX = false;

@@ -17,12 +17,15 @@
 #define __PseudoCostTracker_h__
 
 #include "List.h"
+#include "MStringf.h"
 #include "PiecewiseLinearConstraint.h"
 #include "Statistics.h"
 
 #include <memory>
 #include <set>
 #include <random>
+
+#define COST_TRACKER_LOG(x, ...) LOG(GlobalConfiguration::PSEUDO_COST_TRACKER_LOGGING, "PseudoCostTracker: %s\n", x)
 
 struct ScoreEntry
 {
@@ -67,25 +70,13 @@ public:
     {
         for ( const auto &entry : _scores )
             if ( entry._constraint->isActive() && !entry._constraint->phaseFixed() )
+            {
+                COST_TRACKER_LOG( Stringf( "Score of top unfixed plConstraint: %.2f",
+                                           entry._score ).ascii() );
                 return entry._constraint;
+            }
         ASSERT( false );
         return NULL;
-    }
-
-    /*
-      Return and remove the unfixed PLConstraint with the largest estimated
-      reduced cost
-    */
-    inline PiecewiseLinearConstraint *pop()
-    {
-        ScoreEntry entry = ( *_scores.begin() );
-        _scores.erase( entry );
-        return entry._constraint;
-    }
-
-    inline void push( PiecewiseLinearConstraint *plConstraint )
-    {
-        _scores.insert( ScoreEntry( plConstraint, _plConstraintToScore[plConstraint] ) );
     }
 
 private:

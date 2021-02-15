@@ -171,6 +171,7 @@ public:
     static const bool PLCONSTRAINT_LOGGING;
     static const bool LOCAL_SEARCH_LOGGING;
     static const bool HEURISTIC_COST_MANAGER_LOGGING;
+    static const bool PSEUDO_COST_TRACKER_LOGGING;
 };
 
 #endif // __GlobalConfiguration_h__

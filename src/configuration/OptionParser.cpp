@@ -75,6 +75,9 @@ void OptionParser::initialize()
         ( "init-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INITIALIZATION_STRATEGY]) ),
           "Strategy of local search: currentAssignment/inputAssignment/random. default: inputAssignment" )
+        ( "score-metric",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::SCORE_METRIC]) ),
+          "Score metric for soi branching: reduction/change. default: change" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )

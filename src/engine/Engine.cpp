@@ -169,10 +169,8 @@ void Engine::solveLPWithGurobi( List<LPSolver::Term> &cost )
 {
     struct timespec simplexStart = TimeUtils::sampleMicro();
 
-    ENGINE_LOG( "Solving LP with Gurobi..." );
     _gurobi->setCost( cost );
     _gurobi->solve();
-    ENGINE_LOG( "Solving LP with Gurobi - done" );
 
     struct timespec simplexEnd = TimeUtils::sampleMicro();
     _statistics.incLongAttr( Statistics::TIME_SIMPLEX_STEPS_MICRO,
@@ -1186,6 +1184,7 @@ void Engine::resetExitCode()
 
 PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnSOI()
 {
+    ENGINE_LOG( Stringf( "Using SOI-based heuristics..." ).ascii() );
     return _costTracker.topUnfixed();
 }
 
