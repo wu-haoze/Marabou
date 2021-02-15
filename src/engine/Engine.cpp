@@ -1196,7 +1196,7 @@ void Engine::resetExitCode()
 
 PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnSOI()
 {
-    return _costTracker.pop();
+    return _costTracker.topUnfixed();
 }
 
 PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnPolarity()

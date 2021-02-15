@@ -63,6 +63,15 @@ public:
         return _scores.begin()->_constraint;
     }
 
+    PiecewiseLinearConstraint *topUnfixed()
+    {
+        for ( const auto &entry : _scores )
+            if ( entry._constraint->isActive() && !entry._constraint->phaseFixed() )
+                return entry._constraint;
+        ASSERT( false );
+        return NULL;
+    }
+
     /*
       Return and remove the unfixed PLConstraint with the largest estimated
       reduced cost
