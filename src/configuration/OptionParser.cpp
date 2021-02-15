@@ -54,9 +54,6 @@ void OptionParser::initialize()
         ( "local-search",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::LOCAL_SEARCH]) ),
           "Local search" )
-        ( "cost-lemma",
-          boost::program_options::bool_switch( &((*_boolOptions)[Options::ADD_COST_LEMMA]) ),
-          "Add local search result as lemmas" )
         ( "input",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INPUT_FILE_PATH]) ),
           "Neural netowrk file" )
@@ -74,10 +71,10 @@ void OptionParser::initialize()
           "Query dump file" )
         ( "flip-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::FLIPPING_STRATEGY]) ),
-          "Strategy of local search: currentAssignment/inputAssignment/random. default: inputAssignment" )
+          "Strategy of local search: gwsat/gwsat2. default: gwsat2" )
         ( "init-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::INITIALIZATION_STRATEGY]) ),
-          "Strategy of local search: gwsat/gwsat2/mcmc1/mcmc2. default: mcmc2" )
+          "Strategy of local search: currentAssignment/inputAssignment/random. default: inputAssignment" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(DNC) Number of workers" )

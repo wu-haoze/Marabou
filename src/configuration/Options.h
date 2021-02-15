@@ -56,9 +56,6 @@ public:
 
         // Stay at the top level forever
         LOCAL_SEARCH,
-
-        // Always reinitialize the cost
-        ADD_COST_LEMMA,
     };
 
     enum IntOptions {
@@ -106,6 +103,7 @@ public:
         QUERY_DUMP_FILE,
         FLIPPING_STRATEGY,
         INITIALIZATION_STRATEGY,
+        SCORE_METRIC,
     };
 
     /*

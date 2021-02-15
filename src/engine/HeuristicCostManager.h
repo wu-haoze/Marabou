@@ -57,7 +57,7 @@ public:
 
       Return whether after the update, the heuristic cost is guaranteed to descend
     */
-    void updateHeuristicCost();
+    PiecewiseLinearConstraint *updateHeuristicCost();
 
     void undoLastHeuristicCostUpdate();
 
@@ -106,15 +106,6 @@ private:
     Map<PiecewiseLinearConstraint *, PhaseStatus> _previousHeuristicCost;
     Vector<PiecewiseLinearConstraint *> _plConstraintsInHeuristicCost;
 
-    /*
-      Probability distribution to flip the PLConstraint
-      Might need to extend the data structure to handle more than 2 activation phase
-    */
-    std::vector<double> _weights;
-    std::default_random_engine _generator;
-    double _probabilityOfLastProposal = 0;
-    unsigned _lastFlippedConstraintIndex = 0;
-
     double _probabilityDensityParameter;
 
     /*
@@ -142,21 +133,9 @@ private:
       with probability p, flip the cost term of a randomly chosen PLConstraint
       with probability 1 - p, flip the cost term of the PLConstraint that reduces in the greatest decline in the cost
     */
-    void updateHeuristicCostGWSAT();
+    PiecewiseLinearConstraint *updateHeuristicCostGWSAT();
 
-    void updateHeuristicCostGWSAT2();
-
-    void updateHeuristicCostMCMC1();
-
-    void updateHeuristicCostMCMC2();
-
-    /*
-      Heuristic to flip the cost component of a PLConstraint:
-
-      Aggressively flip all cost term that will reduce the cost.
-      Then flip a random one.
-    */
-    //void updateHeuristicCostMCMC1();
+    PiecewiseLinearConstraint *updateHeuristicCostGWSAT2();
 };
 
 #endif // __HeuristicCostManager_h__

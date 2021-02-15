@@ -70,8 +70,6 @@ void HeuristicCostManager::initiateCostFunctionForLocalSearch()
 
     COST_LOG( "initiating cost function for local search - done" );
 
-    _weights = std::vector<double>( _plConstraintsInHeuristicCost.size() );
-
     if ( _statistics )
     {
         struct timespec end = TimeUtils::sampleMicro();
@@ -87,7 +85,7 @@ void HeuristicCostManager::initiateCostFunctionForLocalSearch()
   scenario 1:
   If the local optima is not zero, we flip the cost term for certain PLConstraint already in the cost function.
 */
-void HeuristicCostManager::updateHeuristicCost()
+PiecewiseLinearConstraint *HeuristicCostManager::updateHeuristicCost()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -100,14 +98,11 @@ void HeuristicCostManager::updateHeuristicCost()
         _previousHeuristicCost[constraint] = constraint->getPhaseOfHeuristicCost();
     }
 
+    PiecewiseLinearConstraint *lastFlippedConstraint = NULL;
     if ( _flippingStrategy == "gwsat" )
-        updateHeuristicCostGWSAT();
+        lastFlippedConstraint = updateHeuristicCostGWSAT();
     else if ( _flippingStrategy == "gwsat2" )
-        updateHeuristicCostGWSAT2();
-    else if ( _flippingStrategy == "mcmc1" )
-        updateHeuristicCostMCMC1();
-    else if ( _flippingStrategy == "mcmc2" )
-        updateHeuristicCostMCMC2();
+        lastFlippedConstraint = updateHeuristicCostGWSAT2();
     else
         throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
                             Stringf( "Unknown flipping stategy %s", _flippingStrategy.ascii() ).ascii() );
@@ -122,6 +117,7 @@ void HeuristicCostManager::updateHeuristicCost()
         _statistics->incLongAttr( Statistics::TIME_UPDATING_COST_FUNCTION_MICRO,
                                  TimeUtils::timePassed( start, end ) );
     }
+    return lastFlippedConstraint;
 }
 
 void HeuristicCostManager::undoLastHeuristicCostUpdate()
@@ -202,30 +198,6 @@ bool HeuristicCostManager::acceptProposedUpdate( double previousCost, double cur
     struct timespec start = TimeUtils::sampleMicro();
 
     double proposalProbabilityRatio = 1;
-    if ( _flippingStrategy == "mcmc2" )
-    {
-        double max = FloatUtils::infinity();
-        double min = FloatUtils::infinity();
-        unsigned i = 0;
-        for ( const auto &plConstraint : _plConstraintsInHeuristicCost )
-        {
-            double reducedCost = 0;
-            PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
-            ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
-            plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-            if ( reducedCost < min ) min = reducedCost;
-            if ( reducedCost > max ) max = reducedCost;
-            _weights[i++] = reducedCost;
-        }
-
-        double range = max - min;
-        for ( unsigned i = 0; i < _weights.size(); ++i )
-            _weights[i] = ( _weights[i] - min ) / range;
-
-        double sum = std::accumulate( _weights.begin(), _weights.end(), 0.0 );
-        proposalProbabilityRatio = _probabilityOfLastProposal / ( _weights[_lastFlippedConstraintIndex] / sum );
-    }
-
 
     double prob = exp( -_probabilityDensityParameter * ( currentCost - previousCost ) ) * proposalProbabilityRatio;
     COST_LOG( Stringf( "Previous Cost: %.2f. Cost after proposed flip: %.2f."
@@ -324,7 +296,7 @@ void HeuristicCostManager::initiateCostFunctionForLocalSearchRandomly
     }
 }
 
-void HeuristicCostManager::updateHeuristicCostGWSAT()
+PiecewiseLinearConstraint * HeuristicCostManager::updateHeuristicCostGWSAT()
 {
     PiecewiseLinearConstraint *plConstraintToFlip = NULL;
     PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
@@ -365,9 +337,10 @@ void HeuristicCostManager::updateHeuristicCostGWSAT()
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
 
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+    return plConstraintToFlip;
 }
 
-void HeuristicCostManager::updateHeuristicCostGWSAT2()
+PiecewiseLinearConstraint *HeuristicCostManager::updateHeuristicCostGWSAT2()
 {
     PiecewiseLinearConstraint *plConstraintToFlip = NULL;
     PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
@@ -406,81 +379,5 @@ void HeuristicCostManager::updateHeuristicCostGWSAT2()
     ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
 
     plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-}
-
-void HeuristicCostManager::updateHeuristicCostMCMC1()
-{
-    // 1. Flip all the cost term that can improve the cost.
-    // 2. If no such cost terms, randomly propose one to flip.
-
-    // Flip the cost term that reduces the cost by the most
-    COST_LOG( "Using strategy mcmc1 to pick a PLConstraint and flip its heuristic cost..." );
-    Vector<PiecewiseLinearConstraint *> &violatedPlConstraints =
-        _engine->getViolatedPiecewiseLinearConstraints();
-
-    unsigned numFlipped = 0;
-    for ( const auto &plConstraint : violatedPlConstraints )
-    {
-        double reducedCost = 0;
-        PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
-        ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
-        plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-
-        if ( reducedCost > 0 )
-        {
-            plConstraint->addCostFunctionComponent( _heuristicCost, phaseStatusOfReducedCost );
-            ++numFlipped;
-        }
-    }
-    if ( numFlipped > 0 )
-    {
-        COST_LOG( "Cost function guaranteed to reduce. No random proposal." );
-        return;
-    }
-
-    COST_LOG( "Cost function not guaranteed to reduce." );
-    unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
-    PiecewiseLinearConstraint *plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
-    Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
-    unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
-    PhaseStatus phaseStatusToFlipTo = phaseStatuses[phaseIndex];
-    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
-}
-
-void HeuristicCostManager::updateHeuristicCostMCMC2()
-{
-    // Turn reduced cost to a probability distribution
-    ASSERT( _weights.size() == _plConstraintsInHeuristicCost.size() );
-
-    unsigned i = 0;
-    double max = FloatUtils::infinity();
-    double min = FloatUtils::infinity();
-    for ( const auto &plConstraint : _plConstraintsInHeuristicCost )
-    {
-        double reducedCost = 0;
-        PhaseStatus phaseStatusOfReducedCost = plConstraint->getPhaseOfHeuristicCost();
-        ASSERT( phaseStatusOfReducedCost != PhaseStatus::PHASE_NOT_FIXED );
-        plConstraint->getReducedHeuristicCost( reducedCost, phaseStatusOfReducedCost );
-        if ( reducedCost < min ) min = reducedCost;
-        if ( reducedCost > max ) max = reducedCost;
-        _weights[i++] = reducedCost;
-    }
-
-    double range = max - min;
-    for ( unsigned i = 0; i < _weights.size(); ++i )
-        _weights[i] = ( _weights[i] - min ) / range;
-
-    std::discrete_distribution<int> distribution( _weights.begin(), _weights.end() );
-    unsigned plConstraintIndex = distribution( _generator );
-    PiecewiseLinearConstraint *lastFlippedConstraint = _plConstraintsInHeuristicCost[plConstraintIndex];
-    _lastFlippedConstraintIndex = plConstraintIndex;
-
-    Vector<PhaseStatus> phaseStatuses = lastFlippedConstraint->getAlternativeHeuristicPhaseStatus();
-    ASSERT( phaseStatuses.size() <= 2 );
-    lastFlippedConstraint->addCostFunctionComponent( _heuristicCost, *( phaseStatuses.begin() ) );
-
-    double sum = std::accumulate( _weights.begin(), _weights.end(), 0.0 );
-    _probabilityOfLastProposal = _weights[plConstraintIndex] / sum;
-
-    COST_LOG( Stringf( "Constraint to flip picked with probability %.5f", _probabilityOfLastProposal ).ascii() );
+    return plConstraintToFlip;
 }

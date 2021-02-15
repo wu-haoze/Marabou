@@ -48,7 +48,6 @@ void Options::initializeDefaultValues()
     _boolOptions[DUMP_BOUNDS] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
     _boolOptions[LOCAL_SEARCH] = false;
-    _boolOptions[ADD_COST_LEMMA] = false;
 
     /*
       Int options
@@ -83,8 +82,9 @@ void Options::initializeDefaultValues()
     _stringOptions[SYMBOLIC_BOUND_TIGHTENING_TYPE] = "";
     _stringOptions[MILP_SOLVER_BOUND_TIGHTENING_TYPE] = "none";
     _stringOptions[QUERY_DUMP_FILE] = "";
-    _stringOptions[FLIPPING_STRATEGY] = "mcmc2";
+    _stringOptions[FLIPPING_STRATEGY] = "gwsat2";
     _stringOptions[INITIALIZATION_STRATEGY] = "inputAssignment";
+    _stringOptions[SCORE_METRIC] = "change";
 }
 
 void Options::parseOptions( int argc, char **argv )
@@ -151,6 +151,8 @@ DivideStrategy Options::getDivideStrategy() const
         return DivideStrategy::LargestInterval;
     else if ( strategyString == "babsr" )
         return DivideStrategy::BABSR;
+    else if ( strategyString == "soi" )
+        return DivideStrategy::SOI;
     else
         return DivideStrategy::Auto;
 }

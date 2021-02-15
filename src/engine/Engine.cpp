@@ -51,8 +51,7 @@ Engine::Engine()
     , _seed( 1219 )
     , _heuristicCostManager( this )
     , _costFunctionInitialized( false )
-    , _costLemmas( Options::get()->getBool( Options::ADD_COST_LEMMA ) )
-    , _costLemmaIndex( &_context, 0 )
+    , _scoreMetric( Options::get()->getString( Options::SCORE_METRIC ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -80,14 +79,6 @@ void Engine::optimizeForHeuristicCost()
                                            Stringf( "x%u", term.first ) ) );
 
     solveLPWithGurobi( terms );
-    if ( _costLemmas )
-    {
-        unsigned index = _costLemmaIndex;
-        _gurobi->addGeqConstraint( terms, _gurobi->getObjective(),
-                                   Stringf( "%u_%u", _context.getLevel(), index ) );
-        _costLemmaIndex = index + 1;
-        _statistics.incLongAttr( Statistics::NUM_COST_LEMMAS, 1 );
-    }
 }
 
 bool Engine::performLocalSearch()
@@ -119,10 +110,22 @@ bool Engine::performLocalSearch()
             }
         }
 
-        _heuristicCostManager.updateHeuristicCost();
+        PiecewiseLinearConstraint *lastFlippedConstraint = _heuristicCostManager.updateHeuristicCost();
         optimizeForHeuristicCost();
         _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
         currentCost = _heuristicCostManager.computeHeuristicCost();
+
+        ASSERT( lastFlippedConstraint != NULL );
+        double score = 0;
+        if ( _scoreMetric == "reduction" )
+        {
+            score = previousCost - currentCost;
+        }
+        if ( _scoreMetric == "change" )
+        {
+            score = abs( previousCost - currentCost );
+        }
+        _costTracker.updateScore( lastFlippedConstraint, score );
 
         if ( !_heuristicCostManager.acceptProposedUpdate( previousCost, currentCost ) )
         {
@@ -222,6 +225,8 @@ bool Engine::solveWithGurobi( unsigned timeoutInSeconds )
     for ( const auto &constraint : _plConstraints )
         constraint->registerGurobi( &( *_gurobi ) );
     _heuristicCostManager.setGurobi( &(*_gurobi) );
+
+    _costTracker.initialize( _plConstraints );
 
     mainLoopStatistics();
     if ( _verbosity > 0 )
@@ -857,7 +862,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _splittingStrategy =
                 ( _preprocessedQuery.getInputVariables().size() <
                   GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD ) ?
-                DivideStrategy::LargestInterval : DivideStrategy::Polarity;
+                DivideStrategy::LargestInterval : DivideStrategy::EarliestReLU;
         }
 
         struct timespec end = TimeUtils::sampleMicro();
@@ -1189,6 +1194,11 @@ void Engine::resetExitCode()
     _exitCode = Engine::NOT_DONE;
 }
 
+PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnSOI()
+{
+    return _costTracker.pop();
+}
+
 PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnPolarity()
 {
     ENGINE_LOG( Stringf( "Using Polarity-based heuristics..." ).ascii() );
@@ -1292,6 +1302,8 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint()
         candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
     else if ( _splittingStrategy == DivideStrategy::Polarity )
         candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
+    else if ( _splittingStrategy == DivideStrategy::SOI )
+        candidatePLConstraint = pickSplitPLConstraintBasedOnSOI();
     else if ( _splittingStrategy == DivideStrategy::LargestInterval )
     {
         // Conduct interval splitting periodically.
@@ -1417,15 +1429,6 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
 
 void Engine::popContext()
 {
-    // Remove all lemmas added at this level
-    if ( _costLemmas )
-    {
-        _gurobi->updateModel();
-        unsigned level = _context.getLevel();
-        for ( unsigned i = 0; i < _costLemmaIndex; ++i )
-            _gurobi->removeConstraint( Stringf( "%u_%u", level, i ) );
-    }
-
     _context.pop();
 }
 

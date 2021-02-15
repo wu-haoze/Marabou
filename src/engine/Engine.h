@@ -200,6 +200,8 @@ private:
 
     BoundManager _boundManager;
 
+    PseudoCostTracker _costTracker;
+
     /*
       Collect and print various statistics.
     */
@@ -359,6 +361,8 @@ private:
     void augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, const List<unsigned> &basicRows );
     void performMILPSolverBoundedTightening();
 
+    PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnSOI();
+
     /*
       Among the earliest K ReLUs, pick the one with Polarity closest to 0.
       K is equal to GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD
@@ -400,10 +404,6 @@ private:
     inline void pushContext()
     {
         _context.push();
-        if ( _costLemmas )
-        {
-            _costLemmaIndex = 0;
-        }
     }
 
     void popContext();
@@ -423,9 +423,7 @@ private:
 
     bool _costFunctionInitialized;
 
-    bool _costLemmas;
-
-    CVC4::context::CDO<unsigned> _costLemmaIndex;
+    String _scoreMetric;
 
     void performBoundTightening();
 
