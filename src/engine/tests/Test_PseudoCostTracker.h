@@ -16,6 +16,7 @@
 
 #include <cxxtest/TestSuite.h>
 
+#include "context/context.h"
 #include "PseudoCostTracker.h"
 #include "PiecewiseLinearConstraint.h"
 #include "ReluConstraint.h"
@@ -41,28 +42,36 @@ public:
 
     void test_updateScore()
     {
+        CVC4::context::Context context;
         PiecewiseLinearConstraint *r1 = new ReluConstraint( 0, 1 );
         PiecewiseLinearConstraint *r2 = new ReluConstraint( 2, 3 );
         PiecewiseLinearConstraint *r3 = new ReluConstraint( 4, 5 );
-        _constraints = {r1, r2, r3};
+        PiecewiseLinearConstraint *r4 = new ReluConstraint( 6, 7 );
+        _constraints = {r1, r2, r3, r4};
+        for ( const auto &constraint : _constraints )
+            constraint->initializeCDOs( &context );
 
         TS_ASSERT_THROWS_NOTHING( _tracker->initialize( _constraints ) );
-        TS_ASSERT_EQUALS( _tracker->_plConstraintToScore.size(), 3u );
-        TS_ASSERT_EQUALS( _tracker->_scores.size(), 3u );
+        TS_ASSERT_EQUALS( _tracker->_plConstraintToScore.size(), 4u );
+        TS_ASSERT_EQUALS( _tracker->_scores.size(), 4u );
         TS_ASSERT_THROWS_NOTHING( _tracker->updateScore( r1, 2 ) );
         TS_ASSERT_THROWS_NOTHING( _tracker->updateScore( r2, 4 ) );
         TS_ASSERT_THROWS_NOTHING( _tracker->updateScore( r3, 5 ) );
         TS_ASSERT_THROWS_NOTHING( _tracker->updateScore( r3, 6 ) );
+        TS_ASSERT_THROWS_NOTHING( _tracker->updateScore( r4, 3 ) );
 
         double alpha = GlobalConfiguration::EXPONENTIAL_MOVING_AVERAGE_ALPHA;
         TS_ASSERT_EQUALS( _tracker->_plConstraintToScore[r1], alpha * 2 );
         TS_ASSERT_EQUALS( _tracker->_plConstraintToScore[r3], (1 - alpha) * (alpha * 5) + alpha * 6 );
 
+        r3->setActiveConstraint( false );
+        r1->setActiveConstraint( false );
         TS_ASSERT( _tracker->top() == r3 );
-        TS_ASSERT( _tracker->pop() == r3 );
-        TS_ASSERT( _tracker->top() == r2 );
-        TS_ASSERT_THROWS_NOTHING( _tracker->push( r3 ) );
+        TS_ASSERT( _tracker->topUnfixed() == r2 );
+        r3->setActiveConstraint( true );
         TS_ASSERT_THROWS_NOTHING( _tracker->updateScore( r3, 5 ) );
-        TS_ASSERT( _tracker->top() == r3 );
+        TS_ASSERT( _tracker->topUnfixed() == r3 );
+        r2->setActiveConstraint( false );
+        TS_ASSERT( _tracker->topUnfixed() == r3 );
     }
 };

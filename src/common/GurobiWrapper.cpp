@@ -268,10 +268,13 @@ void GurobiWrapper::solve()
     try
     {
         DEBUG({
-            _model->update();
-            printf( "Number of constraints: %u\n", _model->get( GRB_IntAttr_NumConstrs ) );
-            printf( "Number of variables: %u\n", _model->get( GRB_IntAttr_NumVars ) );
-            printf( "Number of non-zeros: %u\n", _model->get( GRB_IntAttr_NumNZs ) );
+                if ( Options::get()->getInt( Options::VERBOSITY ) == 2 )
+                {
+                    _model->update();
+                    printf( "Number of constraints: %u\n", _model->get( GRB_IntAttr_NumConstrs ) );
+                    printf( "Number of variables: %u\n", _model->get( GRB_IntAttr_NumVars ) );
+                    printf( "Number of non-zeros: %u\n", _model->get( GRB_IntAttr_NumNZs ) );
+                }
             });
         //_model->set( GRB_IntParam_VarBranch, 0 );
         _model->optimize();

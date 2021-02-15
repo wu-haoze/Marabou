@@ -219,12 +219,21 @@ bool HeuristicCostManager::acceptProposedUpdate( double previousCost, double cur
 
 double HeuristicCostManager::computeHeuristicCost()
 {
+    struct timespec start = TimeUtils::sampleMicro();
     double cost = 0;
     for ( const auto &pair : _heuristicCost )
     {
         double value = _gurobi->getValue( pair.first );
         cost += pair.second * value;
     }
+
+    if ( _statistics )
+    {
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics->incLongAttr( Statistics::TIME_COMPUTE_HEURISTIC_COST_MICRO,
+                                  TimeUtils::timePassed( start, end ) );
+    }
+
     return cost;
 }
 

@@ -63,6 +63,8 @@ void SmtCore::reset()
 
 void SmtCore::reportRandomFlip()
 {
+    struct timespec start = TimeUtils::sampleMicro();
+
     if ( _localSearch )
         return;
     if ( _numberOfRandomFlips++ >= _constraintViolationThreshold )
@@ -70,6 +72,14 @@ void SmtCore::reportRandomFlip()
         _needToSplit = true;
         pickSplitPLConstraint();
     }
+
+    if ( _statistics )
+    {
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics->incLongAttr( Statistics::TIME_BRANCHING_HEURISTICS_MICRO,
+                                  TimeUtils::timePassed( start, end ) );
+    }
+
 }
 
 void SmtCore::performSplit()

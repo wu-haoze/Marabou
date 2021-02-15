@@ -43,6 +43,7 @@ Statistics::Statistics()
     _longAttributes[TIME_PREPROCESSING_MICRO] = 0;
 
     // Search
+    _longAttributes[TIME_BRANCHING_HEURISTICS_MICRO] = 0;
     _longAttributes[TIME_SMT_CORE_PUSH_MICRO] = 0;
     _longAttributes[TIME_SMT_CORE_POP_MICRO] = 0;
     _longAttributes[TIME_CHECKING_QUIT_CONDITION_MICRO] = 0;
@@ -54,6 +55,7 @@ Statistics::Statistics()
     _longAttributes[NUM_REJECTED_FLIPS] = 0;
     _longAttributes[NUM_ACCEPTED_FLIPS] = 0;
     _longAttributes[TIME_SIMPLEX_STEPS_MICRO] = 0;
+    _longAttributes[TIME_COMPUTE_HEURISTIC_COST_MICRO] = 0;
     _longAttributes[TIME_UPDATING_COST_FUNCTION_MICRO] = 0;
     _longAttributes[TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO] = 0;
     _longAttributes[TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO] = 0;
@@ -88,12 +90,14 @@ void Statistics::resetTimeStatsForMainLoop()
     _longAttributes[TIME_MAIN_LOOP_MICRO] = 0;
 
     // Search
+    _longAttributes[TIME_BRANCHING_HEURISTICS_MICRO] = 0;
     _longAttributes[TIME_SMT_CORE_PUSH_MICRO] = 0;
     _longAttributes[TIME_SMT_CORE_POP_MICRO] = 0;
     _longAttributes[TIME_CHECKING_QUIT_CONDITION_MICRO] = 0;
 
     // Simplex
     _longAttributes[TIME_SIMPLEX_STEPS_MICRO] = 0;
+    _longAttributes[TIME_COMPUTE_HEURISTIC_COST_MICRO] = 0;
     _longAttributes[TIME_UPDATING_COST_FUNCTION_MICRO] = 0;
     _longAttributes[TIME_COLLECTING_VIOLATED_PLCONSTRAINT_MICRO] = 0;
     _longAttributes[TIME_ADDING_CONSTRAINTS_TO_LP_SOLVER_MICRO] = 0;
@@ -160,6 +164,11 @@ void Statistics::print()
     printf( "\t\t[%.2lf%%] SMT core pop: %llu milli\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
+    val = getLongAttr( TIME_BRANCHING_HEURISTICS_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Picking branching variable: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
     val = getLongAttr( TIME_SIMPLEX_STEPS_MICRO );
     total += val;
     printf( "\t\t[%.2lf%%] Simplex steps: %llu milli\n"
@@ -173,6 +182,11 @@ void Statistics::print()
     val = getLongAttr( TIME_CHECKING_QUIT_CONDITION_MICRO );
     total += val;
     printf( "\t\t[%.2lf%%] Checking quit condition: %llu milli\n"
+            , printPercents( val, timeMainLoopMicro ), val / 1000 );
+
+    val = getLongAttr( TIME_COMPUTE_HEURISTIC_COST_MICRO );
+    total += val;
+    printf( "\t\t[%.2lf%%] Computing Heuristic cost: %llu milli.\n"
             , printPercents( val, timeMainLoopMicro ), val / 1000 );
 
     val = getLongAttr( TIME_UPDATING_COST_FUNCTION_MICRO );

@@ -115,17 +115,7 @@ bool Engine::performLocalSearch()
         _heuristicCostManager.updateCostTermsForSatisfiedPLConstraints();
         currentCost = _heuristicCostManager.computeHeuristicCost();
 
-        ASSERT( lastFlippedConstraint != NULL );
-        double score = 0;
-        if ( _scoreMetric == "reduction" )
-        {
-            score = previousCost - currentCost;
-        }
-        if ( _scoreMetric == "change" )
-        {
-            score = abs( previousCost - currentCost );
-        }
-        _costTracker.updateScore( lastFlippedConstraint, score );
+        updateScore( lastFlippedConstraint, previousCost, currentCost );
 
         if ( !_heuristicCostManager.acceptProposedUpdate( previousCost, currentCost ) )
         {
@@ -1449,4 +1439,34 @@ void Engine::checkBoundConsistency()
             ASSERT( false );
         }
     }
+}
+
+void Engine::updateScore( PiecewiseLinearConstraint *constraint,
+                          double previousCost, double currentCost )
+{
+    struct timespec start = TimeUtils::sampleMicro();
+
+    ASSERT( constraint != NULL );
+    double score = 0;
+    if ( _scoreMetric == "reduction" )
+    {
+        score = previousCost - currentCost;
+    }
+    else if ( _scoreMetric == "change" )
+    {
+        score = abs( previousCost - currentCost );
+        ASSERT( score >= 0 );
+    }
+    else
+    {
+        throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY );
+    }
+
+    ENGINE_LOG( Stringf( "new score is %f (metric: %s)", score, _scoreMetric.ascii() ).ascii() );
+
+    _costTracker.updateScore( constraint, score );
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_BRANCHING_HEURISTICS_MICRO,
+                             TimeUtils::timePassed( start, end ) );
 }

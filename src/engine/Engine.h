@@ -453,6 +453,10 @@ private:
       For Debugging
     */
     void checkBoundConsistency();
+
+    void updateScore( PiecewiseLinearConstraint *constraint,
+                      double previousCost, double currentCost );
+
 };
 
 #endif // __Engine_h__
