@@ -29,4 +29,4 @@ Large:
 Learning rate: 0.0002
 10528 ReLUs
 120 epochs
-74.60%
+74.16%
