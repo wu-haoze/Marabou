@@ -7,7 +7,7 @@ small:
 Learnign rate: 0.0002
 2568 ReLUs
 120 epochs
-62.06%
+63.14%
 
 Medium:
 16 4x4 filter, stride 2x2
@@ -18,7 +18,7 @@ Medium:
 Learning rate: 0.0002
 4944 ReLUs
 120 epochs
-70.05%
+70.21%
 
 Large:
 32 4x4 filter, stride 2x2 

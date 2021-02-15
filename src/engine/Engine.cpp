@@ -857,7 +857,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _splittingStrategy =
                 ( _preprocessedQuery.getInputVariables().size() <
                   GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD ) ?
-                DivideStrategy::LargestInterval : DivideStrategy::EarliestReLU;
+                DivideStrategy::LargestInterval : DivideStrategy::Polarity;
         }
 
         struct timespec end = TimeUtils::sampleMicro();
