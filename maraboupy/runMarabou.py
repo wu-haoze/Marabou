@@ -16,7 +16,7 @@ import os
 import sys
 
 import pathlib
-sys.path.insert(0, os.path.join(pathlib.Path(__file__).parent.absolute(), "../"))
+sys.path.insert(0, os.path.join(str(pathlib.Path(__file__).parent.absolute()), "../"))
 from maraboupy import Marabou
 from maraboupy import MarabouCore
 from maraboupy import MarabouUtils
