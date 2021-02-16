@@ -1453,7 +1453,7 @@ void Engine::updateScore( PiecewiseLinearConstraint *constraint,
     }
     else if ( _scoreMetric == "change" )
     {
-        score = abs( previousCost - currentCost );
+        score = fabs( previousCost - currentCost );
         ASSERT( score >= 0 );
     }
     else
