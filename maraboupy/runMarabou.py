@@ -99,9 +99,9 @@ def encode_mnist_linf(network, index, epsilon, target_label):
 def encode_cifar10_linf(network, index, epsilon, target_label):
     from tensorflow.keras.datasets import cifar10
     (X_train, Y_train), (X_test, Y_test) = cifar10.load_data()
-    point = np.array(X_test[args.index]).flatten() / 255
+    point = np.array(X_test[index]).flatten() / 255
     print("correct label: {}".format(Y_test[index]))
-    for x in network.inputVars.flatten():
+    for x in np.array(network.inputVars).flatten():
         network.setLowerBound(x, max(0, point[x] - epsilon))
         network.setUpperBound(x, min(1, point[x] + epsilon))
     for i in range(10):
