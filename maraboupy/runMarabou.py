@@ -134,7 +134,7 @@ def createOptions(args):
 
 def arguments():
     ################################ Arguments parsing ##############################
-    parser = argparse.ArgumentParser(description="Script to run some canonical benchmarks with Marabou (e.g., ACAS benchmarks, l-inf robustness checks on mnist/cifar10).')
+    parser = argparse.ArgumentParser(description="Script to run some canonical benchmarks with Marabou (e.g., ACAS benchmarks, l-inf robustness checks on mnist/cifar10).")
     # benchmark
     parser.add_argument('network', type=str, nargs='?', default=None,
                         help='The network file name, the extension can be only .pb, .nnet, and .onnx')
