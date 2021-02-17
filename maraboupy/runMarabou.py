@@ -62,7 +62,7 @@ def createQuery(args):
     elif suffix == "onnx":
         network = Marabou.read_onnx(networkPath)
     else:
-        print("the network must be in .pb, .nnet, or .onnx format!")
+        print("The network must be in .pb, .nnet, or .onnx format!")
         return None
 
     if  args.prop != None:
@@ -77,8 +77,8 @@ def createQuery(args):
         encode_cifar10_linf(network, args.index, args.epsilon, args.target_label)
         return network.getMarabouQuery()
     else:
-        print("the dataset must be taxi or mnist or cifar10")
-        return None
+        print("No property encoded! The dataset must be taxi or mnist or cifar10.")
+        return network.getMarabouQuery()
 
 def encode_mnist_linf(network, index, epsilon, target_label):
     from tensorflow.keras.datasets import mnist
@@ -88,10 +88,11 @@ def encode_mnist_linf(network, index, epsilon, target_label):
     for x in np.array(network.inputVars).flatten():
         network.setLowerBound(x, max(0, point[x] - epsilon))
         network.setUpperBound(x, min(1, point[x] - epsilon))
+    outputVars = network.outputVars.flatten()
     for i in range(10):
         if i != target_label:
-            network.addInequality([network.outputVars[i],
-                                   network.outputVars[target_label]],
+            network.addInequality([outputVars[i],
+                                   outputVars[target_label]],
                                   [1, -1], 0)
     return
 
