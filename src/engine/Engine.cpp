@@ -377,6 +377,13 @@ void Engine::mainLoopStatistics()
 
 void Engine::performBoundTightening()
 {
+    if ( _smtCore.getStackDepth() <= GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD &&
+         _tableau->basisMatrixAvailable() )
+    {
+        explicitBasisBoundTightening();
+        applyAllValidConstraintCaseSplits();
+    }
+
     tightenBoundsOnConstraintMatrix();
     applyAllValidConstraintCaseSplits();
 
@@ -998,6 +1005,32 @@ bool Engine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constrain
     }
 
     return false;
+}
+
+void Engine::explicitBasisBoundTightening()
+{
+    struct timespec start = TimeUtils::sampleMicro();
+
+    bool saturation = GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION;
+
+    _statistics.incLongAttr( Statistics::NUM_EXPLICIT_BASIS_BOUND_TIGHTENING_ATTEMPT, 1 );
+
+    switch ( GlobalConfiguration::EXPLICIT_BASIS_BOUND_TIGHTENING_TYPE )
+    {
+        case GlobalConfiguration::COMPUTE_INVERTED_BASIS_MATRIX:
+            _rowBoundTightener->examineInvertedBasisMatrix( saturation );
+            break;
+
+        case GlobalConfiguration::USE_IMPLICIT_INVERTED_BASIS_MATRIX:
+            _rowBoundTightener->examineImplicitInvertedBasisMatrix( saturation );
+            break;
+
+        case GlobalConfiguration::DISABLE_EXPLICIT_BASIS_TIGHTENING:
+            break;
+    }
+
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttr( Statistics::TIME_EXPLICIT_BASIS_BOUND_TIGHTENING_MICRO, TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::tightenBoundsOnConstraintMatrix()
