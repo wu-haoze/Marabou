@@ -201,6 +201,7 @@ struct MarabouOptions {
         , _restoreTreeStates( Options::get()->getBool( Options::RESTORE_TREE_STATES ) )
         , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
         , _dumpBounds( Options::get()->getBool( Options::DUMP_BOUNDS ) )
+        , _localSearch( Options::get()->getBool( Options::LOCAL_SEARCH ) )
         , _numWorkers( Options::get()->getInt( Options::NUM_WORKERS ) )
         , _initialTimeout( Options::get()->getInt( Options::INITIAL_TIMEOUT ) )
         , _initialDivides( Options::get()->getInt( Options::NUM_INITIAL_DIVIDES ) )
@@ -211,10 +212,16 @@ struct MarabouOptions {
         , _timeoutFactor( Options::get()->getFloat( Options::TIMEOUT_FACTOR ) )
         , _preprocessorBoundTolerance( Options::get()->getFloat( Options::PREPROCESSOR_BOUND_TOLERANCE ) )
         , _milpTimeout( Options::get()->getFloat( Options::MILP_SOLVER_TIMEOUT ) )
+        , _noiseParameter( Options::get()->getFloat( Options::NOISE_PARAMETER ) )
+        , _probabilityDensityParameter( Options::get()->getFloat( Options::PROBABILITY_DENSITY_PARAMETER ) )
         , _splittingStrategyString( Options::get()->getString( Options::SPLITTING_STRATEGY ).ascii() )
         , _sncSplittingStrategyString( Options::get()->getString( Options::SNC_SPLITTING_STRATEGY ).ascii() )
         , _tighteningStrategyString( Options::get()->getString( Options::SYMBOLIC_BOUND_TIGHTENING_TYPE ).ascii() )
         , _milpTighteningString( Options::get()->getString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE ).ascii() )
+        , _encodingString( Options::get()->getString( Options::LP_ENCODING ).ascii() )
+        , _flipStrategyString( Options::get()->getString( Options::FLIPPING_STRATEGY ).ascii() )
+        , _initStrategyString( Options::get()->getString( Options::INITIALIZATION_STRATEGY ).ascii() )
+        , _scoreMetricString( Options::get()->getString( Options::SCORE_METRIC ).ascii() )
     {};
 
   void setOptions()
@@ -224,6 +231,7 @@ struct MarabouOptions {
     Options::get()->setBool( Options::RESTORE_TREE_STATES, _restoreTreeStates );
     Options::get()->setBool( Options::SOLVE_WITH_MILP, _solveWithMILP );
     Options::get()->setBool( Options::DUMP_BOUNDS, _dumpBounds );
+    Options::get()->setBool( Options::LOCAL_SEARCH, _localSearch );
 
     // int options
     Options::get()->setInt( Options::NUM_WORKERS, _numWorkers );
@@ -238,18 +246,25 @@ struct MarabouOptions {
     Options::get()->setFloat( Options::TIMEOUT_FACTOR, _timeoutFactor );
     Options::get()->setFloat( Options::PREPROCESSOR_BOUND_TOLERANCE, _preprocessorBoundTolerance );
     Options::get()->setFloat( Options::MILP_SOLVER_TIMEOUT, _milpTimeout );
+    Options::get()->setFloat( Options::NOISE_PARAMETER, _noiseParameter );
+    Options::get()->setFloat( Options::PROBABILITY_DENSITY_PARAMETER, _probabilityDensityParameter );
 
     // string options
     Options::get()->setString( Options::SPLITTING_STRATEGY, _splittingStrategyString );
     Options::get()->setString( Options::SNC_SPLITTING_STRATEGY, _sncSplittingStrategyString );
     Options::get()->setString( Options::SYMBOLIC_BOUND_TIGHTENING_TYPE, _tighteningStrategyString );
     Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, _milpTighteningString );
+    Options::get()->setString( Options::LP_ENCODING, _encodingString );
+    Options::get()->setString( Options::FLIPPING_STRATEGY, _flipStrategyString );
+    Options::get()->setString( Options::INITIALIZATION_STRATEGY, _initStrategyString );
+    Options::get()->setString( Options::SCORE_METRIC, _scoreMetricString );
   }
 
     bool _snc;
     bool _restoreTreeStates;
     bool _solveWithMILP;
     bool _dumpBounds;
+    bool _localSearch;
     unsigned _numWorkers;
     unsigned _initialTimeout;
     unsigned _initialDivides;
@@ -260,10 +275,16 @@ struct MarabouOptions {
     float _timeoutFactor;
     float _preprocessorBoundTolerance;
     float _milpTimeout;
+    float _noiseParameter;
+    float _probabilityDensityParameter;
     std::string _splittingStrategyString;
     std::string _sncSplittingStrategyString;
     std::string _tighteningStrategyString;
     std::string _milpTighteningString;
+    std::string _encodingString;
+    std::string _flipStrategyString;
+    std::string _initStrategyString;
+    std::string _scoreMetricString;
 };
 
 /* The default parameters here are just for readability, you should specify
@@ -445,17 +466,24 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def_readwrite("_timeoutInSeconds", &MarabouOptions::_timeoutInSeconds)
         .def_readwrite("_timeoutFactor", &MarabouOptions::_timeoutFactor)
         .def_readwrite("_preprocessorBoundTolerance", &MarabouOptions::_preprocessorBoundTolerance)
+        .def_readwrite("_noiseParameter", &MarabouOptions::_noiseParameter)
+        .def_readwrite("_probabilityDensityParameter", &MarabouOptions::_probabilityDensityParameter)
         .def_readwrite("_milpTimeout", &MarabouOptions::_milpTimeout)
         .def_readwrite("_verbosity", &MarabouOptions::_verbosity)
         .def_readwrite("_splitThreshold", &MarabouOptions::_splitThreshold)
         .def_readwrite("_snc", &MarabouOptions::_snc)
         .def_readwrite("_solveWithMILP", &MarabouOptions::_solveWithMILP)
         .def_readwrite("_dumpBounds", &MarabouOptions::_dumpBounds)
+        .def_readwrite("_localSearch", &MarabouOptions::_localSearch )
         .def_readwrite("_restoreTreeStates", &MarabouOptions::_restoreTreeStates)
         .def_readwrite("_splittingStrategy", &MarabouOptions::_splittingStrategyString)
         .def_readwrite("_sncSplittingStrategy", &MarabouOptions::_sncSplittingStrategyString)
         .def_readwrite("_tighteningStrategy", &MarabouOptions::_tighteningStrategyString)
-        .def_readwrite("_milpTighteningStrategy", &MarabouOptions::_milpTighteningString);
+        .def_readwrite("_milpTighteningStrategy", &MarabouOptions::_milpTighteningString)
+        .def_readwrite("_encoding", &MarabouOptions::_encodingString)
+        .def_readwrite("_flipStrategy", &MarabouOptions::_flipStrategyString)
+        .def_readwrite("_initStrategy", &MarabouOptions::_initStrategyString)
+        .def_readwrite("_scoreMetric", &MarabouOptions::_scoreMetricString);
     py::enum_<PiecewiseLinearFunctionType>(m, "PiecewiseLinearFunctionType")
         .value("ReLU", PiecewiseLinearFunctionType::RELU)
         .value("AbsoluteValue", PiecewiseLinearFunctionType::ABSOLUTE_VALUE)

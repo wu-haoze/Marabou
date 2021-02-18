@@ -119,10 +119,13 @@ def createOptions(args):
     options._onlineDivides = args.num_online_divides
     options._timeoutInSeconds = args.timeout
     options._timeoutFactor = args.timeout_factor
+    options._noiseParameter = args.noise
+    options._probabilityDensityParameter = args.mcmc_beta
     options._verbosity = args.verbosity
     options._snc = args.snc
+    options._localSearch = args.local_search
     options._splittingStrategy = args.branch
-    options._sncSplittingStrategy = args.split_strategy
+    options._sncSplittingStrategy = args.snc_branch
     options._splitThreshold = args.split_threshold
     options._solveWithMILP = args.milp
     options._preprocessorBoundTolerance = args.preprocessor_bound_tolerance
@@ -130,7 +133,10 @@ def createOptions(args):
     options._tighteningStrategy = args.tightening_strategy
     options._milpTighteningStrategy = args.milp_tightening
     options._milpTimeout = args.milp_timeout
-
+    options._encoding = args.encoding
+    options._flipStrategy = args.flip_strategy
+    options._initStrategy = args.init_strategy
+    options._scoreMetric = args.score_metric
     return options
 
 def arguments():
@@ -158,9 +164,21 @@ def arguments():
                         help='Use the split-and-conquer solving mode.')
     parser.add_argument("--dump-bounds", action="store_true",
                         help="Dump the bounds after preprocessing" )
+    parser.add_argument("--local-search", action="store_true",
+                        help="Local search")
     parser.add_argument( "--num-workers", type=int, default=options._numWorkers,
                          help="(SnC) Number of workers" )
-    parser.add_argument( "--split-strategy", type=str, default=options._sncSplittingStrategy,
+    parser.add_argument( "--encoding", type=str, default=options._encoding,
+                         help="lp encoding: lp/milp. default: lp" )
+    parser.add_argument( "--flip-strategy", type=str, default=options._flipStrategy,
+                         help="Strategy of local search: gwsat/gwsat2. default: gwsat2" )
+    parser.add_argument( "--init-strategy", type=str, default=options._initStrategy,
+                         help="Strategy of local search: currentAssignment/inputAssignment/random. default: inputAssignment" )
+    parser.add_argument( "--score-metric", type=str, default=options._scoreMetric,
+                         help="Score metric for soi branching: reduction/change. default: change" )
+    parser.add_argument( "--branch", type=str, default=options._splittingStrategy,
+                         help="The splitting strategy" )
+    parser.add_argument( "--snc-branch", type=str, default=options._sncSplittingStrategy,
                          help="(SnC) The splitting strategy" )
     parser.add_argument( "--tightening-strategy", type=str, default=options._tighteningStrategy,
                          help="type of bound tightening technique to use: sbt/deeppoly/none. default: deeppoly" )
@@ -188,8 +206,10 @@ def arguments():
                          "lp/lp-inc/milp/milp-inc/iter-prop/none. default: lp" )
     parser.add_argument( "--milp-timeout", type=float, default=options._milpTimeout,
                          help="Per-ReLU timeout for iterative propagation" )
-    parser.add_argument( "--branch", type=str, default=options._splittingStrategy,
-                         help="The branching strategy" )
+    parser.add_argument( "--noise", type=float, default=options._noiseParameter,
+                         help="The probability to use the noise strategy in local search. default: 0.0" )
+    parser.add_argument( "--mcmc-beta", type=float, default=options._probabilityDensityParameter,
+                         help="beta parameter in MCMC search. default: 0.5" )
     return parser
 
 if __name__ == "__main__":
