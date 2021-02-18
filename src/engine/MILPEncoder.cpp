@@ -16,6 +16,7 @@
 
 #include "FloatUtils.h"
 #include "MILPEncoder.h"
+#include "Options.h"
 
 MILPEncoder::MILPEncoder( BoundManager &boundManager, bool relax )
     : _boundManager( boundManager )
@@ -93,7 +94,7 @@ void MILPEncoder::encodeEquation( LPSolver &gurobi, const Equation &equation )
     }
 }
 
-void MILPEncoder::encodeReLUConstraint( LPSolver &gurobi, ReluConstraint *relu)
+void MILPEncoder::encodeReLUConstraint( LPSolver &gurobi, ReluConstraint *relu )
 {
 
     if ( !relu->isActive() || relu->phaseFixed() )
@@ -132,15 +133,38 @@ void MILPEncoder::encodeReLUConstraint( LPSolver &gurobi, ReluConstraint *relu)
     }
     else
     {
-        unsigned sourceVariable = relu->getB();
-        unsigned targetVariable = relu->getF();
-        double sourceLb = _boundManager.getLowerBound( sourceVariable );
-        double sourceUb = _boundManager.getUpperBound( sourceVariable );
+        if ( Options::get()->getString( Options::LP_ENCODING ) == "lp" )
+        {
+            unsigned sourceVariable = relu->getB();
+            unsigned targetVariable = relu->getF();
+            double sourceLb = _boundManager.getLowerBound( sourceVariable );
+            double sourceUb = _boundManager.getUpperBound( sourceVariable );
 
-        List<LPSolver::Term> terms;
-        terms.append( LPSolver::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( LPSolver::Term( -sourceUb / ( sourceUb - sourceLb ), Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addLeqConstraint( terms, ( -sourceUb * sourceLb ) / ( sourceUb - sourceLb ) );
+            List<LPSolver::Term> terms;
+            terms.append( LPSolver::Term( 1, Stringf( "x%u", targetVariable ) ) );
+            terms.append( LPSolver::Term( -sourceUb / ( sourceUb - sourceLb ), Stringf( "x%u", sourceVariable ) ) );
+            gurobi.addLeqConstraint( terms, ( -sourceUb * sourceLb ) / ( sourceUb - sourceLb ) );
+        }
+        else
+        {
+            gurobi.addVariable( Stringf( "a%u", _binVarIndex ), 0, 1 );
+
+            unsigned sourceVariable = relu->getB();
+            unsigned targetVariable = relu->getF();
+            double sourceLb = _boundManager.getLowerBound( sourceVariable );
+            double sourceUb = _boundManager.getUpperBound( sourceVariable );
+
+            List<LPSolver::Term> terms;
+            terms.append( LPSolver::Term( 1, Stringf( "x%u", targetVariable ) ) );
+            terms.append( LPSolver::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+            terms.append( LPSolver::Term( -sourceLb, Stringf( "a%u", _binVarIndex ) ) );
+            gurobi.addLeqConstraint( terms, -sourceLb );
+
+            terms.clear();
+            terms.append( LPSolver::Term( 1, Stringf( "x%u", targetVariable ) ) );
+            terms.append( LPSolver::Term( -sourceUb, Stringf( "a%u", _binVarIndex++ ) ) );
+            gurobi.addLeqConstraint( terms, 0 );
+        }
     }
 }
 

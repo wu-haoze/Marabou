@@ -69,6 +69,9 @@ void OptionParser::initialize()
         ( "query-dump-file",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::QUERY_DUMP_FILE]) ),
           "Query dump file" )
+        ( "encoding",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::LP_ENCODING]) ),
+          "lp encoding: lp/milp. default: lp" )
         ( "flip-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::FLIPPING_STRATEGY]) ),
           "Strategy of local search: gwsat/gwsat2. default: gwsat2" )
