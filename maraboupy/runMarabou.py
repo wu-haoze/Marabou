@@ -14,39 +14,31 @@ import argparse
 import numpy as np
 import os
 import sys
-
+import tempfile
 import pathlib
 sys.path.insert(0, os.path.join(str(pathlib.Path(__file__).parent.absolute()), "../"))
 from maraboupy import Marabou
 from maraboupy import MarabouCore
 from maraboupy import MarabouUtils
+import subprocess
 
 def main():
         args = arguments().parse_args()
-        print(args)
         query = createQuery(args)
+        temp = tempfile.NamedTemporaryFile(dir=args.work_dir, delete=False)
+        name = temp.name
+        MarabouCore.saveQuery(query, name)
         if query == None:
-            print("Unable to create an input query!")
-            print("There are three options to define the benchmark:\n"
+                print("Unable to create an input query!")
+                print("There are three options to define the benchmark:\n"
                   "1. Provide an input query file.\n"
                   "2. Provide a network and a property file.\n"
                   "3. Provide a network, a dataset (--dataset), an epsilon (-e), "
                   "target label (-t), and the index of the point in the test set (-i).")
-            exit(1)
-
-        options = createOptions(args)
-        vals, stats = MarabouCore.solve(query, options)
-        if stats.hasTimedOut():
-            print ("TIMEOUT")
-        elif len(vals)==0:
-            print("unsat")
-        else:
-            if args.verbosity > 0:
-                for i in range(ipq.getNumInputVariables()):
-                    print("input {} = {}".format(i, vals[ipq.inputVariableByIndex(i)]))
-                for i in range(ipq.getNumOutputVariables()):
-                    print("output {} = {}".format(i, vals[ipq.outputVariableByIndex(i)]))
-            print("sat")
+                exit(1)
+        print(sys.argv[3:])
+        subprocess.run([os.path.join(args.work_dir, "build_production/Marabou")] + ["--input-query={}".format(name)] + sys.argv[3:] )
+        os.remove(name)
 
 def createQuery(args):
     if args.input_query:
@@ -147,6 +139,8 @@ def arguments():
                         help='The network file name, the extension can be only .pb, .nnet, and .onnx')
     parser.add_argument('prop', type=str, nargs='?', default=None,
                         help='The property file name')
+    parser.add_argument('--work-dir', type=str, default="./",
+                        help='The working dir')
     parser.add_argument('-q', '--input-query', type=str, default=None,
                         help='The input query file name')
     parser.add_argument('--dataset', type=str, default=None,
