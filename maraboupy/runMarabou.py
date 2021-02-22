@@ -28,6 +28,7 @@ def main():
         temp = tempfile.NamedTemporaryFile(dir=args.work_dir, delete=False)
         name = temp.name
         MarabouCore.saveQuery(query, name)
+        exit()
         if query == None:
                 print("Unable to create an input query!")
                 print("There are three options to define the benchmark:\n"
@@ -95,7 +96,7 @@ def encode_mnist_linf(network, index, epsilon, target_label):
 def encode_cifar10_linf(network, index, epsilon, target_label):
     import torchvision.datasets as datasets
     import torchvision.transforms as transforms
-    cifar_test = datasets.CIFAR10('/barrett/scratch/haozewu/leaderBoard/data/cifardata/', train=False, download=True, transform=transforms.ToTensor())
+    cifar_test = datasets.CIFAR10('./resources/cifardata/', train=False, download=True, transform=transforms.ToTensor())
     X,y = cifar_test[index]
     point = X.unsqueeze(0).numpy().flatten()
     lb = np.zeros(3072)
