@@ -26,7 +26,7 @@ const double GlobalConfiguration::EXPONENTIAL_MOVING_AVERAGE_ALPHA = 0.5;
 // and how to repair a ReLU constraint.
 const bool GlobalConfiguration::USE_POLARITY_BASED_DIRECTION_HEURISTICS = true;
 
-const double GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS = 1e-6;
+const double GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS = 1e-8;
 const unsigned GlobalConfiguration::DEFAULT_DOUBLE_TO_STRING_PRECISION = 10;
 const unsigned GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY = 10000;
 const DivideStrategy GlobalConfiguration::SPLITTING_HEURISTICS = DivideStrategy::ReLUViolation;
