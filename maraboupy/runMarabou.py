@@ -28,7 +28,6 @@ def main():
         temp = tempfile.NamedTemporaryFile(dir=args.work_dir, delete=False)
         name = temp.name
         MarabouCore.saveQuery(query, name)
-        exit()
         if query == None:
                 print("Unable to create an input query!")
                 print("There are three options to define the benchmark:\n"
