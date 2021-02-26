@@ -17,6 +17,7 @@
 #include "AcasParser.h"
 #include "GlobalConfiguration.h"
 #include "File.h"
+#include "FloatUtils.h"
 #include "MStringf.h"
 #include "Marabou.h"
 #include "Options.h"
@@ -167,7 +168,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
             {
                 for ( unsigned i = 0; i < lastLayer->getSize(); ++i )
                 {
-                    if ( output[i] > output[maxOutput] )
+                    if ( FloatUtils::gt( output[i],  output[maxOutput] ) )
                     {
                         sat = false;
                         break;
