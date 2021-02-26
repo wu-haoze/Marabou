@@ -138,7 +138,6 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
     else if ( result == Engine::SAT )
     {
         resultString = "sat";
-        printf( "sat\n" );
 
         printf( "Input assignment:\n" );
         for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
@@ -172,6 +171,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
                 printf( "y%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
             printf( "\n" );
         }
+        printf( "sat\n" );
     }
     else if ( result == Engine::TIMEOUT )
     {
