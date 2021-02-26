@@ -140,9 +140,9 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
         resultString = "sat";
         printf( "sat\n" );
 
-        //printf( "Input assignment:\n" );
-        //for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
-        //    printf( "\tx%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) ) );
+        printf( "Input assignment:\n" );
+        for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
+            printf( "x%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) ) );
 
         if ( _inputQuery._networkLevelReasoner )
         {
@@ -159,7 +159,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
             printf( "\n" );
             printf( "Output:\n" );
             for ( unsigned i = 0; i < lastLayer->getSize(); ++i )
-                printf( "\ty%u = %lf\n", i, output[i] );
+                printf( "y%u = %lf\n", i, output[i] );
             printf( "\n" );
             delete[] input;
             delete[] output;
@@ -169,7 +169,7 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
             printf( "\n" );
             printf( "Output:\n" );
             for ( unsigned i = 0; i < _inputQuery.getNumOutputVariables(); ++i )
-                printf( "\ty%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
+                printf( "y%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
             printf( "\n" );
         }
     }
