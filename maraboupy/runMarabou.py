@@ -36,10 +36,26 @@ def main():
                   "3. Provide a network, a dataset (--dataset), an epsilon (-e), "
                   "target label (-t), and the index of the point in the test set (-i).")
                 exit(1)
-        if args.dataset in ["mnist", "cifar10"]:
-                marabou_arg = sys.argv[10:]
-        else:
-                marabou_arg = sys.argv[4:]
+
+        marabou_arg = []
+        skipNext = False
+        takeNext = False
+        for i, arg in enumerate("=".join(sys.argv[1:]).split("=")):
+                if skipNext:
+                        skipNext = False
+                        continue
+                elif takeNext:
+                        marabou_arg.append(arg)
+                        takeNext = False
+                        continue
+                elif arg in ["--work-dir", "-q", "--input-query", '--dataset', '-e',
+                             '--epsilon', '-t', '--target-label', '--i', '--index']:
+                        skipNext = True
+                elif arg[0] != '-':
+                        continue
+                else:
+                        marabou_arg.append(arg)
+                        takeNext = True
         print(marabou_arg)
         subprocess.run([os.path.join(args.work_dir, "build_production/Marabou")] + ["--input-query={}".format(name)] + marabou_arg )
         os.remove(name)
@@ -95,7 +111,7 @@ def encode_mnist_linf(network, index, epsilon, target_label):
 def encode_cifar10_linf(network, index, epsilon, target_label):
     import torchvision.datasets as datasets
     import torchvision.transforms as transforms
-    cifar_test = datasets.CIFAR10('/barrett/scratch/haozewu/leaderBoard/data/cifardata/', train=False, download=True, transform=transforms.ToTensor())
+    cifar_test = datasets.CIFAR10('./data/cifardata/', train=False, download=True, transform=transforms.ToTensor())
     X,y = cifar_test[index]
     point = X.unsqueeze(0).numpy().flatten()
     lb = np.zeros(3072)
