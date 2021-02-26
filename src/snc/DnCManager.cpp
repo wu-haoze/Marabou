@@ -297,7 +297,7 @@ void DnCManager::printResult()
         printf( "Input assignment:\n" );
         for ( unsigned i = 0; i < inputQuery->getNumInputVariables(); ++i )
         {
-            printf( "\tx%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) ) );
+            printf( "x%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) ) );
             inputs[i] = inputQuery->getSolutionValue( inputQuery->inputVariableByIndex( i ) );
         }
 
@@ -310,9 +310,9 @@ void DnCManager::printResult()
         for ( unsigned i = 0; i < inputQuery->getNumOutputVariables(); ++i )
         {
             if ( nlr )
-                printf( "\tnlr y%u = %lf\n", i, outputs[i] );
+                printf( "y%u = %lf\n", i, outputs[i] );
             else
-                printf( "\ty%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->outputVariableByIndex( i ) ) );
+                printf( "y%u = %lf\n", i, inputQuery->getSolutionValue( inputQuery->outputVariableByIndex( i ) ) );
         }
         printf( "\n" );
         break;

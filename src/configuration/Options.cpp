@@ -59,6 +59,7 @@ void Options::initializeDefaultValues()
     _intOptions[VERBOSITY] = 2;
     _intOptions[TIMEOUT] = 0;
     _intOptions[CONSTRAINT_VIOLATION_THRESHOLD] = 1;
+    _intOptions[MAX_OUTPUT] = -1;
 
     /*
       Float options

@@ -49,7 +49,7 @@ def main():
                         takeNext = False
                         continue
                 elif arg in ["--work-dir", "-q", "--input-query", '--dataset', '-e',
-                             '--epsilon', '-t', '--target-label', '--i', '--index']:
+                             '--epsilon', '-t', '--index', '-i']:
                         skipNext = True
                 elif arg[0] != '-':
                         continue

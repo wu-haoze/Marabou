@@ -160,8 +160,27 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
             for ( unsigned i = 0; i < lastLayer->getSize(); ++i )
                 printf( "y%u = %lf\n", i, output[i] );
             printf( "\n" );
+
+            bool sat = true;
+            int maxOutput = Options::get()->getInt( Options::MAX_OUTPUT );
+            if ( maxOutput != -1 )
+            {
+                for ( unsigned i = 0; i < lastLayer->getSize(); ++i )
+                {
+                    if ( output[i] > output[maxOutput] )
+                    {
+                        sat = false;
+                        break;
+                    }
+                }
+            }
             delete[] input;
             delete[] output;
+
+            if ( sat )
+                printf( "sat\n" );
+            else
+                printf( "wrongModel\n" );
         }
         else
         {
@@ -171,7 +190,6 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
                 printf( "y%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
             printf( "\n" );
         }
-        printf( "sat\n" );
     }
     else if ( result == Engine::TIMEOUT )
     {

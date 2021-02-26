@@ -72,6 +72,8 @@ public:
         TIMEOUT,
 
         CONSTRAINT_VIOLATION_THRESHOLD,
+
+        MAX_OUTPUT,
     };
 
     enum FloatOptions{

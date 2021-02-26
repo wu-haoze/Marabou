@@ -112,6 +112,9 @@ void OptionParser::initialize()
         ( "split-threshold",
           boost::program_options::value<int>( &((*_intOptions)[Options::CONSTRAINT_VIOLATION_THRESHOLD]) ),
           "Max number of tries to repair a relu before splitting" )
+        ( "target-label",
+          boost::program_options::value<int>( &((*_intOptions)[Options::MAX_OUTPUT]) ),
+          "target label" )
         ( "timeout-factor",
           boost::program_options::value<float>( &((*_floatOptions)[Options::TIMEOUT_FACTOR]) ),
           "(SnC) The timeout factor" )
