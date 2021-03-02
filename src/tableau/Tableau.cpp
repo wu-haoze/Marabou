@@ -157,69 +157,6 @@ void Tableau::setDimensions( unsigned m, unsigned n )
 {
     _m = m;
     _n = n;
-
-    _A = new CSRMatrix();
-    if ( !_A )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::A" );
-
-    _sparseColumnsOfA = new SparseUnsortedList *[n];
-    if ( !_sparseColumnsOfA )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::sparseColumnsOfA" );
-
-    for ( unsigned i = 0; i < n; ++i )
-    {
-        _sparseColumnsOfA[i] = new SparseUnsortedList( _m );
-        if ( !_sparseColumnsOfA[i] )
-            throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::sparseColumnsOfA[i]" );
-    }
-
-    _sparseRowsOfA = new SparseUnsortedList *[m];
-    if ( !_sparseRowsOfA )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::sparseRowOfA" );
-
-    for ( unsigned i = 0; i < m; ++i )
-    {
-        _sparseRowsOfA[i] = new SparseUnsortedList( _n );
-        if ( !_sparseRowsOfA[i] )
-            throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::sparseRowOfA[i]" );
-    }
-
-    _denseA = new double[m*n];
-    if ( !_denseA )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::denseA" );
-
-    _b = new double[m];
-    if ( !_b )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::b" );
-
-    _unitVector = new double[m];
-    if ( !_unitVector )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::unitVector" );
-
-    _basicIndexToVariable = new unsigned[m];
-    if ( !_basicIndexToVariable )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::basicIndexToVariable" );
-
-    _variableToIndex = new unsigned[n];
-    if ( !_variableToIndex )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::variableToIndex" );
-
-    _nonBasicIndexToVariable = new unsigned[n-m];
-    if ( !_nonBasicIndexToVariable )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::nonBasicIndexToVariable" );
-
-    _basisFactorization = BasisFactorizationFactory::createBasisFactorization( _m, *this );
-    if ( !_basisFactorization )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::basisFactorization" );
-    _basisFactorization->setStatistics( _statistics );
-
-    _workM = new double[m];
-    if ( !_workM )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::work" );
-
-    _workN = new double[n];
-    if ( !_workN )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::work" );
 }
 
 void Tableau::setConstraintMatrix( const double *A )

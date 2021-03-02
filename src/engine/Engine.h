@@ -354,7 +354,7 @@ private:
     void printInputBounds( const InputQuery &inputQuery ) const;
     void removeRedundantEquations( const double *constraintMatrix );
     void selectInitialVariablesForBasis( const double *constraintMatrix, List<unsigned> &initialBasis, List<unsigned> &basicRows );
-    void initializeTableau( const double *constraintMatrix, const List<unsigned> &initialBasis );
+    void initializeTableau();
     void initializeNetworkLevelReasoning();
     double *createConstraintMatrix();
     void addAuxiliaryVariables();

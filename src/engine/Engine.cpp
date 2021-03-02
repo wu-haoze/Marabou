@@ -377,16 +377,6 @@ void Engine::mainLoopStatistics()
 
 void Engine::performBoundTightening()
 {
-    if ( _smtCore.getStackDepth() <= GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD &&
-         _tableau->basisMatrixAvailable() )
-    {
-        explicitBasisBoundTightening();
-        applyAllValidConstraintCaseSplits();
-    }
-
-    tightenBoundsOnConstraintMatrix();
-    applyAllValidConstraintCaseSplits();
-
     do
     {
         performSymbolicBoundTightening();
@@ -746,23 +736,13 @@ void Engine::augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, const Li
     }
 }
 
-void Engine::initializeTableau( const double *constraintMatrix, const List<unsigned> &initialBasis )
+void Engine::initializeTableau()
 {
     const List<Equation> &equations( _preprocessedQuery.getEquations() );
     unsigned m = equations.size();
     unsigned n = _preprocessedQuery.getNumberOfVariables();
 
     _tableau->setDimensions( m, n );
-
-    unsigned equationIndex = 0;
-    for ( const auto &equation : equations )
-    {
-        _tableau->setRightHandSide( equationIndex, equation._scalar );
-        ++equationIndex;
-    }
-
-    // Populate constriant matrix
-    _tableau->setConstraintMatrix( constraintMatrix );
 
     _boundManager.initialize( _preprocessedQuery.getNumberOfVariables() );
 
@@ -771,12 +751,6 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
         _boundManager.setLowerBound( i, _preprocessedQuery.getLowerBound( i ) );
         _boundManager.setUpperBound( i, _preprocessedQuery.getUpperBound( i ) );
     }
-
-    _tableau->registerToWatchAllVariables( _rowBoundTightener );
-
-    _rowBoundTightener->setDimensions();
-
-    _tableau->initializeTableau( initialBasis );
 
     _boundManager.registerTableauReference( _tableau );
 
@@ -814,27 +788,8 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
         _heuristicCostManager.setPLConstraints( _plConstraints );
 
-        double *constraintMatrix = createConstraintMatrix();
-        removeRedundantEquations( constraintMatrix );
-
-        // The equations have changed, recreate the constraint matrix
-        delete[] constraintMatrix;
-        constraintMatrix = createConstraintMatrix();
-
-        List<unsigned> initialBasis;
-        List<unsigned> basicRows;
-        selectInitialVariablesForBasis( constraintMatrix, initialBasis, basicRows );
-        addAuxiliaryVariables();
-        augmentInitialBasisIfNeeded( initialBasis, basicRows );
-
-        // The equations have changed, recreate the constraint matrix
-        delete[] constraintMatrix;
-        constraintMatrix = createConstraintMatrix();
-
         initializeNetworkLevelReasoning();
-        initializeTableau( constraintMatrix, initialBasis );
-
-        delete[] constraintMatrix;
+        initializeTableau();
 
         for ( const auto &constraint : _plConstraints )
         {
