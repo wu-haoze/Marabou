@@ -53,6 +53,8 @@ def main():
                         skipNext = True
                 elif arg[0] != '-':
                         continue
+                elif arg in ["--milp"]:
+                        marabou_arg.append(arg)
                 else:
                         marabou_arg.append(arg)
                         takeNext = True
@@ -184,7 +186,8 @@ def arguments():
                         help='The target of the adversarial attack')
     parser.add_argument('-i,', '--index', type=int, default=0,
                         help='The index of the point in the test set')
-
+    parser.add_argument('--summary-file', type=str, default="",
+                        help='The summary file')
     options = MarabouCore.Options()
     # runtime options
     parser.add_argument('--snc', action="store_true",
