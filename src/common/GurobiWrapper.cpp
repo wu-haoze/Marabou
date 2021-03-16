@@ -87,7 +87,7 @@ void GurobiWrapper::resetModel()
                           GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE );
 
     // Timeout
-    setTimeLimit( _timeoutInSeconds );
+    //setTimeLimit( _timeoutInSeconds );
 }
 
 void GurobiWrapper::setVerbosity( unsigned verbosity )
@@ -282,7 +282,6 @@ void GurobiWrapper::solve()
                     printf( "Number of non-zeros: %u\n", _model->get( GRB_IntAttr_NumNZs ) );
                 }
             });
-        //_model->set( GRB_IntParam_VarBranch, 0 );
         _model->optimize();
     }
     catch ( GRBException e )
