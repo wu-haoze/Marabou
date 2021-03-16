@@ -36,6 +36,9 @@ public:
         // Should the PL constraints add aux equations during preprocessing?
         PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS = 0,
 
+        // Construct the tableau
+        CONSTRUCT_TABLEAU,
+
         // Should DNC mode be on or off
         DNC_MODE,
 

@@ -36,7 +36,7 @@ public:
     static const unsigned DEFAULT_DOUBLE_TO_STRING_PRECISION;
 
     // How often should the main loop print statistics?
-    static const unsigned STATISTICS_PRINTING_FREQUENCY;
+    static const unsigned long long STATISTICS_PRINTING_FREQUENCY;
 
     static const DivideStrategy SPLITTING_HEURISTICS;
 

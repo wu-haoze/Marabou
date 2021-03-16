@@ -425,6 +425,8 @@ private:
 
     String _scoreMetric;
 
+    bool _constructTableau;
+
     void performBoundTightening();
 
     void solveLPWithGurobi( List<LPSolver::Term> &cost );

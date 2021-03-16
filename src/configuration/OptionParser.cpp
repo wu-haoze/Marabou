@@ -39,6 +39,9 @@ void OptionParser::initialize()
 {
     // Possible options
     _optionDescription.add_options()
+        ( "tableau",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::CONSTRUCT_TABLEAU]) ),
+          "Construct tableau" )
         ( "pl-aux-eq",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::PREPROCESSOR_PL_CONSTRAINTS_ADD_AUX_EQUATIONS]) ),
           "PL constraints generate auxiliary equations" )

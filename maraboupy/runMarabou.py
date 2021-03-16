@@ -53,7 +53,7 @@ def main():
                         skipNext = True
                 elif arg[0] != '-':
                         continue
-                elif arg in ["--milp"]:
+                elif arg in ["--milp", "--tableau"]:
                         marabou_arg.append(arg)
                 else:
                         marabou_arg.append(arg)
@@ -190,6 +190,8 @@ def arguments():
                         help='The summary file')
     options = MarabouCore.Options()
     # runtime options
+    parser.add_argument('--tableau', action="store_true",
+                        help='tableau.')
     parser.add_argument('--snc', action="store_true",
                         help='Use the split-and-conquer solving mode.')
     parser.add_argument("--dump-bounds", action="store_true",
