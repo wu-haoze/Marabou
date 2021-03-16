@@ -81,6 +81,8 @@ void GurobiWrapper::resetModel()
                           GlobalConfiguration::GUROBI_NUMBER_OF_THREADS );
 
     // Thread precision
+    _model->getEnv().set( GRB_DoubleParam_OptimalityTol,
+                          GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
     _model->getEnv().set( GRB_DoubleParam_FeasibilityTol,
                           GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
     _model->getEnv().set( GRB_DoubleParam_IntFeasTol,
