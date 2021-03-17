@@ -103,6 +103,8 @@ PiecewiseLinearConstraint *HeuristicCostManager::updateHeuristicCost()
         lastFlippedConstraint = updateHeuristicCostGWSAT();
     else if ( _flippingStrategy == "gwsat2" )
         lastFlippedConstraint = updateHeuristicCostGWSAT2();
+    else if ( _flippingStrategy == "random" )
+        lastFlippedConstraint = updateHeuristicCostRandomly();
     else
         throw MarabouError( MarabouError::UNKNOWN_LOCAL_SEARCH_STRATEGY,
                             Stringf( "Unknown flipping stategy %s", _flippingStrategy.ascii() ).ascii() );
@@ -203,7 +205,7 @@ bool HeuristicCostManager::acceptProposedUpdate( double previousCost, double cur
     COST_LOG( Stringf( "Previous Cost: %.2f. Cost after proposed flip: %.2f."
                        " Proposal probability ratio: %.2f.\n"
                        "Probability to accept the flip: %.2lf%%", previousCost, currentCost,
-                       proposalProbabilityRatio, prob ).ascii() );
+                       proposalProbabilityRatio, prob * 100 ).ascii() );
 
     bool flip = prob >= 1 || ( (float) rand() / RAND_MAX ) < prob;
 
@@ -371,6 +373,30 @@ PiecewiseLinearConstraint *HeuristicCostManager::updateHeuristicCostGWSAT2()
             phaseStatusToFlipTo = phaseStatusOfReducedCost;
         }
     }
+
+    if ( !plConstraintToFlip )
+    {
+        // Assume violated pl constraints has been updated.
+        // If using noise stategy, we just flip a random
+        // PLConstraint.
+        COST_LOG( "Using noise strategy to pick a PLConstraint and flip its heuristic cost..." );
+        unsigned plConstraintIndex = (unsigned) rand() % _plConstraintsInHeuristicCost.size();
+        plConstraintToFlip = _plConstraintsInHeuristicCost[plConstraintIndex];
+        Vector<PhaseStatus> phaseStatuses = plConstraintToFlip->getAlternativeHeuristicPhaseStatus();
+        unsigned phaseIndex = (unsigned) rand() % phaseStatuses.size();
+        phaseStatusToFlipTo = phaseStatuses[phaseIndex];
+    }
+
+    ASSERT( plConstraintToFlip && phaseStatusToFlipTo != PHASE_NOT_FIXED );
+
+    plConstraintToFlip->addCostFunctionComponent( _heuristicCost, phaseStatusToFlipTo );
+    return plConstraintToFlip;
+}
+
+PiecewiseLinearConstraint *HeuristicCostManager::updateHeuristicCostRandomly()
+{
+    PiecewiseLinearConstraint *plConstraintToFlip = NULL;
+    PhaseStatus phaseStatusToFlipTo = PHASE_NOT_FIXED;
 
     if ( !plConstraintToFlip )
     {

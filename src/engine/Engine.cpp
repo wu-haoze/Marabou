@@ -109,6 +109,10 @@ bool Engine::performLocalSearch()
                 ENGINE_LOG( "Performing local search - done" );
                 return true;
             }
+            else
+            {
+                ASSERT( !FloatUtils::isZero( _heuristicCostManager.computeHeuristicCost() ) );
+            }
         }
 
         PiecewiseLinearConstraint *lastFlippedConstraint = _heuristicCostManager.updateHeuristicCost();

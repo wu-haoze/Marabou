@@ -136,6 +136,8 @@ private:
     PiecewiseLinearConstraint *updateHeuristicCostGWSAT();
 
     PiecewiseLinearConstraint *updateHeuristicCostGWSAT2();
+
+    PiecewiseLinearConstraint *updateHeuristicCostRandomly();
 };
 
 #endif // __HeuristicCostManager_h__
