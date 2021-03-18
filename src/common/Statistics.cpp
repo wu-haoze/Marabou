@@ -80,7 +80,7 @@ Statistics::Statistics()
     _longAttributes[TIME_HANDLING_STATISTICS_MICRO] = 0;
 
     /***************************** Double Attributes ****************************/
-    _doubleAttributes[MINIMAL_COST_SO_FAR] = 0;
+    _doubleAttributes[HEURISTIC_COST] = 0;
 }
 
 void Statistics::resetTimeStatsForMainLoop()
@@ -293,6 +293,10 @@ void Statistics::print()
     unsigned long long numProposed = getLongAttr( NUM_PROPOSED_FLIPS );
     unsigned long long numAccepted = getLongAttr( NUM_ACCEPTED_FLIPS );
     unsigned long long numRejected = getLongAttr( NUM_REJECTED_FLIPS );
+
+    printf( "\tCurrent heuristic cost: %.2lf.\n"
+            , getDoubleAttr( HEURISTIC_COST ) );
+
 
     printf( "\tFlip proposed %llu. Acceptance rate: %llu (%.2lf%%). Flip rejected: %llu. \n"
             , numProposed

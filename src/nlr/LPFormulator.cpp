@@ -283,6 +283,9 @@ void LPFormulator::optimizeBoundsWithLpRelaxation( const Map<unsigned, Layer *> 
     {
         Layer *layer = currentLayer.second;
 
+        if ( layer->getLayerType() != Layer::WEIGHTED_SUM || layer->getLayerIndex() != layers.size() - 2 )
+            continue;
+
         for ( unsigned i = 0; i < layer->getSize(); ++i )
         {
             if ( layer->neuronEliminated( i ) )
@@ -291,8 +294,8 @@ void LPFormulator::optimizeBoundsWithLpRelaxation( const Map<unsigned, Layer *> 
             currentLb = layer->getLb( i );
             currentUb = layer->getUb( i );
 
-            if ( _cutoffInUse && ( currentLb > _cutoffValue || currentUb < _cutoffValue ) )
-                continue;
+            //if ( _cutoffInUse && ( currentLb >= _cutoffValue || currentUb <= _cutoffValue ) )
+            //    continue;
 
             if ( infeasible )
             {
@@ -342,8 +345,8 @@ void LPFormulator::optimizeBoundsWithLpRelaxation( const Map<unsigned, Layer *> 
 
     gurobiEnd = TimeUtils::sampleMicro();
 
-    LPFormulator_LOG( Stringf( "Number of tighter bounds found by Gurobi: %u. Sign changes: %u. Cutoffs: %u\n",
-                               tighterBoundCounter.load(), signChanges.load(), cutoffs.load() ).ascii() );
+    printf( "Number of tighter bounds found by Gurobi: %u. Sign changes: %u. Cutoffs: %u\n",
+            tighterBoundCounter.load(), signChanges.load(), cutoffs.load() );
     LPFormulator_LOG( Stringf( "Seconds spent Gurobiing: %llu\n", TimeUtils::timePassed( gurobiStart, gurobiEnd ) / 1000000 ).ascii() );
 
     clearSolverQueue( freeSolvers );
@@ -371,8 +374,8 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
         std::atomic_uint &signChanges = argument._signChanges;
         std::atomic_uint &cutoffs = argument._cutoffs;
 
-        LPFormulator_LOG( Stringf( "Tightening bounds for layer %u index %u",
-                                   layer->getLayerIndex(), index ).ascii() );
+        printf( "Tightening bounds for layer %u index %u\n",
+                layer->getLayerIndex(), index );
 
         unsigned variable = layer->neuronToVariable( index );
         Stringf variableName( "x%u", variable );

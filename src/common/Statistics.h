@@ -91,7 +91,7 @@ public:
     enum StatisticsDoubleAttr
     {
      // Local search
-     MINIMAL_COST_SO_FAR,
+     HEURISTIC_COST,
 
     };
 

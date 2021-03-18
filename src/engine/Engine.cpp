@@ -134,6 +134,7 @@ bool Engine::performLocalSearch()
             previousCost = currentCost;
             lastCostAccepted = true;
             _statistics.incLongAttr( Statistics::NUM_ACCEPTED_FLIPS, 1 );
+            _statistics.setDoubleAttr( Statistics::HEURISTIC_COST, currentCost );
         }
     }
     ENGINE_LOG( "Performing local search - done" );
@@ -383,7 +384,6 @@ void Engine::performBoundTightening()
 {
     if ( _constructTableau )
     {
-
         if ( _smtCore.getStackDepth() <= GlobalConfiguration::EXPLICIT_BOUND_TIGHTENING_DEPTH_THRESHOLD &&
              _tableau->basisMatrixAvailable() )
         {

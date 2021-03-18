@@ -275,6 +275,7 @@ void GurobiWrapper::solve()
 {
     try
     {
+        /*
         DEBUG({
                 if ( Options::get()->getInt( Options::VERBOSITY ) == 2 )
                 {
@@ -284,6 +285,7 @@ void GurobiWrapper::solve()
                     printf( "Number of non-zeros: %u\n", _model->get( GRB_IntAttr_NumNZs ) );
                 }
             });
+        */
         _model->optimize();
     }
     catch ( GRBException e )

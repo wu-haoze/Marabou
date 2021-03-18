@@ -147,7 +147,7 @@ void NetworkLevelReasoner::deepPolyPropagation()
 void NetworkLevelReasoner::lpRelaxationPropagation()
 {
     LPFormulator lpFormulator( this );
-    lpFormulator.setCutoff( 0 );
+    //lpFormulator.setCutoff( 0 );
 
     if ( Options::get()->getMILPSolverBoundTighteningType() ==
          MILPSolverBoundTighteningType::LP_RELAXATION )

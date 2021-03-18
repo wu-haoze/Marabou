@@ -59,7 +59,7 @@ void Options::initializeDefaultValues()
     _intOptions[INITIAL_TIMEOUT] = 5;
     _intOptions[VERBOSITY] = 2;
     _intOptions[TIMEOUT] = 0;
-    _intOptions[CONSTRAINT_VIOLATION_THRESHOLD] = 1;
+    _intOptions[CONSTRAINT_VIOLATION_THRESHOLD] = 2;
     _intOptions[MAX_OUTPUT] = -1;
 
     /*
@@ -70,7 +70,7 @@ void Options::initializeDefaultValues()
     _floatOptions[PREPROCESSOR_BOUND_TOLERANCE] = \
         GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
     _floatOptions[NOISE_PARAMETER] = 0.0;
-    _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 0.5;
+    _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 10;
 
     /*
       String options
