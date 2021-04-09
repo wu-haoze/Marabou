@@ -85,7 +85,7 @@ void Options::initializeDefaultValues()
     _stringOptions[QUERY_DUMP_FILE] = "";
     _stringOptions[LP_ENCODING] = "lp";
     _stringOptions[FLIPPING_STRATEGY] = "gwsat2";
-    _stringOptions[INITIALIZATION_STRATEGY] = "inputAssignment";
+    _stringOptions[INITIALIZATION_STRATEGY] = "currentAssignment";
     _stringOptions[SCORE_METRIC] = "change";
 }
 
