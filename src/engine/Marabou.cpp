@@ -238,6 +238,11 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
                                     _engine.getStatistics()->getLongAttr( Statistics::NUM_REJECTED_FLIPS ) ) );
 
         summaryFile.write( "\n" );
+        if ( resultString == "sat" )
+        {
+            for ( unsigned i = 0; i < 196; ++i )
+                summaryFile.write( Stringf( "x%u = %lf\n", i, _inputQuery.getSolutionValue( i ) ) );
+        }
     }
 }
 
