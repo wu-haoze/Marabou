@@ -426,6 +426,105 @@ public:
             TS_ASSERT( bounds.exists( bound ) );
     }
 
+    void populateResidualNetwork3( NLR::NetworkLevelReasoner &nlr, MockTableau &tableau )
+    {
+        /*
+              __________1____________
+             /             ____1_____\
+            /             /          \\
+           /  1      1   /        1   \\
+          x0 --- x1 --- x2     x3 --- x4
+                  \______R_____/      -1
+        */
+
+        // Create the layers
+        nlr.addLayer( 0, NLR::Layer::INPUT, 1 );
+        nlr.addLayer( 1, NLR::Layer::WEIGHTED_SUM, 1 );
+        nlr.addLayer( 2, NLR::Layer::WEIGHTED_SUM, 1 );
+        nlr.addLayer( 3, NLR::Layer::RELU, 1 );
+        nlr.addLayer( 4, NLR::Layer::WEIGHTED_SUM, 1 );
+
+        // Mark layer dependencies
+        nlr.addLayerDependency( 0, 1 );
+        nlr.addLayerDependency( 1, 2 );
+        nlr.addLayerDependency( 1, 3 );
+        nlr.addLayerDependency( 3, 4 );
+        nlr.addLayerDependency( 2, 4 );
+        nlr.addLayerDependency( 0, 4 );
+
+        // Set the weights and biases for the weighted sum layers
+        nlr.setWeight( 0, 0, 1, 0, 1 );
+        nlr.setWeight( 1, 0, 2, 0, 1 );
+        nlr.setWeight( 3, 0, 4, 0, 1 );
+        nlr.setWeight( 2, 0, 4, 0, 1 );
+        nlr.setWeight( 0, 0, 4, 0, 1 );
+
+        nlr.setBias( 4, 0, -1 );
+
+        // Mark the ReLU sources
+        nlr.addActivationSource( 1, 0, 3, 0 );
+
+        // Variable indexing
+        nlr.setNeuronVariable( NLR::NeuronIndex( 0, 0 ), 0 );
+        nlr.setNeuronVariable( NLR::NeuronIndex( 1, 0 ), 1 );
+        nlr.setNeuronVariable( NLR::NeuronIndex( 2, 0 ), 2 );
+        nlr.setNeuronVariable( NLR::NeuronIndex( 3, 0 ), 3 );
+        nlr.setNeuronVariable( NLR::NeuronIndex( 4, 0 ), 4 );
+
+        // Very loose bounds for neurons except inputs
+        double large = 1000000;
+
+        tableau.setLowerBound( 1, -large ); tableau.setUpperBound( 1, large );
+        tableau.setLowerBound( 2, -large ); tableau.setUpperBound( 2, large );
+        tableau.setLowerBound( 3, -large ); tableau.setUpperBound( 3, large );
+        tableau.setLowerBound( 4, -large ); tableau.setUpperBound( 4, large );
+    }
+
+    void test_deeppoly_residual3()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateResidualNetwork3( nlr, tableau );
+
+        tableau.setLowerBound( 0, -1 );
+        tableau.setUpperBound( 0, 1 );
+
+        // Invoke DeepPoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        /*
+          Input ranges:
+
+          x0: [-1, 1]
+
+          x1: [-1, 1]
+          x2: [-1, 1]
+          x3: [0, 1]
+          x4: [-3, 2]
+        */
+
+        List<Tightening> expectedBounds({
+                Tightening( 1, -1, Tightening::LB ),
+                Tightening( 1, 1, Tightening::UB ),
+                Tightening( 2, -1, Tightening::LB ),
+                Tightening( 2, 1, Tightening::UB ),
+                Tightening( 3, 0, Tightening::LB ),
+                Tightening( 3, 1, Tightening::UB ),
+                Tightening( 4, -3, Tightening::LB ),
+                Tightening( 4, 2, Tightening::UB )
+
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
     void populateMaxNetwork( NLR::NetworkLevelReasoner &nlr, MockTableau &tableau )
     {
         /*
