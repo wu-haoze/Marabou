@@ -170,6 +170,7 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
             log( Stringf( "merge residual from layer %u - done", predecessorIndex ) );
         }
 
+        /*
         DEBUG({
                 // Residual layers topologically after precedingElement should
                 // have been merged already.
@@ -178,6 +179,7 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
                     ASSERT( residualLayerIndex < predecessorIndex );
                 }
             });
+        */
 
         double *temp = _work1SymbolicLb;
         _work1SymbolicLb = _work2SymbolicLb;
@@ -192,7 +194,7 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
                                  _workSymbolicLowerBias, _workSymbolicUpperBias,
                                  currentElement, deepPolyElementsBefore );
     }
-    ASSERT( _residualLayerIndices.empty() );
+    // ASSERT( _residualLayerIndices.empty() );
     log( "Computing bounds with back substitution - done" );
 }
 
@@ -212,7 +214,7 @@ void DeepPolyWeightedSumElement::concretizeSymbolicBound
 
     for ( const auto &residualLayerIndex : _residualLayerIndices )
     {
-        ASSERT( residualLayerIndex < sourceElement->getLayerIndex() );
+        // ASSERT( residualLayerIndex < sourceElement->getLayerIndex() );
         DeepPolyElement *residualElement =
             deepPolyElementsBefore[residualLayerIndex];
         concretizeSymbolicBoundForSourceLayer( _residualLb[residualLayerIndex],
