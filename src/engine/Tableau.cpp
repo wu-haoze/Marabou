@@ -214,6 +214,17 @@ void Tableau::setDimensions( unsigned m, unsigned n )
     _m = m;
     _n = n;
 
+    _lowerBounds = new double[n];
+    if ( !_lowerBounds )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::lowerBounds" );
+    std::fill_n( _lowerBounds, n, FloatUtils::negativeInfinity() );
+
+    _upperBounds = new double[n];
+    if ( !_upperBounds )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::upperBounds" );
+    std::fill_n( _upperBounds, n, FloatUtils::infinity() );
+
+    /*
     _A = new CSRMatrix();
     if ( !_A )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::A" );
@@ -280,16 +291,6 @@ void Tableau::setDimensions( unsigned m, unsigned n )
     if ( !_nonBasicAssignment )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::nonBasicAssignment" );
 
-    _lowerBounds = new double[n];
-    if ( !_lowerBounds )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::lowerBounds" );
-    std::fill_n( _lowerBounds, n, FloatUtils::negativeInfinity() );
-
-    _upperBounds = new double[n];
-    if ( !_upperBounds )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::upperBounds" );
-    std::fill_n( _upperBounds, n, FloatUtils::infinity() );
-
     _basicAssignment = new double[m];
     if ( !_basicAssignment )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::assignment" );
@@ -310,7 +311,7 @@ void Tableau::setDimensions( unsigned m, unsigned n )
     _workN = new double[n];
     if ( !_workN )
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::work" );
-
+    */
     if ( _statistics )
         _statistics->setCurrentTableauDimension( _m, _n );
 }
@@ -1756,7 +1757,7 @@ void Tableau::tightenLowerBound( unsigned variable, double value )
 
     setLowerBound( variable, value );
 
-    updateVariableToComplyWithLowerBoundUpdate( variable, value );
+    //updateVariableToComplyWithLowerBoundUpdate( variable, value );
 }
 
 void Tableau::tightenUpperBound( unsigned variable, double value )
@@ -1771,7 +1772,7 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
 
     setUpperBound( variable, value );
 
-    updateVariableToComplyWithUpperBoundUpdate( variable, value );
+    //updateVariableToComplyWithUpperBoundUpdate( variable, value );
 }
 
 unsigned Tableau::addEquation( const Equation &equation )

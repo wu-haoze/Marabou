@@ -1007,7 +1007,7 @@ void Engine::augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, const Li
     }
 }
 
-void Engine::initializeTableau( const double *constraintMatrix, const List<unsigned> &initialBasis )
+void Engine::initializeTableau()
 {
     const List<Equation> &equations( _preprocessedQuery.getEquations() );
     unsigned m = equations.size();
@@ -1015,17 +1015,17 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
 
     _tableau->setDimensions( m, n );
 
-    adjustWorkMemorySize();
+    //adjustWorkMemorySize();
 
-    unsigned equationIndex = 0;
-    for ( const auto &equation : equations )
-    {
-        _tableau->setRightHandSide( equationIndex, equation._scalar );
-        ++equationIndex;
-    }
+    // unsigned equationIndex = 0;
+    //for ( const auto &equation : equations )
+    //{
+    //    _tableau->setRightHandSide( equationIndex, equation._scalar );
+    //    ++equationIndex;
+    //}
 
     // Populate constriant matrix
-    _tableau->setConstraintMatrix( constraintMatrix );
+    //_tableau->setConstraintMatrix( constraintMatrix );
 
     for ( unsigned i = 0; i < n; ++i )
     {
@@ -1033,13 +1033,13 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
         _tableau->setUpperBound( i, _preprocessedQuery.getUpperBound( i ) );
     }
 
-    _tableau->registerToWatchAllVariables( _rowBoundTightener );
-    _tableau->registerResizeWatcher( _rowBoundTightener );
+    //_tableau->registerToWatchAllVariables( _rowBoundTightener );
+    //_tableau->registerResizeWatcher( _rowBoundTightener );
 
     _tableau->registerToWatchAllVariables( _constraintBoundTightener );
     _tableau->registerResizeWatcher( _constraintBoundTightener );
 
-    _rowBoundTightener->setDimensions();
+    //_rowBoundTightener->setDimensions();
     _constraintBoundTightener->setDimensions();
 
     // Register the constraint bound tightener to all the PL constraints
@@ -1053,11 +1053,11 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
         constraint->setStatistics( &_statistics );
     }
 
-    _tableau->initializeTableau( initialBasis );
+    //_tableau->initializeTableau( initialBasis );
 
-    _costFunctionManager->initialize();
-    _tableau->registerCostFunctionManager( _costFunctionManager );
-    _activeEntryStrategy->initialize( _tableau );
+    //_costFunctionManager->initialize();
+    //_tableau->registerCostFunctionManager( _costFunctionManager );
+    //_activeEntryStrategy->initialize( _tableau );
 
     _statistics.setNumPlConstraints( _plConstraints.size() );
 }
@@ -1082,6 +1082,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         if ( _verbosity > 0 )
             printInputBounds( inputQuery );
 
+        /*
         double *constraintMatrix = createConstraintMatrix();
         removeRedundantEquations( constraintMatrix );
 
@@ -1101,13 +1102,14 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         delete[] constraintMatrix;
         constraintMatrix = createConstraintMatrix();
 
-        initializeNetworkLevelReasoning();
-        initializeTableau( constraintMatrix, initialBasis );
-
         if ( GlobalConfiguration::WARM_START )
             warmStart();
 
         delete[] constraintMatrix;
+        */
+
+        initializeNetworkLevelReasoning();
+        initializeTableau();
 
         if ( preprocess )
         {
@@ -2240,27 +2242,8 @@ void Engine::storeSmtState( SmtState & smtState )
 
 bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 {
-    try
-    {
-        // Apply bound tightening before handing to Gurobi
-        if ( _tableau->basisMatrixAvailable() )
-        {
-	    explicitBasisBoundTightening();
-	    applyAllBoundTightenings();
-	    applyAllValidConstraintCaseSplits();
-	}
-	do
-	{
-	    performSymbolicBoundTightening();
-	}
-	while ( applyAllValidConstraintCaseSplits() );
-    }
-    catch ( const InfeasibleQueryException & )
-    {
-        _exitCode = Engine::UNSAT;
-        return false;
-    }
-    
+    applyAllValidConstraintCaseSplits();
+
     ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
     _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
     _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
