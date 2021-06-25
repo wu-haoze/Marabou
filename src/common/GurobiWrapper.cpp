@@ -82,9 +82,11 @@ void GurobiWrapper::resetModel()
 
     // Precision
     _model->getEnv().set( GRB_DoubleParam_OptimalityTol,
-                          GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
+                          std::max(GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS,
+                                   1e-9));
     _model->getEnv().set( GRB_DoubleParam_FeasibilityTol,
-                          GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
+                          std::max(GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS,
+                                   1e-9));
     _model->getEnv().set( GRB_DoubleParam_IntFeasTol,
                           GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE );
 

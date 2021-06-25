@@ -24,7 +24,7 @@ const double GlobalConfiguration::LEAKY_RELU_SLOPE = 0.1;
 // and how to repair a ReLU constraint.
 const bool GlobalConfiguration::USE_POLARITY_BASED_DIRECTION_HEURISTICS = true;
 
-const double GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS = 1e-9;
+const double GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS = 1e-10;
 const unsigned GlobalConfiguration::DEFAULT_DOUBLE_TO_STRING_PRECISION = 10;
 const unsigned GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY = 10000;
 const double GlobalConfiguration::BOUND_COMPARISON_ADDITIVE_TOLERANCE = 0.0000001;
