@@ -534,6 +534,13 @@ bool Preprocessor::processIdenticalVariables()
             _preprocessed.getUpperBound( v1 ) :
             _preprocessed.getUpperBound( v2 );
 
+        if ( !FloatUtils::isFinite(bestLowerBound) ||
+             !FloatUtils::isFinite(bestUpperBound ) )
+        {
+            ++equation;
+            continue;
+        }
+
         equation = equations.erase( equation );
 
         _preprocessed.setLowerBound( v2, bestLowerBound );
