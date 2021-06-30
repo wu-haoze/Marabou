@@ -28,8 +28,8 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
     // Add variables
     for ( unsigned var = 0; var < inputQuery.getNumberOfVariables(); var++ )
     {
-        double lb = _tableau.getLowerBound( var );
-        double ub = _tableau.getUpperBound( var );
+        double lb = std::max( _tableau.getLowerBound( var ), inputQuery.getLowerBound( var ) );
+        double ub = std::min( _tableau.getUpperBound( var ), inputQuery.getUpperBound( var ) );
         String varName = Stringf( "x%u", var );
         gurobi.addVariable( varName, lb, ub );
         _variableToVariableName[var] = varName;

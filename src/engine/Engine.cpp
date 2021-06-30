@@ -2242,30 +2242,78 @@ void Engine::storeSmtState( SmtState & smtState )
 
 bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 {
-    ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
-    _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
-    _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
-    ENGINE_LOG( "Query encoded in Gurobi...\n" );
-
-    double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
-                                : timeoutInSeconds );
-    ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
-    _gurobi->setTimeLimit( timeoutForGurobi );
-
-    _gurobi->solve();
-
-    if ( _gurobi->haveFeasibleSolution() )
+    DisjunctionConstraint *disj = NULL;
+    for ( const auto &constraint : _plConstraints )
     {
-        _exitCode = IEngine::SAT;
-        return true;
+        if ( constraint->isActive() && constraint->getType() == DISJUNCTION )
+        {
+            disj = (DisjunctionConstraint *)constraint;
+            break;
+        }
     }
-    else if ( _gurobi->infeasbile() )
-        _exitCode = IEngine::UNSAT;
-    else if ( _gurobi->timeout() )
-        _exitCode = IEngine::TIMEOUT;
-    else
-        throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
+
+    if ( disj == NULL )
+    {
+        PiecewiseLinearCaseSplit split;
+        List<PiecewiseLinearCaseSplit> splits;
+        splits.append( split );
+        disj = new DisjunctionConstraint( splits );
+    }
+
+    disj->setActiveConstraint( false );
+
+    for ( const auto&split : disj->getCaseSplits() )
+    {
+        if ( !disj->caseSplitIsFeasible( split ) )
+        {
+            std::cout << "Case not infeasible..." << std::endl;
+            continue;
+        }
+
+        std::cout << "Case feasible..." << std::endl;
+
+        std::unique_ptr<InputQuery> newInputQuery =
+            std::unique_ptr<InputQuery>( new InputQuery( _preprocessedQuery ) );
+        for ( const auto &bound: split.getBoundTightenings() )
+        {
+            if ( bound._type == Tightening::LB )
+                newInputQuery->setLowerBound( bound._variable, bound._value );
+            else
+                newInputQuery->setUpperBound( bound._variable, bound._value );
+        }
+        if ( split.getEquations().size() > 0 )
+            throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
+                                "Disjunction can only have bounds" );
+
+        ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
+        _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+        _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
+        _milpEncoder->encodeInputQuery( *_gurobi, *newInputQuery );
+        ENGINE_LOG( "Query encoded in Gurobi...\n" );
+        double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
+                                    : timeoutInSeconds );
+        ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
+        _gurobi->setTimeLimit( timeoutForGurobi );
+
+        _gurobi->solve();
+
+        if ( _gurobi->haveFeasibleSolution() )
+        {
+            _exitCode = IEngine::SAT;
+            return true;
+        }
+        else if ( _gurobi->infeasbile() )
+            continue;
+        else if ( _gurobi->timeout() )
+        {
+            _exitCode = IEngine::TIMEOUT;
+            return false;
+        }
+        else
+            throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
+    }
+
+    _exitCode = IEngine::UNSAT;
     return false;
 }
 

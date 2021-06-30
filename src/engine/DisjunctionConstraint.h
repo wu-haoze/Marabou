@@ -167,6 +167,8 @@ public:
     */
     String serializeToString() const override;
 
+    bool caseSplitIsFeasible( const PiecewiseLinearCaseSplit & caseSplit ) const;
+
 private:
     /*
       The disjuncts that form this PL constraint
@@ -202,7 +204,6 @@ private:
     */
     void updateFeasibleDisjuncts();
     bool disjunctIsFeasible( unsigned ind ) const;
-    bool caseSplitIsFeasible( const PiecewiseLinearCaseSplit & caseSplit ) const;
 
     inline PhaseStatus indToPhaseStatus( unsigned ind ) const
     {
