@@ -132,16 +132,15 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
 
 void MILPEncoder::encodeLeakyReLUConstraint( GurobiWrapper &gurobi, LeakyReluConstraint *relu )
 {
-
-    if ( !relu->isActive() || relu->phaseFixed() )
-    {
-        return;
-    }
     unsigned sourceVariable = relu->getB();
     unsigned targetVariable = relu->getF();
     double slope = relu->getSlope();
     double sourceLb = _tableau.getLowerBound( sourceVariable );
     double sourceUb = _tableau.getUpperBound( sourceVariable );
+    if ( ( !FloatUtils::isFinite( sourceLb ) ) ||
+         ( !FloatUtils::isFinite( sourceUb ) ) )
+        throw MarabouError( MarabouError::INFINITE_BOUNDS,
+                            "Leaky ReLU has infinite bounds\n" );
 
     if ( sourceLb >= 0 )
     {
@@ -161,12 +160,12 @@ void MILPEncoder::encodeLeakyReLUConstraint( GurobiWrapper &gurobi, LeakyReluCon
     {
         double xPts[3];
         double yPts[3];
-        xPts[0] = sourceLb;
-        yPts[0] = slope * sourceLb;
+        xPts[0] = -1;
+        yPts[0] = slope * -1;
         xPts[1] = 0;
         yPts[1] = 0;
-        xPts[2] = sourceUb;
-        yPts[2] = sourceUb;
+        xPts[2] = 1;
+        yPts[2] = 1;
         gurobi.addPiecewiseLinearConstraint( Stringf( "x%u", sourceVariable ),
                                              Stringf( "x%u", targetVariable ),
                                              3, xPts, yPts );
