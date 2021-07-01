@@ -55,6 +55,8 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
         case PiecewiseLinearFunctionType::MAX:
             encodeMaxConstraint( gurobi, (MaxConstraint *)plConstraint );
             break;
+        case PiecewiseLinearFunctionType::DISJUNCTION:
+            break;
         default:
             throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
                                 "GurobiWrapper::encodeInputQuery: "
