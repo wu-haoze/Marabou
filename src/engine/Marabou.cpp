@@ -139,39 +139,6 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
     {
         resultString = "sat";
         printf( "sat\n" );
-
-        printf( "Input assignment:\n" );
-        for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
-            printf( "\tx%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) ) );
-
-        if ( _inputQuery._networkLevelReasoner )
-        {
-            double *input = new double[_inputQuery.getNumInputVariables()];
-            for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
-                input[i] = _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) );
-
-            NLR::NetworkLevelReasoner *nlr = _inputQuery._networkLevelReasoner;
-            NLR::Layer *lastLayer = nlr->getLayer( nlr->getNumberOfLayers() - 1 );
-            double *output = new double[lastLayer->getSize()];
-
-            nlr->evaluate( input, output );
-
-            printf( "\n" );
-            printf( "Output:\n" );
-            for ( unsigned i = 0; i < lastLayer->getSize(); ++i )
-                printf( "\ty%u = %lf\n", i, output[i] );
-            printf( "\n" );
-            delete[] input;
-            delete[] output;
-        }
-        else
-        {
-            printf( "\n" );
-            printf( "Output:\n" );
-            for ( unsigned i = 0; i < _inputQuery.getNumOutputVariables(); ++i )
-                printf( "\ty%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
-            printf( "\n" );
-        }
     }
     else if ( result == Engine::TIMEOUT )
     {
@@ -211,6 +178,10 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
                                     _engine.getStatistics()->getAveragePivotTimeInMicro() ) );
 
         summaryFile.write( "\n" );
+
+        for ( unsigned i = 0; i < _inputQuery.getNumberOfVariables(); ++i )
+            summaryFile.write( Stringf( "\t%u,%lf\n",
+                                        i, _inputQuery.getSolutionValue( i ) ) );
     }
 }
 
