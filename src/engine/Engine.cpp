@@ -2266,7 +2266,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     {
         if ( !disj->caseSplitIsFeasible( split ) )
         {
-            std::cout << "Case not infeasible..." << std::endl;
+            std::cout << "Case not feasible..." << std::endl;
             continue;
         }
 
