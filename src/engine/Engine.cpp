@@ -690,13 +690,15 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
                 _preprocessedQuery.getEquations().size(),
                 _preprocessedQuery.getNumberOfVariables() );
 
-    unsigned infiniteBounds = _preprocessedQuery.countInfiniteBounds();
+    /*
+      unsigned infiniteBounds = _preprocessedQuery.countInfiniteBounds();
     if ( infiniteBounds != 0 )
     {
         _exitCode = Engine::ERROR;
         throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
                              Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
     }
+    */
 }
 
 void Engine::printInputBounds( const InputQuery &inputQuery ) const
@@ -2270,8 +2272,6 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
             continue;
         }
 
-        std::cout << "Case feasible..." << std::endl;
-
         std::unique_ptr<InputQuery> newInputQuery =
             std::unique_ptr<InputQuery>( new InputQuery( _preprocessedQuery ) );
         for ( const auto &bound: split.getBoundTightenings() )
@@ -2285,11 +2285,11 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
             throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
                                 "Disjunction can only have bounds" );
 
-        ENGINE_LOG( "Encoding the input query with Gurobi...\n" );
+        printf( "Encoding the input query with Gurobi...\n" );
         _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
         _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
         _milpEncoder->encodeInputQuery( *_gurobi, *newInputQuery );
-        ENGINE_LOG( "Query encoded in Gurobi...\n" );
+        printf( "Query encoded in Gurobi...\n" );
         double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
                                     : timeoutInSeconds );
         ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )

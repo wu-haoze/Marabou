@@ -276,10 +276,43 @@ void DisjunctionConstraint::updateVariableIndex( unsigned oldIndex, unsigned new
     extractParticipatingVariables();
 }
 
-void DisjunctionConstraint::eliminateVariable( unsigned /* variable */, double /* fixedValue */ )
+void DisjunctionConstraint::eliminateVariable( unsigned variable, double fixedValue )
 {
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
-                        "Eliminate variable from a DisjunctionConstraint" );
+    Vector<PiecewiseLinearCaseSplit> newDisjuncts;
+
+    for ( const auto &disjunct : _disjuncts )
+    {
+        ASSERT( disjunct.getEquations().size() == 0 );
+        PiecewiseLinearCaseSplit newDisjunct;
+        for ( const auto &bound : disjunct.getBoundTightenings() )
+        {
+            if ( bound._variable == variable )
+            {
+                if ( ( bound._type == Tightening::LB &&
+                       FloatUtils::lt( fixedValue, bound._value ) ) ||
+                     ( bound._type == Tightening::UB &&
+                       FloatUtils::gt( fixedValue, bound._value ) ) )
+                {
+                    // UNSAT: skip this disjunct
+                    break;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            else
+                newDisjunct.storeBoundTightening( bound );
+        }
+        newDisjuncts.append( newDisjunct );
+    }
+
+    _disjuncts = newDisjuncts;
+    _feasibleDisjuncts.clear();
+    for ( unsigned ind = 0;  ind < newDisjuncts.size();  ++ind )
+        _feasibleDisjuncts.append( ind );
+
+    extractParticipatingVariables();
 }
 
 bool DisjunctionConstraint::constraintObsolete() const

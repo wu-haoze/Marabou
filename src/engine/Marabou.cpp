@@ -179,9 +179,12 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         summaryFile.write( "\n" );
 
-        for ( unsigned i = 0; i < _inputQuery.getNumberOfVariables(); ++i )
-            summaryFile.write( Stringf( "\t%u,%lf\n",
-                                        i, _inputQuery.getSolutionValue( i ) ) );
+        if ( resultString == "sat" )
+        {
+            for ( unsigned i = 0; i < _inputQuery.getNumberOfVariables(); ++i )
+                summaryFile.write( Stringf( "\t%u,%lf\n",
+                                            i, _inputQuery.getSolutionValue( i ) ) );
+        }
     }
 }
 
