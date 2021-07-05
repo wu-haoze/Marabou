@@ -208,6 +208,14 @@ public:
 
     void updateScoreBasedOnPolarity() override;
 
+    bool inversible() const override
+    {
+        return true;
+    }
+
+    PiecewiseLinearConstraint *createInverseConstraint() const;
+
+
 private:
     unsigned _b, _f;
     double _slope;

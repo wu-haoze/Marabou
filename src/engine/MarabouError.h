@@ -50,6 +50,7 @@ public:
         NETWORK_LEVEL_REASONER_NOT_AVAILABLE = 24,
         REQUESTED_NONEXISTENT_CASE_SPLIT= 25,
         INVALID_LEAKY_RELU_SLOPE= 26,
+        NETWORK_NOT_INVERSABLE = 27,
 
         // Error codes for Query Loader
         FILE_DOES_NOT_EXIST = 100,

@@ -581,3 +581,11 @@ void LeakyReluConstraint::updateScoreBasedOnPolarity()
 {
     _score = std::abs( computePolarity() );
 }
+
+PiecewiseLinearConstraint *LeakyReluConstraint::createInverseConstraint() const
+{
+    LeakyReluConstraint *clone = new LeakyReluConstraint( _f, _b, 1 / _slope );
+    *clone = *this;
+    this->initializeDuplicateCDOs( clone );
+    return clone;
+}

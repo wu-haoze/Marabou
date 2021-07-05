@@ -293,10 +293,66 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
     return *this;
 }
 
-InputQuery::InputQuery( const InputQuery &other )
+InputQuery::InputQuery( const InputQuery &other, bool inversed )
     : _networkLevelReasoner( NULL )
 {
-    *this = other;
+    if ( !inversed )
+        *this = other;
+    else
+    {
+        INPUT_QUERY_LOG( "Creating inversed input query...\n" );
+
+        if ( !other._networkLevelReasoner )
+        {
+            throw MarabouError
+                ( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
+        }
+
+        _numberOfVariables = other._numberOfVariables;
+        _equations = other._equations;
+        _lowerBounds = other._lowerBounds;
+        _upperBounds = other._upperBounds;
+        _solution = other._solution;
+        _debuggingSolution = other._debuggingSolution;
+
+        NLR::Layer *lastLayer = other._networkLevelReasoner->
+            getLayer( other._networkLevelReasoner->getNumberOfLayers() - 1 );
+        _variableToInputIndex.clear();
+        _inputIndexToVariable.clear();
+        unsigned layerSize = lastLayer->getSize();
+        for ( unsigned i = 0; i < layerSize; ++i )
+        {
+            unsigned variable = lastLayer->neuronToVariable( i );
+            _variableToInputIndex[variable] = i;
+            _inputIndexToVariable[i] = variable;
+        }
+
+        _variableToOutputIndex = other._variableToInputIndex;
+        _outputIndexToVariable = other._inputIndexToVariable;
+
+        freeConstraintsIfNeeded();
+
+        // Setting NLR
+        if ( _networkLevelReasoner )
+        {
+            delete _networkLevelReasoner;
+            _networkLevelReasoner = NULL;
+        }
+
+        // Setting plConstraints
+        for ( const auto &constraint : other._plConstraints )
+        {
+            if ( constraint->inversible() )
+                _plConstraints.append( constraint->createInverseConstraint() );
+            else
+                throw MarabouError
+                    ( MarabouError::NETWORK_NOT_INVERSABLE );
+        }
+
+        constructNetworkLevelReasoner();
+
+        INPUT_QUERY_LOG( "Creating inversed input query - done\n" );
+    }
 }
 
 void InputQuery::freeConstraintsIfNeeded()

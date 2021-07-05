@@ -167,6 +167,16 @@ public:
     */
     String serializeToString() const override;
 
+    bool inversible() const override
+    {
+        return true;
+    }
+
+    PiecewiseLinearConstraint *createInverseConstraint() const
+    {
+        return duplicateConstraint();
+    }
+
 private:
     /*
       The disjuncts that form this PL constraint

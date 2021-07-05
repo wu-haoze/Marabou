@@ -224,6 +224,11 @@ private:
     InputQuery _preprocessedQuery;
 
     /*
+      Preprocessed InputQuery
+    */
+    std::unique_ptr<InputQuery> _reversedQuery = nullptr;
+
+    /*
       Pivot selection strategies.
     */
     BlandsRule _blandsRule;
