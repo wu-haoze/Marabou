@@ -93,8 +93,6 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
       Then, eliminate fixed variables.
     */
 
-    return _preprocessed;
-
     bool continueTightening = true;
     while ( continueTightening )
     {
