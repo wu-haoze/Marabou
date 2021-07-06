@@ -19,6 +19,7 @@
 #include <cstdio>
 
 const double GlobalConfiguration::LEAKY_RELU_SLOPE = 0.01;
+const bool GlobalConfiguration::BACKWARD_BOUND_PROPAGATION_FOR_LEAKY_RELU = true;
 
 // Use the polarity metrics to decide which branch to take first in a case split
 // and how to repair a ReLU constraint.

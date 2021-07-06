@@ -51,6 +51,7 @@ public:
         REQUESTED_NONEXISTENT_CASE_SPLIT= 25,
         INVALID_LEAKY_RELU_SLOPE= 26,
         INFINITE_BOUNDS = 27,
+        NETWORK_NOT_INVERSABLE = 28,
 
         // Error codes for Query Loader
         FILE_DOES_NOT_EXIST = 100,

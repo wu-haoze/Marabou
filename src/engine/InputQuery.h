@@ -90,7 +90,7 @@ public:
       Assignment operator and copy constructor, duplicate the constraints.
     */
     InputQuery &operator=( const InputQuery &other );
-    InputQuery( const InputQuery &other );
+    InputQuery( const InputQuery &other, bool inversed=false );
 
     /*
       Debugging methods
@@ -133,6 +133,14 @@ public:
     */
     void setNetworkLevelReasoner( NLR::NetworkLevelReasoner *nlr );
     NLR::NetworkLevelReasoner *getNetworkLevelReasoner() const;
+
+    bool inversible() const
+    {
+        for ( const auto &constraint : _plConstraints )
+            if ( !constraint->inversible() )
+                return false;
+        return true;
+    }
 
 private:
     unsigned _numberOfVariables;

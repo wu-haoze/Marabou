@@ -24,6 +24,7 @@ public:
     static void print();
 
     static const double LEAKY_RELU_SLOPE;
+    static const bool BACKWARD_BOUND_PROPAGATION_FOR_LEAKY_RELU;
 
     static const bool USE_POLARITY_BASED_DIRECTION_HEURISTICS;
 

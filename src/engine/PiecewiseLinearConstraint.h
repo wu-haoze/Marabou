@@ -20,6 +20,7 @@
 #include "ITableau.h"
 #include "List.h"
 #include "Map.h"
+#include "MarabouError.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearFunctionType.h"
 #include "Queue.h"
@@ -265,6 +266,16 @@ public:
     double getUpperBound( unsigned i ) const
     {
         return _upperBounds[i];
+    }
+
+    virtual bool inversible() const
+    {
+        return false;
+    }
+
+    virtual PiecewiseLinearConstraint *createInverseConstraint() const
+    {
+        throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
     }
 
 protected:

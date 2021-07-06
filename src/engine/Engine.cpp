@@ -684,6 +684,13 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
     else
         _preprocessedQuery = inputQuery;
 
+    if ( _preprocessedQuery.inversible() &&
+         GlobalConfiguration::BACKWARD_BOUND_PROPAGATION_FOR_LEAKY_RELU )
+    {
+        _reversedQuery = std::unique_ptr<InputQuery>
+            ( new InputQuery( _preprocessedQuery, true ) );
+    }
+
     if ( _verbosity > 0 )
         printf( "Engine::processInputQuery: Input query (after preprocessing): "
                 "%u equations, %u variables\n\n",
