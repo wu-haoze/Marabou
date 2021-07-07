@@ -164,19 +164,11 @@ unsigned InputQuery::countInfiniteBounds()
 {
     unsigned result = 0;
 
-    for ( const auto &lowerBound : _lowerBounds )
-        if ( lowerBound.second == FloatUtils::negativeInfinity() )
-            ++result;
-
-    for ( const auto &upperBound : _upperBounds )
-        if ( upperBound.second == FloatUtils::infinity() )
-            ++result;
-
     for ( unsigned i = 0; i < _numberOfVariables; ++i )
     {
-        if ( !_lowerBounds.exists( i ) )
+        if ( !_lowerBounds.exists( i ) || !FloatUtils::isFinite( _lowerBounds[i] ) )
             ++result;
-        if ( !_upperBounds.exists( i ) )
+        if ( !_upperBounds.exists( i ) || !FloatUtils::isFinite( _upperBounds[i] ) )
             ++result;
     }
 
