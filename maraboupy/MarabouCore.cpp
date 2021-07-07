@@ -146,6 +146,7 @@ bool createInputQuery(InputQuery &inputQuery, std::string networkFilePath, std::
 
 void addDisjunctionConstraint(InputQuery& ipq, const std::list<std::list<Equation>>
                               &disjuncts ){
+    Map<String,unsigned> equationToAuxVar;
     List<PiecewiseLinearCaseSplit> disjunctList;
     for ( const auto &disjunct : disjuncts )
     {
@@ -178,18 +179,31 @@ void addDisjunctionConstraint(InputQuery& ipq, const std::list<std::list<Equatio
                 double scalar = eq._scalar;
                 Equation::EquationType type = eq._type;
 
-                unsigned auxVar = ipq.getNumberOfVariables();
-                ipq.setNumberOfVariables( auxVar + 1 );
-                Equation neq = eq;
-                neq.setType( Equation::EQ );
-                neq.addAddend( -1, auxVar );
-                neq.setScalar( 0 );
-                ipq.addEquation( neq );
+                unsigned auxVar = 0;
+                String s;
+                eq.dump( s );
+                if ( equationToAuxVar.exists( s ) )
+                {
+                     auxVar = equationToAuxVar[s];
+                     std::cout << "Cached!" << std::endl;
+                }
+                else
+                {
+                    auxVar = ipq.getNumberOfVariables();
+                    ipq.setNumberOfVariables( auxVar + 1 );
+                    Equation neq = eq;
+                    neq.setType( Equation::EQ );
+                    neq.addAddend( -1, auxVar );
+                    neq.setScalar( 0 );
+                    ipq.addEquation( neq );
+                    equationToAuxVar[s] = auxVar;
+                }
+
                 if ( type == Equation::EQ )
-                    {
-                        split.storeBoundTightening( Tightening( auxVar, scalar, Tightening::LB ) );
-                        split.storeBoundTightening( Tightening( auxVar, scalar, Tightening::UB ) );
-                    }
+                {
+                    split.storeBoundTightening( Tightening( auxVar, scalar, Tightening::LB ) );
+                    split.storeBoundTightening( Tightening( auxVar, scalar, Tightening::UB ) );
+                }
                 else if ( type == Equation::GE )
                     split.storeBoundTightening( Tightening( auxVar, scalar, Tightening::LB ) );
                 else if ( type == Equation::LE )

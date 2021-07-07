@@ -74,7 +74,7 @@ void GurobiWrapper::resetModel()
     _model = new GRBModel( *_environment );
 
     // Suppress printing
-    _model->getEnv().set( GRB_IntParam_OutputFlag, 0 );
+    //_model->getEnv().set( GRB_IntParam_OutputFlag, 0 );
 
     // Thread number
     _model->getEnv().set( GRB_IntParam_Threads,
