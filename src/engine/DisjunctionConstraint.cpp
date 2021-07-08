@@ -432,8 +432,6 @@ void DisjunctionConstraint::updateFeasibleDisjuncts()
             markInfeasible( indToPhaseStatus( ind ) );
     }
 
-    for ( const auto &ind : _feasibleDisjuncts )
-        getCaseSplit(indToPhaseStatus(ind)).dump();
     if ( _feasibleDisjuncts.size() == 0 )
         throw InfeasibleQueryException();
 }
