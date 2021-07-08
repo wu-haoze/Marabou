@@ -781,7 +781,7 @@ void Preprocessor::eliminateVariables()
     // Let the remaining piecewise-lienar constraints know of any changes in indices.
     for ( const auto &constraint : constraints )
 	{
-		List<unsigned> participatingVariables = constraint->getParticipatingVariables();
+            List<unsigned> participatingVariables = constraint->getParticipatingVariables();
         for ( unsigned variable : participatingVariables )
         {
             if ( _oldIndexToNewIndex.at( variable ) != variable )

@@ -1048,7 +1048,7 @@ void Engine::initializeTableau()
     //for ( auto &plConstraint : _preprocessedQuery.getPiecewiseLinearConstraints() )
     //    plConstraint->registerConstraintBoundTightener( _constraintBoundTightener );
 
-    //_plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
+    _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
     //for ( const auto &constraint : _plConstraints )
     //{
     //    constraint->registerAsWatcher( _tableau );
