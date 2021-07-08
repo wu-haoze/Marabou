@@ -2284,7 +2284,6 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         _currentInputQuery = &(*newInputQuery);
         for ( const auto &bound: split.getBoundTightenings() )
         {
-            bound.dump();
             if ( bound._type == Tightening::LB )
                 newInputQuery->setLowerBound( bound._variable, bound._value );
             else
