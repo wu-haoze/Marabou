@@ -14,6 +14,7 @@
 
 #include "Debug.h"
 #include "DisjunctionConstraint.h"
+#include "InfeasibleQueryException.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "Statistics.h"
@@ -284,6 +285,7 @@ void DisjunctionConstraint::eliminateVariable( unsigned variable, double fixedVa
     {
         ASSERT( disjunct.getEquations().size() == 0 );
         PiecewiseLinearCaseSplit newDisjunct;
+        bool addDisjunct = true;
         for ( const auto &bound : disjunct.getBoundTightenings() )
         {
             if ( bound._variable == variable )
@@ -294,6 +296,7 @@ void DisjunctionConstraint::eliminateVariable( unsigned variable, double fixedVa
                        FloatUtils::gt( fixedValue, bound._value ) ) )
                 {
                     // UNSAT: skip this disjunct
+                    addDisjunct = false;
                     break;
                 }
                 else
@@ -304,7 +307,8 @@ void DisjunctionConstraint::eliminateVariable( unsigned variable, double fixedVa
             else
                 newDisjunct.storeBoundTightening( bound );
         }
-        newDisjuncts.append( newDisjunct );
+        if ( addDisjunct )
+            newDisjuncts.append( newDisjunct );
     }
 
     _disjuncts = newDisjuncts;
@@ -427,6 +431,11 @@ void DisjunctionConstraint::updateFeasibleDisjuncts()
         else if ( _cdInfeasibleCases && !isCaseInfeasible( indToPhaseStatus( ind ) ) )
             markInfeasible( indToPhaseStatus( ind ) );
     }
+
+    for ( const auto &ind : _feasibleDisjuncts )
+        getCaseSplit(indToPhaseStatus(ind)).dump();
+    if ( _feasibleDisjuncts.size() == 0 )
+        throw InfeasibleQueryException();
 }
 
 bool DisjunctionConstraint::disjunctIsFeasible( unsigned ind ) const

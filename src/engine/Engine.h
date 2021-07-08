@@ -223,6 +223,8 @@ private:
     */
     InputQuery _preprocessedQuery;
 
+    InputQuery *_currentInputQuery = NULL;
+
     /*
       Preprocessed InputQuery
     */

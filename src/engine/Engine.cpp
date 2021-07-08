@@ -1045,22 +1045,22 @@ void Engine::initializeTableau()
     //_tableau->registerToWatchAllVariables( _rowBoundTightener );
     //_tableau->registerResizeWatcher( _rowBoundTightener );
 
-    _tableau->registerToWatchAllVariables( _constraintBoundTightener );
-    _tableau->registerResizeWatcher( _constraintBoundTightener );
+    //_tableau->registerToWatchAllVariables( _constraintBoundTightener );
+    //_tableau->registerResizeWatcher( _constraintBoundTightener );
 
     //_rowBoundTightener->setDimensions();
-    _constraintBoundTightener->setDimensions();
+    //_constraintBoundTightener->setDimensions();
 
     // Register the constraint bound tightener to all the PL constraints
-    for ( auto &plConstraint : _preprocessedQuery.getPiecewiseLinearConstraints() )
-        plConstraint->registerConstraintBoundTightener( _constraintBoundTightener );
+    //for ( auto &plConstraint : _preprocessedQuery.getPiecewiseLinearConstraints() )
+    //    plConstraint->registerConstraintBoundTightener( _constraintBoundTightener );
 
-    _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
-    for ( const auto &constraint : _plConstraints )
-    {
-        constraint->registerAsWatcher( _tableau );
-        constraint->setStatistics( &_statistics );
-    }
+    //_plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
+    //for ( const auto &constraint : _plConstraints )
+    //{
+    //    constraint->registerAsWatcher( _tableau );
+    //    constraint->setStatistics( &_statistics );
+    //}
 
     //_tableau->initializeTableau( initialBasis );
 
@@ -1122,11 +1122,10 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
         if ( preprocess )
         {
-             performSymbolicBoundTightening();
-            performSimulation();
-            performMILPSolverBoundedTightening();
+            performSymbolicBoundTightening();
+            //performSimulation();
+            //performMILPSolverBoundedTightening();
         }
-
         if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
             _networkLevelReasoner->dumpBounds();
 
@@ -1884,6 +1883,8 @@ void Engine::performSymbolicBoundTightening()
          SymbolicBoundTighteningType::DEEP_POLY )
         _networkLevelReasoner->deepPolyPropagation();
 
+    std::cout << "DeepPoly finished!" << std::endl;
+
     // Step 3: Extract the bounds
     List<Tightening> tightenings;
     _networkLevelReasoner->getConstraintTightenings( tightenings );
@@ -1905,6 +1906,8 @@ void Engine::performSymbolicBoundTightening()
             ++numTightenedBounds;
         }
     }
+
+    std::cout << "Bounds updated!" << std::endl;
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForSymbolicBoundTightening( TimeUtils::timePassed( start, end ) );
@@ -2254,15 +2257,19 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     DisjunctionConstraint *disj = NULL;
     for ( const auto &constraint : _plConstraints )
     {
-        if ( constraint->isActive() && constraint->getType() == DISJUNCTION )
+        if ( constraint->getType() == DISJUNCTION )
         {
-            disj = (DisjunctionConstraint *)constraint;
-            break;
+            if ( constraint->isActive() )
+            {
+                disj = (DisjunctionConstraint *)constraint;
+                break;
+            }
         }
     }
 
     if ( disj == NULL )
     {
+        std::cout << "No disjunction detected!" << std::endl;
         PiecewiseLinearCaseSplit split;
         List<PiecewiseLinearCaseSplit> splits;
         splits.append( split );
@@ -2281,8 +2288,10 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
         std::unique_ptr<InputQuery> newInputQuery =
             std::unique_ptr<InputQuery>( new InputQuery( _preprocessedQuery ) );
+        _currentInputQuery = &(*newInputQuery);
         for ( const auto &bound: split.getBoundTightenings() )
         {
+            bound.dump();
             if ( bound._type == Tightening::LB )
                 newInputQuery->setLowerBound( bound._variable, bound._value );
             else
@@ -2356,6 +2365,18 @@ void Engine::extractSolutionFromGurobi( InputQuery &inputQuery )
             // Finally, set the assigned value
             String variableName = _milpEncoder->getVariableNameFromVariable( variable );
             inputQuery.setSolutionValue( i, assignment[variableName] );
+
+            if ( FloatUtils::gt( _tableau->getLowerBound(variable), assignment[variableName] ) )
+            {
+                std::cout << "x" << variable << " lb is " << _currentInputQuery->getLowerBound(variable);
+                std::cout << " solution is" << assignment[variableName] << std::endl;
+            }
+
+            if ( FloatUtils::lt( _tableau->getUpperBound(variable), assignment[variableName] ) )
+            {
+                std::cout << "x" << variable << " ub is " << _currentInputQuery->getUpperBound(variable);
+                std::cout << " solution is" << assignment[variableName] << std::endl;
+            }
         }
         else
         {
