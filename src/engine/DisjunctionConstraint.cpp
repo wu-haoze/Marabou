@@ -321,7 +321,7 @@ void DisjunctionConstraint::eliminateVariable( unsigned variable, double fixedVa
 
 bool DisjunctionConstraint::constraintObsolete() const
 {
-    return _feasibleDisjuncts.empty();
+    return false;
 }
 
 void DisjunctionConstraint::getEntailedTightenings( List<Tightening> &/* tightenings */ ) const
