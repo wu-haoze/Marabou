@@ -1119,6 +1119,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             //performSimulation();
             //performMILPSolverBoundedTightening();
         }
+
         if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
             _networkLevelReasoner->dumpBounds();
 
