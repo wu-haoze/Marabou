@@ -1877,8 +1877,6 @@ void Engine::performSymbolicBoundTightening()
          SymbolicBoundTighteningType::DEEP_POLY )
         _networkLevelReasoner->deepPolyPropagation();
 
-    std::cout << "DeepPoly finished!" << std::endl;
-
     // Step 3: Extract the bounds
     List<Tightening> tightenings;
     _networkLevelReasoner->getConstraintTightenings( tightenings );
@@ -1900,8 +1898,6 @@ void Engine::performSymbolicBoundTightening()
             ++numTightenedBounds;
         }
     }
-
-    std::cout << "Bounds updated!" << std::endl;
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForSymbolicBoundTightening( TimeUtils::timePassed( start, end ) );
