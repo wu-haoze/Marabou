@@ -425,6 +425,7 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
         if ( !skipTightenUb )
         {
             LPFormulator_LOG( Stringf( "Computing upperbound..." ).ascii() );
+            gurobi->setNumberOfThreads( 1 );
             double ub = optimizeWithGurobi( *gurobi, MinOrMax::MAX, variableName,
                                             cutoffValue, &infeasible );
             LPFormulator_LOG( Stringf( "Upperbound computed %f", ub ).ascii() );
@@ -501,6 +502,19 @@ void LPFormulator::createLPRelaxation( const Map<unsigned, Layer *> &layers,
     }
 }
 
+void LPFormulator::createLPRelaxationAfter( const Map<unsigned, Layer *> &layers,
+                                            GurobiWrapper &gurobi,
+                                            unsigned firstLayer )
+{
+    for ( const auto &layer : layers )
+    {
+        if ( layer.second->getLayerIndex() < firstLayer )
+            continue;
+
+        addLayerToModel( gurobi, layer.second );
+    }
+}
+
 void LPFormulator::addLayerToModel( GurobiWrapper &gurobi, const Layer *layer )
 {
     switch ( layer->getLayerType() )
@@ -511,6 +525,10 @@ void LPFormulator::addLayerToModel( GurobiWrapper &gurobi, const Layer *layer )
 
     case Layer::RELU:
         addReluLayerToLpRelaxation( gurobi, layer );
+        break;
+
+    case Layer::LEAKY_RELU:
+        addLeakyReluLayerToLpRelaxation( gurobi, layer );
         break;
 
     case Layer::WEIGHTED_SUM:
@@ -627,6 +645,95 @@ void LPFormulator::addReluLayerToLpRelaxation( GurobiWrapper &gurobi,
                 terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
                 terms.append( GurobiWrapper::Term( -sourceUb / ( sourceUb - sourceLb ), Stringf( "x%u", sourceVariable ) ) );
                 gurobi.addLeqConstraint( terms, ( -sourceUb * sourceLb ) / ( sourceUb - sourceLb ) );
+            }
+        }
+    }
+}
+
+void LPFormulator::addLeakyReluLayerToLpRelaxation( GurobiWrapper &gurobi,
+                                                    const Layer *layer )
+{
+    double slope = layer->getAlpha();
+    for ( unsigned i = 0; i < layer->getSize(); ++i )
+    {
+        if ( !layer->neuronEliminated( i ) )
+        {
+            unsigned targetVariable = layer->neuronToVariable( i );
+
+            List<NeuronIndex> sources = layer->getActivationSources( i );
+            const Layer *sourceLayer = _layerOwner->getLayer( sources.begin()->_layer );
+            unsigned sourceNeuron = sources.begin()->_neuron;
+
+            if ( sourceLayer->neuronEliminated( sourceNeuron ) )
+            {
+                // If the source neuron has been eliminated, this neuron is constant
+                double sourceValue = sourceLayer->getEliminatedNeuronValue( sourceNeuron );
+                double targetValue = sourceValue > 0 ? sourceValue : 0;
+
+                gurobi.addVariable( Stringf( "x%u", targetVariable ),
+                                    targetValue,
+                                    targetValue );
+
+                continue;
+            }
+
+            unsigned sourceVariable = sourceLayer->neuronToVariable( sourceNeuron );
+            double sourceLb = sourceLayer->getLb( sourceNeuron );
+            double sourceUb = sourceLayer->getUb( sourceNeuron );
+
+            gurobi.addVariable( Stringf( "x%u", targetVariable ),
+                                layer->getLb( i ),
+                                layer->getUb( i ) );
+
+            if ( !FloatUtils::isNegative( sourceLb ) )
+            {
+                // The ReLU is active, y = x
+
+                List<GurobiWrapper::Term> terms;
+                terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+                terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+                gurobi.addEqConstraint( terms, 0 );
+            }
+            else if ( !FloatUtils::isPositive( sourceUb ) )
+            {
+                // The ReLU is inactive, y = alpha * x
+                List<GurobiWrapper::Term> terms;
+                terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+                terms.append( GurobiWrapper::Term( -slope, Stringf( "x%u", sourceVariable ) ) );
+                gurobi.addEqConstraint( terms, 0 );
+            }
+            else
+            {
+                double width = sourceUb - sourceLb;
+                double coeff = (sourceUb - slope * sourceLb) / width;
+                double bias = ( ( slope - 1 ) * sourceUb * sourceLb ) / width;
+
+                /*
+                  The phase of this ReLU is not yet fixed.
+
+                  For y = LeakyReLU(x), we add the following triangular relaxation:
+
+                  1. y >= alpha * x
+                  2. y >= x
+                  3. y is below the line the crosses (x.lb,0) and (x.ub,x.ub)
+                */
+
+                // y >= alpha * x
+                List<GurobiWrapper::Term> terms;
+                terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+                terms.append( GurobiWrapper::Term( -slope, Stringf( "x%u", sourceVariable ) ) );
+                gurobi.addGeqConstraint( terms, 0 );
+
+                // y >= x, i.e. y - x >= 0
+                terms.clear();
+                terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+                terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+                gurobi.addGeqConstraint( terms, 0 );
+
+                terms.clear();
+                terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+                terms.append( GurobiWrapper::Term( -coeff, Stringf( "x%u", sourceVariable ) ) );
+                gurobi.addLeqConstraint( terms, bias );
             }
         }
     }

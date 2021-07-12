@@ -16,6 +16,7 @@
 #ifndef __NetworkLevelReasoner_h__
 #define __NetworkLevelReasoner_h__
 
+#include "BackwardAnalysis.h"
 #include "DeepPolyAnalysis.h"
 #include "ITableau.h"
 #include "Layer.h"
@@ -113,6 +114,7 @@ public:
     const ITableau *getTableau() const;
 
     void obtainCurrentBounds();
+    void backwardPropagation();
     void intervalArithmeticBoundPropagation();
     void symbolicBoundPropagation();
     void deepPolyPropagation();
@@ -182,6 +184,7 @@ private:
     // Tightenings discovered by the various layers
     List<Tightening> _boundTightenings;
 
+    std::unique_ptr<BackwardAnalysis> _backwardAnalysis;
 
     std::unique_ptr<DeepPolyAnalysis> _deepPolyAnalysis;
 

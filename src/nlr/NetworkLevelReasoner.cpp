@@ -35,6 +35,7 @@ namespace NLR {
 
 NetworkLevelReasoner::NetworkLevelReasoner()
     : _tableau( NULL )
+    , _backwardAnalysis( nullptr)
     , _deepPolyAnalysis( nullptr )
 {
 }
@@ -188,6 +189,14 @@ void NetworkLevelReasoner::intervalArithmeticBoundPropagation()
 {
     for ( unsigned i = 1; i < _layerIndexToLayer.size(); ++i )
         _layerIndexToLayer[i]->computeIntervalArithmeticBounds();
+}
+
+void NetworkLevelReasoner::backwardPropagation()
+{
+    if ( _backwardAnalysis == nullptr )
+        _backwardAnalysis = std::unique_ptr<BackwardAnalysis>
+            ( new BackwardAnalysis( this ) );
+    _backwardAnalysis->run( _layerIndexToLayer );
 }
 
 void NetworkLevelReasoner::freeMemoryIfNeeded()

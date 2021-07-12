@@ -68,12 +68,22 @@ public:
                              GurobiWrapper &gurobi,
                              unsigned lastLayer = UINT_MAX );
 
+    void createLPRelaxationAfter( const Map<unsigned, Layer *> &layers,
+                                  GurobiWrapper &gurobi,
+                                  unsigned firstLayer );
+
     double solveLPRelaxation( GurobiWrapper &gurobi,
                               const Map<unsigned, Layer *> &layers,
                               MinOrMax minOrMax, String variableName,
                               unsigned lastLayer = UINT_MAX );
 
     void addLayerToModel( GurobiWrapper &gurobi, const Layer *layer );
+
+
+    /*
+      Tighten the upper- and lower- bound of a varaible with LPRelaxation
+    */
+    static void tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &argument );
 
 private:
 
@@ -83,6 +93,9 @@ private:
 
     void addInputLayerToLpRelaxation( GurobiWrapper &gurobi,
                                       const Layer *layer );
+
+    void addLeakyReluLayerToLpRelaxation( GurobiWrapper &gurobi,
+                                     const Layer *layer );
 
     void addReluLayerToLpRelaxation( GurobiWrapper &gurobi,
                                      const Layer *layer );
@@ -103,11 +116,6 @@ private:
     static double optimizeWithGurobi( GurobiWrapper &gurobi, MinOrMax minOrMax,
                                       String variableName, double cutoffValue,
                                       std::atomic_bool *infeasible = NULL );
-
-    /*
-      Tighten the upper- and lower- bound of a varaible with LPRelaxation
-    */
-    static void tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &argument );
 };
 
 } // namespace NLR

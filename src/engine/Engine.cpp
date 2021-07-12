@@ -58,6 +58,7 @@ Engine::Engine()
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
     , _simulationSize( Options::get()->getInt( Options::NUMBER_OF_SIMULATIONS ) )
+    , _performBackwardAnalysis( Options::get()->getBool( Options::PERFORM_BACKWARD_ANALYSIS ) )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -1118,6 +1119,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             performSymbolicBoundTightening();
             //performSimulation();
             //performMILPSolverBoundedTightening();
+            performBackwardAnalysis();
         }
 
         if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
@@ -1193,6 +1195,38 @@ void Engine::performMILPSolverBoundedTightening()
             else if ( tightening._type == Tightening::UB )
                 _tableau->tightenUpperBound( tightening._variable, tightening._value );
         }
+    }
+}
+
+void Engine::performBackwardAnalysis()
+{
+    if ( _networkLevelReasoner && Options::get()->gurobiEnabled() && _performBackwardAnalysis )
+    {
+        _networkLevelReasoner->obtainCurrentBounds();
+
+        _networkLevelReasoner->backwardPropagation();
+        List<Tightening> tightenings;
+        _networkLevelReasoner->getConstraintTightenings( tightenings );
+
+        unsigned numTightenedBounds = 0;
+        for ( const auto &tightening : tightenings )
+        {
+
+            if ( tightening._type == Tightening::LB &&
+                 FloatUtils::gt( tightening._value, _tableau->getLowerBound( tightening._variable ) ) )
+            {
+                _tableau->tightenLowerBound( tightening._variable, tightening._value );
+                ++numTightenedBounds;
+            }
+
+            if ( tightening._type == Tightening::UB &&
+                 FloatUtils::lt( tightening._value, _tableau->getUpperBound( tightening._variable ) ) )
+            {
+                _tableau->tightenUpperBound( tightening._variable, tightening._value );
+                ++numTightenedBounds;
+            }
+        }
+        _statistics.incNumTighteningsFromSymbolicBoundTightening( numTightenedBounds );
     }
 }
 
