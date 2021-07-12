@@ -119,12 +119,22 @@ void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType
     {
         GRBVar *newVar = new GRBVar;
         double objectiveValue = 0;
-        *newVar = _model->addVar( lb,
-                                  ub,
-                                  objectiveValue,
-                                  variableType,
-                                  name.ascii() );
-
+        if ( !FloatUtils::isFinite( lb ) && !FloatUtils::isFinite( ub ) )
+        {
+            *newVar = _model->addVar( -GRB_INFINITY,
+                                      GRB_INFINITY,
+                                      objectiveValue,
+                                      variableType,
+                                      name.ascii() );
+        }
+        else
+        {
+            *newVar = _model->addVar( lb,
+                                      ub,
+                                      objectiveValue,
+                                      variableType,
+                                      name.ascii() );
+        }
         _nameToVariable[name] = newVar;
     }
     catch ( GRBException e )
@@ -177,6 +187,12 @@ void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char 
 
         for ( const auto &term : terms )
         {
+            if ( !_nameToVariable.exists( term._variable ) )
+            {
+                addVariable( term._variable, FloatUtils::negativeInfinity(),
+                             FloatUtils::infinity(), CONTINUOUS );
+            }
+
             ASSERT( _nameToVariable.exists( term._variable ) );
             constraint += GRBLinExpr( *_nameToVariable[term._variable], term._coefficient );
         }

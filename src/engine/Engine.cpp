@@ -1115,6 +1115,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             performSymbolicBoundTightening();
             performSimulation();
             performMILPSolverBoundedTightening();
+            performBackwardAnalysis();
         }
 
         if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
