@@ -113,7 +113,8 @@ public:
     void setTableau( const ITableau *tableau );
     const ITableau *getTableau() const;
 
-    void obtainCurrentBounds();
+    void obtainCurrentBounds( const Map<unsigned, double> *lb = NULL,
+                              const Map<unsigned, double> *ub = NULL );
     void backwardPropagation();
     void intervalArithmeticBoundPropagation();
     void symbolicBoundPropagation();

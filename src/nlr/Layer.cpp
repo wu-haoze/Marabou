@@ -462,15 +462,24 @@ void Layer::setNeuronVariable( unsigned neuron, unsigned variable )
     _variableToNeuron[variable] = neuron;
 }
 
-void Layer::obtainCurrentBounds()
+void Layer::obtainCurrentBounds( const Map<unsigned, double> *lb,
+                                 const Map<unsigned, double> *ub )
 {
     for ( unsigned i = 0; i < _size; ++i )
     {
         if ( _neuronToVariable.exists( i ) )
         {
             unsigned variable = _neuronToVariable[i];
-            _lb[i] = _layerOwner->getTableau()->getLowerBound( variable );
-            _ub[i] = _layerOwner->getTableau()->getUpperBound( variable );
+            if ( lb == NULL )
+            {
+                _lb[i] = _layerOwner->getTableau()->getLowerBound( variable );
+                _ub[i] = _layerOwner->getTableau()->getUpperBound( variable );
+            }
+            else
+            {
+                _lb[i] = lb->get( variable );
+                _ub[i] = ub->get( variable );
+            }
         }
         else
         {

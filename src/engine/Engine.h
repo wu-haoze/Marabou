@@ -496,7 +496,7 @@ private:
     */
     void performSymbolicBoundTightening();
 
-    void performBackwardAnalysis();
+    void performBackwardAnalysis( InputQuery &inputQuery );
 
     /*
       Perform a simulation which calculates concrete values of each layer with

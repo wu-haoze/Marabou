@@ -428,6 +428,13 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
             gurobi->setNumberOfThreads( 1 );
             double ub = optimizeWithGurobi( *gurobi, MinOrMax::MAX, variableName,
                                             cutoffValue, &infeasible );
+            if ( ub < currentLb )
+            {
+                LPFormulator_LOG( "Found invalid bound!" );
+                enqueueSolver( freeSolvers, gurobi );
+                infeasible = true;
+                return;
+            }
             LPFormulator_LOG( Stringf( "Upperbound computed %f", ub ).ascii() );
 
             // Store the new bound if it is tighter
@@ -461,6 +468,14 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
             gurobi->reset();
             double lb = optimizeWithGurobi( *gurobi, MinOrMax::MIN, variableName,
                                             cutoffValue, &infeasible );
+            if ( lb > currentUb )
+            {
+                LPFormulator_LOG( "Found invalid bound!" );
+                enqueueSolver( freeSolvers, gurobi );
+                infeasible = true;
+                return;
+            }
+
             LPFormulator_LOG( Stringf( "Lowerbound computed: %f", lb ).ascii() );
             // Store the new bound if it is tighter
             if ( lb > currentLb )

@@ -196,6 +196,7 @@ void NetworkLevelReasoner::backwardPropagation()
     if ( _backwardAnalysis == nullptr )
         _backwardAnalysis = std::unique_ptr<BackwardAnalysis>
             ( new BackwardAnalysis( this ) );
+
     _backwardAnalysis->run( _layerIndexToLayer );
 }
 
@@ -230,11 +231,12 @@ void NetworkLevelReasoner::updateVariableIndices( const Map<unsigned, unsigned> 
         layer.second->updateVariableIndices( oldIndexToNewIndex, mergedVariables );
 }
 
-void NetworkLevelReasoner::obtainCurrentBounds()
+void NetworkLevelReasoner::obtainCurrentBounds( const Map<unsigned, double> *lb,
+                                                const Map<unsigned, double> *ub )
 {
     ASSERT( _tableau );
     for ( const auto &layer : _layerIndexToLayer )
-        layer.second->obtainCurrentBounds();
+        layer.second->obtainCurrentBounds( lb, ub );
 }
 
 void NetworkLevelReasoner::setTableau( const ITableau *tableau )

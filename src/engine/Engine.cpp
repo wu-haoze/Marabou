@@ -1119,7 +1119,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             performSymbolicBoundTightening();
             //performSimulation();
             //performMILPSolverBoundedTightening();
-            performBackwardAnalysis();
         }
 
         if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
@@ -1198,11 +1197,13 @@ void Engine::performMILPSolverBoundedTightening()
     }
 }
 
-void Engine::performBackwardAnalysis()
+void Engine::performBackwardAnalysis( InputQuery &inputQuery )
 {
-    if ( _networkLevelReasoner && Options::get()->gurobiEnabled() && _performBackwardAnalysis )
+    if ( _networkLevelReasoner && Options::get()->gurobiEnabled() &&
+         _performBackwardAnalysis )
     {
-        _networkLevelReasoner->obtainCurrentBounds();
+        _networkLevelReasoner->obtainCurrentBounds( &( inputQuery.getLowerBounds() ),
+                                                    &( inputQuery.getUpperBounds() ) );
 
         _networkLevelReasoner->backwardPropagation();
         List<Tightening> tightenings;
@@ -1215,14 +1216,14 @@ void Engine::performBackwardAnalysis()
             if ( tightening._type == Tightening::LB &&
                  FloatUtils::gt( tightening._value, _tableau->getLowerBound( tightening._variable ) ) )
             {
-                _tableau->tightenLowerBound( tightening._variable, tightening._value );
+                inputQuery.setLowerBound( tightening._variable, tightening._value );
                 ++numTightenedBounds;
             }
 
             if ( tightening._type == Tightening::UB &&
                  FloatUtils::lt( tightening._value, _tableau->getUpperBound( tightening._variable ) ) )
             {
-                _tableau->tightenUpperBound( tightening._variable, tightening._value );
+                inputQuery.setUpperBound( tightening._variable, tightening._value );
                 ++numTightenedBounds;
             }
         }
@@ -2323,6 +2324,19 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         if ( split.getEquations().size() > 0 )
             throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
                                 "Disjunction can only have bounds" );
+
+
+        std::cout << "Applied case split..." << std::endl;
+        split.dump();
+
+        try
+        {
+            performBackwardAnalysis( *_currentInputQuery );
+        }
+        catch ( const InfeasibleQueryException & )
+        {
+            continue;
+        }
 
         printf( "Encoding the input query with Gurobi...\n" );
         _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );

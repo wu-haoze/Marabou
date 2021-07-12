@@ -127,7 +127,8 @@ public:
     void setAlpha( double alpha ) { _alpha = alpha; }
     double getAlpha() const { return _alpha; }
 
-    void obtainCurrentBounds();
+    void obtainCurrentBounds( const Map<unsigned, double> *lb = NULL,
+                              const Map<unsigned, double> *ub = NULL );
     void computeSymbolicBounds();
     void computeIntervalArithmeticBounds();
 
