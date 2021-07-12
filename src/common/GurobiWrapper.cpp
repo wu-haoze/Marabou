@@ -106,6 +106,11 @@ void GurobiWrapper::setNumberOfThreads( unsigned numThreads )
                           numThreads );
 }
 
+void GurobiWrapper::setVerbosity( unsigned verbosity )
+{
+    _model->getEnv().set( GRB_IntParam_OutputFlag, verbosity );
+}
+
 void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType type )
 {
     ASSERT( !_nameToVariable.exists( name ) );

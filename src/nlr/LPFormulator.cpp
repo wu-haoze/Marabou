@@ -523,7 +523,9 @@ void LPFormulator::createLPRelaxationAfter( const Map<unsigned, Layer *> &layers
 {
     for ( const auto &layer : layers )
     {
-        if ( layer.second->getLayerIndex() < firstLayer )
+        if ( layer.second->getLayerIndex() < firstLayer ||
+             ( ( layer.second->getLayerIndex() != firstLayer ) &&
+               ( !layer.second->getSourceLayers().exists( firstLayer ) ) ) )
             continue;
 
         addLayerToModel( gurobi, layer.second );

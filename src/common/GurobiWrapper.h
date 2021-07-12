@@ -107,6 +107,8 @@ public:
 
     void setNumberOfThreads( unsigned numThreads );
 
+    void setVerbosity( unsigned verbosity );
+
     // Solve and extract the solution, or the best known bound on the
     // objective function
     void solve();

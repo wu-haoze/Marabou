@@ -2368,6 +2368,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                                     : timeoutInSeconds );
         ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
         _gurobi->setTimeLimit( timeoutForGurobi );
+        _gurobi->setVerbosity( 1 );
 
         _gurobi->solve();
 

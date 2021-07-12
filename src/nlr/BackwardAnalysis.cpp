@@ -74,6 +74,7 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
     bool skipTightenLb = false; // If true, skip lower bound tightening
     bool skipTightenUb = false; // If true, skip upper bound tightening
 
+    unsigned numberOfTighterBoundsInPreviousLayer = 0;
     unsigned numberOfLayers = _layerOwner->getNumberOfLayers();
     for ( unsigned i = numberOfLayers - 1; i != 0; --i )
     {
@@ -131,21 +132,24 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
                 threads[solverToIndex[freeSolver]] = boost::thread
                     ( _lpFormulator.tightenSingleVariableBoundsWithLPRelaxation, argument );
         }
-        BackwardAnalysis_LOG( Stringf( "Handling layer %u done, number of "
-                                       "tightened bounds found: %u", i,
-                                       tighterBoundCounter.load() ).ascii() );
-    }
-
-    for ( unsigned i = 0; i < numberOfWorkers; ++i )
-    {
-        threads[i].join();
+        for ( unsigned i = 0; i < numberOfWorkers; ++i )
+        {
+            threads[i].join();
+        }
+        numberOfTighterBoundsInPreviousLayer = tighterBoundCounter.load() -
+            numberOfTighterBoundsInPreviousLayer;
+        printf( "Handling layer %u done, number of "
+                         "tightened bounds found: %u\n", i,
+                         numberOfTighterBoundsInPreviousLayer );
+        if ( numberOfTighterBoundsInPreviousLayer == 0 )
+            break;
     }
 
     gurobiEnd = TimeUtils::sampleMicro();
 
-    BackwardAnalysis_LOG( Stringf( "Number of tighter bounds found by Gurobi: %u. Sign changes: %u. Cutoffs: %u\n",
-                               tighterBoundCounter.load(), signChanges.load(), cutoffs.load() ).ascii() );
-    BackwardAnalysis_LOG( Stringf( "Seconds spent Gurobiing: %llu\n", TimeUtils::timePassed( gurobiStart, gurobiEnd ) / 1000000 ).ascii() );
+    printf( "Number of tighter bounds found by Gurobi: %u. Sign changes: %u. Cutoffs: %u\n",
+                               tighterBoundCounter.load(), signChanges.load(), cutoffs.load() );
+    printf( "Seconds spent Gurobiing: %llu\n", TimeUtils::timePassed( gurobiStart, gurobiEnd ) / 1000000 );
 
     clearSolverQueue( freeSolvers );
 
