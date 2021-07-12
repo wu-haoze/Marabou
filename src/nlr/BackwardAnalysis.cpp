@@ -77,6 +77,8 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
     unsigned numberOfLayers = _layerOwner->getNumberOfLayers();
     for ( unsigned i = numberOfLayers - 2; i != 0; --i )
     {
+        BackwardAnalysis_LOG( Stringf( "Handling layer %u", i ).ascii() );
+
         Layer *layer = layers[i];
 
         for ( unsigned i = 0; i < layer->getSize(); ++i )
@@ -129,6 +131,9 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
                 threads[solverToIndex[freeSolver]] = boost::thread
                     ( _lpFormulator.tightenSingleVariableBoundsWithLPRelaxation, argument );
         }
+        BackwardAnalysis_LOG( Stringf( "Handling layer %u done, number of "
+                                       "tightened bounds found: %u", i,
+                                       tighterBoundCounter.load() ).ascii() );
     }
 
     for ( unsigned i = 0; i < numberOfWorkers; ++i )
