@@ -501,6 +501,19 @@ void LPFormulator::createLPRelaxation( const Map<unsigned, Layer *> &layers,
     }
 }
 
+void LPFormulator::createLPRelaxationAfter( const Map<unsigned, Layer *> &layers,
+                                            GurobiWrapper &gurobi,
+                                            unsigned firstLayer )
+{
+    for ( const auto &layer : layers )
+    {
+        if ( layer.second->getLayerIndex() < firstLayer )
+            continue;
+
+        addLayerToModel( gurobi, layer.second );
+    }
+}
+
 void LPFormulator::addLayerToModel( GurobiWrapper &gurobi, const Layer *layer )
 {
     switch ( layer->getLayerType() )

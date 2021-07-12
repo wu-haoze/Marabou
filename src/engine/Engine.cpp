@@ -1873,6 +1873,11 @@ void Engine::performSymbolicBoundTightening()
          SymbolicBoundTighteningType::DEEP_POLY )
         _networkLevelReasoner->deepPolyPropagation();
 
+    if ( _preprocessedQuery.inversible() )
+    {
+        _networkLevelReasoner->backwardPropagation();
+    }
+
     // Step 3: Extract the bounds
     List<Tightening> tightenings;
     _networkLevelReasoner->getConstraintTightenings( tightenings );

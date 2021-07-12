@@ -68,6 +68,10 @@ public:
                              GurobiWrapper &gurobi,
                              unsigned lastLayer = UINT_MAX );
 
+    void createLPRelaxationAfter( const Map<unsigned, Layer *> &layers,
+                                  GurobiWrapper &gurobi,
+                                  unsigned firstLayer )
+
     double solveLPRelaxation( GurobiWrapper &gurobi,
                               const Map<unsigned, Layer *> &layers,
                               MinOrMax minOrMax, String variableName,
