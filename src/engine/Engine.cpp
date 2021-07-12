@@ -207,7 +207,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
             {
                 do
                 {
-                    performSymbolicBoundTightening();
+                    performSymbolicBoundTightening( _preprocessedQuery );
                 }
                 while ( applyAllValidConstraintCaseSplits() );
                 splitJustPerformed = false;
@@ -267,7 +267,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 checkBoundCompliancyWithDebugSolution();
 
                 while ( applyAllValidConstraintCaseSplits() )
-                    performSymbolicBoundTightening();
+                    performSymbolicBoundTightening( *_currentInputQuery );
 
                 continue;
             }
@@ -1116,7 +1116,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
         if ( preprocess )
         {
-            performSymbolicBoundTightening();
+            performSymbolicBoundTightening( _preprocessedQuery );
             //performSimulation();
             //performMILPSolverBoundedTightening();
         }
@@ -1194,40 +1194,6 @@ void Engine::performMILPSolverBoundedTightening()
             else if ( tightening._type == Tightening::UB )
                 _tableau->tightenUpperBound( tightening._variable, tightening._value );
         }
-    }
-}
-
-void Engine::performBackwardAnalysis( InputQuery &inputQuery )
-{
-    if ( _networkLevelReasoner && Options::get()->gurobiEnabled() &&
-         _performBackwardAnalysis )
-    {
-        _networkLevelReasoner->obtainCurrentBounds( &( inputQuery.getLowerBounds() ),
-                                                    &( inputQuery.getUpperBounds() ) );
-
-        _networkLevelReasoner->backwardPropagation();
-        List<Tightening> tightenings;
-        _networkLevelReasoner->getConstraintTightenings( tightenings );
-
-        unsigned numTightenedBounds = 0;
-        for ( const auto &tightening : tightenings )
-        {
-
-            if ( tightening._type == Tightening::LB &&
-                 FloatUtils::gt( tightening._value, _tableau->getLowerBound( tightening._variable ) ) )
-            {
-                inputQuery.setLowerBound( tightening._variable, tightening._value );
-                ++numTightenedBounds;
-            }
-
-            if ( tightening._type == Tightening::UB &&
-                 FloatUtils::lt( tightening._value, _tableau->getUpperBound( tightening._variable ) ) )
-            {
-                inputQuery.setUpperBound( tightening._variable, tightening._value );
-                ++numTightenedBounds;
-            }
-        }
-        _statistics.incNumTighteningsFromSymbolicBoundTightening( numTightenedBounds );
     }
 }
 
@@ -1891,18 +1857,20 @@ void Engine::performSimulation()
     _networkLevelReasoner->simulate( &simulations );
 }
 
-void Engine::performSymbolicBoundTightening()
+unsigned Engine::performSymbolicBoundTightening( InputQuery &inputQuery )
 {
     if ( _symbolicBoundTighteningType == SymbolicBoundTighteningType::NONE ||
          ( !_networkLevelReasoner ) )
-        return;
+        return 0;
 
+    std::cout << "Begin DeepPoly Analysis" << std::endl;
     struct timespec start = TimeUtils::sampleMicro();
 
     unsigned numTightenedBounds = 0;
 
     // Step 1: tell the NLR about the current bounds
-    _networkLevelReasoner->obtainCurrentBounds();
+    _networkLevelReasoner->obtainCurrentBounds( &( inputQuery.getLowerBounds() ),
+                                                &( inputQuery.getUpperBounds() ) );
 
     // Step 2: perform SBT
     if ( _symbolicBoundTighteningType ==
@@ -1918,25 +1886,62 @@ void Engine::performSymbolicBoundTightening()
 
     for ( const auto &tightening : tightenings )
     {
-
         if ( tightening._type == Tightening::LB &&
-             FloatUtils::gt( tightening._value, _tableau->getLowerBound( tightening._variable ) ) )
+             FloatUtils::gt( tightening._value, inputQuery.getLowerBound( tightening._variable ) ) )
         {
-            _tableau->tightenLowerBound( tightening._variable, tightening._value );
+            inputQuery.setLowerBound( tightening._variable, tightening._value );
             ++numTightenedBounds;
         }
 
         if ( tightening._type == Tightening::UB &&
-             FloatUtils::lt( tightening._value, _tableau->getUpperBound( tightening._variable ) ) )
+             FloatUtils::lt( tightening._value, inputQuery.getUpperBound( tightening._variable ) ) )
         {
-            _tableau->tightenUpperBound( tightening._variable, tightening._value );
+            inputQuery.setUpperBound( tightening._variable, tightening._value );
             ++numTightenedBounds;
         }
     }
 
+    std::cout << "DeepPoly Analysis - done, tightened bounds: " << numTightenedBounds << std::endl;
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForSymbolicBoundTightening( TimeUtils::timePassed( start, end ) );
     _statistics.incNumTighteningsFromSymbolicBoundTightening( numTightenedBounds );
+    return numTightenedBounds;
+}
+
+unsigned Engine::performBackwardAnalysis( InputQuery &inputQuery )
+{
+    if ( _networkLevelReasoner && Options::get()->gurobiEnabled() &&
+         _performBackwardAnalysis )
+    {
+        _networkLevelReasoner->obtainCurrentBounds( &( inputQuery.getLowerBounds() ),
+                                                    &( inputQuery.getUpperBounds() ) );
+
+        _networkLevelReasoner->backwardPropagation();
+        List<Tightening> tightenings;
+        _networkLevelReasoner->getConstraintTightenings( tightenings );
+
+        unsigned numTightenedBounds = 0;
+        for ( const auto &tightening : tightenings )
+        {
+
+            if ( tightening._type == Tightening::LB &&
+                 FloatUtils::gt( tightening._value, _tableau->getLowerBound( tightening._variable ) ) )
+            {
+                inputQuery.setLowerBound( tightening._variable, tightening._value );
+                ++numTightenedBounds;
+            }
+
+            if ( tightening._type == Tightening::UB &&
+                 FloatUtils::lt( tightening._value, _tableau->getUpperBound( tightening._variable ) ) )
+            {
+                inputQuery.setUpperBound( tightening._variable, tightening._value );
+                ++numTightenedBounds;
+            }
+        }
+        _statistics.incNumTighteningsFromSymbolicBoundTightening( numTightenedBounds );
+        return numTightenedBounds;
+    }
+    return 0;
 }
 
 bool Engine::shouldExitDueToTimeout( unsigned timeout ) const
@@ -2233,7 +2238,7 @@ bool Engine::restoreSmtState( SmtState & smtState )
         // For debugging purposes
         checkBoundCompliancyWithDebugSolution();
         do
-            performSymbolicBoundTightening();
+            performSymbolicBoundTightening( _preprocessedQuery );
         while ( applyAllValidConstraintCaseSplits() );
 
         // Step 2: replay the stack
@@ -2247,7 +2252,7 @@ bool Engine::restoreSmtState( SmtState & smtState )
             // For debugging purposes
             checkBoundCompliancyWithDebugSolution();
             do
-                performSymbolicBoundTightening();
+                performSymbolicBoundTightening( _preprocessedQuery );
             while ( applyAllValidConstraintCaseSplits() );
 
         }
@@ -2329,9 +2334,25 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         std::cout << "Applied case split..." << std::endl;
         split.dump();
 
+        unsigned numTightened = 0;
+        bool continueTightening = true;
         try
         {
-            performBackwardAnalysis( *_currentInputQuery );
+            while ( continueTightening )
+            {
+                numTightened = performBackwardAnalysis( *_currentInputQuery );
+                if ( numTightened > 0 )
+                    numTightened = performSymbolicBoundTightening( *_currentInputQuery );
+                if ( numTightened == 0 )
+                    continueTightening = false;
+                for ( unsigned i = 0; i < _currentInputQuery->getNumberOfVariables(); ++i )
+                {
+                    _tableau->setLowerBound( i, _preprocessedQuery.getLowerBound( i ) );
+                    _tableau->setUpperBound( i, _preprocessedQuery.getUpperBound( i ) );
+                }
+                if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
+                    _networkLevelReasoner->dumpBounds();
+            }
         }
         catch ( const InfeasibleQueryException & )
         {

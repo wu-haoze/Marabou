@@ -75,7 +75,7 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
     bool skipTightenUb = false; // If true, skip upper bound tightening
 
     unsigned numberOfLayers = _layerOwner->getNumberOfLayers();
-    for ( unsigned i = numberOfLayers - 2; i != 0; --i )
+    for ( unsigned i = numberOfLayers - 1; i != 0; --i )
     {
         BackwardAnalysis_LOG( Stringf( "Handling layer %u", i ).ascii() );
 

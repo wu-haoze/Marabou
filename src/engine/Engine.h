@@ -494,9 +494,9 @@ private:
       Perform a round of symbolic bound tightening, taking into
       account the current state of the piecewise linear constraints.
     */
-    void performSymbolicBoundTightening();
+    unsigned performSymbolicBoundTightening( InputQuery &inputQuery );
 
-    void performBackwardAnalysis( InputQuery &inputQuery );
+    unsigned performBackwardAnalysis( InputQuery &inputQuery );
 
     /*
       Perform a simulation which calculates concrete values of each layer with
