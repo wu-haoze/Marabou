@@ -225,6 +225,7 @@ public:
     */
     static const unsigned GUROBI_NUMBER_OF_THREADS;
     static const bool GUROBI_LOGGING;
+    static const bool MILP_BASED_BOUND_TIGHTENING_LOGGING;
 #endif // ENABLE_GUROBI
 
     /*

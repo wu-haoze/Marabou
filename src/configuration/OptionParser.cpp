@@ -119,6 +119,10 @@ void OptionParser::initialize()
         ( "num-simulations",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_SIMULATIONS]) ),
           "Number of simulations generated per neuron" )
+        ( "backward",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::PERFORM_BACKWARD_ANALYSIS]) ),
+          "Perform backward analysis" )
+
 #endif // ENABLE_GUROBI
 
         ;

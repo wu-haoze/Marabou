@@ -92,6 +92,7 @@ const unsigned GlobalConfiguration::DNC_DEPTH_THRESHOLD = 5;
 #ifdef ENABLE_GUROBI
 const unsigned GlobalConfiguration::GUROBI_NUMBER_OF_THREADS = 1;
 const bool GlobalConfiguration::GUROBI_LOGGING = false;
+const bool GlobalConfiguration::MILP_BASED_BOUND_TIGHTENING_LOGGING = true;
 #endif // ENABLE_GUROBI
 
 // Logging - note that it is enabled only in Debug mode

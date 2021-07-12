@@ -114,6 +114,7 @@ public:
     const ITableau *getTableau() const;
 
     void obtainCurrentBounds();
+    void backwardPropagation();
     void intervalArithmeticBoundPropagation();
     void symbolicBoundPropagation();
     void deepPolyPropagation();

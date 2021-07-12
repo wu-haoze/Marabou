@@ -89,6 +89,13 @@ void GurobiWrapper::reset()
     _model->reset();
 }
 
+void GurobiWrapper::setNumberOfThreads( unsigned numThreads )
+{
+    // Thread number
+    _model->getEnv().set( GRB_IntParam_Threads,
+                          numThreads );
+}
+
 void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType type )
 {
     ASSERT( !_nameToVariable.exists( name ) );

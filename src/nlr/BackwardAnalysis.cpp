@@ -29,6 +29,7 @@ namespace NLR {
 
 BackwardAnalysis::BackwardAnalysis( LayerOwner *layerOwner )
     : _layerOwner( layerOwner )
+    , _lpFormulator( layerOwner )
 {
 }
 
@@ -67,13 +68,14 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
     struct timespec gurobiEnd;
     (void) gurobiEnd;
 
+    double dontCare = 0;
     gurobiStart = TimeUtils::sampleMicro();
 
     bool skipTightenLb = false; // If true, skip lower bound tightening
     bool skipTightenUb = false; // If true, skip upper bound tightening
 
     unsigned numberOfLayers = _layerOwner->getNumberOfLayers();
-    for ( unsigned i = numberOfLayers - 2; i >= 0; --i )
+    for ( unsigned i = numberOfLayers - 2; i != 0; --i )
     {
         Layer *layer = layers[i];
 
@@ -105,14 +107,14 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
             freeSolver->resetModel();
 
             mtx.lock();
-            _lpFomulator.createLPRelaxationAfter( layers, *freeSolver,
+            _lpFormulator.createLPRelaxationAfter( layers, *freeSolver,
                                                   layer->getLayerIndex() );
             mtx.unlock();
 
             // spawn a thread to tighten the bounds for the current variable
             ThreadArgument argument( freeSolver, layer,
                                      i, currentLb, currentUb,
-                                     _cutoffInUse, _cutoffValue,
+                                     false, dontCare,
                                      _layerOwner, std::ref( freeSolvers ),
                                      std::ref( mtx ), std::ref( infeasible ),
                                      std::ref( tighterBoundCounter ),
@@ -122,10 +124,10 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
                                      skipTightenUb );
 
             if ( numberOfWorkers == 1 )
-                tightenSingleVariableBoundsWithLPRelaxation( argument );
+                _lpFormulator.tightenSingleVariableBoundsWithLPRelaxation( argument );
             else
                 threads[solverToIndex[freeSolver]] = boost::thread
-                    ( tightenSingleVariableBoundsWithLPRelaxation, argument );
+                    ( _lpFormulator.tightenSingleVariableBoundsWithLPRelaxation, argument );
         }
     }
 

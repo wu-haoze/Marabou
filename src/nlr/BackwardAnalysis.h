@@ -29,7 +29,7 @@
 
 namespace NLR {
 
-#define BackwardAnalysis_LOG(x, ...) LOG(GlobalConfiguration::PREPROCESSOR_LOGGING, "Backward Analysis: %s\n", x)
+#define BackwardAnalysis_LOG(x, ...) LOG(GlobalConfiguration::MILP_BASED_BOUND_TIGHTENING_LOGGING, "Backward Analysis: %s\n", x)
 
 class BackwardAnalysis : public ParallelSolver
 {
@@ -41,7 +41,7 @@ public:
 
     BackwardAnalysis( LayerOwner *layerOwner );
 
-    void run();
+    void run( const Map<unsigned, Layer *> &layers );
 
 private:
     LayerOwner *_layerOwner;

@@ -105,6 +105,8 @@ public:
     // Specify a time limit, in seconds
     void setTimeLimit( double seconds );
 
+    void setNumberOfThreads( unsigned numThreads );
+
     // Solve and extract the solution, or the best known bound on the
     // objective function
     void solve();
@@ -186,6 +188,7 @@ public:
     bool timeout() { return false; };
     bool haveFeasibleSolution() { return true; };
     void setTimeLimit( double ) {};
+    void setNumberOfThreads( unsigned ) {};
     double getObjectiveBound() { return 0; };
     void dump() {}
     static void log( const String & );

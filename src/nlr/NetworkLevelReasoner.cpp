@@ -196,7 +196,7 @@ void NetworkLevelReasoner::backwardPropagation()
     if ( _backwardAnalysis == nullptr )
         _backwardAnalysis = std::unique_ptr<BackwardAnalysis>
             ( new BackwardAnalysis( this ) );
-    _deepPolyAnalysis->run( _layerIndexToLayer );
+    _backwardAnalysis->run( _layerIndexToLayer );
 }
 
 void NetworkLevelReasoner::freeMemoryIfNeeded()

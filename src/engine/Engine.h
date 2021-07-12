@@ -370,6 +370,8 @@ private:
     */
     unsigned _simulationSize;
 
+    bool _performBackwardAnalysis;
+
     /*
       Perform a simplex step: compute the cost function, pick the
       entering and leaving variables and perform a pivot.
@@ -486,6 +488,8 @@ private:
       account the current state of the piecewise linear constraints.
     */
     void performSymbolicBoundTightening();
+
+    void performBackwardAnalysis();
 
     /*
       Perform a simulation which calculates concrete values of each layer with
