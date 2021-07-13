@@ -196,11 +196,11 @@ void NetworkLevelReasoner::backwardPropagation()
     if ( _backwardAnalysis == nullptr )
     {
         std::vector<LPFormulator *> lpFormulators;
-        for ( unsigned i = 0; i < Options::get()->getInt( Options::NUM_WORKERS );
+        for ( int i = 0; i < Options::get()->getInt( Options::NUM_WORKERS );
               ++i )
         {
             NetworkLevelReasoner *nlr = new NetworkLevelReasoner();
-            storeIntoOther( nlr );
+            storeIntoOther( *nlr );
             LPFormulator *formulator = new LPFormulator( nlr );
             lpFormulators.push_back( formulator );
         }
@@ -215,6 +215,19 @@ void NetworkLevelReasoner::freeMemoryIfNeeded()
     for ( const auto &layer : _layerIndexToLayer )
         delete layer.second;
     _layerIndexToLayer.clear();
+}
+
+void NetworkLevelReasoner::storeBoundsIntoOther( LayerOwner *other )
+{
+    NetworkLevelReasoner *otherNlr = (NetworkLevelReasoner *) other;
+    for ( const auto &pair : otherNlr->_layerIndexToLayer )
+    {
+        unsigned index = pair.first;
+        Layer *layer = _layerIndexToLayer[index];
+        Layer *otherLayer = pair.second;
+        memcpy( otherLayer->getLbs(), layer->getLbs(), layer->getSize() * sizeof(double) );
+        memcpy( otherLayer->getUbs(), layer->getUbs(), layer->getSize() * sizeof(double) );
+    }
 }
 
 void NetworkLevelReasoner::storeIntoOther( NetworkLevelReasoner &other ) const

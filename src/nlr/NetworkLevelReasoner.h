@@ -131,6 +131,8 @@ public:
     */
     void dumpTopology() const;
 
+    void storeBoundsIntoOther( LayerOwner *other );
+
     /*
       Duplicate the reasoner
     */

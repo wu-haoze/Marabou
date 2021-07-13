@@ -38,7 +38,7 @@ public:
     };
 
     BackwardAnalysis( LayerOwner *layerOwner,
-                      std::vector<LPFormulator *> lpFormulators );
+                      std::vector<LPFormulator *> &lpFormulators );
 
     void run( const Map<unsigned, Layer *> &layers );
 

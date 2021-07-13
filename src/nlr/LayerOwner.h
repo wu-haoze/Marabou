@@ -28,6 +28,7 @@ public:
     virtual ~LayerOwner() {}
     virtual const Layer *getLayer( unsigned index ) const = 0;
     virtual const Map<unsigned, Layer *> &getLayerIndexToLayer() const = 0;
+    virtual void storeBoundsIntoOther( LayerOwner *other ) = 0;
     virtual unsigned getMaxLayerSize() const = 0;
     virtual const ITableau *getTableau() const = 0;
     virtual unsigned getNumberOfLayers() const = 0;

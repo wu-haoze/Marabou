@@ -83,6 +83,7 @@ void BackwardAnalysis::optimizeBounds( TighteningQueryQueue *workload,
                                        TighteningQueue *tighteningQueue,
                                        unsigned  )
 {
+    gurobi->resetModel();
     formulator->createLPRelaxationAfter
         ( formulator->_layerOwner->getLayerIndexToLayer(), *gurobi,
           layerIndex );
@@ -211,12 +212,6 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
         numUnsolved = numberOfSubProblems;
         unsigned numberOfWorkersThisLayer = std::min( numberOfWorkers,
                                                       numberOfSubProblems );
-        for ( unsigned w = 0; w < numberOfWorkersThisLayer; ++w )
-        {
-            freeSolvers[w]->resetModel();
-            _lpFormulator.createLPRelaxationAfter( layers, *(freeSolvers[w]),
-                                                   layer->getLayerIndex() );
-        }
 
         //if ( layer->getLayerType() == Layer::LEAKY_RELU )
         //{
@@ -228,8 +223,11 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
         for ( unsigned threadId = 0; threadId < numberOfWorkersThisLayer;
               ++threadId )
         {
+            _layerOwner->storeBoundsIntoOther( _lpFormulators[threadId]->_layerOwner );
             threads.push_back( std::thread( optimizeBounds, workload,
                                             freeSolvers[threadId],
+                                            _lpFormulators[threadId],
+                                            layer->getLayerIndex(),
                                             std::ref( shouldQuitSolving ),
                                             std::ref( numUnsolved ),
                                             std::ref( infeasible ),
