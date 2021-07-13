@@ -79,8 +79,12 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
     for ( unsigned i = numberOfLayers - 1; i != 0; --i )
     {
         BackwardAnalysis_LOG( Stringf( "Handling layer %u", i ).ascii() );
-
         Layer *layer = layers[i];
+
+        if ( layer->getLayerType() == Layer::LEAKY_RELU )
+        {
+            printf("leaky relu layer\n" );
+        }
 
         for ( unsigned i = 0; i < layer->getSize(); ++i )
         {

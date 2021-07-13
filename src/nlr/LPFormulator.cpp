@@ -13,6 +13,7 @@
 
  **/
 
+#include "GlobalConfiguration.h"
 #include "GurobiWrapper.h"
 #include "InfeasibleQueryException.h"
 #include "LPFormulator.h"
@@ -435,10 +436,10 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
                 infeasible = true;
                 return;
             }
-            LPFormulator_LOG( Stringf( "Upperbound computed %f", ub ).ascii() );
+            LPFormulator_LOG( Stringf( "Upperbound computed %f -> %f", currentUb, ub ).ascii() );
 
             // Store the new bound if it is tighter
-            if ( ub < currentUb )
+            if ( FloatUtils::lt( ub, currentUb, GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
             {
                 if ( FloatUtils::isPositive( currentUb ) &&
                     !FloatUtils::isPositive( ub ) )
@@ -476,9 +477,9 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
                 return;
             }
 
-            LPFormulator_LOG( Stringf( "Lowerbound computed: %f", lb ).ascii() );
+            LPFormulator_LOG( Stringf( "Lowerbound computed %f -> %f", currentLb, lb ).ascii() );
             // Store the new bound if it is tighter
-            if ( lb > currentLb )
+            if ( FloatUtils::gt( lb, currentLb, GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
             {
                 if ( FloatUtils::isNegative( currentLb ) &&
                     !FloatUtils::isNegative( lb ) )

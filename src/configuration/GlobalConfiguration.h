@@ -28,6 +28,8 @@ public:
 
     static const bool USE_POLARITY_BASED_DIRECTION_HEURISTICS;
 
+    static const double LP_TIGHTENING_TOLERANCE;
+
     // The default epsilon used for comparing doubles
     static const double DEFAULT_EPSILON_FOR_COMPARISONS;
 

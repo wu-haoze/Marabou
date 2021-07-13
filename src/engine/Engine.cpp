@@ -1925,15 +1925,19 @@ unsigned Engine::performBackwardAnalysis( InputQuery &inputQuery )
         {
 
             if ( tightening._type == Tightening::LB &&
-                 FloatUtils::gt( tightening._value, _tableau->getLowerBound( tightening._variable ) ) )
+                 FloatUtils::gt( tightening._value, inputQuery.getLowerBound( tightening._variable ) ) )
             {
+                std::cout << "Lb of x" << tightening._variable  << " tightened from " << inputQuery.getLowerBound( tightening._variable ) <<
+                    " to " << tightening._value << std::endl;
                 inputQuery.setLowerBound( tightening._variable, tightening._value );
                 ++numTightenedBounds;
             }
 
             if ( tightening._type == Tightening::UB &&
-                 FloatUtils::lt( tightening._value, _tableau->getUpperBound( tightening._variable ) ) )
+                 FloatUtils::lt( tightening._value, inputQuery.getUpperBound( tightening._variable ) ) )
             {
+                std::cout << "Ub of x" << tightening._variable  << " tightened from " << inputQuery.getUpperBound( tightening._variable ) <<
+                    " to " << tightening._value << std::endl;
                 inputQuery.setUpperBound( tightening._variable, tightening._value );
                 ++numTightenedBounds;
             }
@@ -2347,11 +2351,9 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                     continueTightening = false;
                 for ( unsigned i = 0; i < _currentInputQuery->getNumberOfVariables(); ++i )
                 {
-                    _tableau->setLowerBound( i, _preprocessedQuery.getLowerBound( i ) );
-                    _tableau->setUpperBound( i, _preprocessedQuery.getUpperBound( i ) );
+                    _tableau->setLowerBound( i, _currentInputQuery->getLowerBound( i ) );
+                    _tableau->setUpperBound( i, _currentInputQuery->getUpperBound( i ) );
                 }
-                if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
-                    _networkLevelReasoner->dumpBounds();
             }
         }
         catch ( const InfeasibleQueryException & )
