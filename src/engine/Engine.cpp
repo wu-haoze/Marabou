@@ -2341,9 +2341,12 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         unsigned numTightened = 0;
         bool continueTightening = true;
 
-        printf( "Unfixed constraints after deeppoly: %u\n", countUnfixedConstraints() );
         try
         {
+            unsigned lastUnfixed = countUnfixedConstraints();
+            unsigned thisUnfixed = 0;
+            printf( "Unfixed constraints after deeppoly: %u\n", lastUnfixed );
+
             while ( continueTightening )
             {
                 numTightened = performBackwardAnalysis( *_currentInputQuery );
@@ -2351,16 +2354,15 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                 if ( numTightened > 0 )
                 {
                     numTightened = performSymbolicBoundTightening( *_currentInputQuery );
-                    printf( "Unfixed constraints after deeppoly: %u\n", countUnfixedConstraints() );
+                    unsigned thisUnfixed = countUnfixedConstraints();
+                    printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
                 }
-                if ( numTightened == 0 )
+                else
                     continueTightening = false;
-                for ( unsigned i = 0; i < _currentInputQuery->getNumberOfVariables(); ++i )
-                {
-                    _tableau->setLowerBound( i, _currentInputQuery->getLowerBound( i ) );
-                    _tableau->setUpperBound( i, _currentInputQuery->getUpperBound( i ) );
-                }
 
+                if ( thisUnfixed == lastUnfixed )
+                    continueTightening = false;
+                lastUnfixed = thisUnfixed;
             }
         }
         catch ( const InfeasibleQueryException & )
@@ -2371,7 +2373,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         printf( "Encoding the input query with Gurobi...\n" );
         _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
         _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
-        _milpEncoder->encodeInputQuery( *_gurobi, *newInputQuery );
+        _milpEncoder->encodeInputQuery( *_gurobi, *_currentInputQuery );
         printf( "Query encoded in Gurobi...\n" );
         double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
                                     : timeoutInSeconds );
