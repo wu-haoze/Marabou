@@ -93,6 +93,8 @@ public:
     bool preprocessingEnabled() const;
     const Preprocessor *getPreprocessor();
 
+    unsigned countUnfixedConstraints() const;
+
     /*
       A request from the user to terminate
     */

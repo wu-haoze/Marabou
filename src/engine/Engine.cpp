@@ -2340,16 +2340,27 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
         unsigned numTightened = 0;
         bool continueTightening = true;
+
+        printf( "Unfixed constraints after deeppoly: %u\n", countUnfixedConstraints() );
         try
         {
             while ( continueTightening )
             {
                 numTightened = performBackwardAnalysis( *_currentInputQuery );
+                printf( "Unfixed constraints after backprop: %u\n", countUnfixedConstraints() );
                 if ( numTightened > 0 )
+                {
                     numTightened = performSymbolicBoundTightening( *_currentInputQuery );
+                    printf( "Unfixed constraints after deeppoly: %u\n", countUnfixedConstraints() );
+                }
                 if ( numTightened == 0 )
                     continueTightening = false;
-                break;
+                for ( unsigned i = 0; i < _currentInputQuery->getNumberOfVariables(); ++i )
+                {
+                    _tableau->setLowerBound( i, _currentInputQuery->getLowerBound( i ) );
+                    _tableau->setUpperBound( i, _currentInputQuery->getUpperBound( i ) );
+                }
+
             }
         }
         catch ( const InfeasibleQueryException & )
@@ -2451,4 +2462,20 @@ bool Engine::preprocessingEnabled() const
 const Preprocessor *Engine::getPreprocessor()
 {
     return &_preprocessor;
+}
+
+unsigned Engine::countUnfixedConstraints() const
+{
+    unsigned unfixedConstraints = 0;
+    for ( const auto &constraint : _plConstraints )
+    {
+        if ( constraint->getType() == LEAKY_RELU )
+        {
+            unsigned b = ((LeakyReluConstraint *) constraint)->getB();
+            if ( _currentInputQuery->getLowerBound( b ) < 0 &&
+                 _currentInputQuery->getUpperBound( b ) > 0 )
+                ++unfixedConstraints;
+        }
+    }
+    return unfixedConstraints;
 }
