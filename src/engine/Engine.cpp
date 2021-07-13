@@ -2349,11 +2349,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                     numTightened = performSymbolicBoundTightening( *_currentInputQuery );
                 if ( numTightened == 0 )
                     continueTightening = false;
-                for ( unsigned i = 0; i < _currentInputQuery->getNumberOfVariables(); ++i )
-                {
-                    _tableau->setLowerBound( i, _currentInputQuery->getLowerBound( i ) );
-                    _tableau->setUpperBound( i, _currentInputQuery->getUpperBound( i ) );
-                }
+                break;
             }
         }
         catch ( const InfeasibleQueryException & )
