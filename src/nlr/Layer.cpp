@@ -1853,7 +1853,15 @@ unsigned Layer::neuronToVariable( unsigned neuron ) const
 unsigned Layer::variableToNeuron( unsigned variable ) const
 {
     ASSERT( _variableToNeuron.exists( variable ) );
+
     return _variableToNeuron[variable];
+}
+
+void Layer::updateVariableToNeuron()
+{
+    _variableToNeuron.clear();
+    for ( const auto &pair : _neuronToVariable )
+        _variableToNeuron[pair.second] = pair.first;
 }
 
 bool Layer::neuronEliminated( unsigned neuron ) const

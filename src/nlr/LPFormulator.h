@@ -85,9 +85,9 @@ public:
     */
     static void tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &argument );
 
-private:
-
     LayerOwner *_layerOwner;
+
+private:
     bool _cutoffInUse;
     double _cutoffValue;
 

@@ -1927,8 +1927,8 @@ unsigned Engine::performBackwardAnalysis( InputQuery &inputQuery )
             if ( tightening._type == Tightening::LB &&
                  FloatUtils::gt( tightening._value, inputQuery.getLowerBound( tightening._variable ) ) )
             {
-                std::cout << "Lb of x" << tightening._variable  << " tightened from " << inputQuery.getLowerBound( tightening._variable ) <<
-                    " to " << tightening._value << std::endl;
+                //std::cout << "Lb of x" << tightening._variable  << " tightened from " << inputQuery.getLowerBound( tightening._variable ) <<
+                //    " to " << tightening._value << std::endl;
                 inputQuery.setLowerBound( tightening._variable, tightening._value );
                 ++numTightenedBounds;
             }
@@ -1936,8 +1936,8 @@ unsigned Engine::performBackwardAnalysis( InputQuery &inputQuery )
             if ( tightening._type == Tightening::UB &&
                  FloatUtils::lt( tightening._value, inputQuery.getUpperBound( tightening._variable ) ) )
             {
-                std::cout << "Ub of x" << tightening._variable  << " tightened from " << inputQuery.getUpperBound( tightening._variable ) <<
-                    " to " << tightening._value << std::endl;
+                //std::cout << "Ub of x" << tightening._variable  << " tightened from " << inputQuery.getUpperBound( tightening._variable ) <<
+                //    " to " << tightening._value << std::endl;
                 inputQuery.setUpperBound( tightening._variable, tightening._value );
                 ++numTightenedBounds;
             }

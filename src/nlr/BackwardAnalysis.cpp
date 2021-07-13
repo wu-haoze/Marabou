@@ -23,142 +23,258 @@
 #include "TimeUtils.h"
 #include "Vector.h"
 
-#include <boost/thread.hpp>
+#include <thread>
 
 namespace NLR {
 
-BackwardAnalysis::BackwardAnalysis( LayerOwner *layerOwner )
+BackwardAnalysis::BackwardAnalysis( LayerOwner *layerOwner,
+                                    std::vector<LPFormulator *> &lpFormulators )
     : _layerOwner( layerOwner )
     , _lpFormulator( layerOwner )
+    , _lpFormulators( lpFormulators )
 {
+}
+
+double BackwardAnalysis::optimizeWithGurobi( GurobiWrapper &gurobi,
+                                             MinOrMax minOrMax,
+                                             String variableName,
+                                             std::atomic_bool *infeasible )
+{
+    List<GurobiWrapper::Term> terms;
+    terms.append( GurobiWrapper::Term( 1, variableName ) );
+
+    if ( minOrMax == MAX )
+        gurobi.setObjective( terms );
+    else
+        gurobi.setCost( terms );
+
+    gurobi.solve();
+
+    if ( gurobi.infeasbile() )
+    {
+        if ( infeasible )
+        {
+            *infeasible = true;
+            return FloatUtils::infinity();
+        }
+        else
+            throw InfeasibleQueryException();
+    }
+
+    if ( gurobi.optimal() )
+    {
+        Map<String, double> dontCare;
+        double result = 0;
+        gurobi.extractSolution( dontCare, result );
+        return result;
+    }
+
+    throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
+}
+
+
+void BackwardAnalysis::optimizeBounds( TighteningQueryQueue *workload,
+                                       GurobiWrapper *gurobi,
+                                       LPFormulator *formulator,
+                                       unsigned layerIndex,
+                                       std::atomic_bool &shouldQuitSolving,
+                                       std::atomic_uint &numUnsolved,
+                                       std::atomic_bool &infeasible,
+                                       TighteningQueue *tighteningQueue,
+                                       unsigned  )
+{
+    formulator->createLPRelaxationAfter
+        ( formulator->_layerOwner->getLayerIndexToLayer(), *gurobi,
+          layerIndex );
+    //printf( "Worker %u started...", threadId );
+    while ( numUnsolved.load() > 0 && infeasible.load() == false )
+    {
+        TighteningQuery *q = NULL;
+        if ( workload->pop( q ) )
+        {
+            unsigned variable = q->_variable;
+            double currentLb = q->_currentLb;
+            double currentUb = q->_currentUb;
+            delete q;
+
+            Stringf variableName( "x%u", variable );
+
+            BackwardAnalysis_LOG( Stringf( "Computing upperbound..." ).ascii() );
+            gurobi->reset();
+            gurobi->setNumberOfThreads( 1 );
+            double ub = optimizeWithGurobi( *gurobi, MinOrMax::MAX,
+                                            variableName, &infeasible );
+            BackwardAnalysis_LOG( Stringf( "Upperbound computed %f -> %f",
+                                       currentUb, ub ).ascii() );
+            if ( FloatUtils::lt( ub, currentLb ) )
+            {
+                BackwardAnalysis_LOG( Stringf( "Found invalid bound! lb: %u, ub: %u",
+                                               currentLb, ub ).ascii() );
+                infeasible = true;
+                return;
+            }
+            if ( FloatUtils::lt( ub, currentUb,
+                                 GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
+            {
+                Tightening *t = new Tightening( variable, ub, Tightening::UB );
+                tighteningQueue->push( t );
+            }
+
+            BackwardAnalysis_LOG( Stringf( "Computing lowerbound..." ).ascii() );
+            gurobi->reset();
+            gurobi->setNumberOfThreads( 1 );
+            double lb = optimizeWithGurobi( *gurobi, MinOrMax::MIN,
+                                            variableName, &infeasible );
+            BackwardAnalysis_LOG( Stringf( "Lowerbound computed %f -> %f",
+                                       currentLb, lb ).ascii() );
+            if ( FloatUtils::gt( lb, currentUb ) )
+            {
+                BackwardAnalysis_LOG( Stringf( "Found invalid bound! lb: %u, ub: %u",
+                                               lb, currentUb ).ascii() );
+                infeasible = true;
+                return;
+            }
+            if ( FloatUtils::gt( lb, currentLb,
+                                 GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
+            {
+                Tightening *t = new Tightening( variable, lb, Tightening::LB );
+                tighteningQueue->push( t );
+            }
+
+            numUnsolved -= 1;
+            if ( numUnsolved.load() == 0 )
+                shouldQuitSolving = true;
+        }
+        else
+        {
+            std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+        }
+    }
 }
 
 void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
 {
     unsigned numberOfWorkers = Options::get()->getInt( Options::NUM_WORKERS );
 
-    // Time to wait if no idle worker is availble
-    boost::chrono::milliseconds waitTime( numberOfWorkers - 1 );
-
-    Map<GurobiWrapper *, unsigned> solverToIndex;
     // Create a queue of free workers
     // When a worker is working, it is popped off the queue, when it is done, it
     // is added back to the queue.
-    SolverQueue freeSolvers( numberOfWorkers );
+    std::vector<GurobiWrapper *> freeSolvers;
     for ( unsigned i = 0; i < numberOfWorkers; ++i )
     {
         GurobiWrapper *gurobi = new GurobiWrapper();
-        solverToIndex[gurobi] = i;
-        enqueueSolver( freeSolvers, gurobi );
+        freeSolvers.push_back( gurobi );
     }
 
-    boost::thread *threads = new boost::thread[numberOfWorkers];
-    std::mutex mtx;
+    TighteningQueryQueue *workload = new TighteningQueryQueue( 0 );
+    std::atomic_bool shouldQuitSolving( false );
+    std::atomic_uint numUnsolved( 0 );
     std::atomic_bool infeasible( false );
+    TighteningQueue *tighteningQueue = new TighteningQueue( 0 );
 
-    double currentLb;
-    double currentUb;
-
-    std::atomic_uint tighterBoundCounter( 0 );
-    std::atomic_uint signChanges( 0 );
-    std::atomic_uint cutoffs( 0 );
+    unsigned tighterBoundCounter = 0;
 
     struct timespec gurobiStart;
     (void) gurobiStart;
     struct timespec gurobiEnd;
     (void) gurobiEnd;
 
-    double dontCare = 0;
     gurobiStart = TimeUtils::sampleMicro();
 
-    bool skipTightenLb = false; // If true, skip lower bound tightening
-    bool skipTightenUb = false; // If true, skip upper bound tightening
-
-    unsigned numberOfTighterBoundsInPreviousLayer = 0;
     unsigned numberOfLayers = _layerOwner->getNumberOfLayers();
     for ( unsigned i = numberOfLayers - 1; i != 0; --i )
     {
-        BackwardAnalysis_LOG( Stringf( "Handling layer %u", i ).ascii() );
+        //BackwardAnalysis_LOG( Stringf( "Handling layer %u", i ).ascii() );
+        shouldQuitSolving = false;
+
+        ASSERT( numUnsolved.load() == 0 );
+        ASSERT( infeasible.load() == false );
+
         Layer *layer = layers[i];
+        layer->updateVariableToNeuron();
 
-        if ( layer->getLayerType() == Layer::LEAKY_RELU )
-        {
-            printf("leaky relu layer\n" );
-        }
-
+        unsigned numberOfSubProblems = 0;
         for ( unsigned i = 0; i < layer->getSize(); ++i )
         {
             if ( layer->neuronEliminated( i ) )
                 continue;
-
-            currentLb = layer->getLb( i );
-            currentUb = layer->getUb( i );
-
-            if ( infeasible )
-            {
-                // infeasibility is derived, interupt all active threads
-                for ( unsigned i = 0; i < numberOfWorkers; ++i )
-                {
-                    threads[i].interrupt();
-                    threads[i].join();
-                }
-                clearSolverQueue( freeSolvers );
-                throw InfeasibleQueryException();
-            }
-
-            // Wait until there is an idle solver
-            GurobiWrapper *freeSolver;
-            while ( !freeSolvers.pop( freeSolver ) )
-                boost::this_thread::sleep_for( waitTime );
-
-            freeSolver->resetModel();
-
-            mtx.lock();
-            _lpFormulator.createLPRelaxationAfter( layers, *freeSolver,
-                                                  layer->getLayerIndex() );
-            mtx.unlock();
-
-            // spawn a thread to tighten the bounds for the current variable
-            ThreadArgument argument( freeSolver, layer,
-                                     i, currentLb, currentUb,
-                                     false, dontCare,
-                                     _layerOwner, std::ref( freeSolvers ),
-                                     std::ref( mtx ), std::ref( infeasible ),
-                                     std::ref( tighterBoundCounter ),
-                                     std::ref( signChanges ),
-                                     std::ref( cutoffs ),
-                                     skipTightenLb,
-                                     skipTightenUb );
-
-            if ( numberOfWorkers == 1 )
-                _lpFormulator.tightenSingleVariableBoundsWithLPRelaxation( argument );
             else
-                threads[solverToIndex[freeSolver]] = boost::thread
-                    ( _lpFormulator.tightenSingleVariableBoundsWithLPRelaxation, argument );
+            {
+                TighteningQuery *q = new TighteningQuery
+                    ( i, layer->neuronToVariable( i ),
+                      layer->getLb( i ),layer->getUb( i ) );
+                workload->push( q );
+                ++numberOfSubProblems;
+            }
         }
-        for ( unsigned i = 0; i < numberOfWorkers; ++i )
+
+        numUnsolved = numberOfSubProblems;
+        unsigned numberOfWorkersThisLayer = std::min( numberOfWorkers,
+                                                      numberOfSubProblems );
+        for ( unsigned w = 0; w < numberOfWorkersThisLayer; ++w )
         {
-            threads[i].join();
+            freeSolvers[w]->resetModel();
+            _lpFormulator.createLPRelaxationAfter( layers, *(freeSolvers[w]),
+                                                   layer->getLayerIndex() );
         }
-        numberOfTighterBoundsInPreviousLayer = tighterBoundCounter.load() -
-            numberOfTighterBoundsInPreviousLayer;
-        printf( "Handling layer %u done, number of "
-                         "tightened bounds found: %u\n", i,
-                         numberOfTighterBoundsInPreviousLayer );
-        if ( numberOfTighterBoundsInPreviousLayer == 0 )
-            break;
+
+        //if ( layer->getLayerType() == Layer::LEAKY_RELU )
+        //{
+        //    printf("leaky relu layer\n" );
+        //}
+
+        // Spawn threads and start solving
+        std::list<std::thread> threads;
+        for ( unsigned threadId = 0; threadId < numberOfWorkersThisLayer;
+              ++threadId )
+        {
+            threads.push_back( std::thread( optimizeBounds, workload,
+                                            freeSolvers[threadId],
+                                            std::ref( shouldQuitSolving ),
+                                            std::ref( numUnsolved ),
+                                            std::ref( infeasible ),
+                                            tighteningQueue,
+                                            threadId ) );
+        }
+
+        for ( auto &thread : threads )
+            thread.join();
+
+        if ( infeasible )
+        {
+            throw InfeasibleQueryException();
+        }
+
+        Tightening *t = NULL;
+        while ( tighteningQueue->pop( t ) )
+        {
+            unsigned index = layer->variableToNeuron( t->_variable );
+            if ( t->_type == Tightening::LB )
+                layer->setLb( index, t->_value );
+            else
+                layer->setUb( index, t->_value );
+            _layerOwner->receiveTighterBound( *t );
+            ++tighterBoundCounter;
+            delete t;
+        }
+
+        //printf( "Number of tighter bounds found by Gurobi: %u.\n",
+        //        tighterBoundCounter );
     }
 
     gurobiEnd = TimeUtils::sampleMicro();
 
-    printf( "Number of tighter bounds found by Gurobi: %u. Sign changes: %u. Cutoffs: %u\n",
-                               tighterBoundCounter.load(), signChanges.load(), cutoffs.load() );
+    printf( "Number of tighter bounds found by Gurobi: %u.\n",
+            tighterBoundCounter );
     printf( "Seconds spent Gurobiing: %llu\n", TimeUtils::timePassed( gurobiStart, gurobiEnd ) / 1000000 );
 
-    clearSolverQueue( freeSolvers );
+    for ( unsigned i = 0; i < numberOfWorkers; ++i )
+    {
+        delete freeSolvers[i];
+    }
 
-    if ( infeasible )
-        throw InfeasibleQueryException();
+    delete workload;
+    delete tighteningQueue;
 }
 
 } // namespace NLR

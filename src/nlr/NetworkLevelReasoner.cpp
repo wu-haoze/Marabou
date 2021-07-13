@@ -194,9 +194,19 @@ void NetworkLevelReasoner::intervalArithmeticBoundPropagation()
 void NetworkLevelReasoner::backwardPropagation()
 {
     if ( _backwardAnalysis == nullptr )
+    {
+        std::vector<LPFormulator *> lpFormulators;
+        for ( unsigned i = 0; i < Options::get()->getInt( Options::NUM_WORKERS );
+              ++i )
+        {
+            NetworkLevelReasoner *nlr = new NetworkLevelReasoner();
+            storeIntoOther( nlr );
+            LPFormulator *formulator = new LPFormulator( nlr );
+            lpFormulators.push_back( formulator );
+        }
         _backwardAnalysis = std::unique_ptr<BackwardAnalysis>
-            ( new BackwardAnalysis( this ) );
-
+            ( new BackwardAnalysis( this, lpFormulators ) );
+    }
     _backwardAnalysis->run( _layerIndexToLayer );
 }
 

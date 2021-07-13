@@ -22,6 +22,8 @@
 #include <boost/lockfree/queue.hpp>
 #include <mutex>
 
+#include "Tightening.h"
+
 namespace NLR {
 
 class Layer;
@@ -31,6 +33,27 @@ struct NeuronIndex;
 class ParallelSolver
 {
 public:
+    struct TighteningQuery
+    {
+        TighteningQuery( unsigned index, unsigned variable, double lb, double ub )
+        : _index( index )
+        , _variable( variable )
+        , _currentLb( lb )
+        , _currentUb( ub )
+        {
+        }
+
+        unsigned _index;
+        unsigned _variable;
+        double _currentLb;
+        double _currentUb;
+    };
+
+
+    typedef boost::lockfree::queue
+        <TighteningQuery *, boost::lockfree::fixed_sized<false>> TighteningQueryQueue;
+    typedef boost::lockfree::queue
+        <Tightening *, boost::lockfree::fixed_sized<false>> TighteningQueue;
 
     typedef boost::lockfree::queue
     <GurobiWrapper *, boost::lockfree::fixed_sized<true>> SolverQueue;

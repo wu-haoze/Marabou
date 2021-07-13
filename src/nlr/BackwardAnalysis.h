@@ -24,8 +24,6 @@
 
 #include <atomic>
 #include <boost/lockfree/queue.hpp>
-#include <boost/chrono.hpp>
-#include <mutex>
 
 namespace NLR {
 
@@ -39,15 +37,33 @@ public:
         MAX = 1,
     };
 
-    BackwardAnalysis( LayerOwner *layerOwner );
+    BackwardAnalysis( LayerOwner *layerOwner,
+                      std::vector<LPFormulator *> lpFormulators );
 
     void run( const Map<unsigned, Layer *> &layers );
 
 private:
     LayerOwner *_layerOwner;
     LPFormulator _lpFormulator;
+    std::vector<LPFormulator *> _lpFormulators;
 
     void handleLeakyReLULayer( Layer *layer );
+
+    static double optimizeWithGurobi( GurobiWrapper &gurobi,
+                                      MinOrMax minOrMax,
+                                      String variableName,
+                                      std::atomic_bool *infeasible );
+
+    static void optimizeBounds( TighteningQueryQueue *workload,
+                                GurobiWrapper *gurobi,
+                                LPFormulator *formulator,
+                                unsigned layerIndex,
+                                std::atomic_bool &shouldQuitSolving,
+                                std::atomic_uint &numUnsolved,
+                                std::atomic_bool &infeasible,
+                                TighteningQueue *tighteningQueue,
+                                unsigned threadId );
+
 };
 
 } // namespace NLR
