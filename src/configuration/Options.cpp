@@ -48,6 +48,7 @@ void Options::initializeDefaultValues()
     _boolOptions[DUMP_BOUNDS] = false;
     _boolOptions[SOLVE_WITH_MILP] = false;
     _boolOptions[PERFORM_BACKWARD_ANALYSIS] = false;
+    _boolOptions[BACKWARD_PROPAGATION_TO_CONVERGENCE] = false;
 
     /*
       Int options

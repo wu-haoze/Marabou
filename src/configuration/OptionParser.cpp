@@ -122,6 +122,9 @@ void OptionParser::initialize()
         ( "backward",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::PERFORM_BACKWARD_ANALYSIS]) ),
           "Perform backward analysis" )
+        ( "converge",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::BACKWARD_PROPAGATION_TO_CONVERGENCE]) ),
+          "Perform backward analysis to convergence" )
 
 #endif // ENABLE_GUROBI
 

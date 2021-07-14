@@ -2360,7 +2360,8 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                 else
                     continueTightening = false;
 
-                if ( thisUnfixed == lastUnfixed )
+                if ( thisUnfixed == lastUnfixed ||
+                     !Options::get()->getBool( Options::BACKWARD_PROPAGATION_TO_CONVERGENCE ) )
                     continueTightening = false;
                 lastUnfixed = thisUnfixed;
             }

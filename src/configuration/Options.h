@@ -54,7 +54,9 @@ public:
         // Solve the input query with a MILP solver
         SOLVE_WITH_MILP,
 
-        PERFORM_BACKWARD_ANALYSIS
+        PERFORM_BACKWARD_ANALYSIS,
+
+        BACKWARD_PROPAGATION_TO_CONVERGENCE
     };
 
     enum IntOptions {
