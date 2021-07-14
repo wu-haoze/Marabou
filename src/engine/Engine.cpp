@@ -2354,7 +2354,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                 if ( numTightened > 0 )
                 {
                     numTightened = performSymbolicBoundTightening( *_currentInputQuery );
-                    unsigned thisUnfixed = countUnfixedConstraints();
+                    thisUnfixed = countUnfixedConstraints();
                     printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
                 }
                 else
