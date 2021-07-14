@@ -114,8 +114,7 @@ void BackwardAnalysis::optimizeBounds( TighteningQueryQueue *workload,
                 infeasible = true;
                 return;
             }
-            if ( FloatUtils::lt( ub, currentUb,
-                                 GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
+            if ( FloatUtils::lt( ub, currentUb ) )
             {
                 Tightening *t = new Tightening( variable, ub, Tightening::UB );
                 tighteningQueue->push( t );
@@ -135,8 +134,7 @@ void BackwardAnalysis::optimizeBounds( TighteningQueryQueue *workload,
                 infeasible = true;
                 return;
             }
-            if ( FloatUtils::gt( lb, currentLb,
-                                 GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
+            if ( FloatUtils::gt( lb, currentLb ) )
             {
                 Tightening *t = new Tightening( variable, lb, Tightening::LB );
                 tighteningQueue->push( t );

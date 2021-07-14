@@ -68,6 +68,7 @@ void NetworkLevelReasoner::addLayer( unsigned layerIndex, Layer::Type type, unsi
 void NetworkLevelReasoner::addLayerDependency( unsigned sourceLayer, unsigned targetLayer )
 {
     _layerIndexToLayer[targetLayer]->addSourceLayer( sourceLayer, _layerIndexToLayer[sourceLayer]->getSize() );
+    _layerIndexToLayer[sourceLayer]->addNextLayer( targetLayer );
 }
 
 void NetworkLevelReasoner::setWeight( unsigned sourceLayer,

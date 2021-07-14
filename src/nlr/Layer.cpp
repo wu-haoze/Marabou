@@ -344,9 +344,19 @@ void Layer::addSourceLayer( unsigned layerNumber, unsigned layerSize )
     }
 }
 
+void Layer::addNextLayer( unsigned layerNumber )
+{
+    _nextLayers.insert( layerNumber );
+}
+
 const Map<unsigned, unsigned> &Layer::getSourceLayers() const
 {
     return _sourceLayers;
+}
+
+const Set<unsigned> &Layer::getNextLayers() const
+{
+    return _nextLayers;
 }
 
 const double *Layer::getWeightMatrix( unsigned sourceLayer ) const
@@ -1576,6 +1586,8 @@ Layer::Layer( const Layer *other )
                     other->_layerToNegativeWeights[sourceLayerEntry.first],
                     sizeof(double) * sourceLayerEntry.second * _size );
     }
+
+    _nextLayers = other->_nextLayers;
 
     if ( other->_bias )
         memcpy( _bias, other->_bias, sizeof(double) * _size );

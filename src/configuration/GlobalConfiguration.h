@@ -23,12 +23,13 @@ class GlobalConfiguration
 public:
     static void print();
 
+    static const bool BACKWARD_BOUND_PROPAGATION_ENCODE_ALL;
+    static const unsigned BACKWARD_BOUND_PROPAGATION_DEPTH;
+
     static const double LEAKY_RELU_SLOPE;
     static const bool BACKWARD_BOUND_PROPAGATION_FOR_LEAKY_RELU;
 
     static const bool USE_POLARITY_BASED_DIRECTION_HEURISTICS;
-
-    static const double LP_TIGHTENING_TOLERANCE;
 
     // The default epsilon used for comparing doubles
     static const double DEFAULT_EPSILON_FOR_COMPARISONS;

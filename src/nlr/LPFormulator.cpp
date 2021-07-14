@@ -439,7 +439,7 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
             LPFormulator_LOG( Stringf( "Upperbound computed %f -> %f", currentUb, ub ).ascii() );
 
             // Store the new bound if it is tighter
-            if ( FloatUtils::lt( ub, currentUb, GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
+            if ( FloatUtils::lt( ub, currentUb ) )
             {
                 if ( FloatUtils::isPositive( currentUb ) &&
                     !FloatUtils::isPositive( ub ) )
@@ -479,7 +479,7 @@ void LPFormulator::tightenSingleVariableBoundsWithLPRelaxation( ThreadArgument &
 
             LPFormulator_LOG( Stringf( "Lowerbound computed %f -> %f", currentLb, lb ).ascii() );
             // Store the new bound if it is tighter
-            if ( FloatUtils::gt( lb, currentLb, GlobalConfiguration::LP_TIGHTENING_TOLERANCE ) )
+            if ( FloatUtils::gt( lb, currentLb ) )
             {
                 if ( FloatUtils::isNegative( currentLb ) &&
                     !FloatUtils::isNegative( lb ) )
@@ -522,14 +522,44 @@ void LPFormulator::createLPRelaxationAfter( const Map<unsigned, Layer *> &layers
                                             GurobiWrapper &gurobi,
                                             unsigned firstLayer )
 {
-    for ( const auto &layer : layers )
+    if ( GlobalConfiguration::BACKWARD_BOUND_PROPAGATION_ENCODE_ALL )
     {
-        if ( layer.second->getLayerIndex() < firstLayer ||
-             ( ( layer.second->getLayerIndex() != firstLayer ) &&
-               ( !layer.second->getSourceLayers().exists( firstLayer ) ) ) )
-            continue;
+        for ( const auto &layer : layers )
+        {
+            if ( layer.second->getLayerIndex() < firstLayer )
+                continue;
 
-        addLayerToModel( gurobi, layer.second );
+            addLayerToModel( gurobi, layer.second );
+        }
+    }
+    else
+    {
+        unsigned depth = GlobalConfiguration::BACKWARD_BOUND_PROPAGATION_DEPTH;
+        std::priority_queue<unsigned, std::vector<unsigned>, std::greater<unsigned>> layersToAdd;
+        Map<unsigned, unsigned> layerToDepth;
+
+        layersToAdd.push( firstLayer );
+        layerToDepth[firstLayer] = 0;
+        while ( !layersToAdd.empty() )
+        {
+            unsigned currentLayerIndex = layersToAdd.top();
+            Layer * currentLayer =  layers[currentLayerIndex];
+            unsigned currentDepth = layerToDepth[currentLayerIndex];
+            layersToAdd.pop();
+            if ( currentDepth > depth )
+                continue;
+            else
+            {
+                addLayerToModel( gurobi, currentLayer );
+                for ( const auto &nextLayer : currentLayer->getNextLayers() )
+                {
+                    if ( layerToDepth.exists( nextLayer ) )
+                        continue;
+                    layersToAdd.push( nextLayer );
+                    layerToDepth[nextLayer] = currentDepth + 1;
+                }
+            }
+        }
     }
 }
 

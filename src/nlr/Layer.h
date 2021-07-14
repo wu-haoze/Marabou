@@ -27,6 +27,7 @@
 #include "ReluConstraint.h"
 #include "SignConstraint.h"
 #include "Vector.h"
+#include "Set.h"
 
 namespace NLR {
 
@@ -56,8 +57,10 @@ public:
 
     void setLayerOwner( LayerOwner *layerOwner );
     void addSourceLayer( unsigned layerNumber, unsigned layerSize );
+    void addNextLayer( unsigned layerNumber );
     void removeSourceLayer( unsigned sourceLayer );
     const Map<unsigned, unsigned> &getSourceLayers() const;
+    const Set<unsigned> &getNextLayers() const;
     const double *getWeightMatrix( unsigned sourceLayer ) const;
 
     /*
@@ -163,6 +166,7 @@ private:
     LayerOwner *_layerOwner;
 
     Map<unsigned, unsigned> _sourceLayers;
+    Set<unsigned> _nextLayers;
 
     Map<unsigned, double *> _layerToWeights;
     Map<unsigned, double *> _layerToPositiveWeights;
