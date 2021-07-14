@@ -111,6 +111,11 @@ void GurobiWrapper::setVerbosity( unsigned verbosity )
     _model->getEnv().set( GRB_IntParam_OutputFlag, verbosity );
 }
 
+bool GurobiWrapper::containsVariable( String name ) const
+{
+    return _nameToVariable.exists( name );
+}
+
 void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType type )
 {
     ASSERT( !_nameToVariable.exists( name ) );
@@ -199,15 +204,8 @@ void GurobiWrapper::addConstraint( const List<Term> &terms, double scalar, char 
     {
         GRBLinExpr constraint;
 
-
         for ( const auto &term : terms )
         {
-            if ( !_nameToVariable.exists( term._variable ) )
-            {
-                addVariable( term._variable, FloatUtils::negativeInfinity(),
-                             FloatUtils::infinity(), CONTINUOUS );
-            }
-
             ASSERT( _nameToVariable.exists( term._variable ) );
             constraint += GRBLinExpr( *_nameToVariable[term._variable], term._coefficient );
         }

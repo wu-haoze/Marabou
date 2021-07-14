@@ -107,6 +107,8 @@ public:
 
     void setNumberOfThreads( unsigned numThreads );
 
+    bool containsVariable( String name ) const;
+
     void setVerbosity( unsigned verbosity );
 
     // Solve and extract the solution, or the best known bound on the

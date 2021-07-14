@@ -699,6 +699,12 @@ void LPFormulator::addLeakyReluLayerToLpRelaxation( GurobiWrapper &gurobi,
             double sourceLb = sourceLayer->getLb( sourceNeuron );
             double sourceUb = sourceLayer->getUb( sourceNeuron );
 
+            String sourceName = Stringf( "x%u", sourceVariable );
+            if ( !gurobi.containsVariable( sourceName ) )
+            {
+                gurobi.addVariable( sourceName, sourceLb, sourceUb );
+            }
+
             gurobi.addVariable( Stringf( "x%u", targetVariable ),
                                 layer->getLb( i ),
                                 layer->getUb( i ) );
@@ -913,6 +919,28 @@ void LPFormulator::addMaxLayerToLpRelaxation( GurobiWrapper &gurobi,
 
 void LPFormulator::addWeightedSumLayerToLpRelaxation( GurobiWrapper &gurobi, const Layer *layer )
 {
+
+    for ( const auto &sourceLayerPair : layer->getSourceLayers() )
+    {
+        const Layer *sourceLayer = _layerOwner->getLayer( sourceLayerPair.first );
+        unsigned sourceLayerSize = sourceLayerPair.second;
+
+        for ( unsigned j = 0; j < sourceLayerSize; ++j )
+        {
+            if ( !sourceLayer->neuronEliminated( j ) )
+            {
+                Stringf sourceVariableName( "x%u",
+                                            sourceLayer->neuronToVariable( j ) );
+                if ( !gurobi.containsVariable( sourceVariableName ) )
+                {
+                    gurobi.addVariable( sourceVariableName,
+                                        sourceLayer->getLb( j ),
+                                        sourceLayer->getUb( j ) );
+                }
+            }
+        }
+    }
+
     for ( unsigned i = 0; i < layer->getSize(); ++i )
     {
         if ( !layer->neuronEliminated( i ) )
