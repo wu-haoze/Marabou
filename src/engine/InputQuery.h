@@ -142,7 +142,7 @@ public:
         return true;
     }
 
-    void addEquivalance( const List<unsigned> &equiv )
+    void addEquivalence( const List<unsigned> &equiv )
     {
         _equivalence.append( equiv );
     }

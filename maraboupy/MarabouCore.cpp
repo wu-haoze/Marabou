@@ -117,6 +117,13 @@ void addAbsConstraint(InputQuery& ipq, unsigned b, unsigned f){
     ipq.addPiecewiseLinearConstraint(new AbsoluteValueConstraint(b, f));
 }
 
+void addEquivalenceList(InputQuery& ipq, std::list<unsigned> equiv){
+    List<unsigned> e;
+    for(unsigned var: equiv)
+        e.append(var);
+    ipq.addEquivalence(e);
+}
+
 bool createInputQuery(InputQuery &inputQuery, std::string networkFilePath, std::string propertyFilePath){
   try{
     AcasParser* acasParser = new AcasParser( String(networkFilePath) );
@@ -478,6 +485,14 @@ PYBIND11_MODULE(MarabouCore, m) {
             disjuncts (list of pairs): A list of disjuncts. Each disjunct is represented by a pair: a list of bounds, and a list of (in)equalities.
         )pbdoc",
           py::arg("inputQuery"), py::arg("disjuncts"));
+    m.def("addEquivalenceList", &addEquivalenceList, R"pbdoc(
+        Add a equivalence group
+
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            equiv (list of int): Variables that are equivalent
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("equiv"));
     py::class_<InputQuery>(m, "InputQuery")
         .def(py::init())
         .def("setUpperBound", &InputQuery::setUpperBound)

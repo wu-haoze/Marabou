@@ -252,7 +252,7 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
             equiv.append( atoi( it->ascii() ) );
             it++;
         }
-        inputQuery.addEquivalance( equiv );
+        inputQuery.addEquivalence( equiv );
     }
 
     inputQuery.constructNetworkLevelReasoner();
