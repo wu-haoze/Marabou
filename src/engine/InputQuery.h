@@ -142,12 +142,18 @@ public:
         return true;
     }
 
+    void addEquivalance( const List<unsigned> &equiv )
+    {
+        _equivalence.append( equiv );
+    }
+
 private:
     unsigned _numberOfVariables;
     List<Equation> _equations;
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
     List<PiecewiseLinearConstraint *> _plConstraints;
+    List<List<unsigned>> _equivalence;
 
     Map<unsigned, double> _solution;
 

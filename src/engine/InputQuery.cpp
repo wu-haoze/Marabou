@@ -215,6 +215,7 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
     _inputIndexToVariable = other._inputIndexToVariable;
     _variableToOutputIndex = other._variableToOutputIndex;
     _outputIndexToVariable = other._outputIndexToVariable;
+    _equivalence = other._equivalence;
 
     freeConstraintsIfNeeded();
 
@@ -388,11 +389,15 @@ void InputQuery::saveQuery( const String &fileName )
     // Number of Constraints
     queryFile->write( Stringf( "%u", _plConstraints.size() ) );
 
+    // Number of Equivalence
+    queryFile->write( Stringf( "\n%u", _equivalence.size() ) );
+
     printf( "Number of variables: %u\n", _numberOfVariables );
     printf( "Number of lower bounds: %u\n", _lowerBounds.size() );
     printf( "Number of upper bounds: %u\n", _upperBounds.size() );
     printf( "Number of equations: %u\n", _equations.size() );
     printf( "Number of constraints: %u\n", _plConstraints.size() );
+    printf( "Number of equivalences: %u\n", _equivalence.size() );
 
     // Number of Input Variables
     queryFile->write( Stringf( "\n%u", getNumInputVariables() ) );
@@ -452,6 +457,13 @@ void InputQuery::saveQuery( const String &fileName )
         queryFile->write( Stringf( "\n%u,", i ) );
         queryFile->write( constraint->serializeToString() );
         ++i;
+    }
+
+    for ( const auto &equiv : _equivalence )
+    {
+        queryFile->write( Stringf( "\n" ) );
+        for ( const auto &var : equiv )
+            queryFile->write( Stringf( "%u,", var ) );
     }
 
     queryFile->close();
