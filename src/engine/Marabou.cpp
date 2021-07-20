@@ -58,6 +58,13 @@ void Marabou::run()
 
 void Marabou::prepareInputQuery()
 {
+    String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
+    if ( File::exists( summaryFilePath ) )
+    {
+	std::cout << "Summary file exists!" << std::endl;
+	exit(0);
+    }
+
     String inputQueryFilePath = Options::get()->getString( Options::INPUT_QUERY_FILE_PATH );
     if ( inputQueryFilePath.length() > 0 )
     {
