@@ -30,7 +30,7 @@
 
 Marabou::Marabou()
     : _acasParser( NULL )
-    , _engine()
+    , _engine( NULL )
 {
 }
 
@@ -125,16 +125,52 @@ void Marabou::prepareInputQuery()
 
 void Marabou::solveQuery()
 {
-    if ( _engine.processInputQuery( _inputQuery ) )
-        _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+    if ( Options::get()->getBool( Options::RELAXATION ) )
+    {
+        std::cout << "Solving convex relaxation..." << std::endl;
+        _engine = new Engine();
+        InputQuery inputQuery = _inputQuery;
+        const List<List<unsigned>> *equivalence = inputQuery.getEquivalence();
+        for ( const auto &equiv : *equivalence )
+        {
+            double minLb = FloatUtils::infinity();
+            double maxUb = FloatUtils::negativeInfinity();
+            for ( const auto &var : equiv )
+            {
+                double lb = inputQuery.getLowerBound( var );
+                if ( lb < minLb )
+                    minLb = lb;
+                double ub = inputQuery.getUpperBound( var );
+                if ( ub > maxUb )
+                    maxUb = ub;
+            }
+            ASSERT( FloatUtils::isFinite( minLb ) && FloatUtils::isFinite( maxUb ) );
+            for ( const auto &var : equiv )
+            {
+                inputQuery.setLowerBound( var, minLb );
+                inputQuery.setUpperBound( var, maxUb );
+            }
+        }
+        _engine->quitOnFirstDisjunct();
+        if ( _engine->processInputQuery( inputQuery ) )
+            _engine->solve( 300 );
+        if ( _engine->getExitCode() == Engine::UNSAT )
+            return;
+        delete _engine;
+        std::cout << "Solving convex relaxation - inconclusive" << std::endl;
+    }
 
-    if ( _engine.getExitCode() == Engine::SAT )
-        _engine.extractSolution( _inputQuery );
+    _engine = new Engine();
+    if ( _engine->processInputQuery( _inputQuery ) )
+        _engine->solve( Options::get()->getInt( Options::TIMEOUT ) );
+
+    if ( _engine->getExitCode() == Engine::SAT )
+        _engine->extractSolution( _inputQuery );
 }
 
 void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 {
-    Engine::ExitCode result = _engine.getExitCode();
+    Engine::ExitCode result = _engine->getExitCode();
     String resultString;
 
     if ( result == Engine::UNSAT )
@@ -178,11 +214,11 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         // Field #3: number of visited tree states
         summaryFile.write( Stringf( "%u ",
-                                    _engine.getStatistics()->getNumVisitedTreeStates() ) );
+                                    _engine->getStatistics()->getNumVisitedTreeStates() ) );
 
         // Field #4: average pivot time in micro seconds
         summaryFile.write( Stringf( "%u",
-                                    _engine.getStatistics()->getAveragePivotTimeInMicro() ) );
+                                    _engine->getStatistics()->getAveragePivotTimeInMicro() ) );
 
         summaryFile.write( "\n" );
 

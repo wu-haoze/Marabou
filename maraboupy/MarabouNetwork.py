@@ -32,6 +32,7 @@ class MarabouNetwork:
         signList (list of tuples): List of sign constraint tuples, where each tuple conatins the input variable and the output variable
         lowerBounds (Dict[int, float]): Lower bounds of variables
         upperBounds (Dict[int, float]): Upper bounds of variables
+        equivalence (list of list): Equivalence
         inputVars (list of numpy arrays): Input variables
         outputVars (numpy array): Output variables
     """
@@ -53,6 +54,7 @@ class MarabouNetwork:
         self.disjunctionList = []
         self.lowerBounds = dict()
         self.upperBounds = dict()
+        self.equivalence = []
         self.inputVars = []
         self.outputVars = np.array([])
 
@@ -74,6 +76,14 @@ class MarabouNetwork:
             x (:class:`~maraboupy.MarabouUtils.Equation`): New equation to add
         """
         self.equList += [x]
+
+    def addEquivalence(self, equiv):
+        """Function to add new equation to the network
+
+        Args:
+            equiv (List): list of variables that are "equivalent"
+        """
+        self.equivalence.append(equiv)
 
     def setLowerBound(self, x, v):
         """Function to set lower bound for variable
@@ -259,7 +269,12 @@ class MarabouNetwork:
         for u in self.upperBounds:
             assert u < self.numVars
             ipq.setUpperBound(u, self.upperBounds[u])
-            
+
+        for equiv in self.equivalence:
+            for var in equiv:
+                assert(var < self.numVars)
+            MarabouCore.addEquivalenceList(ipq, equiv)
+
         return ipq
 
     def solve(self, filename="", verbose=True, options=None):

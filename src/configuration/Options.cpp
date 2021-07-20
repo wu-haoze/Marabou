@@ -49,6 +49,7 @@ void Options::initializeDefaultValues()
     _boolOptions[SOLVE_WITH_MILP] = false;
     _boolOptions[PERFORM_BACKWARD_ANALYSIS] = false;
     _boolOptions[BACKWARD_PROPAGATION_TO_CONVERGENCE] = false;
+    _boolOptions[RELAXATION] = false;
 
     /*
       Int options

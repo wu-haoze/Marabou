@@ -59,7 +59,7 @@ private:
     /*
       The solver
     */
-    Engine _engine;
+    Engine *_engine;
 };
 
 #endif // __Marabou_h__

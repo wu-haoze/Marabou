@@ -175,6 +175,11 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
+    void quitOnFirstDisjunct()
+    {
+        _quitOnFirstDisjunct = true;
+    }
+
 private:
     enum BasisRestorationRequired {
         RESTORATION_NOT_NEEDED = 0,
@@ -194,6 +199,8 @@ private:
       access to the explicit basis matrix.
     */
     void explicitBasisBoundTightening();
+
+    bool _quitOnFirstDisjunct = false;
 
     /*
       Collect and print various statistics.

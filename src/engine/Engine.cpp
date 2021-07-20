@@ -2390,7 +2390,15 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
             return true;
         }
         else if ( _gurobi->infeasbile() )
-            continue;
+        {
+            if ( _quitOnFirstDisjunct )
+            {
+                _exitCode = IEngine::UNSAT;
+                return false;
+            }
+            else
+                continue;
+        }
         else if ( _gurobi->timeout() )
         {
             _exitCode = IEngine::TIMEOUT;

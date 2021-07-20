@@ -56,7 +56,9 @@ public:
 
         PERFORM_BACKWARD_ANALYSIS,
 
-        BACKWARD_PROPAGATION_TO_CONVERGENCE
+        BACKWARD_PROPAGATION_TO_CONVERGENCE,
+
+        RELAXATION,
     };
 
     enum IntOptions {

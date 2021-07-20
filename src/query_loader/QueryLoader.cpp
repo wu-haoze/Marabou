@@ -44,12 +44,14 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
     unsigned numUpperBounds = atoi( input->readLine().trim().ascii() );
     unsigned numEquations = atoi( input->readLine().trim().ascii() );
     unsigned numConstraints = atoi( input->readLine().trim().ascii() );
+    unsigned numEquivalences = atoi( input->readLine().trim().ascii() );
 
     QL_LOG( Stringf( "Number of variables: %u\n", numVars ).ascii() );
     QL_LOG( Stringf( "Number of lower bounds: %u\n", numLowerBounds ).ascii() );
     QL_LOG( Stringf( "Number of upper bounds: %u\n", numUpperBounds ).ascii() );
     QL_LOG( Stringf( "Number of equations: %u\n", numEquations ).ascii() );
     QL_LOG( Stringf( "Number of constraints: %u\n", numConstraints ).ascii() );
+    QL_LOG( Stringf( "Number of equivalences: %u\n", numEquivalences ).ascii() );
 
     inputQuery.setNumberOfVariables( numVars );
 
@@ -235,6 +237,22 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
 
         ASSERT( constraint );
         inputQuery.addPiecewiseLinearConstraint( constraint );
+    }
+
+    // Equivalence group
+    for ( unsigned i = 0; i < numEquivalences; ++i )
+    {
+        String line = input->readLine();
+
+        List<String> tokens = line.tokenize( "," );
+        List<unsigned> equiv;
+        auto it = tokens.begin();
+        while ( it != tokens.end() )
+        {
+            equiv.append( atoi( it->ascii() ) );
+            it++;
+        }
+        inputQuery.addEquivalence( equiv );
     }
 
     inputQuery.constructNetworkLevelReasoner();
