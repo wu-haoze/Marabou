@@ -147,6 +147,11 @@ public:
         _equivalence.append( equiv );
     }
 
+    const List<List<unsigned>> *getEquivalence() const
+    {
+        return &_equivalence;
+    }
+
 private:
     unsigned _numberOfVariables;
     List<Equation> _equations;

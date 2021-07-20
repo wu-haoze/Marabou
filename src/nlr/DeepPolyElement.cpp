@@ -33,6 +33,7 @@ DeepPolyElement::DeepPolyElement()
     , _work2SymbolicUb( NULL )
     , _workSymbolicLowerBias( NULL )
     , _workSymbolicUpperBias( NULL )
+    , _constantLayer( false )
 {};
 
 unsigned DeepPolyElement::getSize() const
@@ -103,11 +104,15 @@ double DeepPolyElement::getUpperBoundFromLayer( unsigned index ) const
 void DeepPolyElement::getConcreteBounds()
 {
     unsigned size = getSize();
+    unsigned constantLayer = true;
     for ( unsigned i = 0; i < size; ++i )
     {
         _lb[i] = _layer->getLb( i );
         _ub[i] = _layer->getUb( i );
+        if ( !FloatUtils::areEqual( _lb[i], _ub[i] ) )
+            constantLayer = false;
     }
+    _constantLayer = constantLayer;
 }
 
 void DeepPolyElement::allocateMemory()

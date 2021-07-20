@@ -41,8 +41,11 @@ void DeepPolyWeightedSumElement::execute
     ASSERT( hasPredecessor() );
     allocateMemory();
     getConcreteBounds();
-    // Compute bounds with back-substitution
-    computeBoundWithBackSubstitution( deepPolyElementsBefore );
+
+    if ( !_constantLayer )
+        // Compute bounds with back-substitution
+        computeBoundWithBackSubstitution( deepPolyElementsBefore );
+
     log( "Executing - done" );
 }
 
@@ -64,10 +67,17 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
     // thisLayer >= ( residualLb * residualLayer for each residualLayer ) +
     //                _work1SymbolicLb * currentElement + _workSymbolicLowerBias;
 
+    bool predecessorAllWeightedSum = true;
     unsigned predecessorIndex = 0;
     for ( const auto &pair : predecessorIndices )
     {
         predecessorIndex = pair.first;
+        Layer::Type type = deepPolyElementsBefore[predecessorIndex]->getLayerType();
+        if ( predecessorAllWeightedSum &&
+             type != Layer::WEIGHTED_SUM &&
+             type != Layer::INPUT )
+            predecessorAllWeightedSum = false;
+
         if ( counter < numPredecessors - 1 )
         {
             log( Stringf( "Adding residual from layer %u...",
@@ -87,6 +97,12 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
                   predecessorIndex ) );
     DeepPolyElement *precedingElement =
         deepPolyElementsBefore[predecessorIndex];
+    Layer::Type type = precedingElement->getLayerType();
+    if ( predecessorAllWeightedSum &&
+         type != Layer::WEIGHTED_SUM &&
+         type != Layer::INPUT )
+        predecessorAllWeightedSum = false;
+
     unsigned sourceLayerSize = precedingElement->getSize();
 
     const double *weights = _layer->getWeights( predecessorIndex );
@@ -106,6 +122,9 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
                              currentElement, deepPolyElementsBefore );
     log( Stringf( "Computing symbolic bounds with respect to layer %u - done",
                   predecessorIndex ) );
+
+    if ( predecessorAllWeightedSum )
+        return;
 
     while ( currentElement->hasPredecessor() )
     {

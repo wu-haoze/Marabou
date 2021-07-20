@@ -125,6 +125,9 @@ void OptionParser::initialize()
         ( "converge",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::BACKWARD_PROPAGATION_TO_CONVERGENCE]) ),
           "Perform backward analysis to convergence" )
+        ( "relax",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::RELAXATION]) ),
+          "Solve relaxation first" )
 
 #endif // ENABLE_GUROBI
 

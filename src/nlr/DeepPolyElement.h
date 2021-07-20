@@ -58,7 +58,10 @@ public:
 
     unsigned getSize() const;
     unsigned getLayerIndex() const;
-    Layer::Type getLayerType() const;
+    Layer::Type getLayerType() const
+    {
+        return _layer->getLayerType();
+    }
     double *getSymbolicLb() const;
     double *getSymbolicUb() const;
     double *getSymbolicLowerBias() const;
@@ -97,6 +100,8 @@ protected:
     double * _work2SymbolicUb;
     double * _workSymbolicLowerBias;
     double * _workSymbolicUpperBias;
+
+    bool _constantLayer;
 
     void allocateMemory();
     void freeMemoryIfNeeded();

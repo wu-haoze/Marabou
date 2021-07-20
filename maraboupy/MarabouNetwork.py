@@ -273,7 +273,7 @@ class MarabouNetwork:
         for equiv in self.equivalence:
             for var in equiv:
                 assert(var < self.numVars)
-            ipq.addEquivalence(equiv)
+            MarabouCore.addEquivalenceList(ipq, equiv)
 
         return ipq
 
