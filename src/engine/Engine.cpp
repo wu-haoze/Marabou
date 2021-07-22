@@ -2389,7 +2389,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
         if ( _gurobi->haveFeasibleSolution() )
         {
-            if ( index < numCases )
+            if ( _lastDisjunctAbstraction && index < numCases )
             {
                 _exitCode = IEngine::SAT;
                 return true;
