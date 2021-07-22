@@ -15,6 +15,7 @@
  **/
 
 #include "AcasParser.h"
+#include "DisjunctionConstraint.h"
 #include "GlobalConfiguration.h"
 #include "File.h"
 #include "MStringf.h"
@@ -118,40 +119,8 @@ void Marabou::prepareInputQuery()
 
 void Marabou::solveQuery()
 {
-    if ( Options::get()->getBool( Options::RELAXATION ) )
-    {
-        std::cout << "Solving convex relaxation..." << std::endl;
-        _engine = new Engine();
-        InputQuery inputQuery = _inputQuery;
-        const List<List<unsigned>> *equivalence = inputQuery.getEquivalence();
-        for ( const auto &equiv : *equivalence )
-        {
-            double minLb = FloatUtils::infinity();
-            double maxUb = FloatUtils::negativeInfinity();
-            for ( const auto &var : equiv )
-            {
-                double lb = inputQuery.getLowerBound( var );
-                if ( lb < minLb )
-                    minLb = lb;
-                double ub = inputQuery.getUpperBound( var );
-                if ( ub > maxUb )
-                    maxUb = ub;
-            }
-            ASSERT( FloatUtils::isFinite( minLb ) && FloatUtils::isFinite( maxUb ) );
-            for ( const auto &var : equiv )
-            {
-                inputQuery.setLowerBound( var, minLb );
-                inputQuery.setUpperBound( var, maxUb );
-            }
-        }
-        _engine->quitOnFirstDisjunct();
-        if ( _engine->processInputQuery( inputQuery ) )
-            _engine->solve( 300 );
-        if ( _engine->getExitCode() == Engine::UNSAT )
-            return;
-        delete _engine;
-        std::cout << "Solving convex relaxation - inconclusive" << std::endl;
-    }
+    if ( solveViaRelaxation() )
+        return;
 
     _engine = new Engine();
     if ( _engine->processInputQuery( _inputQuery ) )
@@ -159,6 +128,102 @@ void Marabou::solveQuery()
 
     if ( _engine->getExitCode() == Engine::SAT )
         _engine->extractSolution( _inputQuery );
+}
+
+bool Marabou::solveViaRelaxation()
+{
+    const List<List<unsigned>> *equivalence = _inputQuery.getEquivalence();
+    if ( equivalence->size() == 0 )
+        return false;
+
+    Set<unsigned> notInAbstraction;
+    DisjunctionConstraint *disj = NULL;
+    for ( const auto &constraint : _inputQuery.getPiecewiseLinearConstraints() )
+        {
+            if ( constraint->getType() == DISJUNCTION )
+                {
+                    disj = (DisjunctionConstraint *)constraint;
+                    break;
+                }
+        }
+    List<PiecewiseLinearCaseSplit> disjuncts = disj->getCaseSplits();
+    _inputQuery.removePiecewiseLinearConstraint( disj );
+    delete disj;
+
+    while ( notInAbstraction.size() < disjuncts.size() - 1 )
+    {
+        std::cout << "Solving convex relaxation..." << std::endl;
+        _engine = new Engine();
+        _engine->setVerbosity(0);
+        InputQuery inputQuery = _inputQuery;
+        _engine->processInputQuery( inputQuery );
+
+        inputQuery = _inputQuery;
+        for ( const auto &equiv : *equivalence )
+        {
+            if ( disjuncts.size() != equiv.size() )
+                throw MarabouError( MarabouError::MISMATCH );
+            unsigned firstVar = *(equiv.begin());
+            double minLb = FloatUtils::infinity();
+            double maxUb = FloatUtils::negativeInfinity();
+            unsigned counter = 0;
+            for ( const auto &var : equiv )
+            {
+                if ( var == firstVar || notInAbstraction.exists( counter ) )
+                    continue;
+                auto bound = _engine->getReindexedVarBounds( var );
+                //printf("%u lb: %f, ub: %f\n", var, bound.first, bound.second);
+
+                double lb = bound.first;
+                if ( lb < minLb )
+                    minLb = lb;
+                double ub = bound.second;
+                if ( ub > maxUb )
+                    maxUb = ub;
+                ++counter;
+            }
+            ASSERT( FloatUtils::isFinite( minLb ) && FloatUtils::isFinite( maxUb ) );
+            inputQuery.setLowerBound( firstVar, minLb );
+            inputQuery.setUpperBound( firstVar, maxUb );
+        }
+
+        delete _engine;
+        _engine = new Engine();
+
+        unsigned counter = 0;
+        List<PiecewiseLinearCaseSplit> newDisjuncts;
+        for ( const auto &split : disjuncts )
+        {
+            if ( notInAbstraction.exists( counter ) )
+                newDisjuncts.append(split);
+            counter++;
+        }
+        newDisjuncts.append( *( disjuncts.begin() ) );
+
+        DisjunctionConstraint *newDisj = new DisjunctionConstraint( newDisjuncts );
+        inputQuery.addPiecewiseLinearConstraint( newDisj );
+
+        _engine->lastDisjunctAbstraction();
+        if ( _engine->processInputQuery( inputQuery ) )
+            _engine->solve( 300 );
+        if ( _engine->getExitCode() == Engine::UNSAT )
+            return true;
+        delete _engine;
+        notInAbstraction.insert( notInAbstraction.size() + 1 );
+        std::cout << "Solving convex relaxation - inconclusive" << std::endl;
+    }
+
+    unsigned counter = 0;
+    List<PiecewiseLinearCaseSplit> newDisjuncts;
+    for ( const auto &split : disjuncts )
+    {
+        if ( counter > 0 )
+            newDisjuncts.append(split);
+        counter++;
+    }
+    DisjunctionConstraint *newDisj = new DisjunctionConstraint( newDisjuncts );
+    _inputQuery.addPiecewiseLinearConstraint( newDisj );
+    return false;
 }
 
 void Marabou::displayResults( unsigned long long microSecondsElapsed ) const

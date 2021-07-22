@@ -175,10 +175,32 @@ public:
     void resetExitCode();
     void resetBoundTighteners();
 
-    void quitOnFirstDisjunct()
+    void lastDisjunctAbstraction()
     {
-        _quitOnFirstDisjunct = true;
+        _lastDisjunctAbstraction = true;
     }
+
+    std::pair<double, double> getReindexedVarBounds( unsigned var ) const
+    {
+        // Has the variable been merged into another?
+        unsigned variable = var;
+        while ( _preprocessor.variableIsMerged( variable ) )
+            variable = _preprocessor.getMergedIndex( variable );
+
+        // Fixed variables are easy: return the value they've been fixed to.
+        if ( _preprocessor.variableIsFixed( variable ) )
+        {
+            return std::make_pair( _preprocessor.getFixedValue( variable ),
+                                   _preprocessor.getFixedValue( variable ) );
+        }
+
+        // We know which variable to look for, but it may have been assigned
+        // a new index, due to variable elimination
+        variable = _preprocessor.getNewIndex( variable );
+        return std::make_pair( _preprocessedQuery.getLowerBound( variable ),
+                               _preprocessedQuery.getUpperBound( variable ) );
+    }
+
 
 private:
     enum BasisRestorationRequired {
@@ -200,7 +222,7 @@ private:
     */
     void explicitBasisBoundTightening();
 
-    bool _quitOnFirstDisjunct = false;
+    bool _lastDisjunctAbstraction = false;
 
     /*
       Collect and print various statistics.

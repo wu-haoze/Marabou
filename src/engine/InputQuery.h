@@ -152,6 +152,11 @@ public:
         return &_equivalence;
     }
 
+    void removePiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint )
+    {
+        _plConstraints.erase( constraint );
+    }
+
 private:
     unsigned _numberOfVariables;
     List<Equation> _equations;

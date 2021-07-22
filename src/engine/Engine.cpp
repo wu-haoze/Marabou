@@ -2312,8 +2312,11 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     disj->setActiveConstraint( false );
 
+    unsigned index = 0;
+    unsigned numCases = disj->getCaseSplits().size();
     for ( const auto&split : disj->getCaseSplits() )
     {
+        index++;
         if ( !disj->caseSplitIsFeasible( split ) )
         {
             std::cout << "Case not feasible..." << std::endl;
@@ -2386,19 +2389,18 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
         if ( _gurobi->haveFeasibleSolution() )
         {
-            _exitCode = IEngine::SAT;
-            return true;
-        }
-        else if ( _gurobi->infeasbile() )
-        {
-            if ( _quitOnFirstDisjunct )
+            if ( index < numCases )
             {
-                _exitCode = IEngine::UNSAT;
-                return false;
+                _exitCode = IEngine::SAT;
+                return true;
             }
             else
-                continue;
+            {
+                return false;
+            }
         }
+        else if ( _gurobi->infeasbile() )
+            continue;
         else if ( _gurobi->timeout() )
         {
             _exitCode = IEngine::TIMEOUT;
