@@ -46,6 +46,8 @@ private:
     */
     void solveQuery();
 
+    bool solveViaRelaxation();
+
     /*
       Display the results
     */

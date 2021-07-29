@@ -186,6 +186,7 @@ void addDisjunctionConstraint(InputQuery& ipq, const std::list<std::list<Equatio
                 Equation::EquationType type = eq._type;
 
                 unsigned auxVar = ipq.getNumberOfVariables();
+                //std::cout << eq._addends.begin()->_variable << " " << auxVar << std::endl;
                 ipq.setNumberOfVariables( auxVar + 1 );
                 Equation neq = eq;
                 neq.setType( Equation::EQ );
