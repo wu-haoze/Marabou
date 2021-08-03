@@ -2344,78 +2344,96 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         unsigned numTightened = 0;
         bool continueTightening = true;
 
-        try
+	unsigned lastUnfixed = countUnfixedConstraints();
+	unsigned thisUnfixed = 0;
+	printf( "Unfixed constraints after deeppoly: %u\n", lastUnfixed );
+
+	if ( _performBackwardAnalysis )
         {
-            unsigned lastUnfixed = countUnfixedConstraints();
-            unsigned thisUnfixed = 0;
-            printf( "Unfixed constraints after deeppoly: %u\n", lastUnfixed );
+	  printf( "Encoding the input query with Gurobi...\n" );
+	  _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+	  _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
+	  _milpEncoder->encodeInputQuery( *_gurobi, *_currentInputQuery );
+	  printf( "Query encoded in Gurobi...\n" );
+	  ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", 60 ).ascii() )
+	  _gurobi->setTimeLimit( 60 );
+	  _gurobi->setVerbosity( 1 );
 
-            while ( continueTightening )
-            {
-                numTightened = performBackwardAnalysis( *_currentInputQuery );
-                printf( "Unfixed constraints after backprop: %u\n", countUnfixedConstraints() );
-                if ( numTightened > 0 )
-                {
-                    numTightened = performSymbolicBoundTightening( *_currentInputQuery );
-                    thisUnfixed = countUnfixedConstraints();
-                    printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
-                }
-                else
-                    continueTightening = false;
-
-                if ( thisUnfixed == lastUnfixed ||
-                     !Options::get()->getBool( Options::BACKWARD_PROPAGATION_TO_CONVERGENCE ) )
-                    continueTightening = false;
-                lastUnfixed = thisUnfixed;
-            }
-        }
-        catch ( const InfeasibleQueryException & )
+	  _gurobi->solve();
+	}
+	
+	if ( ( !_performBackwardAnalysis ) || _gurobi->timeout() )
         {
-            continue;
-        }
+	    try
+	    {
+ 		while ( continueTightening )
+		{
+		  printf( "Performing backward analysis...\n" );
+		    numTightened = performBackwardAnalysis( *_currentInputQuery );
+		    printf( "Unfixed constraints after backprop: %u\n", countUnfixedConstraints() );
+		    if ( numTightened > 0 )
+		    {
+			numTightened = performSymbolicBoundTightening( *_currentInputQuery );
+			thisUnfixed = countUnfixedConstraints();
+			printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
+		    }
+		    else
+			continueTightening = false;
 
-        printf( "Encoding the input query with Gurobi...\n" );
-        _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-        _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
-        _milpEncoder->encodeInputQuery( *_gurobi, *_currentInputQuery );
-        printf( "Query encoded in Gurobi...\n" );
-        double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
-                                    : timeoutInSeconds );
-        ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
-        _gurobi->setTimeLimit( timeoutForGurobi );
-        _gurobi->setVerbosity( 1 );
+		    if ( thisUnfixed == lastUnfixed ||
+			 !Options::get()->getBool( Options::BACKWARD_PROPAGATION_TO_CONVERGENCE ) )
+			continueTightening = false;
+		    lastUnfixed = thisUnfixed;
+		}
+	    }
+	    catch ( const InfeasibleQueryException & )
+	    {
+		continue;
+	    }
 
-        _gurobi->solve();
+	    printf( "Encoding the input query with Gurobi...\n" );
+	    _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+	    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
+	    _milpEncoder->encodeInputQuery( *_gurobi, *_currentInputQuery );
+	    printf( "Query encoded in Gurobi...\n" );
+	    double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
+					: timeoutInSeconds );
+	    ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
+	    _gurobi->setTimeLimit( timeoutForGurobi );
+	    _gurobi->setVerbosity( 1 );
 
-        if ( _gurobi->haveFeasibleSolution() )
-        {
+	    _gurobi->solve();
+	}
+	
+	if ( _gurobi->haveFeasibleSolution() )
+	{
 	  if ( _lastDisjunctAbstraction )
 	  {
 	    if ( index < numCases ) 
-            {
-                _exitCode = IEngine::SAT;
-                return true;
-            }
+	    {
+		_exitCode = IEngine::SAT;
+		return true;
+	    }
 	    else
-            {
-                return false;
-            }
+	    {
+		return false;
+	    }
 	  }
 	  else
 	  {
 	    _exitCode = IEngine::SAT;
 	    return true;
 	  }
-        }
-        else if ( _gurobi->infeasbile() )
-            continue;
-        else if ( _gurobi->timeout() )
-        {
-            _exitCode = IEngine::TIMEOUT;
-            return false;
-        }
-        else
-            throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
+	}
+	else if ( _gurobi->infeasbile() )
+	    continue;
+	else if ( _gurobi->timeout() )
+	{
+	    _exitCode = IEngine::TIMEOUT;
+	    return false;
+	}
+	else
+	    throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
     }
 
     _exitCode = IEngine::UNSAT;
