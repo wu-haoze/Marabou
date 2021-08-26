@@ -300,30 +300,43 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
     String summaryFilePath = Options::get()->getString( Options::SUMMARY_FILE );
     if ( summaryFilePath != "" )
     {
-        File summaryFile( summaryFilePath );
-        summaryFile.open( File::MODE_WRITE_TRUNCATE );
-
-        // Field #1: result
-        summaryFile.write( resultString );
-
-        // Field #2: total elapsed time
-        summaryFile.write( Stringf( " %u ", microSecondsElapsed / 1000000 ) ); // In seconds
-
-        // Field #3: number of visited tree states
-        summaryFile.write( Stringf( "%u ",
-                                    _engine->getStatistics()->getNumVisitedTreeStates() ) );
-
-        // Field #4: average pivot time in micro seconds
-        summaryFile.write( Stringf( "%u",
-                                    _engine->getStatistics()->getAveragePivotTimeInMicro() ) );
-
-        summaryFile.write( "\n" );
-
-        if ( resultString == "sat" )
+        if ( Options::get()->getBool( Options::SOLVE_ALL_DISJUNCTS ) )
         {
-            for ( unsigned i = 0; i < _inputQuery.getNumberOfVariables(); ++i )
-                summaryFile.write( Stringf( "\t%u,%lf\n",
-                                            i, _inputQuery.getSolutionValue( i ) ) );
+            File summaryFile( summaryFilePath );
+            summaryFile.open( File::MODE_WRITE_TRUNCATE );
+            for ( const auto &pair : _engine->getFeasibleDisjuncts() )
+            {
+                summaryFile.write( Stringf( "%u %s\n", pair.first,
+                                            pair.second.ascii() ) );
+            }
+        }
+        else
+        {
+            File summaryFile( summaryFilePath );
+            summaryFile.open( File::MODE_WRITE_TRUNCATE );
+
+            // Field #1: result
+            summaryFile.write( resultString );
+
+            // Field #2: total elapsed time
+            summaryFile.write( Stringf( " %u ", microSecondsElapsed / 1000000 ) ); // In seconds
+
+            // Field #3: number of visited tree states
+            summaryFile.write( Stringf( "%u ",
+                                        _engine->getStatistics()->getNumVisitedTreeStates() ) );
+
+            // Field #4: average pivot time in micro seconds
+            summaryFile.write( Stringf( "%u",
+                                        _engine->getStatistics()->getAveragePivotTimeInMicro() ) );
+
+            summaryFile.write( "\n" );
+
+            if ( resultString == "sat" )
+            {
+                for ( unsigned i = 0; i < _inputQuery.getNumberOfVariables(); ++i )
+                    summaryFile.write( Stringf( "\t%u,%lf\n",
+                                                i, _inputQuery.getSolutionValue( i ) ) );
+            }
         }
     }
 }

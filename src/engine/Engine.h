@@ -201,6 +201,10 @@ public:
                                _preprocessedQuery.getUpperBound( variable ) );
     }
 
+    Map<unsigned,String> getFeasibleDisjuncts()
+    {
+        return _feasibleDisjuncts;
+    }
 
 private:
     enum BasisRestorationRequired {
@@ -409,6 +413,8 @@ private:
     unsigned _simulationSize;
 
     bool _performBackwardAnalysis;
+
+    Map<unsigned,String> _feasibleDisjuncts;
 
     /*
       Perform a simplex step: compute the cost function, pick the

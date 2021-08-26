@@ -1863,7 +1863,8 @@ unsigned Engine::performSymbolicBoundTightening( InputQuery &inputQuery )
          ( !_networkLevelReasoner ) )
         return 0;
 
-    std::cout << "Begin DeepPoly Analysis" << std::endl;
+    if ( _verbosity > 0 )
+        std::cout << "Begin DeepPoly Analysis" << std::endl;
     struct timespec start = TimeUtils::sampleMicro();
 
     unsigned numTightenedBounds = 0;
@@ -1900,8 +1901,8 @@ unsigned Engine::performSymbolicBoundTightening( InputQuery &inputQuery )
             ++numTightenedBounds;
         }
     }
-
-    std::cout << "DeepPoly Analysis - done, tightened bounds: " << numTightenedBounds << std::endl;
+    if ( _verbosity > 0 )
+        std::cout << "DeepPoly Analysis - done, tightened bounds: " << numTightenedBounds << std::endl;
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.addTimeForSymbolicBoundTightening( TimeUtils::timePassed( start, end ) );
     _statistics.incNumTighteningsFromSymbolicBoundTightening( numTightenedBounds );
@@ -2312,14 +2313,17 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     disj->setActiveConstraint( false );
 
-    unsigned index = 0;
+    _feasibleDisjuncts.clear();
+    int index = -1;
     unsigned numCases = disj->getCaseSplits().size();
     for ( const auto&split : disj->getCaseSplits() )
     {
         index++;
         if ( !disj->caseSplitIsFeasible( split ) )
         {
-            std::cout << "Case not feasible..." << std::endl;
+            if ( _verbosity > 0 )
+                std::cout << "Case not feasible..." << std::endl;
+            _feasibleDisjuncts[index] = "unsat";
             continue;
         }
 
@@ -2337,29 +2341,33 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
             throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
                                 "Disjunction can only have bounds" );
 
-
-        std::cout << "Applied case split..." << std::endl;
-        split.dump();
+        if ( _verbosity > 0 )
+        {
+            std::cout << "Applied case split..." << std::endl;
+            split.dump();
+        }
 
         unsigned numTightened = 0;
         bool continueTightening = true;
 
 	unsigned lastUnfixed = countUnfixedConstraints();
 	unsigned thisUnfixed = 0;
-	printf( "Unfixed constraints after deeppoly: %u\n", lastUnfixed );
+        if ( _verbosity > 0 )
+            printf( "Unfixed constraints after deeppoly: %u\n", lastUnfixed );
 
 	if ( _performBackwardAnalysis )
         {
-	  printf( "Encoding the input query with Gurobi...\n" );
-	  _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-	  _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
-	  _milpEncoder->encodeInputQuery( *_gurobi, *_currentInputQuery );
-	  printf( "Query encoded in Gurobi...\n" );
-	  ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", 60 ).ascii() )
-	  _gurobi->setTimeLimit( 60 );
-	  _gurobi->setVerbosity( 1 );
-
-	  _gurobi->solve();
+            if ( _verbosity > 0 )
+                printf( "Encoding the input query with Gurobi...\n" );
+            _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+            _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
+            _milpEncoder->encodeInputQuery( *_gurobi, *_currentInputQuery );
+            if ( _verbosity > 0 )
+                printf( "Query encoded in Gurobi...\n" );
+            ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", 60 ).ascii() )
+                _gurobi->setTimeLimit( 60 );
+            _gurobi->setVerbosity( (_verbosity < 2 ? 0 : 1 ) );
+            _gurobi->solve();
 	}
 	
 	if ( ( !_performBackwardAnalysis ) || _gurobi->timeout() )
@@ -2368,14 +2376,17 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 	    {
  		while ( continueTightening )
 		{
-		  printf( "Performing backward analysis...\n" );
+                    if ( _verbosity > 0 )
+                        printf( "Performing backward analysis...\n" );
 		    numTightened = performBackwardAnalysis( *_currentInputQuery );
-		    printf( "Unfixed constraints after backprop: %u\n", countUnfixedConstraints() );
+                    if ( _verbosity > 0 )
+                        printf( "Unfixed constraints after backprop: %u\n", countUnfixedConstraints() );
 		    if ( numTightened > 0 )
 		    {
 			numTightened = performSymbolicBoundTightening( *_currentInputQuery );
 			thisUnfixed = countUnfixedConstraints();
-			printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
+                        if ( _verbosity > 0 )
+                            printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
 		    }
 		    else
 			continueTightening = false;
@@ -2391,16 +2402,18 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 		continue;
 	    }
 
-	    printf( "Encoding the input query with Gurobi...\n" );
+            if ( _verbosity > 0 )
+                printf( "Encoding the input query with Gurobi...\n" );
 	    _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
 	    _milpEncoder = std::unique_ptr<MILPEncoder>( new MILPEncoder( *_tableau ) );
 	    _milpEncoder->encodeInputQuery( *_gurobi, *_currentInputQuery );
-	    printf( "Query encoded in Gurobi...\n" );
+            if ( _verbosity > 0 )
+                printf( "Query encoded in Gurobi...\n" );
 	    double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
 					: timeoutInSeconds );
 	    ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
 	    _gurobi->setTimeLimit( timeoutForGurobi );
-	    _gurobi->setVerbosity( 1 );
+            _gurobi->setVerbosity( (_verbosity < 2 ? 0 : 1 ) );
 
 	    _gurobi->solve();
 	}
@@ -2409,10 +2422,15 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 	{
 	  if ( _lastDisjunctAbstraction )
 	  {
-	    if ( index < numCases ) 
+            if ( (unsigned) index < numCases )
 	    {
-		_exitCode = IEngine::SAT;
-		return true;
+                if ( Options::get()->getBool( Options::SOLVE_ALL_DISJUNCTS ) )
+                    _feasibleDisjuncts[index] = "sat";
+                else
+                {
+                    _exitCode = IEngine::SAT;
+                    return true;
+                }
 	    }
 	    else
 	    {
@@ -2421,12 +2439,23 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 	  }
 	  else
 	  {
-	    _exitCode = IEngine::SAT;
-	    return true;
+              if ( Options::get()->getBool( Options::SOLVE_ALL_DISJUNCTS ) )
+              {
+                  _feasibleDisjuncts[index] = "sat";
+                  continue;
+              }
+              else
+              {
+                  _exitCode = IEngine::SAT;
+                  return true;
+              }
 	  }
 	}
 	else if ( _gurobi->infeasbile() )
+        {
+            _feasibleDisjuncts[index] = "unsat";
 	    continue;
+        }
 	else if ( _gurobi->timeout() )
 	{
 	    _exitCode = IEngine::TIMEOUT;

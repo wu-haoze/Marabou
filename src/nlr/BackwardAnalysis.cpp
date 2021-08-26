@@ -260,8 +260,8 @@ void BackwardAnalysis::run( const Map<unsigned, Layer *> &layers )
 
     gurobiEnd = TimeUtils::sampleMicro();
 
-    printf( "Number of tighter bounds found by Gurobi: %u.\n",
-            tighterBoundCounter );
+    //printf( "Number of tighter bounds found by Gurobi: %u.\n",
+    //      tighterBoundCounter );
     printf( "Seconds spent Gurobiing: %llu\n", TimeUtils::timePassed( gurobiStart, gurobiEnd ) / 1000000 );
 
     for ( unsigned i = 0; i < numberOfWorkers; ++i )

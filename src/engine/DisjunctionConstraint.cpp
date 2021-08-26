@@ -15,6 +15,7 @@
 #include "Debug.h"
 #include "DisjunctionConstraint.h"
 #include "InfeasibleQueryException.h"
+#include "Options.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "Statistics.h"
@@ -295,9 +296,18 @@ void DisjunctionConstraint::eliminateVariable( unsigned variable, double fixedVa
                      ( bound._type == Tightening::UB &&
                        FloatUtils::gt( fixedValue, bound._value ) ) )
                 {
-                    // UNSAT: skip this disjunct
-                    addDisjunct = false;
-                    break;
+                    if ( Options::get()->getBool( Options::SOLVE_ALL_DISJUNCTS ) )
+                    {
+                        newDisjunct.storeBoundTightening( Tightening( 0, 1, Tightening::LB ) );
+                        newDisjunct.storeBoundTightening( Tightening( 0, -1, Tightening::UB ) );
+                        break;
+                    }
+                    else
+                    {
+                        // UNSAT: skip this disjunct
+                        addDisjunct = false;
+                        break;
+                    }
                 }
                 else
                 {
@@ -422,6 +432,7 @@ bool DisjunctionConstraint::disjunctSatisfied( const PiecewiseLinearCaseSplit &d
 
 void DisjunctionConstraint::updateFeasibleDisjuncts()
 {
+    return;
     _feasibleDisjuncts.clear();
 
     for ( unsigned ind = 0; ind < _disjuncts.size(); ++ind )

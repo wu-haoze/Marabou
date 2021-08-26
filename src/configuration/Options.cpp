@@ -50,6 +50,7 @@ void Options::initializeDefaultValues()
     _boolOptions[PERFORM_BACKWARD_ANALYSIS] = false;
     _boolOptions[BACKWARD_PROPAGATION_TO_CONVERGENCE] = false;
     _boolOptions[RELAXATION] = false;
+    _boolOptions[SOLVE_ALL_DISJUNCTS] = false;
 
     /*
       Int options

@@ -128,6 +128,9 @@ void OptionParser::initialize()
         ( "relax",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::RELAXATION]) ),
           "Solve relaxation first" )
+        ( "solve-all-disjuncts",
+          boost::program_options::bool_switch( &((*_boolOptions)[Options::SOLVE_ALL_DISJUNCTS]) ),
+          "Solve all disjuncts" )
 
 #endif // ENABLE_GUROBI
 

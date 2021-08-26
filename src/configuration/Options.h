@@ -59,6 +59,8 @@ public:
         BACKWARD_PROPAGATION_TO_CONVERGENCE,
 
         RELAXATION,
+
+        SOLVE_ALL_DISJUNCTS,
     };
 
     enum IntOptions {
