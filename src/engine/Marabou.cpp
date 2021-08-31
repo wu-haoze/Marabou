@@ -144,6 +144,7 @@ bool Marabou::solveViaRelaxation()
         return false;
 
     Set<unsigned> notInAbstraction;
+    Set<unsigned> knownUNSAT;
     notInAbstraction.insert(1);
     DisjunctionConstraint *disj = NULL;
     for ( const auto &constraint : _inputQuery.getPiecewiseLinearConstraints() )
@@ -218,7 +219,7 @@ bool Marabou::solveViaRelaxation()
             List<PiecewiseLinearCaseSplit> newDisjuncts;
             for ( const auto &split : disjuncts )
             {
-                if ( notInAbstraction.exists( counter ) )
+                if ( notInAbstraction.exists( counter ) && (!knownUNSAT.exists( counter )) )
                 {
                     PiecewiseLinearCaseSplit newSplit = split;
                     for ( const auto &t : fixAbstraction.getBoundTightenings() )
@@ -242,11 +243,18 @@ bool Marabou::solveViaRelaxation()
             _engine->lastDisjunctAbstraction();
             if ( _engine->processInputQuery( inputQuery ) )
                 _engine->solve();
-            if ( _engine->getExitCode() == Engine::UNSAT )
+            if ( _engine->getExitCode() == Engine::UNSAT ||
+		 _engine->getExitCode() == Engine::SAT )
                 return true;
             delete _engine;
 
-            // Refine the abstraction by removing a node from the abstraction
+	    // At this point, no sat is found, all the concrete disjuncts are unsat.
+	    for ( const auto &v : notInAbstraction )
+	    {	       
+		knownUNSAT.insert( v );
+	    }
+	    
+            // Refine the abstraction by removing a node from the abstraction	 
             notInAbstraction.insert( notInAbstraction.size() + 1 );
             std::cout << "Solving convex relaxation - inconclusive" << std::endl;
         }
