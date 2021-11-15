@@ -2357,6 +2357,22 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
 	if ( _performBackwardAnalysis )
         {
+	    if ( _verbosity > 0 )
+	      printf( "Performing backward analysis...\n" );
+	    numTightened = performBackwardAnalysis( *_currentInputQuery );
+	    if ( _verbosity > 0 )
+	      printf( "Unfixed constraints after backprop: %u\n", countUnfixedConstraints() );
+	    if ( numTightened > 0 )
+	    {
+	      numTightened = performSymbolicBoundTightening( *_currentInputQuery );
+	      thisUnfixed = countUnfixedConstraints();
+	      if ( _verbosity > 0 )
+		printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
+	    }
+
+	    if ( !Options::get()->getBool( Options::BACKWARD_PROPAGATION_TO_CONVERGENCE ) )
+	      continueTightening = false;
+	    
             if ( _verbosity > 0 )
                 printf( "Encoding the input query with Gurobi...\n" );
             _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
@@ -2422,7 +2438,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 	{
 	  if ( _lastDisjunctAbstraction )
 	  {
-            if ( (unsigned) index < numCases )
+            if ( (unsigned) index < numCases - 1 )
 	    {
                 if ( Options::get()->getBool( Options::SOLVE_ALL_DISJUNCTS ) )
                     _feasibleDisjuncts[index] = "sat";

@@ -219,8 +219,10 @@ bool Marabou::solveViaRelaxation()
             List<PiecewiseLinearCaseSplit> newDisjuncts;
             for ( const auto &split : disjuncts )
             {
-                if ( notInAbstraction.exists( counter ) && (!knownUNSAT.exists( counter )) )
+                if ( counter != 0 && notInAbstraction.exists( counter )
+		     && (!knownUNSAT.exists( counter )) )
                 {
+		    std::cout << "Adding disjunct " << counter << std::endl;
                     PiecewiseLinearCaseSplit newSplit = split;
                     for ( const auto &t : fixAbstraction.getBoundTightenings() )
                     {
@@ -264,7 +266,7 @@ bool Marabou::solveViaRelaxation()
     List<PiecewiseLinearCaseSplit> newDisjuncts;
     for ( const auto &split : disjuncts )
     {
-        if ( counter > 0 )
+        if ( counter > 0 &&  (!knownUNSAT.exists( counter )) )
             newDisjuncts.append(split);
         counter++;
     }
