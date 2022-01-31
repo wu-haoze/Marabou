@@ -30,6 +30,7 @@
 #include "IEngine.h"
 #include "InputQuery.h"
 #include "LinearExpression.h"
+#include "LPSolverType.h"
 #include "Map.h"
 #include "MILPEncoder.h"
 #include "Options.h"
@@ -385,6 +386,11 @@ private:
       Solve the query with MILP encoding
     */
     bool _solveWithMILP;
+
+    /*
+      The solver to solve the LP during the complete search.
+    */
+    LPSolverType _lpSolverType;
 
     /*
       GurobiWrapper object

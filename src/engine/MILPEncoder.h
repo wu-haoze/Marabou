@@ -32,7 +32,8 @@ public:
       Encode the input query as a Gurobi query, variables and inequalities
       are from inputQuery, and latest variable bounds are from tableau
     */
-    void encodeInputQuery( GurobiWrapper &gurobi, const InputQuery &inputQuery );
+    void encodeInputQuery( GurobiWrapper &gurobi, const InputQuery &inputQuery,
+                           bool relax = false );
 
     /*
       get variable name from a variable in the encoded inputquery
@@ -74,7 +75,8 @@ private:
       The other two constraints f >= b and f >= 0 are encoded already when
       preprocessing
     */
-    void encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *relu );
+    void encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *relu,
+                               bool relax );
 
     /*
       Encode a MAX constraint y = max(x_1, x_2, ... ,x_m) into Gurobi using the same encoding in
@@ -86,7 +88,8 @@ private:
       a_1 + a_2 + ... + a_m = 1
       a_i \in {0, 1} (i = 1 ~ m)
     */
-    void encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max );
+    void encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max,
+                              bool relax );
 
     /*
       Encode a Sigmoid constraint

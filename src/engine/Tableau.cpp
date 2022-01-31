@@ -23,9 +23,11 @@
 #include "Equation.h"
 #include "FloatUtils.h"
 #include "ICostFunctionManager.h"
+#include "LPSolverType.h"
 #include "MStringf.h"
 #include "MalformedBasisException.h"
 #include "MarabouError.h"
+#include "Options.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "TableauRow.h"
 #include "TableauState.h"
@@ -61,6 +63,7 @@ Tableau::Tableau()
     , _statistics( NULL )
     , _costFunctionManager( NULL )
     , _rhsIsAllZeros( true )
+    , _useNativeSimplex( Options::get()->getLPSolverType() == LPSolverType::NATIVE )
 {
 }
 
@@ -317,6 +320,21 @@ void Tableau::setDimensions( unsigned m, unsigned n )
         _statistics->setUnsignedAttribute( Statistics::CURRENT_TABLEAU_M, _m );
         _statistics->setUnsignedAttribute( Statistics::CURRENT_TABLEAU_N, _n );
     }
+}
+
+void Tableau::initializeBounds( unsigned n )
+{
+    _n = n;
+
+    _lowerBounds = new double[n];
+    if ( !_lowerBounds )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::lowerBounds" );
+    std::fill_n( _lowerBounds, n, FloatUtils::negativeInfinity() );
+
+    _upperBounds = new double[n];
+    if ( !_upperBounds )
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "Tableau::upperBounds" );
+    std::fill_n( _upperBounds, n, FloatUtils::infinity() );
 }
 
 void Tableau::setConstraintMatrix( const double *A )
@@ -1821,7 +1839,8 @@ void Tableau::tightenLowerBound( unsigned variable, double value )
 
     setLowerBound( variable, value );
 
-    updateVariableToComplyWithLowerBoundUpdate( variable, value );
+    if ( _useNativeSimplex )
+        updateVariableToComplyWithLowerBoundUpdate( variable, value );
 }
 
 void Tableau::tightenUpperBound( unsigned variable, double value )
@@ -1836,7 +1855,8 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
 
     setUpperBound( variable, value );
 
-    updateVariableToComplyWithUpperBoundUpdate( variable, value );
+    if ( _useNativeSimplex )
+        updateVariableToComplyWithUpperBoundUpdate( variable, value );
 }
 
 unsigned Tableau::addEquation( const Equation &equation )
@@ -2497,7 +2517,7 @@ void Tableau::makeBasisMatrixAvailable()
 
 bool Tableau::basisMatrixAvailable() const
 {
-    return _basisFactorization->explicitBasisAvailable();
+    return _useNativeSimplex && _basisFactorization->explicitBasisAvailable();
 }
 
 double *Tableau::getInverseBasisMatrix() const

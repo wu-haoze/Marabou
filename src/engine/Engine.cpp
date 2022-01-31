@@ -54,6 +54,7 @@ Engine::Engine()
     , _lastIterationWithProgress( 0 )
     , _symbolicBoundTighteningType( Options::get()->getSymbolicBoundTighteningType() )
     , _solveWithMILP( Options::get()->getBool( Options::SOLVE_WITH_MILP ) )
+    , _lpSolverType( Options::get()->getLPSolverType() )
     , _gurobi( nullptr )
     , _milpEncoder( nullptr )
     , _soiManager( nullptr )
@@ -153,7 +154,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
         return solveWithMILPEncoding( timeoutInSeconds );
 
     updateDirections();
-    storeInitialEngineState();
+    if ( _lpSolverType == LPSolverType::NATIVE )
+        storeInitialEngineState();
 
     mainLoopStatistics();
     if ( _verbosity > 0 )
@@ -1255,32 +1257,49 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         if ( _verbosity > 0 )
             printInputBounds( inputQuery );
 
-        double *constraintMatrix = createConstraintMatrix();
-        removeRedundantEquations( constraintMatrix );
+        if ( _lpSolverType == LPSolverType::NATIVE )
+        {
+            double *constraintMatrix = createConstraintMatrix();
+            removeRedundantEquations( constraintMatrix );
 
-        // The equations have changed, recreate the constraint matrix
-        delete[] constraintMatrix;
-        constraintMatrix = createConstraintMatrix();
+            // The equations have changed, recreate the constraint matrix
+            delete[] constraintMatrix;
+            constraintMatrix = createConstraintMatrix();
 
-        List<unsigned> initialBasis;
-        List<unsigned> basicRows;
-        selectInitialVariablesForBasis( constraintMatrix, initialBasis, basicRows );
-        addAuxiliaryVariables();
-        augmentInitialBasisIfNeeded( initialBasis, basicRows );
+            List<unsigned> initialBasis;
+            List<unsigned> basicRows;
+            selectInitialVariablesForBasis( constraintMatrix, initialBasis, basicRows );
+            addAuxiliaryVariables();
+            augmentInitialBasisIfNeeded( initialBasis, basicRows );
 
-        storeEquationsInDegradationChecker();
+            storeEquationsInDegradationChecker();
 
-        // The equations have changed, recreate the constraint matrix
-        delete[] constraintMatrix;
-        constraintMatrix = createConstraintMatrix();
+            // The equations have changed, recreate the constraint matrix
+            delete[] constraintMatrix;
+            constraintMatrix = createConstraintMatrix();
 
+            initializeTableau( constraintMatrix, initialBasis );
+
+            delete[] constraintMatrix;
+        }
+        else
+        {
+            if ( _verbosity > 0 )
+                printf("Using Gurobi to solve LP...\n");
+            ASSERT( _lpSolverType == LPSolverType::GUROBI );
+
+            // Only use Tableau to store the bounds.
+            _tableau->initializeBounds
+                ( _preprocessedQuery.getNumberOfVariables() );
+
+            _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+            _milpEncoder = std::unique_ptr<MILPEncoder>
+                ( new MILPEncoder( *_tableau ) );
+        }
         initializeNetworkLevelReasoning();
-        initializeTableau( constraintMatrix, initialBasis );
 
         if ( GlobalConfiguration::WARM_START )
             warmStart();
-
-        delete[] constraintMatrix;
 
         if ( preprocess )
         {

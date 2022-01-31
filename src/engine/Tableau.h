@@ -48,6 +48,11 @@ public:
     void setDimensions( unsigned m, unsigned n );
 
     /*
+      Initialize the bound array.
+    */
+    void initializeBounds( unsigned n );
+
+    /*
       Initialize the constraint matrix
     */
     void setConstraintMatrix( const double *A );
@@ -626,6 +631,12 @@ private:
       simplify some of the computations.
      */
     bool _rhsIsAllZeros;
+
+    /*
+      True if and only if we are using the native Simplex implementation for
+      LP solving.
+    */
+    bool _useNativeSimplex;
 
     /*
       Free all allocated memory.

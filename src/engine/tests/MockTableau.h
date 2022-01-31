@@ -128,6 +128,11 @@ public:
         nextBtranOutput = new double[m];
     }
 
+    void initializeBounds( unsigned n )
+    {
+        lastN = n;
+    }
+
     double *lastEntries;
     void setConstraintMatrix( const double *A )
     {

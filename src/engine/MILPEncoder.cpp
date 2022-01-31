@@ -23,7 +23,8 @@ MILPEncoder::MILPEncoder( const ITableau &tableau )
 {}
 
 void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
-                                    const InputQuery &inputQuery )
+                                    const InputQuery &inputQuery,
+                                    bool relax )
 {
     gurobi.reset();
     // Add variables
@@ -48,10 +49,12 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
         switch ( plConstraint->getType() )
         {
         case PiecewiseLinearFunctionType::RELU:
-            encodeReLUConstraint( gurobi, (ReluConstraint *)plConstraint );
+            encodeReLUConstraint( gurobi, (ReluConstraint *)plConstraint,
+                                  relax );
             break;
         case PiecewiseLinearFunctionType::MAX:
-            encodeMaxConstraint( gurobi, (MaxConstraint *)plConstraint );
+            encodeMaxConstraint( gurobi, (MaxConstraint *)plConstraint,
+                                 relax );
             break;
         default:
             throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
@@ -107,7 +110,8 @@ void MILPEncoder::encodeEquation( GurobiWrapper &gurobi, const Equation &equatio
     }
 }
 
-void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *relu)
+void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi,
+                                        ReluConstraint *relu, bool relax )
 {
 
     if ( !relu->isActive() || relu->phaseFixed() )
@@ -121,29 +125,48 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
         return;
     }
 
-    gurobi.addVariable( Stringf( "a%u", _binVarIndex ),
-                        0,
-                        1,
-                        GurobiWrapper::BINARY );
+    if ( !relax )
+    {
+        gurobi.addVariable( Stringf( "a%u", _binVarIndex ),
+                            0,
+                            1,
+                            GurobiWrapper::BINARY );
 
-    unsigned sourceVariable = relu->getB();
-    unsigned targetVariable = relu->getF();
-    double sourceLb = _tableau.getLowerBound( sourceVariable );
-    double sourceUb = _tableau.getUpperBound( sourceVariable );
+        unsigned sourceVariable = relu->getB();
+        unsigned targetVariable = relu->getF();
+        double sourceLb = _tableau.getLowerBound( sourceVariable );
+        double sourceUb = _tableau.getUpperBound( sourceVariable );
 
-    List<GurobiWrapper::Term> terms;
-    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-    terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
-    terms.append( GurobiWrapper::Term( -sourceLb, Stringf( "a%u", _binVarIndex ) ) );
-    gurobi.addLeqConstraint( terms, -sourceLb );
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+        terms.append( GurobiWrapper::Term( -sourceLb, Stringf( "a%u", _binVarIndex ) ) );
+        gurobi.addLeqConstraint( terms, -sourceLb );
 
-    terms.clear();
-    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-    terms.append( GurobiWrapper::Term( -sourceUb, Stringf( "a%u", _binVarIndex++ ) ) );
-    gurobi.addLeqConstraint( terms, 0 );
+        terms.clear();
+        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( GurobiWrapper::Term( -sourceUb, Stringf( "a%u", _binVarIndex++ ) ) );
+        gurobi.addLeqConstraint( terms, 0 );
+    }
+    else
+    {
+        unsigned sourceVariable = relu->getB();
+        unsigned targetVariable = relu->getF();
+        double sourceLb = _tableau.getLowerBound( sourceVariable );
+        double sourceUb = _tableau.getUpperBound( sourceVariable );
+
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( GurobiWrapper::Term( -sourceUb / ( sourceUb - sourceLb ),
+                                           Stringf( "x%u", sourceVariable ) ) );
+        gurobi.addLeqConstraint( terms, ( -sourceUb * sourceLb ) /
+                                 ( sourceUb - sourceLb ) );
+    }
+
 }
 
-void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max )
+void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max,
+                                       bool relax )
 {
     if ( !max->isActive() )
         return;
@@ -170,7 +193,8 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
         gurobi.addVariable( Stringf( "a%u_%u", _binVarIndex, x ),
                             0,
                             1,
-                            GurobiWrapper::BINARY );
+                            relax ?
+                            GurobiWrapper::CONTINUOUS : GurobiWrapper::BINARY );
 
         terms.append( GurobiWrapper::Term( 1, Stringf( "a%u_%u", _binVarIndex, x ) ) );
         ubq.push( { _tableau.getUpperBound( x ), x } );

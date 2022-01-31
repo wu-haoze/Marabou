@@ -72,6 +72,9 @@ void OptionParser::initialize()
         ( "soi-init-strategy",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::SOI_INITIALIZATION_STRATEGY]) ),
           "Strategy for initialize the soi function: input-assignment/random. default: input-assignment" )
+        ( "lp-solver",
+          boost::program_options::value<std::string>( &((*_stringOptions)[Options::LP_SOLVER]) ),
+          "Solver for the LPs during the complete analysis: native/gurobi. default: native" )
         ( "num-workers",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUM_WORKERS]) ),
           "(SnC) Number of workers" )
