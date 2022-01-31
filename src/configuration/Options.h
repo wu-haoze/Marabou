@@ -17,6 +17,7 @@
 #define __Options_h__
 
 #include "DivideStrategy.h"
+#include "LPSolverType.h"
 #include "MString.h"
 #include "Map.h"
 #include "MILPSolverBoundTighteningType.h"
