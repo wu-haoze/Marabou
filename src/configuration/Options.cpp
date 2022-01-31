@@ -86,6 +86,7 @@ void Options::initializeDefaultValues()
     _stringOptions[QUERY_DUMP_FILE] = "";
     _stringOptions[SOI_SEARCH_STRATEGY] = "mcmc";
     _stringOptions[SOI_INITIALIZATION_STRATEGY] = "input-assignment";
+    _stringOptions[LP_SOLVER] = "";
 }
 
 void Options::parseOptions( int argc, char **argv )
@@ -229,10 +230,14 @@ SoIInitializationStrategy Options::getSoIInitializationStrategy() const
         return SoIInitializationStrategy::INPUT_ASSIGNMENT;
 }
 
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
+LPSolverType Options::getLPSolverType() const
+{
+    String solverString = String( _stringOptions.get
+                                    ( Options::LP_SOLVER ) );
+    if ( solverString == "native" )
+        return LPSolverType::NATIVE;
+    else if ( solverString == "gurobi" )
+        return LPSolverType::GUROBI;
+    else
+        return LPSolverType::NATIVE;
+}
