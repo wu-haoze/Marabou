@@ -358,3 +358,16 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi, SigmoidConstra
         terms.clear();
     }
 }
+
+void MILPEncoder::encodeCostFunction( GurobiWrapper &gurobi,
+                                      const LinearExpression &cost )
+{
+    List<GurobiWrapper::Term> terms;
+    for ( const auto &pair : cost._addends )
+    {
+        terms.append( GurobiWrapper::Term
+                      ( pair.second,
+                        Stringf( "x%u", pair.first ) ) );
+    }
+    gurobi.setCost( terms, cost._constant );
+}

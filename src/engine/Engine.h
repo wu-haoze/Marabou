@@ -683,6 +683,12 @@ private:
     */
     void informLPSolverOfBounds();
 
+    /*
+      Minimize the given cost function with Gurobi. Return true if
+      the cost function is minimized. Throw InfeasibleQueryException if
+      the constraints in _gurobi are infeasible. Throw an error otherwise.
+    */
+    bool minimizeCostWithGurobi( const LinearExpression &costFunction );
 };
 
 #endif // __Engine_h__

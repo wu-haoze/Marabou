@@ -283,7 +283,14 @@ bool Engine::solve( unsigned timeoutInSeconds )
             }
 
             // We have out-of-bounds variables.
-            performSimplexStep();
+            if ( _lpSolverType == LPSolverType::NATIVE )
+                performSimplexStep();
+            else
+            {
+                ASSERT( _lpSolverType == LPSolverType::GUROBI );
+                LinearExpression dontCare;
+                minimizeCostWithGurobi( dontCare );
+            }
             continue;
         }
         catch ( const MalformedBasisException & )
@@ -520,24 +527,6 @@ bool Engine::performSimplexStep()
     // Statistics
     _statistics.incLongAttribute( Statistics::NUM_SIMPLEX_STEPS );
     struct timespec start = TimeUtils::sampleMicro();
-
-    if ( _lpSolverType == LPSolverType::GUROBI )
-    {
-        List<LPSolver::Term> obj;
-        solveLPWithGurobi( obj );
-        if ( _gurobi->infeasible() )
-        {
-            throw InfeasibleQueryException();
-        }
-        else if ( _gurobi->haveFeasibleSolution() )
-        {
-            return true;
-        }
-        else
-        {
-            throw CommonError( CommonError::GUROBI_EXCEPTION );
-        }
-    }
 
     /*
       In order to increase numerical stability, we attempt to pick a
@@ -2787,6 +2776,12 @@ bool Engine::performDeepSoILocalSearch()
 
 void Engine::minimizeHeuristicCost( const LinearExpression &heuristicCost )
 {
+    if ( _lpSolverType == LPSolverType::GUROBI )
+    {
+        minimizeCostWithGurobi( heuristicCost );
+        return;
+    }
+
     _tableau->toggleOptimization( true );
 
     _heuristicCost = heuristicCost;
@@ -2865,4 +2860,32 @@ void Engine::informLPSolverOfBounds()
     _statistics.incLongAttribute
         ( Statistics::TIME_ADDING_CONSTRAINTS_TO_MILP_SOLVER_MICRO,
           TimeUtils::timePassed( start, end ) );
+}
+
+bool Engine::minimizeCostWithGurobi( const LinearExpression &costFunction )
+{
+    ASSERT( _gurobi && _milpEncoder );
+
+    struct timespec simplexStart = TimeUtils::sampleMicro();
+
+    _milpEncoder->encodeCostFunction( *_gurobi, costFunction );
+    _gurobi->solve();
+
+    struct timespec simplexEnd = TimeUtils::sampleMicro();
+
+    _statistics.incLongAttribute( Statistics::TIME_SIMPLEX_STEPS_MICRO,
+                             TimeUtils::timePassed( simplexStart, simplexEnd ) );
+    _statistics.incLongAttribute( Statistics::NUM_SIMPLEX_STEPS,
+                                  _gurobi->getNumberOfSimplexIterations() );
+
+    if ( _gurobi->infeasible() )
+        throw InfeasibleQueryException();
+    else if ( _gurobi->optimal() )
+        return true;
+    else
+        throw CommonError( CommonError::UNEXPECTED_GUROBI_STATUS,
+                           Stringf( "Current status: %u",
+                                    _gurobi->getStatusCode() ).ascii() );
+
+    return false;
 }

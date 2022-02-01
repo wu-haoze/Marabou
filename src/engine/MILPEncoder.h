@@ -19,6 +19,7 @@
 #include "GurobiWrapper.h"
 #include "InputQuery.h"
 #include "ITableau.h"
+#include "LinearExpression.h"
 #include "MStringf.h"
 #include "Statistics.h"
 
@@ -45,6 +46,12 @@ public:
     {
         _statistics = statistics;
     }
+
+    /*
+      Encode the cost function into Gurobi
+    */
+    void encodeCostFunction( GurobiWrapper &gurobi,
+                             const LinearExpression &cost );
 
 private:
 

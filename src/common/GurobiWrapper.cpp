@@ -224,7 +224,7 @@ void GurobiWrapper::addIndicatorConstraint( const String binVarName, const int b
     }
 }
 
-void GurobiWrapper::setCost( const List<Term> &terms )
+void GurobiWrapper::setCost( const List<Term> &terms, double constant )
 {
     try
     {
@@ -235,6 +235,8 @@ void GurobiWrapper::setCost( const List<Term> &terms )
             ASSERT( _nameToVariable.exists( term._variable ) );
             cost += GRBLinExpr( *_nameToVariable[term._variable], term._coefficient );
         }
+
+        cost += constant;
 
         _model->setObjective( cost, GRB_MINIMIZE );
     }
@@ -247,7 +249,7 @@ void GurobiWrapper::setCost( const List<Term> &terms )
     }
 }
 
-void GurobiWrapper::setObjective( const List<Term> &terms )
+void GurobiWrapper::setObjective( const List<Term> &terms, double constant )
 {
     try
     {
@@ -258,6 +260,8 @@ void GurobiWrapper::setObjective( const List<Term> &terms )
             ASSERT( _nameToVariable.exists( term._variable ) );
             cost += GRBLinExpr( *_nameToVariable[term._variable], term._coefficient );
         }
+
+        cost += constant;
 
         _model->setObjective( cost, GRB_MAXIMIZE );
     }

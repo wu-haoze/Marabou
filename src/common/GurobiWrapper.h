@@ -81,8 +81,8 @@ public:
     void addEqIndicatorConstraint(  const String binVarName, const int binVal, const List<Term> &terms, double scalar );
 
     // A cost function to minimize, or an objective function to maximize
-    void setCost( const List<Term> &terms );
-    void setObjective( const List<Term> &terms );
+    void setCost( const List<Term> &terms, double constant = 0 );
+    void setObjective( const List<Term> &terms, double constant = 0 );
 
     // Set a cutoff value for the objective function. For example, if
     // maximizing x with cutoff value 0, Gurobi will return the
@@ -113,6 +113,21 @@ public:
     void solve();
     void extractSolution( Map<String, double> &values, double &costOrObjective );
     double getObjectiveBound();
+
+    inline unsigned getNumberOfSimplexIterations()
+    {
+        return _model->get( GRB_DoubleAttr_IterCount );
+    }
+
+    inline unsigned getNumberOfNodes()
+    {
+        return _model->get( GRB_DoubleAttr_NodeCount );
+    }
+
+    inline unsigned getStatusCode()
+    {
+        return _model->get( GRB_IntAttr_Status );
+    }
 
     // Reset the underlying model
     void reset();
@@ -176,8 +191,8 @@ public:
     void addLeqIndicatorConstraint( const String, const int, const List<Term> &, double ) {}
     void addGeqIndicatorConstraint( const String, const int, const List<Term> &, double ) {}
     void addEqIndicatorConstraint( const String, const int, const List<Term> &, double ) {}
-    void setCost( const List<Term> & ) {}
-    void setObjective( const List<Term> & ) {}
+    void setCost( const List<Term> &, double ) {}
+    void setObjective( const List<Term> &, double ) {}
     void setCutoff( double ) {};
     void solve() {}
     void extractSolution( Map<String, double> &, double & ) {}
@@ -190,6 +205,10 @@ public:
     bool haveFeasibleSolution() { return true; };
     void setTimeLimit( double ) {};
     double getObjectiveBound() { return 0; };
+    unsigned getNumberOfSimplexIterations() { return 0; };
+    unsigned getNumberOfNodes() { return 0; };
+    unsigned getStatusCode() { return 0; };
+
     void dump() {}
     static void log( const String & );
 };
