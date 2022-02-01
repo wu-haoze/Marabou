@@ -158,7 +158,11 @@ bool Engine::solve( unsigned timeoutInSeconds )
         storeInitialEngineState();
 
     if ( _lpSolverType == LPSolverType::GUROBI )
+    {
+        ENGINE_LOG( "Encoding convex relaxation into Gurobi...");
         _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery, true );
+        ENGINE_LOG( "Encoding convex relaxation into Gurobi - done");
+    }
 
     mainLoopStatistics();
     if ( _verbosity > 0 )
@@ -209,10 +213,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
         try
         {
-            DEBUG({
-                    if ( _lpSolverType == LPSolverType::NATIVE )
-                        _tableau->verifyInvariants();
-                });
+            DEBUG( _tableau->verifyInvariants() );
 
             mainLoopStatistics();
             if ( _verbosity > 1 &&
@@ -287,6 +288,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 performSimplexStep();
             else
             {
+                ENGINE_LOG( "Check LP feasibility with Gurobi..." );
                 ASSERT( _lpSolverType == LPSolverType::GUROBI );
                 LinearExpression dontCare;
                 minimizeCostWithGurobi( dontCare );
@@ -336,8 +338,10 @@ bool Engine::solve( unsigned timeoutInSeconds )
             _tableau->toggleOptimization( false );
             continue;
         }
+        /*
         catch ( ... )
         {
+            throw
             _exitCode = Engine::ERROR;
             exportInputQueryWithError( "Unknown error" );
             struct timespec mainLoopEnd = TimeUtils::sampleMicro();
@@ -347,6 +351,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                                          mainLoopEnd ) );
             return false;
         }
+        */
     }
 }
 
@@ -1306,15 +1311,55 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             if ( _verbosity > 0 )
                 printf("Using Gurobi to solve LP...\n");
 
+            unsigned n = _preprocessedQuery.getNumberOfVariables();
             // Only use Tableau to store the bounds.
-            _tableau->initializeBounds
-                ( _preprocessedQuery.getNumberOfVariables() );
+            _tableau->initializeBounds( n );
+            for ( unsigned i = 0; i < n; ++i )
+            {
+                _tableau->setLowerBound( i, _preprocessedQuery.getLowerBound( i ) );
+                _tableau->setUpperBound( i, _preprocessedQuery.getUpperBound( i ) );
+            }
+
+            _tableau->registerToWatchAllVariables( _constraintBoundTightener );
+            _tableau->registerResizeWatcher( _constraintBoundTightener );
+
+            _constraintBoundTightener->setDimensions();
+
+            // Register the constraint bound tightener to all the PL constraints
+            for ( auto &plConstraint : _preprocessedQuery.getPiecewiseLinearConstraints() )
+                plConstraint->registerConstraintBoundTightener( _constraintBoundTightener );
+
+            _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
+            for ( const auto &constraint : _plConstraints )
+            {
+                constraint->registerAsWatcher( _tableau );
+                constraint->setStatistics( &_statistics );
+            }
+
+            _tsConstraints = _preprocessedQuery.getTranscendentalConstraints();
+            for ( const auto &constraint : _tsConstraints )
+            {
+                constraint->registerAsWatcher( _tableau );
+                constraint->setStatistics( &_statistics );
+            }
+
+            _statistics.setUnsignedAttribute( Statistics::NUM_PL_CONSTRAINTS,
+                                              _plConstraints.size() );
 
             _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
             _milpEncoder = std::unique_ptr<MILPEncoder>
                 ( new MILPEncoder( *_tableau ) );
             _milpEncoder->setStatistics( &_statistics );
         }
+
+        if ( GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH )
+        {
+            _soiManager = std::unique_ptr<SumOfInfeasibilitiesManager>
+                ( new SumOfInfeasibilitiesManager( _preprocessedQuery,
+                                                   *_tableau ) );
+            _soiManager->setStatistics( &_statistics );
+        }
+
         initializeNetworkLevelReasoning();
 
         if ( GlobalConfiguration::WARM_START )

@@ -82,6 +82,8 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
         }
     }
 
+    gurobi.updateModel();
+
     if ( _statistics )
     {
         struct timespec end = TimeUtils::sampleMicro();

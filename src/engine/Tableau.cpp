@@ -2252,6 +2252,9 @@ void Tableau::setStatistics( Statistics *statistics )
 
 void Tableau::verifyInvariants()
 {
+    if ( !_useNativeSimplex )
+        return;
+
     // All merged variables are non-basic
     for ( const auto &merged : _mergedVariables )
     {

@@ -114,6 +114,11 @@ public:
     void extractSolution( Map<String, double> &values, double &costOrObjective );
     double getObjectiveBound();
 
+    inline double getAssignment( const String &variable )
+    {
+        return _nameToVariable[variable]->get( GRB_DoubleAttr_X );
+    }
+
     inline unsigned getNumberOfSimplexIterations()
     {
         return _model->get( GRB_DoubleAttr_IterCount );
@@ -129,6 +134,11 @@ public:
         return _model->get( GRB_IntAttr_Status );
     }
 
+    inline void updateModel()
+    {
+        _model->update();
+    }
+
     // Reset the underlying model
     void reset();
 
@@ -139,6 +149,21 @@ public:
     // used by Gurobi to determine the format. Using ".lp" is a good
     // default
     void dumpModel( String name );
+
+    // Check if the assignment exists or not. This should only be called in the
+    // DEBUG build.
+    inline bool existsAssignment( const String &variable )
+    {
+        try
+        {
+            _nameToVariable[variable]->get( GRB_DoubleAttr_X );
+            return true;
+        }
+        catch ( GRBException e )
+        {
+            return false;
+        }
+    }
 
 private:
     GRBEnv *_environment;
@@ -205,9 +230,12 @@ public:
     bool haveFeasibleSolution() { return true; };
     void setTimeLimit( double ) {};
     double getObjectiveBound() { return 0; };
+    double getAssignment( const &String ){ return 0; };
     unsigned getNumberOfSimplexIterations() { return 0; };
     unsigned getNumberOfNodes() { return 0; };
     unsigned getStatusCode() { return 0; };
+    void updateModel() {};
+    bool existsAssignment( const &String ){ return false };
 
     void dump() {}
     static void log( const String & );
