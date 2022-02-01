@@ -157,6 +157,9 @@ bool Engine::solve( unsigned timeoutInSeconds )
     if ( _lpSolverType == LPSolverType::NATIVE )
         storeInitialEngineState();
 
+    if ( _lpSolverType == LPSolverType::GUROBI )
+        _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery, true );
+
     mainLoopStatistics();
     if ( _verbosity > 0 )
     {
@@ -206,7 +209,10 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
         try
         {
-            DEBUG( _tableau->verifyInvariants() );
+            DEBUG({
+                    if ( _lpSolverType == LPSolverType::NATIVE )
+                        _tableau->verifyInvariants();
+                });
 
             mainLoopStatistics();
             if ( _verbosity > 1 &&
@@ -232,6 +238,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
             if ( splitJustPerformed )
             {
                 performBoundTighteningAfterCaseSplit();
+                informLPSolverOfBounds();
                 splitJustPerformed = false;
             }
 
@@ -422,6 +429,9 @@ bool Engine::handleSatisfyingAssignmentToLinearConstraints()
 
 bool Engine::performPrecisionRestorationIfNeeded()
 {
+    if ( _lpSolverType != LPSolverType::NATIVE )
+        return false;
+
     // If the basis has become malformed, we need to restore it
     if ( basisRestorationNeeded() )
     {
@@ -510,6 +520,24 @@ bool Engine::performSimplexStep()
     // Statistics
     _statistics.incLongAttribute( Statistics::NUM_SIMPLEX_STEPS );
     struct timespec start = TimeUtils::sampleMicro();
+
+    if ( _lpSolverType == LPSolverType::GUROBI )
+    {
+        List<LPSolver::Term> obj;
+        solveLPWithGurobi( obj );
+        if ( _gurobi->infeasible() )
+        {
+            throw InfeasibleQueryException();
+        }
+        else if ( _gurobi->haveFeasibleSolution() )
+        {
+            return true;
+        }
+        else
+        {
+            throw CommonError( CommonError::GUROBI_EXCEPTION );
+        }
+    }
 
     /*
       In order to increase numerical stability, we attempt to pick a
@@ -1284,9 +1312,10 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         }
         else
         {
+            ASSERT( _lpSolverType == LPSolverType::GUROBI );
+
             if ( _verbosity > 0 )
                 printf("Using Gurobi to solve LP...\n");
-            ASSERT( _lpSolverType == LPSolverType::GUROBI );
 
             // Only use Tableau to store the bounds.
             _tableau->initializeBounds
@@ -1295,6 +1324,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
             _milpEncoder = std::unique_ptr<MILPEncoder>
                 ( new MILPEncoder( *_tableau ) );
+            _milpEncoder->setStatistics( &_statistics );
         }
         initializeNetworkLevelReasoning();
 
@@ -1679,6 +1709,14 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
 
     List<Tightening> bounds = split.getBoundTightenings();
     List<Equation> equations = split.getEquations();
+
+    // We assume that case splits only apply new bounds but do not apply
+    // new equations. This can always be made possible.
+    if ( _lpSolverType != LPSolverType::NATIVE && equations.size() > 0 )
+        throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
+                            "Can only update bounds when using non-native"
+                            "simplex engine!" );
+
     for ( auto &equation : equations )
     {
         /*
@@ -2591,7 +2629,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         _exitCode = IEngine::SAT;
         return true;
     }
-    else if ( _gurobi->infeasbile() )
+    else if ( _gurobi->infeasible() )
         _exitCode = IEngine::UNSAT;
     else if ( _gurobi->timeout() )
         _exitCode = IEngine::TIMEOUT;
@@ -2809,4 +2847,22 @@ void Engine::updatePseudoImpactWithSoICosts( double costOfLastAcceptedPhasePatte
     // Update the Pseudo-Impact estimation.
     for ( const auto &constraint : constraintsUpdated )
         _smtCore.updatePLConstraintScore( constraint, score );
+}
+
+void Engine::informLPSolverOfBounds()
+{
+    struct timespec start = TimeUtils::sampleMicro();
+    if ( _lpSolverType == LPSolverType::GUROBI )
+    {
+        for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+        {
+            String variableName = _milpEncoder->getVariableNameFromVariable( i );
+            _gurobi->setLowerBound( variableName, _tableau->getLowerBound( i ) );
+            _gurobi->setUpperBound( variableName, _tableau->getUpperBound( i ) );
+        }
+    }
+    struct timespec end = TimeUtils::sampleMicro();
+    _statistics.incLongAttribute
+        ( Statistics::TIME_ADDING_CONSTRAINTS_TO_MILP_SOLVER_MICRO,
+          TimeUtils::timePassed( start, end ) );
 }

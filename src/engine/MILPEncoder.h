@@ -20,6 +20,7 @@
 #include "InputQuery.h"
 #include "ITableau.h"
 #include "MStringf.h"
+#include "Statistics.h"
 
 #include "Map.h"
 
@@ -40,12 +41,22 @@ public:
     */
     String getVariableNameFromVariable( unsigned variable );
 
+    inline void setStatistics( Statistics *statistics )
+    {
+        _statistics = statistics;
+    }
+
 private:
 
     /*
       Tableau has the latest bound
     */
     const ITableau &_tableau;
+
+    /*
+      The statistics object.
+    */
+    Statistics *_statistics;
 
     /*
       Map the variable to the string encoded in Gurobi

@@ -97,7 +97,7 @@ public:
     bool cutoffOccurred();
 
     // Returns true iff the instance is infeasible
-    bool infeasbile();
+    bool infeasible();
 
     // Returns true iff the instance timed out
     bool timeout();

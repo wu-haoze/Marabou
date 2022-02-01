@@ -677,6 +677,12 @@ private:
     void updatePseudoImpactWithSoICosts( double costOfLastAcceptedPhasePattern,
                                          double costOfProposedPhasePattern );
 
+    /*
+      If we are using an external solver for LP solving, we need to inform
+      the solver of the up-to-date variable bounds before invoking it.
+    */
+    void informLPSolverOfBounds();
+
 };
 
 #endif // __Engine_h__
