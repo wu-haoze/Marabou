@@ -300,7 +300,7 @@ bool GurobiWrapper::cutoffOccurred()
     return _model->get( GRB_IntAttr_Status ) == GRB_CUTOFF;
 }
 
-bool GurobiWrapper::infeasbile()
+bool GurobiWrapper::infeasible()
 {
     return _model->get( GRB_IntAttr_Status ) == GRB_INFEASIBLE;
 }
