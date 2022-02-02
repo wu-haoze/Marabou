@@ -119,6 +119,14 @@ public:
         return _nameToVariable[variable]->get( GRB_DoubleAttr_X );
     }
 
+    // Check if the assignment exists or not.
+    inline bool existsAssignment( const String &variable )
+    {
+        return _nameToVariable.exists( variable ) &&
+            _model->get( GRB_IntAttr_SolCount ) > 0;
+    }
+
+
     inline unsigned getNumberOfSimplexIterations()
     {
         return _model->get( GRB_DoubleAttr_IterCount );
@@ -149,21 +157,6 @@ public:
     // used by Gurobi to determine the format. Using ".lp" is a good
     // default
     void dumpModel( String name );
-
-    // Check if the assignment exists or not. This should only be called in the
-    // DEBUG build.
-    inline bool existsAssignment( const String &variable )
-    {
-        try
-        {
-            _nameToVariable[variable]->get( GRB_DoubleAttr_X );
-            return true;
-        }
-        catch ( GRBException e )
-        {
-            return false;
-        }
-    }
 
 private:
     GRBEnv *_environment;
@@ -216,8 +209,8 @@ public:
     void addLeqIndicatorConstraint( const String, const int, const List<Term> &, double ) {}
     void addGeqIndicatorConstraint( const String, const int, const List<Term> &, double ) {}
     void addEqIndicatorConstraint( const String, const int, const List<Term> &, double ) {}
-    void setCost( const List<Term> &, double ) {}
-    void setObjective( const List<Term> &, double ) {}
+    void setCost( const List<Term> &, double /* constant */=0 ) {}
+    void setObjective( const List<Term> &, double /* constant */=0 ) {}
     void setCutoff( double ) {};
     void solve() {}
     void extractSolution( Map<String, double> &, double & ) {}
@@ -230,12 +223,12 @@ public:
     bool haveFeasibleSolution() { return true; };
     void setTimeLimit( double ) {};
     double getObjectiveBound() { return 0; };
-    double getAssignment( const &String ){ return 0; };
+    double getAssignment( const String & ){ return 0; };
     unsigned getNumberOfSimplexIterations() { return 0; };
     unsigned getNumberOfNodes() { return 0; };
     unsigned getStatusCode() { return 0; };
     void updateModel() {};
-    bool existsAssignment( const &String ){ return false };
+    bool existsAssignment( const String & ){ return false; };
 
     void dump() {}
     static void log( const String & );

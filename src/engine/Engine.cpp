@@ -60,7 +60,7 @@ Engine::Engine()
     , _soiManager( nullptr )
     , _simulationSize( Options::get()->getInt( Options::NUMBER_OF_SIMULATIONS ) )
     , _isGurobyEnabled( Options::get()->gurobiEnabled() )
-    , _isSkipLpTighteningAfterSplit( Options::get()->getBool( Options::SKIP_LP_TIGHTENING_AFTER_SPLIT ) )
+    , _performLpTighteningAfterSplit( Options::get()->getBool( Options::PERFORM_LP_TIGHTENING_AFTER_SPLIT ) )
     , _milpSolverBoundTighteningType( Options::get()->getMILPSolverBoundTighteningType() )
     , _sncMode( false )
     , _queryId( "" )
@@ -288,7 +288,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 performSimplexStep();
             else
             {
-                ENGINE_LOG( "Check LP feasibility with Gurobi..." );
+                ENGINE_LOG( "Checking LP feasibility with Gurobi..." );
                 ASSERT( _lpSolverType == LPSolverType::GUROBI );
                 LinearExpression dontCare;
                 minimizeCostWithGurobi( dontCare );
@@ -1308,6 +1308,8 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         {
             ASSERT( _lpSolverType == LPSolverType::GUROBI );
 
+            ASSERT( GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH == true );
+
             if ( _verbosity > 0 )
                 printf("Using Gurobi to solve LP...\n");
 
@@ -1323,6 +1325,11 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _tableau->registerToWatchAllVariables( _constraintBoundTightener );
             _tableau->registerResizeWatcher( _constraintBoundTightener );
 
+            _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+            _milpEncoder = std::unique_ptr<MILPEncoder>
+                ( new MILPEncoder( *_tableau ) );
+            _milpEncoder->setStatistics( &_statistics );
+
             _constraintBoundTightener->setDimensions();
 
             // Register the constraint bound tightener to all the PL constraints
@@ -1332,6 +1339,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _plConstraints = _preprocessedQuery.getPiecewiseLinearConstraints();
             for ( const auto &constraint : _plConstraints )
             {
+                constraint->registerGurobi( &( *_gurobi ) );
                 constraint->registerAsWatcher( _tableau );
                 constraint->setStatistics( &_statistics );
             }
@@ -1345,11 +1353,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
             _statistics.setUnsignedAttribute( Statistics::NUM_PL_CONSTRAINTS,
                                               _plConstraints.size() );
-
-            _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-            _milpEncoder = std::unique_ptr<MILPEncoder>
-                ( new MILPEncoder( *_tableau ) );
-            _milpEncoder->setStatistics( &_statistics );
         }
 
         if ( GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH )
@@ -1459,7 +1462,7 @@ void Engine::performMILPSolverBoundedTightening()
 
 void Engine::performMILPSolverBoundedTighteningForSingleLayer( unsigned targetIndex )
 {
-    if ( _networkLevelReasoner && _isGurobyEnabled && !_isSkipLpTighteningAfterSplit
+    if ( _networkLevelReasoner && _isGurobyEnabled && !_performLpTighteningAfterSplit
             && _milpSolverBoundTighteningType != MILPSolverBoundTighteningType::NONE )
     {
         _networkLevelReasoner->obtainCurrentBounds();
@@ -1543,7 +1546,13 @@ void Engine::extractSolution( InputQuery &inputQuery )
 
 bool Engine::allVarsWithinBounds() const
 {
-    return !_tableau->existsBasicOutOfBounds();
+    if ( _lpSolverType == LPSolverType::GUROBI )
+    {
+        ASSERT( _gurobi );
+        return _gurobi->haveFeasibleSolution();
+    }
+    else
+        return !_tableau->existsBasicOutOfBounds();
 }
 
 void Engine::collectViolatedPlConstraints()
@@ -1551,6 +1560,7 @@ void Engine::collectViolatedPlConstraints()
     _violatedPlConstraints.clear();
     for ( const auto &constraint : _plConstraints )
     {
+        std::cout << "Collecting" << std::endl;
         if ( constraint->isActive() && !constraint->satisfied() )
             _violatedPlConstraints.append( constraint );
     }

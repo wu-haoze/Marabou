@@ -414,7 +414,7 @@ private:
     */
     unsigned _simulationSize;
     bool _isGurobyEnabled;
-    bool _isSkipLpTighteningAfterSplit;
+    bool _performLpTighteningAfterSplit;
     MILPSolverBoundTighteningType _milpSolverBoundTighteningType;
 
     /*

@@ -123,7 +123,7 @@ def createOptions(numWorkers=1, initialTimeout=5, initialSplits=0, onlineSplits=
                   restoreTreeStates=False, splitThreshold=20, solveWithMILP=False,
                   preprocessorBoundTolerance=0.0000000001, dumpBounds=False,
                   tighteningStrategy="deeppoly", milpTightening="lp", milpSolverTimeout=0,
-                  numSimulations=10, skipLpTighteningAfterSplit=False):
+                  numSimulations=10, performLpTighteningAfterSplit=False):
     """Create an options object for how Marabou should solve the query
 
     Args:
@@ -147,7 +147,7 @@ def createOptions(numWorkers=1, initialTimeout=5, initialSplits=0, onlineSplits=
         milpTightening (string, optional): The (mi)lp-based bound tightening techniques used to preprocess the query (milp-inc/lp-inc/milp/lp/none). default to lp.
         milpSolverTimeout (float, optional): Timeout duration for MILP
         numSimulations (int, optional): Number of simulations generated per neuron, defaults to 10
-        skipLpTighteningAfterSplit (bool, optional): Whether to skip a LP tightening after a case split, defaults to False
+        performLpTighteningAfterSplit (bool, optional): Whether to perform a LP tightening after a case split, defaults to False
     Returns:
         :class:`~maraboupy.MarabouCore.Options`
     """
@@ -171,5 +171,5 @@ def createOptions(numWorkers=1, initialTimeout=5, initialSplits=0, onlineSplits=
     options._milpTightening = milpTightening
     options._milpSolverTimeout = milpSolverTimeout
     options._numSimulations = numSimulations
-    options._skipLpTighteningAfterSplit = skipLpTighteningAfterSplit
+    options._performLpTighteningAfterSplit = performLpTighteningAfterSplit
     return options

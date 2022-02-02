@@ -24,7 +24,7 @@ const double GlobalConfiguration::EXPONENTIAL_MOVING_AVERAGE_ALPHA = 0.5;
 
 // Whether to use SoI instead of Reluplex for local search for satisfying assignments
 //to non-linear constraint.
-const bool GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH = false;
+const bool GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH = true;
 
 // Use the polarity metrics to decide which branch to take first in a case split
 // and how to repair a ReLU constraint.
@@ -97,7 +97,7 @@ const unsigned GlobalConfiguration::DNC_DEPTH_THRESHOLD = 5;
 
 #ifdef ENABLE_GUROBI
 const unsigned GlobalConfiguration::GUROBI_NUMBER_OF_THREADS = 1;
-const bool GlobalConfiguration::GUROBI_LOGGING = false;
+const bool GlobalConfiguration::GUROBI_LOGGING = true;
 #endif // ENABLE_GUROBI
 
 // Logging - note that it is enabled only in Debug mode

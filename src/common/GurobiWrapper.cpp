@@ -284,6 +284,7 @@ void GurobiWrapper::solve()
     try
     {
         _model->optimize();
+        log( Stringf( "Model status: %u\n", _model->get( GRB_IntAttr_Status ) ) );
     }
     catch ( GRBException e )
     {
