@@ -225,14 +225,17 @@ bool Engine::solve( unsigned timeoutInSeconds )
             // Check whether progress has been made recently
             checkOverallProgress();
 
-            if ( performPrecisionRestorationIfNeeded() )
-                continue;
-
-            if ( _tableau->basisMatrixAvailable() )
+            if ( _lpSolverType == LPSolverType::NATIVE )
             {
-                explicitBasisBoundTightening();
-                applyAllBoundTightenings();
-                applyAllValidConstraintCaseSplits();
+                if ( performPrecisionRestorationIfNeeded() )
+                    continue;
+
+                if ( _tableau->basisMatrixAvailable() )
+                {
+                    explicitBasisBoundTightening();
+                    applyAllBoundTightenings();
+                    applyAllValidConstraintCaseSplits();
+                }
             }
 
             // If true, we just entered a new subproblem
@@ -1329,6 +1332,8 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _milpEncoder = std::unique_ptr<MILPEncoder>
                 ( new MILPEncoder( *_tableau ) );
             _milpEncoder->setStatistics( &_statistics );
+
+            _tableau->setGurobi( &( *_gurobi ) );
 
             _constraintBoundTightener->setDimensions();
 

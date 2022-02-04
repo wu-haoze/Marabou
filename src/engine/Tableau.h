@@ -17,8 +17,10 @@
 #define __Tableau_h__
 
 #include "BoundManager.h"
+#include "GurobiWrapper.h"
 #include "IBasisFactorization.h"
 #include "ITableau.h"
+#include "LPSolverType.h"
 #include "MString.h"
 #include "Map.h"
 #include "Set.h"
@@ -378,6 +380,8 @@ public:
     void notifyLowerBound( unsigned variable, double bound );
     void notifyUpperBound( unsigned variable, double bound );
 
+    void setGurobi( GurobiWrapper *gurobi );
+
     /*
       Have the Tableau start reporting statistics.
      */
@@ -636,7 +640,9 @@ private:
       True if and only if we are using the native Simplex implementation for
       LP solving.
     */
-    bool _useNativeSimplex;
+    LPSolverType _lpSolverType;
+
+    GurobiWrapper *_gurobi;
 
     /*
       Free all allocated memory.

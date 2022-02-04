@@ -527,6 +527,10 @@ public:
     {
     }
 
+    void setGurobi( GurobiWrapper */* gurobi */ )
+    {
+    }
+
     void setStatistics( Statistics */* statistics */ )
     {
     }

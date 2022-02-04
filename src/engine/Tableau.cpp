@@ -63,7 +63,8 @@ Tableau::Tableau()
     , _statistics( NULL )
     , _costFunctionManager( NULL )
     , _rhsIsAllZeros( true )
-    , _useNativeSimplex( Options::get()->getLPSolverType() == LPSolverType::NATIVE )
+    , _lpSolverType( Options::get()->getLPSolverType() )
+    , _gurobi( nullptr )
 {
 }
 
@@ -537,24 +538,34 @@ const double *Tableau::getUpperBounds() const
 
 double Tableau::getValue( unsigned variable ) const
 {
-    /*
-      If this variable has been merged into another,
-      we need to be reading the other variable's value
-    */
-    if ( _mergedVariables.exists( variable ) )
-        variable = _mergedVariables[variable];
-
-    // The values of non-basics can be extracted even if the
-    // assignment is invalid
-    if ( !_basicVariables.exists( variable ) )
+    if ( _lpSolverType == LPSolverType::GUROBI )
     {
-        unsigned index = _variableToIndex[variable];
-        return _nonBasicAssignment[index];
+        ASSERT( _gurobi );
+        return _gurobi->getAssignment( Stringf( "x%u", variable ) );
     }
+    else
+    {
+        ASSERT( _lpSolverType == LPSolverType::NATIVE );
 
-    ASSERT( _basicAssignmentStatus != ITableau::BASIC_ASSIGNMENT_INVALID );
+        /*
+          If this variable has been merged into another,
+          we need to be reading the other variable's value
+        */
+        if ( _mergedVariables.exists( variable ) )
+            variable = _mergedVariables[variable];
 
-    return _basicAssignment[_variableToIndex[variable]];
+        // The values of non-basics can be extracted even if the
+        // assignment is invalid
+        if ( !_basicVariables.exists( variable ) )
+        {
+            unsigned index = _variableToIndex[variable];
+            return _nonBasicAssignment[index];
+        }
+
+        ASSERT( _basicAssignmentStatus != ITableau::BASIC_ASSIGNMENT_INVALID );
+
+        return _basicAssignment[_variableToIndex[variable]];
+    }
 }
 
 unsigned Tableau::basicIndexToVariable( unsigned index ) const
@@ -1839,7 +1850,7 @@ void Tableau::tightenLowerBound( unsigned variable, double value )
 
     setLowerBound( variable, value );
 
-    if ( _useNativeSimplex )
+    if ( _lpSolverType == LPSolverType::NATIVE )
         updateVariableToComplyWithLowerBoundUpdate( variable, value );
 }
 
@@ -1855,7 +1866,7 @@ void Tableau::tightenUpperBound( unsigned variable, double value )
 
     setUpperBound( variable, value );
 
-    if ( _useNativeSimplex )
+    if ( _lpSolverType == LPSolverType::NATIVE )
         updateVariableToComplyWithUpperBoundUpdate( variable, value );
 }
 
@@ -2245,6 +2256,11 @@ double Tableau::getSumOfInfeasibilities() const
     return result;
 }
 
+void Tableau::setGurobi( GurobiWrapper *gurobi )
+{
+    _gurobi = gurobi;
+}
+
 void Tableau::setStatistics( Statistics *statistics )
 {
     _statistics = statistics;
@@ -2252,7 +2268,7 @@ void Tableau::setStatistics( Statistics *statistics )
 
 void Tableau::verifyInvariants()
 {
-    if ( !_useNativeSimplex )
+    if ( _lpSolverType != LPSolverType::NATIVE )
         return;
 
     // All merged variables are non-basic
@@ -2520,7 +2536,8 @@ void Tableau::makeBasisMatrixAvailable()
 
 bool Tableau::basisMatrixAvailable() const
 {
-    return _useNativeSimplex && _basisFactorization->explicitBasisAvailable();
+    return ( _lpSolverType == LPSolverType::NATIVE
+             && _basisFactorization->explicitBasisAvailable() );
 }
 
 double *Tableau::getInverseBasisMatrix() const
