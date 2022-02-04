@@ -244,6 +244,8 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 performBoundTighteningAfterCaseSplit();
                 informLPSolverOfBounds();
                 splitJustPerformed = false;
+
+                DEBUG({ checkGurobiBoundConsistency(); });
             }
 
             // Perform any SmtCore-initiated case splits
@@ -2953,4 +2955,36 @@ bool Engine::minimizeCostWithGurobi( const LinearExpression &costFunction )
                                     _gurobi->getStatusCode() ).ascii() );
 
     return false;
+}
+
+void Engine::checkGurobiBoundConsistency() const
+{
+    if ( _gurobi && _milpEncoder )
+    {
+        for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
+        {
+            String iName = _milpEncoder->getVariableNameFromVariable( i );
+            double gurobiLowerBound = _gurobi->getLowerBound( iName );
+            double lowerBound = _tableau->getLowerBound( i );
+            if ( !FloatUtils::areEqual( gurobiLowerBound, lowerBound ) )
+            {
+                throw MarabouError
+                    ( MarabouError::BOUNDS_NOT_UP_TO_DATE_IN_LP_SOLVER,
+                      Stringf( "x%u lower bound inconsistent!"
+                               " Gurobi: %f, Tableau: %f",
+                               i, gurobiLowerBound, lowerBound ).ascii() );
+            }
+            double gurobiUpperBound = _gurobi->getUpperBound( iName );
+            double upperBound = _tableau->getUpperBound( i );
+
+            if ( !FloatUtils::areEqual( gurobiUpperBound, upperBound ) )
+            {
+                throw MarabouError
+                    ( MarabouError::BOUNDS_NOT_UP_TO_DATE_IN_LP_SOLVER,
+                      Stringf( "x%u upper bound inconsistent!"
+                               " Gurobi: %f, Tableau: %f",
+                               i, gurobiUpperBound, upperBound ).ascii() );
+            }
+        }
+    }
 }

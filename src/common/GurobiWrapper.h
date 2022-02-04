@@ -62,6 +62,16 @@ public:
     void setLowerBound( String name, double lb );
     void setUpperBound( String name, double ub );
 
+    inline double getLowerBound( const String &name )
+    {
+        return _model->getVarByName( name.ascii() ).get( GRB_DoubleAttr_LB );
+    }
+
+    inline double getUpperBound( const String &name )
+    {
+        return _model->getVarByName( name.ascii() ).get( GRB_DoubleAttr_UB );
+    }
+
     // Add a new LEQ constraint, e.g. 3x + 4y <= -5
     void addLeqConstraint( const List<Term> &terms, double scalar );
 
@@ -203,6 +213,8 @@ public:
     void addVariable( String, double, double, VariableType type = CONTINUOUS ) { (void)type; }
     void setLowerBound( String, double ) {};
     void setUpperBound( String, double ) {};
+    double getLowerBound( const String & ) { return 0; };
+    double getUpperBound( const String & ) { return 0; };
     void addLeqConstraint( const List<Term> &, double ) {}
     void addGeqConstraint( const List<Term> &, double ) {}
     void addEqConstraint( const List<Term> &, double ) {}

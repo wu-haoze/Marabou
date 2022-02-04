@@ -689,6 +689,12 @@ private:
       the constraints in _gurobi are infeasible. Throw an error otherwise.
     */
     bool minimizeCostWithGurobi( const LinearExpression &costFunction );
+
+    /*
+      DEBUG only
+      Check that the variable bounds in Gurobi is up-to-date.
+    */
+    void checkGurobiBoundConsistency() const;
 };
 
 #endif // __Engine_h__
