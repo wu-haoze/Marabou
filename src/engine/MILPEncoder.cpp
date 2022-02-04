@@ -280,6 +280,7 @@ void MILPEncoder::encodeAbsoluteValueConstraint( GurobiWrapper &gurobi,
     terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
     terms.append( GurobiWrapper::Term( -2 * sourceUb, Stringf( "a%u", _binVarIndex ) ) );
     gurobi.addLeqConstraint( terms, 0 );
+    ++_binVarIndex;
 }
 
 void MILPEncoder::encodeSignConstraint( GurobiWrapper &gurobi,
@@ -320,6 +321,8 @@ void MILPEncoder::encodeSignConstraint( GurobiWrapper &gurobi,
     terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
     terms.append( GurobiWrapper::Term( -2, Stringf( "a%u", _binVarIndex ) ) );
     gurobi.addEqConstraint( terms, -1 );
+
+    ++_binVarIndex;
 }
 
 void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi, SigmoidConstraint *sigmoid )
