@@ -82,7 +82,7 @@ void Options::initializeDefaultValues()
     _stringOptions[SPLITTING_STRATEGY] = "";
     _stringOptions[SNC_SPLITTING_STRATEGY] = "";
     _stringOptions[SYMBOLIC_BOUND_TIGHTENING_TYPE] = "";
-    _stringOptions[MILP_SOLVER_BOUND_TIGHTENING_TYPE] = "";
+    _stringOptions[MILP_SOLVER_BOUND_TIGHTENING_TYPE] = "none";
     _stringOptions[QUERY_DUMP_FILE] = "";
     _stringOptions[SOI_SEARCH_STRATEGY] = "mcmc";
     _stringOptions[SOI_INITIALIZATION_STRATEGY] = "input-assignment";
