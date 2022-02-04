@@ -265,7 +265,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 // The linear portion of the problem has been solved.
                 // Check the status of the PL constraints
                 bool solutionFound =
-                    handleSatisfyingAssignmentToLinearConstraints();
+                    adjustAssignmentToSatisfyNonLinearConstraints();
                 if ( solutionFound )
                 {
                     struct timespec mainLoopEnd = TimeUtils::sampleMicro();
@@ -398,14 +398,17 @@ void Engine::performBoundTighteningAfterCaseSplit()
             ( _networkLevelReasoner->getLayerIndexToLayer().size() - 1 );
 }
 
-bool Engine::handleSatisfyingAssignmentToLinearConstraints()
+bool Engine::adjustAssignmentToSatisfyNonLinearConstraints()
 {
+    ENGINE_LOG( "Linear constraints satisfied. Now trying to satisfy non-linear"
+                " constraints..." );
     collectViolatedPlConstraints();
 
     // If all constraints are satisfied, we are possibly done
     if ( allPlConstraintsHold() )
     {
-        if ( _tableau->getBasicAssignmentStatus() !=
+        if ( _lpSolverType == LPSolverType::NATIVE &&
+             _tableau->getBasicAssignmentStatus() !=
              ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )
         {
             if ( _verbosity > 0 )
@@ -444,9 +447,6 @@ bool Engine::handleSatisfyingAssignmentToLinearConstraints()
 
 bool Engine::performPrecisionRestorationIfNeeded()
 {
-    if ( _lpSolverType != LPSolverType::NATIVE )
-        return false;
-
     // If the basis has become malformed, we need to restore it
     if ( basisRestorationNeeded() )
     {
@@ -1565,7 +1565,6 @@ void Engine::collectViolatedPlConstraints()
     _violatedPlConstraints.clear();
     for ( const auto &constraint : _plConstraints )
     {
-        std::cout << "Collecting" << std::endl;
         if ( constraint->isActive() && !constraint->satisfied() )
             _violatedPlConstraints.append( constraint );
     }
@@ -1638,12 +1637,15 @@ void Engine::restoreState( const EngineState &state )
 
     _numPlConstraintsDisabledByValidSplits = state._numPlConstraintsDisabledByValidSplits;
 
-    // Make sure the data structures are initialized to the correct size
-    _rowBoundTightener->setDimensions();
-    _constraintBoundTightener->setDimensions();
-    adjustWorkMemorySize();
-    _activeEntryStrategy->resizeHook( _tableau );
-    _costFunctionManager->initialize();
+    if ( _lpSolverType == LPSolverType::NATIVE )
+    {
+        // Make sure the data structures are initialized to the correct size
+        _rowBoundTightener->setDimensions();
+        _constraintBoundTightener->setDimensions();
+        adjustWorkMemorySize();
+        _activeEntryStrategy->resizeHook( _tableau );
+        _costFunctionManager->initialize();
+    }
 
     // Reset the violation counts in the SMT core
     _smtCore.resetSplitConditions();
@@ -2779,7 +2781,8 @@ bool Engine::performDeepSoILocalSearch()
             collectViolatedPlConstraints();
             if ( allPlConstraintsHold() )
             {
-                if ( _tableau->getBasicAssignmentStatus() !=
+                if ( _lpSolverType == LPSolverType::NATIVE &&
+                     _tableau->getBasicAssignmentStatus() !=
                      ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )
                 {
                     if ( _verbosity > 0 )
@@ -2906,20 +2909,21 @@ void Engine::updatePseudoImpactWithSoICosts( double costOfLastAcceptedPhasePatte
 
 void Engine::informLPSolverOfBounds()
 {
-    struct timespec start = TimeUtils::sampleMicro();
     if ( _lpSolverType == LPSolverType::GUROBI )
     {
+        struct timespec start = TimeUtils::sampleMicro();
         for ( unsigned i = 0; i < _preprocessedQuery.getNumberOfVariables(); ++i )
         {
             String variableName = _milpEncoder->getVariableNameFromVariable( i );
             _gurobi->setLowerBound( variableName, _tableau->getLowerBound( i ) );
             _gurobi->setUpperBound( variableName, _tableau->getUpperBound( i ) );
         }
+        _gurobi->updateModel();
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics.incLongAttribute
+            ( Statistics::TIME_ADDING_CONSTRAINTS_TO_MILP_SOLVER_MICRO,
+              TimeUtils::timePassed( start, end ) );
     }
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.incLongAttribute
-        ( Statistics::TIME_ADDING_CONSTRAINTS_TO_MILP_SOLVER_MICRO,
-          TimeUtils::timePassed( start, end ) );
 }
 
 bool Engine::minimizeCostWithGurobi( const LinearExpression &costFunction )

@@ -80,6 +80,17 @@ void GurobiWrapper::resetModel()
     _model->getEnv().set( GRB_IntParam_Threads,
                           GlobalConfiguration::GUROBI_NUMBER_OF_THREADS );
 
+    // Numeral parameters
+    _model->getEnv().set
+        ( GRB_DoubleParam_FeasibilityTol,
+          std::max
+          ( GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS, 1e-9 ) );
+
+    _model->getEnv().set
+        ( GRB_DoubleParam_IntFeasTol,
+          std::max
+          ( GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE, 1e-8 ) );
+
     // Timeout
     setTimeLimit( _timeoutInSeconds );
 }
