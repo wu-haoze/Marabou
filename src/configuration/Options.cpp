@@ -239,5 +239,5 @@ LPSolverType Options::getLPSolverType() const
     else if ( solverString == "gurobi" )
         return LPSolverType::GUROBI;
     else
-        return LPSolverType::NATIVE;
+        return gurobiEnabled() ? LPSolverType::GUROBI : LPSolverType::NATIVE;
 }

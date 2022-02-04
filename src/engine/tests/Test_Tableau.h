@@ -20,6 +20,7 @@
 #include "MockCostFunctionManager.h"
 #include "MockErrno.h"
 #include "MarabouError.h"
+#include "Options.h"
 #include "Tableau.h"
 #include "TableauRow.h"
 #include "TableauState.h"
@@ -61,6 +62,7 @@ public:
     void setUp()
     {
         TS_ASSERT( mock = new MockForTableau );
+        Options::get()->setString( Options::LP_SOLVER, "native" );
     }
 
     void tearDown()
