@@ -60,6 +60,15 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
             encodeMaxConstraint( gurobi, (MaxConstraint *)plConstraint,
                                  relax );
             break;
+        case PiecewiseLinearFunctionType::SIGN:
+            encodeSignConstraint( gurobi, (SignConstraint *)plConstraint,
+                                  relax );
+            break;
+        case PiecewiseLinearFunctionType::ABSOLUTE_VALUE:
+            encodeAbsoluteValueConstraint( gurobi,
+                                           (AbsoluteValueConstraint *)plConstraint,
+                                           relax );
+            break;
         default:
             throw MarabouError( MarabouError::UNSUPPORTED_PIECEWISE_LINEAR_CONSTRAINT,
                                 "GurobiWrapper::encodeInputQuery: "
@@ -223,6 +232,94 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
         terms.clear();
     }
     _binVarIndex++;
+}
+
+void MILPEncoder::encodeAbsoluteValueConstraint( GurobiWrapper &gurobi,
+                                                 AbsoluteValueConstraint *abs,
+                                                 bool relax )
+{
+    ASSERT( abs->auxVariablesInUse() );
+
+    if ( !abs->isActive() || abs->phaseFixed() )
+    {
+        ASSERT( ( FloatUtils::gte( _tableau.getLowerBound( abs->getB() ),  0 ) &&
+                  FloatUtils::lte( _tableau.getUpperBound( abs->getPosAux() ), 0 ) )
+                ||
+                ( FloatUtils::lte( _tableau.getUpperBound( abs->getB() ), 0 ) &&
+                  FloatUtils::lte( _tableau.getUpperBound( abs->getNegAux() ), 0 ) ) );
+        return;
+    }
+
+    unsigned sourceVariable = abs->getB();
+    unsigned targetVariable = abs->getF();
+    double sourceLb = _tableau.getLowerBound( sourceVariable );
+    double sourceUb = _tableau.getUpperBound( sourceVariable );
+
+    ASSERT( FloatUtils::isPositive( sourceUb ) &&
+            FloatUtils::isNegative( sourceLb ) );
+
+    /*
+      We have added f - b >= 0 and f + b >= 0. We need to add
+      f - b <= (1 - a) * (ub_b - lb_b) and f + b <= a * (ub_b + ub_b)
+      where a is a binary.
+    */
+    gurobi.addVariable( Stringf( "a%u", _binVarIndex ),
+                        0,
+                        1,
+                        relax ?
+                        GurobiWrapper::CONTINUOUS : GurobiWrapper::BINARY );
+
+    List<GurobiWrapper::Term> terms;
+    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+    terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+    terms.append( GurobiWrapper::Term( sourceUb - sourceLb, Stringf( "a%u", _binVarIndex ) ) );
+    gurobi.addLeqConstraint( terms, sourceUb - sourceLb );
+
+    terms.clear();
+    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
+    terms.append( GurobiWrapper::Term( -2 * sourceUb, Stringf( "a%u", _binVarIndex ) ) );
+    gurobi.addLeqConstraint( terms, 0 );
+}
+
+void MILPEncoder::encodeSignConstraint( GurobiWrapper &gurobi,
+                                        SignConstraint *sign,
+                                        bool relax )
+{
+    ASSERT( GlobalConfiguration::PL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING );
+
+    if ( !sign->isActive() || sign->phaseFixed() )
+    {
+        ASSERT( ( FloatUtils::gte( _tableau.getLowerBound( sign->getB() ),  0 ) &&
+                  FloatUtils::areEqual( _tableau.getLowerBound( sign->getF() ), 1 ) )
+                ||
+                ( FloatUtils::lt( _tableau.getUpperBound( sign->getB() ), 0 ) &&
+                  FloatUtils::areEqual( _tableau.getLowerBound( sign->getF() ), -1 ) ) );
+        return;
+    }
+
+    unsigned sourceVariable = sign->getB();
+    unsigned targetVariable = sign->getF();
+    double sourceLb = _tableau.getLowerBound( sourceVariable );
+    double sourceUb = _tableau.getUpperBound( sourceVariable );
+
+    ASSERT( !FloatUtils::isNegative( sourceUb ) &&
+            FloatUtils::isNegative( sourceLb ) );
+
+    /*
+      We have added f <= -2/lb b + 1 and f >= 2/ub * b - 1. We just need to specify
+      f is either -1 or 1. That is f = 2 * (a - 0.5)
+    */
+    gurobi.addVariable( Stringf( "a%u", _binVarIndex ),
+                        0,
+                        1,
+                        relax ?
+                        GurobiWrapper::CONTINUOUS : GurobiWrapper::BINARY );
+
+    List<GurobiWrapper::Term> terms;
+    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+    terms.append( GurobiWrapper::Term( -2, Stringf( "a%u", _binVarIndex ) ) );
+    gurobi.addEqConstraint( terms, -1 );
 }
 
 void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi, SigmoidConstraint *sigmoid )

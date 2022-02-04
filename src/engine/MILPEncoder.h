@@ -110,6 +110,19 @@ private:
                               bool relax );
 
     /*
+      Encode an abs constraint f = Abs(b) into Gurobi
+    */
+    void encodeAbsoluteValueConstraint( GurobiWrapper &gurobi,
+                                        AbsoluteValueConstraint *abs,
+                                        bool relax );
+
+    /*
+      Encode a sign constraint f = Sign(b) into Gurobi
+    */
+    void encodeSignConstraint( GurobiWrapper &gurobi, SignConstraint *sign,
+                               bool relax );
+
+    /*
       Encode a Sigmoid constraint
     */
     void encodeSigmoidConstraint( GurobiWrapper &gurobi, SigmoidConstraint *sigmoid );

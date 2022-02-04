@@ -1888,9 +1888,13 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
         }
     }
 
-    adjustWorkMemorySize();
+    if ( _lpSolverType == LPSolverType::NATIVE )
+    {
+        adjustWorkMemorySize();
 
-    _rowBoundTightener->resetBounds();
+        _rowBoundTightener->resetBounds();
+    }
+
     _constraintBoundTightener->resetBounds();
 
     for ( auto &bound : bounds )
@@ -2372,7 +2376,9 @@ void Engine::resetExitCode()
 void Engine::resetBoundTighteners()
 {
     _constraintBoundTightener->resetBounds();
-    _rowBoundTightener->resetBounds();
+
+    if ( _lpSolverType == LPSolverType::NATIVE )
+        _rowBoundTightener->resetBounds();
 }
 
 void Engine::warmStart()

@@ -168,7 +168,7 @@ public:
         Engine engine;
         TS_ASSERT_THROWS_NOTHING( engine.processInputQuery( inputQuery, false ) )
 
-        TS_ASSERT_THROWS_NOTHING ( engine.solve() );
+        engine.solve();
 
         engine.extractSolution( inputQuery );
 
