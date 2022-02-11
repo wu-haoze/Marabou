@@ -129,6 +129,9 @@ void MaxConstraint::unregisterAsWatcher( ITableau *tableau )
 
 void MaxConstraint::notifyVariableValue( unsigned variable, double value )
 {
+    // Reluplex does not currently work with Gurobi.
+    ASSERT( _gurobi == NULL );
+
     if ( ( _elements.exists( _f ) || variable != _f ) &&
          ( !maxIndexSet() || !_assignment.exists( getMaxIndex() ) || _assignment.get( getMaxIndex() ) < value ) )
     {
@@ -403,12 +406,33 @@ unsigned MaxConstraint::getF() const
 
 bool MaxConstraint::satisfied() const
 {
-    if ( !( _assignment.exists( _f ) && _assignment.size() > 0 ) )
-        throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
+    if ( _gurobi )
+    {
+        if ( !( existsAssignment( _f ) ) )
+            throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
+        for ( const auto &element : _elements )
+            if ( !( existsAssignment( element ) ) )
+                throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
 
-    double fValue = _assignment.get( _f );
-    double maxValue = FloatUtils::max( _assignment.get( getMaxIndex() ), _maxValueOfEliminated );
-    return FloatUtils::areEqual( maxValue, fValue );
+        double fValue = getAssignment( _f );
+        double maxValue = _maxValueOfEliminated;
+        for ( const auto &element : _elements )
+        {
+            double currentValue = getAssignment( element );
+            if ( FloatUtils::gt( currentValue, maxValue ) )
+                maxValue = currentValue;
+        }
+        return FloatUtils::areEqual( maxValue, fValue );
+    }
+    else
+    {
+        if ( !( _assignment.exists( _f ) && _assignment.size() > 0 ) )
+            throw MarabouError( MarabouError::PARTICIPATING_VARIABLES_ABSENT );
+
+        double fValue = _assignment.get( _f );
+        double maxValue = FloatUtils::max( _assignment.get( getMaxIndex() ), _maxValueOfEliminated );
+        return FloatUtils::areEqual( maxValue, fValue );
+    }
 }
 
 bool MaxConstraint::isCaseInfeasible( unsigned variable ) const
@@ -455,6 +479,9 @@ void MaxConstraint::resetMaxIndex()
 
 List<PiecewiseLinearConstraint::Fix> MaxConstraint::getPossibleFixes() const
 {
+    // Reluplex does not currently work with Gurobi.
+    ASSERT( _gurobi == NULL );
+
     ASSERT( !satisfied() );
     ASSERT( _assignment.exists( _f ) && ( _assignment.size() > 1 || _eliminatedVariables ) );
 
@@ -503,6 +530,9 @@ List<PiecewiseLinearConstraint::Fix> MaxConstraint::getPossibleFixes() const
 
 List<PiecewiseLinearConstraint::Fix> MaxConstraint::getSmartFixes( ITableau * ) const
 {
+    // Reluplex does not currently work with Gurobi.
+    ASSERT( _gurobi == NULL );
+
     ASSERT( !satisfied() );
     ASSERT( _assignment.exists( _f ) && _assignment.size() > 1 );
 
@@ -688,6 +718,10 @@ PiecewiseLinearCaseSplit MaxConstraint::getSplit( unsigned argMax ) const
 
 void MaxConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
+    // We have already registered Gurobi and it is too late to update variable
+    // indices.
+    ASSERT( _gurobi == NULL );
+
     _lowerBounds[newIndex] = _lowerBounds[oldIndex];
     _upperBounds[newIndex] = _upperBounds[oldIndex];
 
@@ -849,14 +883,14 @@ String MaxConstraint::serializeToString() const
 
 bool MaxConstraint::haveOutOfBoundVariables() const
 {
-    double fValue = _assignment.get( _f );
+    double fValue = getAssignment( _f );
     if ( FloatUtils::gt( getLowerBound( _f ), fValue ) ||
          FloatUtils::lt( getUpperBound( _f ), fValue ) )
         return true;
 
     for ( const auto &element : _elements )
     {
-        double value = _assignment.get( element );
+        double value = getAssignment( element );
         if ( FloatUtils::gt( getLowerBound( element ), value ) ||
              FloatUtils::lt( getUpperBound( element ), value ) )
         return true;

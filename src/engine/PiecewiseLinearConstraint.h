@@ -49,6 +49,7 @@
 
 #include "BoundManager.h"
 #include "FloatUtils.h"
+#include "GurobiWrapper.h"
 #include "ITableau.h"
 #include "LinearExpression.h"
 #include "List.h"
@@ -338,6 +339,14 @@ public:
         _score = score;
     }
 
+    /*
+      Register the GurobiWrapper object. We will query it for assignment.
+    */
+    inline void registerGurobi( GurobiWrapper *gurobi )
+    {
+        _gurobi = gurobi;
+    }
+
     /**********************************************************************/
     /*          Context-dependent Members Initialization and Cleanup      */
     /**********************************************************************/
@@ -479,6 +488,11 @@ protected:
     Statistics *_statistics;
 
     /*
+      The gurobi object for solving the LPs during the search.
+    */
+    GurobiWrapper *_gurobi;
+
+    /*
       Initialize CDOs.
     */
     void initializeCDActiveStatus();
@@ -567,6 +581,26 @@ protected:
     {
         ( _boundManager != nullptr ) ? _boundManager->setUpperBound( var, value )
                                      : _upperBounds[var] = value;
+    }
+
+    /**********************************************************************/
+    /*                      ASSIGNMENT WRAPPER METHODS                    */
+    /**********************************************************************/
+    inline bool existsAssignment( unsigned variable ) const
+    {
+        return ( _gurobi == nullptr ) ?
+            _assignment.exists( variable )
+            : _gurobi->existsAssignment( Stringf( "x%u", variable ) );
+    }
+
+    inline double getAssignment( unsigned variable ) const
+    {
+        if ( _gurobi == nullptr )
+        {
+            return _assignment[variable];
+        }
+        else
+            return _gurobi->getAssignment( Stringf( "x%u", variable ) );
     }
 };
 

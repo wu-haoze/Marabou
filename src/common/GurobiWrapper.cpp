@@ -80,6 +80,17 @@ void GurobiWrapper::resetModel()
     _model->getEnv().set( GRB_IntParam_Threads,
                           GlobalConfiguration::GUROBI_NUMBER_OF_THREADS );
 
+    // Numeral parameters
+    _model->getEnv().set
+        ( GRB_DoubleParam_FeasibilityTol,
+          std::max
+          ( GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS, 1e-9 ) );
+
+    _model->getEnv().set
+        ( GRB_DoubleParam_IntFeasTol,
+          std::max
+          ( GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE, 1e-8 ) );
+
     // Timeout
     setTimeLimit( _timeoutInSeconds );
 }
@@ -91,6 +102,7 @@ void GurobiWrapper::reset()
 
 void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType type )
 {
+    std::cout << "name" << name.ascii() <<std::endl;
     ASSERT( !_nameToVariable.exists( name ) );
 
     char variableType = GRB_CONTINUOUS;
@@ -224,7 +236,7 @@ void GurobiWrapper::addIndicatorConstraint( const String binVarName, const int b
     }
 }
 
-void GurobiWrapper::setCost( const List<Term> &terms )
+void GurobiWrapper::setCost( const List<Term> &terms, double constant )
 {
     try
     {
@@ -235,6 +247,8 @@ void GurobiWrapper::setCost( const List<Term> &terms )
             ASSERT( _nameToVariable.exists( term._variable ) );
             cost += GRBLinExpr( *_nameToVariable[term._variable], term._coefficient );
         }
+
+        cost += constant;
 
         _model->setObjective( cost, GRB_MINIMIZE );
     }
@@ -247,7 +261,7 @@ void GurobiWrapper::setCost( const List<Term> &terms )
     }
 }
 
-void GurobiWrapper::setObjective( const List<Term> &terms )
+void GurobiWrapper::setObjective( const List<Term> &terms, double constant )
 {
     try
     {
@@ -258,6 +272,8 @@ void GurobiWrapper::setObjective( const List<Term> &terms )
             ASSERT( _nameToVariable.exists( term._variable ) );
             cost += GRBLinExpr( *_nameToVariable[term._variable], term._coefficient );
         }
+
+        cost += constant;
 
         _model->setObjective( cost, GRB_MAXIMIZE );
     }
@@ -280,6 +296,7 @@ void GurobiWrapper::solve()
     try
     {
         _model->optimize();
+        log( Stringf( "Model status: %u\n", _model->get( GRB_IntAttr_Status ) ) );
     }
     catch ( GRBException e )
     {
@@ -300,7 +317,7 @@ bool GurobiWrapper::cutoffOccurred()
     return _model->get( GRB_IntAttr_Status ) == GRB_CUTOFF;
 }
 
-bool GurobiWrapper::infeasbile()
+bool GurobiWrapper::infeasible()
 {
     return _model->get( GRB_IntAttr_Status ) == GRB_INFEASIBLE;
 }

@@ -21,6 +21,7 @@
 
 class EntrySelectionStrategy;
 class Equation;
+class GurobiWrapper;
 class ICostFunctionManager;
 class PiecewiseLinearCaseSplit;
 class SparseMatrix;
@@ -94,6 +95,7 @@ public:
     virtual ~ITableau() {};
 
     virtual void setDimensions( unsigned m, unsigned n ) = 0;
+    virtual void initializeBounds( unsigned n ) = 0;
     virtual void setConstraintMatrix( const double *A ) = 0;
     virtual void setRightHandSide( const double *b ) = 0;
     virtual void setRightHandSide( unsigned index, double value ) = 0;
@@ -161,6 +163,7 @@ public:
     virtual void performDegeneratePivot() = 0;
     virtual void storeState( TableauState &state ) const = 0;
     virtual void restoreState( const TableauState &state ) = 0;
+    virtual void setGurobi( GurobiWrapper *gurobi ) = 0;
     virtual void setStatistics( Statistics *statistics ) = 0;
     virtual const double *getRightHandSide() const = 0;
     virtual void forwardTransformation( const double *y, double *x ) const = 0;
