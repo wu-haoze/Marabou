@@ -2211,7 +2211,8 @@ List<unsigned> Engine::getInputVariables() const
 
 void Engine::performSimulation()
 {
-    if ( _simulationSize == 0 || !_networkLevelReasoner )
+    if ( _simulationSize == 0 || !_networkLevelReasoner ||
+         _milpSolverBoundTighteningType == MILPSolverBoundTighteningType::NONE )
     {
         ENGINE_LOG( Stringf( "Skip simulation...").ascii() );
         return;
@@ -2743,6 +2744,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                                 : timeoutInSeconds );
     ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
     _gurobi->setTimeLimit( timeoutForGurobi );
+    _gurobi->setVerbosity( _verbosity > 1 );
     _gurobi->solve();
 
     if ( _gurobi->haveFeasibleSolution() )

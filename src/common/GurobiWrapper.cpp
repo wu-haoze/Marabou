@@ -102,7 +102,6 @@ void GurobiWrapper::reset()
 
 void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType type )
 {
-    std::cout << "name" << name.ascii() <<std::endl;
     ASSERT( !_nameToVariable.exists( name ) );
 
     char variableType = GRB_CONTINUOUS;

@@ -118,6 +118,12 @@ public:
     // Specify a time limit, in seconds
     void setTimeLimit( double seconds );
 
+    // Set verbosity
+    inline void setVerbosity( unsigned verbosity )
+    {
+        _model->getEnv().set( GRB_IntParam_OutputFlag, verbosity );
+    }
+
     // Solve and extract the solution, or the best known bound on the
     // objective function
     void solve();
@@ -234,6 +240,7 @@ public:
     bool timeout() { return false; };
     bool haveFeasibleSolution() { return true; };
     void setTimeLimit( double ) {};
+    void setVerbosity( unsigned ) {};
     double getObjectiveBound() { return 0; };
     double getAssignment( const String & ){ return 0; };
     unsigned getNumberOfSimplexIterations() { return 0; };
