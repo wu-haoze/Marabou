@@ -301,11 +301,12 @@ void MILPEncoder::encodeSignConstraint( GurobiWrapper &gurobi,
 
     unsigned sourceVariable = sign->getB();
     unsigned targetVariable = sign->getF();
-    double sourceLb = _tableau.getLowerBound( sourceVariable );
-    double sourceUb = _tableau.getUpperBound( sourceVariable );
-
-    ASSERT( !FloatUtils::isNegative( sourceUb ) &&
-            FloatUtils::isNegative( sourceLb ) );
+    DEBUG({
+            double sourceLb = _tableau.getLowerBound( sourceVariable );
+            double sourceUb = _tableau.getUpperBound( sourceVariable );
+            ASSERT( !FloatUtils::isNegative( sourceUb ) &&
+                    FloatUtils::isNegative( sourceLb ) );
+        });
 
     /*
       We have added f <= -2/lb b + 1 and f >= 2/ub * b - 1. We just need to specify
