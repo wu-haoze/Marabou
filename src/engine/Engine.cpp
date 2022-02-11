@@ -1300,14 +1300,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
                 plConstraint->addAuxiliaryEquationsAfterPreprocessing
                     ( _preprocessedQuery );
 
-        double *constraintMatrix = createConstraintMatrix();
-        removeRedundantEquations( constraintMatrix );
-
-        if ( GlobalConfiguration::PL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING )
-            for ( auto &plConstraint : _preprocessedQuery.getPiecewiseLinearConstraints() )
-                plConstraint->addAuxiliaryEquationsAfterPreprocessing
-                    ( _preprocessedQuery );
-
         if ( _lpSolverType == LPSolverType::NATIVE )
         {
             double *constraintMatrix = createConstraintMatrix();

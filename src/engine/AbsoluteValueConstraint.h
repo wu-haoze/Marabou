@@ -163,23 +163,6 @@ public:
     */
     void addAuxiliaryEquations( InputQuery &inputQuery ) override;
 
-
-    /*
-      Ask the piecewise linear constraint to add its cost term corresponding to
-      the given phase to the cost function. The cost term for Abs is:
-      _f - _b for the active phase
-      _f + _b for the inactive phase
-    */
-    virtual void getCostFunctionComponent( LinearExpression &cost,
-                                           PhaseStatus phase ) const override;
-
-    /*
-      Return the phase status corresponding to the values of the *input*
-      variables in the given assignment.
-    */
-    virtual PhaseStatus getPhaseStatusInAssignment( const Map<unsigned, double>
-                                                    &assignment ) const override;
-
     /*
       Whether the constraint can contribute the SoI cost function.
     */
