@@ -17,8 +17,9 @@
 #include "AcasParser.h"
 #include "GlobalConfiguration.h"
 #include "File.h"
-#include "MStringf.h"
 #include "Marabou.h"
+#include "MpsParser.h"
+#include "MStringf.h"
 #include "Options.h"
 #include "PropertyParser.h"
 #include "MarabouError.h"
@@ -71,8 +72,19 @@ void Marabou::prepareInputQuery()
         }
 
         printf( "InputQuery: %s\n", inputQueryFilePath.ascii() );
-        _inputQuery = QueryLoader::loadQuery( inputQueryFilePath );
-        _inputQuery.constructNetworkLevelReasoner();
+
+        if ( *( inputQueryFilePath.tokenize( "." ).rbegin() ) == "mps" )
+        {
+            printf( "Generating query from MPS file\n" );
+            MpsParser mpsParser( inputQueryFilePath );
+            mpsParser.generateQuery( _inputQuery );
+            _inputQuery.constructNetworkLevelReasoner();
+        }
+        else
+        {
+            _inputQuery = QueryLoader::loadQuery( inputQueryFilePath );
+            _inputQuery.constructNetworkLevelReasoner();
+        }
     }
     else
     {
