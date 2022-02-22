@@ -487,9 +487,7 @@ bool Preprocessor::processEquations()
                 sum += addend._coefficient * getLowerBound( addend._variable );
 
             if ( FloatUtils::areDisequal( sum, equation->_scalar, GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
-            {
                 throw InfeasibleQueryException();
-            }
             equation = equations.erase( equation );
         }
     }
@@ -537,9 +535,7 @@ bool Preprocessor::processConstraints()
             if ( FloatUtils::gt( getLowerBound( tightening._variable ),
                                  getUpperBound( tightening._variable ),
                                  GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
-            {
                 throw InfeasibleQueryException();
-            }
         }
     }
 
@@ -579,9 +575,7 @@ bool Preprocessor::processConstraints()
             if ( FloatUtils::gt( getLowerBound( tightening._variable ),
                                  getUpperBound( tightening._variable ),
                                  GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
-            {
                 throw InfeasibleQueryException();
-            }
         }
     }
 
@@ -877,9 +871,7 @@ void Preprocessor::eliminateVariables()
 
             // No addends left, scalar should be 0
             if ( !FloatUtils::isZero( equation->_scalar ) )
-            {
                 throw InfeasibleQueryException();
-            }
             else
                 equation = equations.erase( equation );
         }
