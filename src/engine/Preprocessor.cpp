@@ -98,6 +98,16 @@ InputQuery Preprocessor::preprocess( const InputQuery &query, bool attemptVariab
         _inputOutputVariables.insert( var );
     for ( const auto &var : _preprocessed.getOutputVariables() )
         _inputOutputVariables.insert( var );
+    for ( const auto &constraint : _preprocessed.getPiecewiseLinearConstraints() )
+    {
+        if ( constraint->getType() == PiecewiseLinearFunctionType::DISJUNCTION )
+        {
+            for ( unsigned var : constraint->getParticipatingVariables() )
+            {
+                _inputOutputVariables.insert( var );
+            }
+        }
+    }
 
     /*
       Set any missing bounds
@@ -440,8 +450,6 @@ bool Preprocessor::processEquations()
                 delete[] ciTimesLb;
                 delete[] ciTimesUb;
                 delete[] ciSign;
-                std::cout << xi <<  " " << getLowerBound( xi ) << " " << getUpperBound( xi ) << std::endl;
-                std::cout << "invalid bounds" << std::endl;
                 throw InfeasibleQueryException();
             }
         }
@@ -480,7 +488,6 @@ bool Preprocessor::processEquations()
 
             if ( FloatUtils::areDisequal( sum, equation->_scalar, GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
             {
-                std::cout << "equation not equal" << std::endl;
                 throw InfeasibleQueryException();
             }
             equation = equations.erase( equation );
@@ -871,7 +878,6 @@ void Preprocessor::eliminateVariables()
             // No addends left, scalar should be 0
             if ( !FloatUtils::isZero( equation->_scalar ) )
             {
-                std::cout << "is zero" << std::endl;
                 throw InfeasibleQueryException();
             }
             else
@@ -890,7 +896,7 @@ void Preprocessor::eliminateVariables()
         List<unsigned> participatingVariables = (*constraint)->getParticipatingVariables();
         for ( unsigned variable : participatingVariables )
         {
-            if ( _fixedVariables.exists( variable ) )
+            if ( _fixedVariables.exists( variable ) && !_inputOutputVariables.exists( variable ) )
                 (*constraint)->eliminateVariable( variable, _fixedVariables.at( variable ) );
         }
 

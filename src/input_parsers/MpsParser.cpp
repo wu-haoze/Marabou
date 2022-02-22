@@ -13,13 +13,16 @@
 
 **/
 
+#include "DisjunctionConstraint.h"
 #include "File.h"
 #include "FloatUtils.h"
 #include "InputParserError.h"
 #include "InputQuery.h"
 #include "MStringf.h"
 #include "MpsParser.h"
-#include "PiecewiseLinearConstraint.h"
+#include "PiecewiseLinearCaseSplit.h"
+#include "Tightening.h"
+#include <cmath>
 #include <cstdio>
 
 MpsParser::MpsParser( const String &path )
@@ -449,4 +452,20 @@ void MpsParser::addPiecewiseLinearConstraints( InputQuery &inputQuery ) const
 {
     std::cout << inputQuery.getNumberOfVariables() << std::endl;
     std::cout << _integerVariables.size() << std::endl;
+    for ( const auto &integerVariable : _integerVariables )
+    {
+        double lb = getLowerBound( integerVariable );
+        double ub = getUpperBound( integerVariable );
+
+        List<PiecewiseLinearCaseSplit> splits;
+        for ( int i = ceil( lb ); i <= floor( ub ); ++i )
+        {
+            PiecewiseLinearCaseSplit split;
+            split.storeBoundTightening( Tightening( integerVariable, i, Tightening::LB ) );
+            split.storeBoundTightening( Tightening( integerVariable, i, Tightening::UB ) );
+            splits.append( split );
+        }
+        DisjunctionConstraint *disj = new DisjunctionConstraint( splits );
+        inputQuery.addPiecewiseLinearConstraint( disj );
+    }
 }
