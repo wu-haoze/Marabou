@@ -45,27 +45,27 @@ void MpsParser::parse( const String &path )
     String line;
 
     while ( true )
-	{
+    {
         line = file.readLine();
 
         if ( line.contains( "COLUMNS" ) )
              break;
 
 	    parseRow( line );
-	}
+    }
 
     MPS_LOG( Stringf( "Number of rows parsed: %u", _numRows ).ascii() );
 
     // Finished parsing rows, proceed to columns
     while ( true )
-	{
+    {
         line = file.readLine();
 
         if ( line.contains( "RHS" ) )
-             break;
+            break;
 
-	    parseColumn( line );
-	}
+        parseColumn( line );
+    }
 
     MPS_LOG( Stringf( "Number of variables detected: %u\n", _numVars ).ascii() );
 
@@ -78,7 +78,7 @@ void MpsParser::parse( const String &path )
             break;
 
         parseRhs( line );
-	}
+    }
 
     // The bounds section is optional, process it if it exists
     if ( line.contains( "BOUNDS" ) )
@@ -212,48 +212,87 @@ void MpsParser::parseBounds( const String &line )
 {
     List<String> tokens = line.tokenize( "\t\n " );
 
-    if ( tokens.size() != 4 )
-	    throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
-
-    auto it = tokens.begin();
-    String type = *it;
-    ++it;
-
-    String dontCareName = *it;
-    ++it;
-    String varName = *it;
-    ++it;
-    double scalar = atof( it->ascii() );
-
-    if ( !_variableNameToIndex.exists( varName ) )
-        throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
-
-    unsigned varIndex = _variableNameToIndex[varName];
-
-    if ( type == "UP" )
+    if ( tokens.size() == 3 )
     {
-        // Upper bound
-        if ( !_varToUpperBounds.exists( varIndex ) || ( _varToUpperBounds[varIndex] > scalar ) )
-            _varToUpperBounds[varIndex] = scalar;
+        auto it = tokens.begin();
+        String type = *it;
+        ++it;
+
+        String dontCareName = *it;
+        ++it;
+        String varName = *it;
+
+        if ( !_variableNameToIndex.exists( varName ) )
+            throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
+
+        unsigned varIndex = _variableNameToIndex[varName];
+
+        if ( type == "FR" )
+        {
+            // unbounded variable
+            return;
+        }
+        else if ( type == "BV" )
+        {
+            if ( !_varToLowerBounds.exists( varIndex ) ||
+                 _varToLowerBounds[varIndex] < 0 )
+                _varToLowerBounds[varIndex] = 0;
+            if ( !_varToUpperBounds.exists( varIndex ) ||
+                 _varToUpperBounds[varIndex] > 1 )
+                _varToUpperBounds[varIndex] = 1;
+        }
+        else
+        {
+            throw InputParserError( InputParserError::UNSUPPORTED_BOUND_TYPE,
+                                    line.ascii() );
+        }
     }
-    else if ( type == "LO" )
+    else if ( tokens.size() == 4 )
     {
-        // Lower bound
-        if ( !_varToLowerBounds.exists( varIndex ) || ( _varToLowerBounds[varIndex] < scalar ) )
-            _varToLowerBounds[varIndex] = scalar;
-	}
-    else if ( type == "FX" )
-    {
-        // Upper and lower bound
-        if ( !_varToUpperBounds.exists( varIndex ) || ( _varToUpperBounds[varIndex] > scalar ) )
-            _varToUpperBounds[varIndex] = scalar;
+        auto it = tokens.begin();
+        String type = *it;
+        ++it;
 
-        if ( !_varToLowerBounds.exists( varIndex ) || ( _varToLowerBounds[varIndex] < scalar ) )
-            _varToLowerBounds[varIndex] = scalar;
-	}
+        String dontCareName = *it;
+        ++it;
+        String varName = *it;
+        ++it;
+        double scalar = atof( it->ascii() );
+
+        if ( !_variableNameToIndex.exists( varName ) )
+            throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
+
+        unsigned varIndex = _variableNameToIndex[varName];
+
+        if ( type == "UP" )
+        {
+            // Upper bound
+            if ( !_varToUpperBounds.exists( varIndex ) || ( _varToUpperBounds[varIndex] > scalar ) )
+                _varToUpperBounds[varIndex] = scalar;
+        }
+        else if ( type == "LO" )
+        {
+            // Lower bound
+            if ( !_varToLowerBounds.exists( varIndex ) || ( _varToLowerBounds[varIndex] < scalar ) )
+                _varToLowerBounds[varIndex] = scalar;
+        }
+        else if ( type == "FX" )
+        {
+            // Upper and lower bound
+            if ( !_varToUpperBounds.exists( varIndex ) || ( _varToUpperBounds[varIndex] > scalar ) )
+                _varToUpperBounds[varIndex] = scalar;
+
+            if ( !_varToLowerBounds.exists( varIndex ) || ( _varToLowerBounds[varIndex] < scalar ) )
+                _varToLowerBounds[varIndex] = scalar;
+        }
+        else
+        {
+            throw InputParserError( InputParserError::UNSUPPORTED_BOUND_TYPE, line.ascii() );
+        }
+    }
     else
     {
-        throw InputParserError( InputParserError::UNSUPPORTED_BOUND_TYPE, line.ascii() );
+        throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
     }
 }
 
