@@ -19,6 +19,7 @@
 #include "InputQuery.h"
 #include "MStringf.h"
 #include "MpsParser.h"
+#include "PiecewiseLinearConstraint.h"
 #include <cstdio>
 
 MpsParser::MpsParser( const String &path )
@@ -183,6 +184,10 @@ void MpsParser::parseColumn( const String &line, bool &markingInteger )
         }
 
         unsigned varIndex = _variableNameToIndex[name];
+
+        // Marking integer variables if needed.
+        if ( markingInteger )
+            _integerVariables.insert( varIndex );
 
         // Parse the remaining token pairs
         while ( it != tokens.end() )
@@ -443,4 +448,5 @@ void MpsParser::populateEquation( Equation &equation, unsigned index ) const
 void MpsParser::addPiecewiseLinearConstraints( InputQuery &inputQuery ) const
 {
     std::cout << inputQuery.getNumberOfVariables() << std::endl;
+    std::cout << _integerVariables.size() << std::endl;
 }

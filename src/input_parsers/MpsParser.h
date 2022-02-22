@@ -81,6 +81,9 @@ private:
     Map<unsigned, String> _variableIndexToName;
     Map<unsigned, double> _varToUpperBounds;
     Map<unsigned, double> _varToLowerBounds;
+
+    // Marking integer constraints
+    Set<unsigned> _integerVariables;
 };
 
 #endif // __MpsParser_h__
