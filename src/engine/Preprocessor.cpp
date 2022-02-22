@@ -440,7 +440,8 @@ bool Preprocessor::processEquations()
                 delete[] ciTimesLb;
                 delete[] ciTimesUb;
                 delete[] ciSign;
-
+                std::cout << xi <<  " " << getLowerBound( xi ) << " " << getUpperBound( xi ) << std::endl;
+                std::cout << "invalid bounds" << std::endl;
                 throw InfeasibleQueryException();
             }
         }
@@ -479,6 +480,7 @@ bool Preprocessor::processEquations()
 
             if ( FloatUtils::areDisequal( sum, equation->_scalar, GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
             {
+                std::cout << "equation not equal" << std::endl;
                 throw InfeasibleQueryException();
             }
             equation = equations.erase( equation );
@@ -868,7 +870,10 @@ void Preprocessor::eliminateVariables()
 
             // No addends left, scalar should be 0
             if ( !FloatUtils::isZero( equation->_scalar ) )
+            {
+                std::cout << "is zero" << std::endl;
                 throw InfeasibleQueryException();
+            }
             else
                 equation = equations.erase( equation );
         }

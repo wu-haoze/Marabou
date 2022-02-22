@@ -32,6 +32,7 @@ public:
         EQ = 0,
         LE,
         GE,
+        OBJ,
     };
 
     MpsParser( const String &path );
@@ -51,7 +52,7 @@ private:
     // Helpers for parsing the various section of the file
     void parse( const String &path );
     void parseRow( const String &line );
-    void parseColumn( const String &line );
+    void parseColumn( const String &line, bool &markingInteger );
     void parseRhs( const String &line );
     void parseBounds( const String &line );
     void setRemainingBounds();
@@ -61,9 +62,14 @@ private:
     void populateEquations( InputQuery &inputQuery ) const;
     void populateEquation( Equation &equation, unsigned index ) const;
 
+    // Add piecewise-linear Constraints.
+    void addPiecewiseLinearConstraints( InputQuery &inputQuery ) const;
+
     // Number of equations and variables
     unsigned _numRows;
     unsigned _numVars;
+    // The row of the objective function.
+    int _indexOfObjective;
 
     // Various mappings
     Map<String, unsigned> _equationNameToIndex;

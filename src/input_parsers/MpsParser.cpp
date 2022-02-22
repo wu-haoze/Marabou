@@ -24,6 +24,7 @@
 MpsParser::MpsParser( const String &path )
     : _numRows( 0 )
     , _numVars( 0 )
+    , _indexOfObjective ( -1 )
 {
     parse( path );
 }
@@ -57,6 +58,7 @@ void MpsParser::parse( const String &path )
     MPS_LOG( Stringf( "Number of rows parsed: %u", _numRows ).ascii() );
 
     // Finished parsing rows, proceed to columns
+    bool markingInteger = false;
     while ( true )
     {
         line = file.readLine();
@@ -64,8 +66,9 @@ void MpsParser::parse( const String &path )
         if ( line.contains( "RHS" ) )
             break;
 
-        parseColumn( line );
+        parseColumn( line, markingInteger );
     }
+    ASSERT( !markingInteger );
 
     MPS_LOG( Stringf( "Number of variables detected: %u\n", _numVars ).ascii() );
 
@@ -124,6 +127,12 @@ void MpsParser::parseRow( const String &line )
         _equationIndexToRowType[_numRows] = RowType::GE;
         break;
 
+    case 'N':
+        if ( _indexOfObjective != -1 )
+            throw InputParserError( InputParserError::MULTIPLE_OBJECTIVES );
+        _equationIndexToRowType[_numRows] = RowType::OBJ;
+        _indexOfObjective = _numRows;
+        break;
     default:
         return;
     }
@@ -134,7 +143,7 @@ void MpsParser::parseRow( const String &line )
     ++_numRows;
 }
 
-void MpsParser::parseColumn( const String &line )
+void MpsParser::parseColumn( const String &line, bool &markingInteger )
 {
     List<String> tokens = line.tokenize( "\t\n " );
 
@@ -142,39 +151,60 @@ void MpsParser::parseColumn( const String &line )
     if ( tokens.size() % 2 == 0 )
 	    throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
 
-    // Variable name and index
-    auto it = tokens.begin();
-    String name = *it;
-    ++it;
-    if ( !_variableNameToIndex.exists( name ) )
+    // Check if this line is marking the beginning or the end of integral constraints.
+    if ( *( ++tokens.begin() ) == "'MARKER'" )
     {
-	    _variableNameToIndex[name] = _numVars;
-	    _variableIndexToName[_numVars] = name;
-	    ++_numVars;
-    }
-
-    unsigned varIndex = _variableNameToIndex[name];
-
-    // Parse the remaining token pairs
-    while ( it != tokens.end() )
-    {
-        String equationName = *it;
-        ++it;
-        double coefficient = atof( it->ascii() );
-        ++it;
-
-        if ( _equationNameToIndex.exists( equationName ) )
+        if ( tokens.size() != 3 )
+            throw InputParserError( InputParserError::UNEXPECTED_INPUT,
+                                    line.ascii() );
+        if ( *tokens.rbegin() == "'INTORG'" )
         {
-            // The pair describes a coefficient in a known equation
-            unsigned equationIndex = _equationNameToIndex[equationName];
-            _equationIndexToCoefficients[equationIndex][varIndex] = coefficient;
+            ASSERT( !markingInteger );
+            markingInteger = true;
         }
-        else
+        else if ( *tokens.rbegin() == "'INTEND'" )
         {
-            // The pair describes a coefficient in an unknown equation (the objective function?)
-            if ( coefficient != 0 )
-                throw InputParserError( InputParserError::UNEXPECTED_INPUT,
-                                        Stringf( "Problematic pair: %s, %.2lf", equationName.ascii(), coefficient ).ascii() );
+            ASSERT( markingInteger );
+            markingInteger = false;
+        }
+        return;
+    }
+    else
+    {
+        // Variable name and index
+        auto it = tokens.begin();
+        String name = *it;
+        ++it;
+        if ( !_variableNameToIndex.exists( name ) )
+        {
+            _variableNameToIndex[name] = _numVars;
+            _variableIndexToName[_numVars] = name;
+            ++_numVars;
+        }
+
+        unsigned varIndex = _variableNameToIndex[name];
+
+        // Parse the remaining token pairs
+        while ( it != tokens.end() )
+        {
+            String equationName = *it;
+            ++it;
+            double coefficient = atof( it->ascii() );
+            ++it;
+
+            if ( _equationNameToIndex.exists( equationName ) )
+            {
+                // The pair describes a coefficient in a known equation
+                unsigned equationIndex = _equationNameToIndex[equationName];
+                _equationIndexToCoefficients[equationIndex][varIndex] = coefficient;
+            }
+            else
+            {
+                // The pair describes a coefficient in an unknown equation (the objective function?)
+                if ( coefficient != 0 )
+                    throw InputParserError( InputParserError::UNEXPECTED_INPUT,
+                                            Stringf( "Problematic pair: %s, %.2lf", equationName.ascii(), coefficient ).ascii() );
+            }
         }
     }
 }
@@ -229,6 +259,8 @@ void MpsParser::parseBounds( const String &line )
 
         if ( type == "FR" )
         {
+            _varToLowerBounds[varIndex] = -DBL_MAX;
+            _varToUpperBounds[varIndex] = DBL_MAX;
             // unbounded variable
             return;
         }
@@ -343,6 +375,8 @@ void MpsParser::generateQuery( InputQuery &inputQuery ) const
 
     populateBounds( inputQuery );
     populateEquations( inputQuery );
+
+    addPiecewiseLinearConstraints( inputQuery );
 }
 
 void MpsParser::populateBounds( InputQuery &inputQuery ) const
@@ -358,18 +392,27 @@ void MpsParser::populateEquations( InputQuery &inputQuery ) const
 {
     for ( unsigned index = 0; index < _numRows; ++index )
     {
-        Equation equation;
-        populateEquation( equation, index );
-        inputQuery.addEquation( equation );
+        if ( static_cast<int>( index ) == _indexOfObjective )
+        {
+            // Ignore objective function since we only handle feasibility query
+            // for now.
+            continue;
+        }
+        else
+        {
+            Equation equation;
+            populateEquation( equation, index );
+            inputQuery.addEquation( equation );
+        }
     }
 }
 
 void MpsParser::populateEquation( Equation &equation, unsigned index ) const
 {
-    const Map<unsigned, double> &coeffs( _equationIndexToCoefficients[index] );
+    const Map<unsigned, double> &coeffs = _equationIndexToCoefficients[index];
 
     for ( const auto &pair : coeffs )
-		equation.addAddend( pair.second, pair.first );
+        equation.addAddend( pair.second, pair.first );
 
     switch ( _equationIndexToRowType[index] )
     {
@@ -384,15 +427,20 @@ void MpsParser::populateEquation( Equation &equation, unsigned index ) const
     case RowType::GE:
         equation.setType( Equation::GE );
         break;
+
+    case RowType::OBJ:
+        // Ignore objective for now
+        ASSERT( false );
+        break;
     }
 
-    equation.setScalar( _equationIndexToRhs[index] );
+    if ( _equationIndexToRhs.exists( index ) )
+        equation.setScalar( _equationIndexToRhs[index] );
+    else
+        equation.setScalar( 0 );
 }
 
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
+void MpsParser::addPiecewiseLinearConstraints( InputQuery &inputQuery ) const
+{
+    std::cout << inputQuery.getNumberOfVariables() << std::endl;
+}
