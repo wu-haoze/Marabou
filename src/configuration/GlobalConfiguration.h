@@ -166,6 +166,9 @@ public:
     // The tolerance for checking whether f = Abs( b )
     static const double ABS_CONSTRAINT_COMPARISON_TOLERANCE;
 
+    // The tolerance for checking whether the integal constraint is satisfied.
+    static const double INTEGER_CONSTRAINT_COMPARISON_TOLERANCE;
+
     // Should the initial basis be comprised only of auxiliary (row) variables?
     static const bool ONLY_AUX_INITIAL_BASIS;
 

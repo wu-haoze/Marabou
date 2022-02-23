@@ -82,6 +82,7 @@ const double GlobalConfiguration::PSE_GAMMA_UPDATE_TOLERANCE = 0.000000001;
 
 const double GlobalConfiguration::RELU_CONSTRAINT_COMPARISON_TOLERANCE = 0.00001;
 const double GlobalConfiguration::ABS_CONSTRAINT_COMPARISON_TOLERANCE = 0.00001;
+const double GlobalConfiguration::INTEGER_CONSTRAINT_COMPARISON_TOLERANCE = 0.00001;
 
 const bool GlobalConfiguration::ONLY_AUX_INITIAL_BASIS = false;
 
