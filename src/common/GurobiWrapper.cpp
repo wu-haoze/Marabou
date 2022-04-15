@@ -300,6 +300,8 @@ void GurobiWrapper::solve()
 {
     try
     {
+	for ( const auto variable : _nameToVariable )
+	    variable.second->set( GRB_CharAttr_VType, 'C' );
         _model->optimize();
     }
     catch ( GRBException e )

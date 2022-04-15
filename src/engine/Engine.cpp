@@ -2381,7 +2381,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
             if ( _verbosity > 0 )
                 printf( "Query encoded in Gurobi...\n" );
             ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", 60 ).ascii() )
-                _gurobi->setTimeLimit( 60 );
+                _gurobi->setTimeLimit( 0 );
             _gurobi->setVerbosity( (_verbosity < 2 ? 0 : 1 ) );
             _gurobi->solve();
 	}
