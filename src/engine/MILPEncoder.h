@@ -31,6 +31,8 @@ class MILPEncoder
 public:
     MILPEncoder( const ITableau &tableau );
 
+    void reset();
+
     /*
       Encode the input query as a Gurobi query, variables and inequalities
       are from inputQuery, and latest variable bounds are from tableau
@@ -46,12 +48,16 @@ public:
     /*
       Add a tangent line
     */
-    void addTangentLineOnSigmoid( GurobiWrapper &gurobi, SigmoidConstraint *sigmoid, double tangentPoint, double yAtTangentPoint, double sourceLb, double sourceUb );
+    void addTangentLineOnSigmoid( GurobiWrapper &gurobi,
+                                  SigmoidConstraint *sigmoid,
+                                  double x );
 
     /*
       Add secant lines
     */
-    void addSecantLinesOnSigmoid( GurobiWrapper &gurobi, SigmoidConstraint *sigmoid, unsigned numOfPts, double *xpts, double *ypts, double sourceLb, double sourceUb );
+    void addSecantLinesOnSigmoid( GurobiWrapper &gurobi,
+                                  SigmoidConstraint *sigmoid,
+                                  const std::set<double> &points );
 
     inline void setStatistics( Statistics *statistics )
     {

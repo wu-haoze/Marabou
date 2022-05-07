@@ -375,40 +375,34 @@ public:
     void test_sigmoid_add_tangent_point()
     {
         SigmoidConstraint sigmoid1( 0, 1 );
-        sigmoid1.addTangentPoint( 0, 0 );
-        sigmoid1.addTangentPoint( 2, 20 );
-        sigmoid1.addTangentPoint( 1, 10 );
-        const TranscendentalConstraint::TangentPoints &pts = sigmoid1.getTangentPoints();
+        sigmoid1.addTangentPoint( 0 );
+        sigmoid1.addTangentPoint( 2 );
+        sigmoid1.addTangentPoint( 1 );
+        auto pts = sigmoid1.getTangentPoints();
 
         auto it1 = pts.begin();
 
-        TS_ASSERT_EQUALS( it1->_x, 0 );
-        TS_ASSERT_EQUALS( it1->_y, 0 );
+        TS_ASSERT_EQUALS( *it1, 0 );
         ++it1;
-        TS_ASSERT_EQUALS( it1->_x, 1 );
-        TS_ASSERT_EQUALS( it1->_y, 10 );
+        TS_ASSERT_EQUALS( *it1, 1 );
         ++it1;
-        TS_ASSERT_EQUALS( it1->_x, 2 );
-        TS_ASSERT_EQUALS( it1->_y, 20 );
+        TS_ASSERT_EQUALS( *it1, 2 );
     }
 
     void test_sigmoid_add_secant_point()
     {
         SigmoidConstraint sigmoid1( 0, 1 );
-        sigmoid1.addSecantPoint( 0, 0 );
-        sigmoid1.addSecantPoint( 2, 20 );
-        sigmoid1.addSecantPoint( 1, 10 );
-        const TranscendentalConstraint::SecantPoints &pts = sigmoid1.getSecantPoints();
+        sigmoid1.addSecantPoint( 0 );
+        sigmoid1.addSecantPoint( 2 );
+        sigmoid1.addSecantPoint( 1 );
+        auto pts = sigmoid1.getSecantPoints();
 
         auto it1 = pts.begin();
 
-        TS_ASSERT_EQUALS( it1->_x, 0 );
-        TS_ASSERT_EQUALS( it1->_y, 0 );
+        TS_ASSERT_EQUALS( *it1, 0 );
         ++it1;
-        TS_ASSERT_EQUALS( it1->_x, 1 );
-        TS_ASSERT_EQUALS( it1->_y, 10 );
+        TS_ASSERT_EQUALS( *it1, 1 );
         ++it1;
-        TS_ASSERT_EQUALS( it1->_x, 2 );
-        TS_ASSERT_EQUALS( it1->_y, 20 );
+        TS_ASSERT_EQUALS( *it1, 2 );
     }
 };

@@ -367,6 +367,7 @@ public:
         TS_ASSERT( true );
 #endif // ENABLE_GUROBI
 	}
+
     void test_eoncode_sigmoid_constraint_sat()
     {
 #ifdef ENABLE_GUROBI
@@ -380,7 +381,6 @@ public:
         inputQuery1.setNumberOfVariables( 2 );
 
         MockTableau tableau1 = MockTableau();
-        tableau1.setDimensions( 2, 2 );
 
         // 0 <= x0 <= 1
         inputQuery1.setLowerBound( 0, 0 );
@@ -396,26 +396,27 @@ public:
         tableau1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
         tableau1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
 
+        sigmoid1->notifyLowerBound( 0, 0 );
+        sigmoid1->notifyUpperBound( 0, 1 );
+        sigmoid1->notifyLowerBound( 1, sigmoid1->sigmoid( 0 ) );
+        sigmoid1->notifyUpperBound( 1, sigmoid1->sigmoid( 1 ) );
+
         MILPEncoder milp1( tableau1 );
-        milp1.encodeInputQuery( gurobi1, inputQuery1 );
+        TS_ASSERT_THROWS_NOTHING( milp1.encodeInputQuery( gurobi1, inputQuery1 ) );
 
         // binVarName should not be set.
-        TS_ASSERT( sigmoid1->getBinVarName() == "" );
-        
-        // check whether tanget points are correctly set.
-        const TranscendentalConstraint::TangentPoints &tangentPts = sigmoid1->getTangentPoints();
-        TS_ASSERT_EQUALS( tangentPts.size(), 1UL );
-        auto it = tangentPts.begin();
-        TS_ASSERT_EQUALS( it->_x, 0.5 );
+        TS_ASSERT( sigmoid1->getBinVarName() == "NONE" );
+
+        TS_ASSERT_EQUALS( sigmoid1->getTangentPoints().size(), 1u );
+        auto it = sigmoid1->getTangentPoints().begin();
+        TS_ASSERT_EQUALS( *it, 0.5 );
 
         // check whether split points are correctly set.
-        const TranscendentalConstraint::SecantPoints &secantPts = sigmoid1->getSecantPoints();
-        TS_ASSERT_EQUALS( secantPts.size(), 2UL );
-        auto itSec = secantPts.begin();
-        TS_ASSERT_EQUALS( itSec->_x, 0 );
+        TS_ASSERT_EQUALS( sigmoid1->getSecantPoints().size(), 2U );
+        auto itSec = sigmoid1->getSecantPoints().begin();
+        TS_ASSERT_EQUALS( *itSec, 0 );
         itSec++;
-        TS_ASSERT_EQUALS( itSec->_x, 1 );
-
+        TS_ASSERT_EQUALS( *itSec, 1 );
 
         TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
 
@@ -455,27 +456,31 @@ public:
         tableau2.setLowerBound( 1, sigmoid2->sigmoid( -1 )  );
         tableau2.setUpperBound( 1, sigmoid2->sigmoid( -0.1 )  );
 
+        sigmoid2->notifyLowerBound( 0, -1 );
+        sigmoid2->notifyUpperBound( 0, -0.1 );
+        sigmoid2->notifyLowerBound( 1, sigmoid1->sigmoid( -1 ) );
+        sigmoid2->notifyUpperBound( 1, sigmoid1->sigmoid( -0.1 ) );
+
         MILPEncoder milp2( tableau2 );
         milp2.encodeInputQuery( gurobi2, inputQuery2 );
 
         // binVarName should not be set.
-        TS_ASSERT( sigmoid2->getBinVarName() == "" );
+        TS_ASSERT( sigmoid2->getBinVarName() == "NONE" );
         
         // check whether tangent points are correctly set.
-        const TranscendentalConstraint::TangentPoints &tangentPts2 = sigmoid2->getTangentPoints();
+        auto tangentPts2 = sigmoid2->getTangentPoints();
         TS_ASSERT_EQUALS( tangentPts2.size(), 1UL );
         auto it2 = tangentPts2.begin();
-        TS_ASSERT_EQUALS( it2->_x, -0.55 );
+        TS_ASSERT_EQUALS( *it2, -0.55 );
 
 
         // check whether tangent points are correctly set.
-        const TranscendentalConstraint::SecantPoints &secantPts2 = sigmoid2->getSecantPoints();
+        auto secantPts2 = sigmoid2->getSecantPoints();
         TS_ASSERT_EQUALS( secantPts2.size(), 2UL );
         auto itSec2 = secantPts2.begin();
-        TS_ASSERT_EQUALS( itSec2->_x, -1 );
+        TS_ASSERT_EQUALS( *itSec2, -1 );
         itSec2++;
-        TS_ASSERT_EQUALS( itSec2->_x, -0.1 );
-
+        TS_ASSERT_EQUALS( *itSec2, -0.1 );
 
         TS_ASSERT_THROWS_NOTHING( gurobi2.solve() );
 
@@ -514,6 +519,11 @@ public:
         tableau3.setLowerBound( 1, sigmoid3->sigmoid( -1 ) );
         tableau3.setUpperBound( 1, sigmoid3->sigmoid( 1 ) );
 
+        sigmoid3->notifyLowerBound( 0, -1 );
+        sigmoid3->notifyUpperBound( 0, 1 );
+        sigmoid3->notifyLowerBound( 1, sigmoid3->sigmoid( -1 ) );
+        sigmoid3->notifyUpperBound( 1, sigmoid3->sigmoid( 1 ) );
+
         MILPEncoder milp3( tableau3 );
         milp3.encodeInputQuery( gurobi3, inputQuery3 );
 
@@ -521,23 +531,23 @@ public:
         TS_ASSERT( sigmoid3->getBinVarName() == "a0" );
 
         // check whether tangent points are correctly set.
-        const TranscendentalConstraint::TangentPoints &tangentPts3 = sigmoid3->getTangentPoints();
+        auto tangentPts3 = sigmoid3->getTangentPoints();
         TS_ASSERT_EQUALS( tangentPts3.size(), 2UL );
         auto it3 = tangentPts3.begin();
-        TS_ASSERT_EQUALS( it3->_x, -0.5 );
+        TS_ASSERT_EQUALS( *it3, -0.5 );
         it3++;
-        TS_ASSERT_EQUALS( it3->_x, 0.5 );
+        TS_ASSERT_EQUALS( *it3, 0.5 );
 
 
         // check whether secant points are correctly set.
-        const TranscendentalConstraint::SecantPoints &secantPts3 = sigmoid3->getSecantPoints();
+        auto secantPts3 = sigmoid3->getSecantPoints();
         TS_ASSERT_EQUALS( secantPts3.size(), 3UL );
         auto itSec3 = secantPts3.begin();
-        TS_ASSERT_EQUALS( itSec3->_x, -1 );
+        TS_ASSERT_EQUALS( *itSec3, -1 );
         itSec3++;
-        TS_ASSERT_EQUALS( itSec3->_x, 0 );
+        TS_ASSERT_EQUALS( *itSec3, 0 );
         itSec3++;
-        TS_ASSERT_EQUALS( itSec3->_x, 1 );
+        TS_ASSERT_EQUALS( *itSec3, 1 );
 
         TS_ASSERT_THROWS_NOTHING( gurobi3.solve() );
 
@@ -577,18 +587,23 @@ public:
         tableau4.setLowerBound( 1, sigmoid4->sigmoid( 0 ) );
         tableau4.setUpperBound( 1, sigmoid4->sigmoid( 0 ) );
 
+        sigmoid4->notifyLowerBound( 0, 0 );
+        sigmoid4->notifyUpperBound( 0, 0 );
+        sigmoid4->notifyLowerBound( 1, sigmoid4->sigmoid( 0 ) );
+        sigmoid4->notifyUpperBound( 1, sigmoid4->sigmoid( 0 ) );
+
         MILPEncoder milp4( tableau4 );
         milp4.encodeInputQuery( gurobi4, inputQuery4 );
 
         // binVarName should be not set.
-        TS_ASSERT( sigmoid4->getBinVarName() == "" );
+        TS_ASSERT( sigmoid4->getBinVarName() == "NONE" );
 
         // check whether no tangent point is set.
-        const TranscendentalConstraint::TangentPoints &tangentPts4 = sigmoid4->getTangentPoints();
+        auto tangentPts4 = sigmoid4->getTangentPoints();
         TS_ASSERT_EQUALS( tangentPts4.size(), 0UL );
 
         // check whether no secant point is set.
-        const TranscendentalConstraint::SecantPoints &secantPts4 = sigmoid4->getSecantPoints();
+        auto secantPts4 = sigmoid4->getSecantPoints();
         TS_ASSERT_EQUALS( secantPts4.size(), 0UL );
 
         TS_ASSERT_THROWS_NOTHING( gurobi4.solve() );
@@ -629,26 +644,32 @@ public:
         tableau5.setLowerBound( 1, sigmoid5->sigmoid( -1 ) );
         tableau5.setUpperBound( 1, sigmoid5->sigmoid( 0 ) );
 
+        sigmoid5->notifyLowerBound( 0, -1 );
+        sigmoid5->notifyUpperBound( 0, 0 );
+        sigmoid5->notifyLowerBound( 1, sigmoid5->sigmoid( -1 ) );
+        sigmoid5->notifyUpperBound( 1, sigmoid5->sigmoid( 0 ) );
+
+
         MILPEncoder milp5( tableau5 );
         milp5.encodeInputQuery( gurobi5, inputQuery5 );
 
         // binVarName should not be set.
-        TS_ASSERT( sigmoid5->getBinVarName() == "" );
+        TS_ASSERT( sigmoid5->getBinVarName() == "NONE" );
 
         // check whether tangent points are correctly set.
-        const TranscendentalConstraint::TangentPoints &tangentPts5 = sigmoid5->getTangentPoints();
+        auto tangentPts5 = sigmoid5->getTangentPoints();
         TS_ASSERT_EQUALS( tangentPts5.size(), 1UL );
         auto it5 = tangentPts5.begin();
-        TS_ASSERT_EQUALS( it5->_x, -0.5 );
+        TS_ASSERT_EQUALS( *it5, -0.5 );
 
 
         // check whether secant points are correctly set.
-        const TranscendentalConstraint::SecantPoints &secantPts5 = sigmoid5->getSecantPoints();
+        auto secantPts5 = sigmoid5->getSecantPoints();
         TS_ASSERT_EQUALS( secantPts5.size(), 2UL );
         auto itSec5 = secantPts5.begin();
-        TS_ASSERT_EQUALS( itSec5->_x, -1 );
+        TS_ASSERT_EQUALS( *itSec5, -1 );
         itSec5++;
-        TS_ASSERT_EQUALS( itSec5->_x, 0 );
+        TS_ASSERT_EQUALS( *itSec5, 0 );
 
         TS_ASSERT_THROWS_NOTHING( gurobi5.solve() );
 
@@ -688,25 +709,30 @@ public:
         tableau6.setLowerBound( 1, sigmoid6->sigmoid( 0 ) );
         tableau6.setUpperBound( 1, sigmoid6->sigmoid( 1 ) );
 
+        sigmoid6->notifyLowerBound( 0, 0 );
+        sigmoid6->notifyUpperBound( 0, 1 );
+        sigmoid6->notifyLowerBound( 1, sigmoid6->sigmoid( 0 ) );
+        sigmoid6->notifyUpperBound( 1, sigmoid6->sigmoid( 1 ) );
+
         MILPEncoder milp6( tableau6 );
         milp6.encodeInputQuery( gurobi6, inputQuery6 );
 
         // binVarName should not be set.
-        TS_ASSERT( sigmoid6->getBinVarName() == "" );
+        TS_ASSERT( sigmoid6->getBinVarName() == "NONE" );
 
         // check whether tangent points are correctly set.
-        const TranscendentalConstraint::TangentPoints &tangentPts6 = sigmoid6->getTangentPoints();
+        auto tangentPts6 = sigmoid6->getTangentPoints();
         TS_ASSERT_EQUALS( tangentPts6.size(), 1UL );
         auto it6 = tangentPts6.begin();
-        TS_ASSERT_EQUALS( it6->_x, 0.5 );
+        TS_ASSERT_EQUALS( *it6, 0.5 );
 
         // check whether secant points are correctly set.
-        const TranscendentalConstraint::SecantPoints &secantPts6 = sigmoid6->getSecantPoints();
+        auto secantPts6 = sigmoid6->getSecantPoints();
         TS_ASSERT_EQUALS( secantPts6.size(), 2UL );
         auto itSec6 = secantPts6.begin();
-        TS_ASSERT_EQUALS( itSec6->_x, 0 );
+        TS_ASSERT_EQUALS( *itSec6, 0 );
         itSec6++;
-        TS_ASSERT_EQUALS( itSec6->_x, 1 );
+        TS_ASSERT_EQUALS( *itSec6, 1 );
 
         TS_ASSERT_THROWS_NOTHING( gurobi6.solve() );
 
@@ -725,689 +751,6 @@ public:
         TS_ASSERT( true );
 #endif // ENABLE_GUROBI
     }
-
-    void test_eoncode_sigmoid_constraint_unsat()
-    {
-#ifdef ENABLE_GUROBI
-
-        unsigned int x0 = 0U;
-        unsigned int x1 = 1U;
-        unsigned int x2 = 2U;
-
-        /*
-         * x0_lb >= 0
-        */
-        GurobiWrapper gurobi1;
-
-        InputQuery inputQuery1 = InputQuery();
-        inputQuery1.setNumberOfVariables( 3 );
-
-        MockTableau tableau1 = MockTableau();
-        tableau1.setDimensions( 2, 3 );
-
-        // 0 <= x0 <= 1
-        inputQuery1.setLowerBound( x0, 0 );
-        inputQuery1.setUpperBound( x0, 1 );
-        tableau1.setLowerBound( x0, 0 );
-        tableau1.setUpperBound( x0, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid1 = new SigmoidConstraint( x0, x1 );
-        inputQuery1.addTranscendentalConstraint( sigmoid1 );
-        inputQuery1.setLowerBound( x1, sigmoid1->sigmoid( 0 ) );
-        inputQuery1.setUpperBound( x1, sigmoid1->sigmoid( 1 ) );
-        tableau1.setLowerBound( x1, sigmoid1->sigmoid( 0 ) );
-        tableau1.setUpperBound( x1, sigmoid1->sigmoid( 1 ) );
-
-        // x2 = x1
-        Equation equation1( Equation::EQ );
-        equation1.addAddend( 1, x2 );
-        equation1.addAddend( -1, x1 );
-        equation1.setScalar( 0 );
-        inputQuery1.addEquation( equation1 );
-        inputQuery1.setLowerBound( x2, 0.5 * sigmoid1->sigmoid( 0 ) );
-        inputQuery1.setUpperBound( x2, 0.5 * sigmoid1->sigmoid( 1 ) );
-        tableau1.setLowerBound( x2, 0.5 * sigmoid1->sigmoid( 0 ) );
-        tableau1.setUpperBound( x2, 0.5 * sigmoid1->sigmoid( 1 ) );
-
-        MILPEncoder milp1( tableau1 );
-        milp1.encodeInputQuery( gurobi1, inputQuery1 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
-
-        TS_ASSERT( !gurobi1.haveFeasibleSolution() );
-
-        /*
-         * x0_ub < 0
-        */
-        GurobiWrapper gurobi2;
-
-        InputQuery inputQuery2 = InputQuery();
-        inputQuery2.setNumberOfVariables( 3 );
-
-        MockTableau tableau2 = MockTableau();
-        tableau2.setDimensions( 2, 3 );
-
-        // -1 <= x0 < 0
-        inputQuery2.setLowerBound( x0, -1 );
-        inputQuery2.setUpperBound( x0, -0.1 );
-        tableau2.setLowerBound( x0, -1 );
-        tableau2.setUpperBound( x0, -0.1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid2 = new SigmoidConstraint( x0, x1 );
-        inputQuery2.addTranscendentalConstraint( sigmoid2 );
-        inputQuery2.setLowerBound( x1, sigmoid2->sigmoid( -1 ) );
-        inputQuery2.setUpperBound( x1, sigmoid2->sigmoid( -0.1 )  );
-        tableau2.setLowerBound( x1, sigmoid2->sigmoid( -1 )  );
-        tableau2.setUpperBound( x1, sigmoid2->sigmoid( -0.1 )  );
-
-        // x2 = x1
-        Equation equation2( Equation::EQ );
-        equation2.addAddend( 1, x2 );
-        equation2.addAddend( -1, x1 );
-        equation2.setScalar( 0 );
-        inputQuery2.addEquation( equation2 );
-        inputQuery2.setLowerBound( x2, 0.5 * sigmoid2->sigmoid( -1 ) );
-        inputQuery2.setUpperBound( x2, 0.5 * sigmoid2->sigmoid( -0.1 ) );
-        tableau2.setLowerBound( x2, 0.5 * sigmoid2->sigmoid( -1 ) );
-        tableau2.setUpperBound( x2, 0.5 * sigmoid2->sigmoid( -0.1 ) );
-
-        MILPEncoder milp2( tableau2 );
-        milp2.encodeInputQuery( gurobi2, inputQuery2 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.solve() );
-
-        TS_ASSERT( !gurobi2.haveFeasibleSolution() );
-
-        /*
-         * x0_lb < 0 and x0_ub > 0
-        */
-        GurobiWrapper gurobi3;
-
-        InputQuery inputQuery3 = InputQuery();
-        inputQuery3.setNumberOfVariables( 3 );
-
-        MockTableau tableau3 = MockTableau();
-        tableau3.setDimensions( 2, 3 );
-
-        // -1 < x0 < 1
-        inputQuery3.setLowerBound( x0, -1 );
-        inputQuery3.setUpperBound( x0, 1 );
-        tableau3.setLowerBound( x0, -1 );
-        tableau3.setUpperBound( x0, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid3 = new SigmoidConstraint( x0, x1 );
-        inputQuery3.addTranscendentalConstraint( sigmoid3 );
-        inputQuery3.setLowerBound( x1, sigmoid3->sigmoid( -1 ) );
-        inputQuery3.setUpperBound( x1, sigmoid3->sigmoid( 1 ) );
-        tableau3.setLowerBound( x1, sigmoid3->sigmoid( -1 ) );
-        tableau3.setUpperBound( x1, sigmoid3->sigmoid( 1 ) );
-
-        // x2 = x1
-        Equation equation3( Equation::EQ );
-        equation3.addAddend( 1, x2 );
-        equation3.addAddend( -1, x1 );
-        equation3.setScalar( 0 );
-        inputQuery3.addEquation( equation3 );
-        inputQuery3.setLowerBound( x2, 0.5 * sigmoid3->sigmoid( -1 ) );
-        inputQuery3.setUpperBound( x2, 0.5 * sigmoid3->sigmoid( 1 ) );
-        tableau3.setLowerBound( x2, 0.5 * sigmoid3->sigmoid( -1 ) );
-        tableau3.setUpperBound( x2, 0.5 * sigmoid3->sigmoid( -1 ) );
-
-        MILPEncoder milp3( tableau3 );
-        milp3.encodeInputQuery( gurobi3, inputQuery3 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.solve() );
-
-        TS_ASSERT( !gurobi3.haveFeasibleSolution() );
-
-        /*
-         * x0_lb = 0 and x0_ub = 0
-        */
-        GurobiWrapper gurobi4;
-
-        InputQuery inputQuery4 = InputQuery();
-        inputQuery4.setNumberOfVariables( 3 );
-
-        MockTableau tableau4 = MockTableau();
-        tableau4.setDimensions( 2, 3 );
-
-        // 0 <= x0 <= 0
-        inputQuery4.setLowerBound( x0, 0 );
-        inputQuery4.setUpperBound( x0, 0 );
-        tableau4.setLowerBound( x0, 0 );
-        tableau4.setUpperBound( x0, 0 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid4 = new SigmoidConstraint( x0, x1 );
-        inputQuery4.addTranscendentalConstraint( sigmoid4 );
-        inputQuery4.setLowerBound( x1, sigmoid4->sigmoid( 0 ) );
-        inputQuery4.setUpperBound( x1, sigmoid4->sigmoid( 0 ) );
-        tableau4.setLowerBound( x1, sigmoid4->sigmoid( 0 ) );
-        tableau4.setUpperBound( x1, sigmoid4->sigmoid( 0 ) );
-
-        // x2 = x1
-        Equation equation4( Equation::EQ );
-        equation4.addAddend( 1, x2 );
-        equation4.addAddend( -1, x1 );
-        equation4.setScalar( 0 );
-        inputQuery4.addEquation( equation4 );
-        inputQuery4.setLowerBound( x2, 0.5 * sigmoid4->sigmoid( 0 ) );
-        inputQuery4.setUpperBound( x2, 0.5 * sigmoid4->sigmoid( 0 ) );
-        tableau4.setLowerBound( x2, 0.5 * sigmoid4->sigmoid( 0 ) );
-        tableau4.setUpperBound( x2, 0.5 * sigmoid4->sigmoid( 0 ) );
-
-        MILPEncoder milp4( tableau4 );
-        milp4.encodeInputQuery( gurobi4, inputQuery4 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi4.solve() );
-
-        TS_ASSERT( !gurobi4.haveFeasibleSolution() );
-
-        /*
-         * x0_lb < 0 and x0_ub = 0
-        */
-        GurobiWrapper gurobi5;
-
-        InputQuery inputQuery5 = InputQuery();
-        inputQuery5.setNumberOfVariables( 3 );
-
-        MockTableau tableau5 = MockTableau();
-        tableau5.setDimensions( 2, 3 );
-
-        // -1 <= x0 <= 0
-        inputQuery5.setLowerBound( x0, -1 );
-        inputQuery5.setUpperBound( x0, 0 );
-        tableau5.setLowerBound( x0, -1 );
-        tableau5.setUpperBound( x0, 0 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid5 = new SigmoidConstraint( x0, x1 );
-        inputQuery5.setLowerBound( x1, sigmoid5->sigmoid( -1 ) );
-        inputQuery5.setUpperBound( x1, sigmoid5->sigmoid( 0 ) );
-        tableau5.setLowerBound( x1, sigmoid5->sigmoid( -1 ) );
-        tableau5.setUpperBound( x1, sigmoid5->sigmoid( 0 ) );
-
-        // x2 = x1
-        Equation equation5( Equation::EQ );
-        equation5.addAddend( 1, x2 );
-        equation5.addAddend( -1, x1 );
-        equation5.setScalar( 0 );
-        inputQuery5.addEquation( equation5 );
-        inputQuery5.setLowerBound( x2, 0.5 * sigmoid5->sigmoid( -1 ) );
-        inputQuery5.setUpperBound( x2, 0.5 * sigmoid5->sigmoid( 0 ) );
-        tableau5.setLowerBound( x2, 0.5 * sigmoid5->sigmoid( -1 ) );
-        tableau5.setUpperBound( x2, 0.5 * sigmoid5->sigmoid( 0 ) );
-
-        inputQuery5.addTranscendentalConstraint( sigmoid5 );
-        MILPEncoder milp5( tableau5 );
-        milp5.encodeInputQuery( gurobi5, inputQuery5 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi5.solve() );
-
-        TS_ASSERT( !gurobi5.haveFeasibleSolution() );
-
-        /*
-         * x0_lb = 0 and x0_ub > 0
-        */
-        GurobiWrapper gurobi6;
-
-        InputQuery inputQuery6 = InputQuery();
-        inputQuery6.setNumberOfVariables( 3 );
-
-        MockTableau tableau6 = MockTableau();
-        tableau6.setDimensions( 2, 3 );
-
-        // 0 <= x0 <= 1
-        inputQuery6.setLowerBound( x0, 0 );
-        inputQuery6.setUpperBound( x0, 1 );
-        tableau6.setLowerBound( x0, 0 );
-        tableau6.setUpperBound( x0, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid6 = new SigmoidConstraint( x0, x1 );
-        inputQuery6.addTranscendentalConstraint( sigmoid6 );
-        inputQuery6.setLowerBound( x1, sigmoid6->sigmoid( 0 ) );
-        inputQuery6.setUpperBound( x1, sigmoid6->sigmoid( 1 ) );
-        tableau6.setLowerBound( x1, sigmoid6->sigmoid( 0 ) );
-        tableau6.setUpperBound( x1, sigmoid6->sigmoid( 1 ) );
-
-        // x2 = x1
-        Equation equation6( Equation::EQ );
-        equation6.addAddend( 1, x2 );
-        equation6.addAddend( -1, x1 );
-        equation6.setScalar( 0 );
-        inputQuery6.addEquation( equation6 );
-        inputQuery6.setLowerBound( x2, 0.5 * sigmoid6->sigmoid( 0 ) );
-        inputQuery6.setUpperBound( x2, 0.5 * sigmoid6->sigmoid( 1 ) );
-        tableau6.setLowerBound( x2, 0.5 * sigmoid6->sigmoid( 0 ) );
-        tableau6.setUpperBound( x2, 0.5 * sigmoid6->sigmoid( 1 ) );
-
-        MILPEncoder milp6( tableau6 );
-        milp6.encodeInputQuery( gurobi6, inputQuery6 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi6.solve() );
-
-        TS_ASSERT( !gurobi6.haveFeasibleSolution() );
-
-#else
-        TS_ASSERT( true );
-#endif // ENABLE_GUROBI
-	}
-
-    void test_add_tangent_line_on_sigmoid()
-    {
-#ifdef ENABLE_GUROBI
-
-        /*
-         * x0_lb >= 0
-        */
-        GurobiWrapper gurobi1;
-
-        InputQuery inputQuery1 = InputQuery();
-        inputQuery1.setNumberOfVariables( 2 );
-
-        MockTableau tableau1 = MockTableau();
-        tableau1.setDimensions( 2, 2 );
-
-        // 0 <= x0 <= 1
-        inputQuery1.setLowerBound( 0, 0 );
-        inputQuery1.setUpperBound( 0, 1 );
-        tableau1.setLowerBound( 0, 0 );
-        tableau1.setUpperBound( 0, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid1 = new SigmoidConstraint( 0, 1 );
-        inputQuery1.addTranscendentalConstraint( sigmoid1 );
-        inputQuery1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
-        inputQuery1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
-        tableau1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
-        tableau1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
-
-        MILPEncoder milp1( tableau1 );
-        milp1.encodeInputQuery( gurobi1, inputQuery1 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
-
-        TS_ASSERT( gurobi1.haveFeasibleSolution() );
-    
-        Map<String, double> solution1;
-        double costValue1;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.extractSolution( solution1, costValue1 ) );
-
-        TS_ASSERT( solution1.exists( "x0" ) );
-        TS_ASSERT( solution1.exists( "x1" ) );
-        TS_ASSERT( !solution1.exists( "a0" ) );
-
-        milp1.addTangentLineOnSigmoid( gurobi1, sigmoid1, 0.75, sigmoid1->sigmoid( 0.75 ), 0, 1);
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
-
-        TS_ASSERT( gurobi1.haveFeasibleSolution() );
-    
-        Map<String, double> solution1_2;
-        double costValue1_2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.extractSolution( solution1_2, costValue1_2 ) );
-
-        TS_ASSERT( solution1_2.exists( "x0" ) );
-        TS_ASSERT( solution1_2.exists( "x1" ) );
-        TS_ASSERT( !solution1_2.exists( "a0" ) );
-
-        /*
-         * x0_ub < 0
-        */
-        GurobiWrapper gurobi2;
-
-        InputQuery inputQuery2 = InputQuery();
-        inputQuery2.setNumberOfVariables( 2 );
-
-        MockTableau tableau2 = MockTableau();
-        tableau2.setDimensions( 2, 2 );
-
-        // -1 <= x0 < 0
-        inputQuery2.setLowerBound( 0, -1 );
-        inputQuery2.setUpperBound( 0, -0.1 );
-        tableau2.setLowerBound( 0, -1 );
-        tableau2.setUpperBound( 0, -0.1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid2 = new SigmoidConstraint( 0, 1 );
-        inputQuery2.addTranscendentalConstraint( sigmoid2 );
-        inputQuery2.setLowerBound( 1, sigmoid2->sigmoid( -1 ) );
-        inputQuery2.setUpperBound( 1, sigmoid2->sigmoid( -0.1 )  );
-        tableau2.setLowerBound( 1, sigmoid2->sigmoid( -1 )  );
-        tableau2.setUpperBound( 1, sigmoid2->sigmoid( -0.1 )  );
-
-        MILPEncoder milp2( tableau2 );
-        milp2.encodeInputQuery( gurobi2, inputQuery2 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.solve() );
-
-        TS_ASSERT( gurobi2.haveFeasibleSolution() );
-        Map<String, double> solution2;
-        double costValue2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.extractSolution( solution2, costValue2 ) );
-
-        TS_ASSERT( solution2.exists( "x0" ) );
-        TS_ASSERT( solution2.exists( "x1" ) );
-        TS_ASSERT( !solution2.exists( "a0" ) );
-
-        milp2.addTangentLineOnSigmoid( gurobi2, sigmoid2, -0.5, sigmoid2->sigmoid( -0.5 ), -1, -0.1);
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.solve() );
-
-        TS_ASSERT( gurobi2.haveFeasibleSolution() );
-        Map<String, double> solution2_2;
-        double costValue2_2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.extractSolution( solution2_2, costValue2_2 ) );
-
-        TS_ASSERT( solution2_2.exists( "x0" ) );
-        TS_ASSERT( solution2_2.exists( "x1" ) );
-        TS_ASSERT( !solution2_2.exists( "a0" ) );
-
-        /*
-         * x0_lb < 0 and x0_ub > 0
-        */
-        GurobiWrapper gurobi3;
-
-        InputQuery inputQuery3 = InputQuery();
-        inputQuery3.setNumberOfVariables( 2 );
-
-        MockTableau tableau3 = MockTableau();
-        tableau3.setDimensions( 2, 2 );
-
-        // -1 < x0 < 1
-        inputQuery3.setLowerBound( 0, -1 );
-        inputQuery3.setUpperBound( 0, 1 );
-        tableau3.setLowerBound( 0, -1 );
-        tableau3.setUpperBound( 0, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid3 = new SigmoidConstraint( 0, 1 );
-        inputQuery3.addTranscendentalConstraint( sigmoid3 );
-        inputQuery3.setLowerBound( 1, sigmoid3->sigmoid( -1 ) );
-        inputQuery3.setUpperBound( 1, sigmoid3->sigmoid( 1 ) );
-        tableau3.setLowerBound( 1, sigmoid3->sigmoid( -1 ) );
-        tableau3.setUpperBound( 1, sigmoid3->sigmoid( 1 ) );
-
-        MILPEncoder milp3( tableau3 );
-        milp3.encodeInputQuery( gurobi3, inputQuery3 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.solve() );
-
-        TS_ASSERT( gurobi3.haveFeasibleSolution() );
-
-        Map<String, double> solution3;
-        double costValue3;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.extractSolution( solution3, costValue3 ) );
-
-        TS_ASSERT( solution3.exists( "x0" ) );
-        TS_ASSERT( solution3.exists( "x1" ) );
-        TS_ASSERT( solution3.exists( "a0" ) );
-
-        milp3.addTangentLineOnSigmoid( gurobi3, sigmoid3, -0.2, sigmoid3->sigmoid( -0.2 ), -1, 1);
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.solve() );
-
-        TS_ASSERT( gurobi3.haveFeasibleSolution() );
-        Map<String, double> solution3_2;
-        double costValue3_2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.extractSolution( solution3_2, costValue3_2 ) );
-
-        TS_ASSERT( solution3_2.exists( "x0" ) );
-        TS_ASSERT( solution3_2.exists( "x1" ) );
-        TS_ASSERT( solution3_2.exists( "a0" ) );
-
-        /*
-         * x0_lb = 0 and x0_ub = 0
-        */
-        GurobiWrapper gurobi4;
-
-        InputQuery inputQuery4 = InputQuery();
-        inputQuery4.setNumberOfVariables( 2 );
-
-        MockTableau tableau4 = MockTableau();
-        tableau4.setDimensions( 2, 2 );
-
-        // 0 <= x0 <= 0
-        inputQuery4.setLowerBound( 0, 0 );
-        inputQuery4.setUpperBound( 0, 0 );
-        tableau4.setLowerBound( 0, 0 );
-        tableau4.setUpperBound( 0, 0 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid4 = new SigmoidConstraint( 0, 1 );
-        inputQuery4.addTranscendentalConstraint( sigmoid4 );
-        inputQuery4.setLowerBound( 1, sigmoid4->sigmoid( 0 ) );
-        inputQuery4.setUpperBound( 1, sigmoid4->sigmoid( 0 ) );
-        tableau4.setLowerBound( 1, sigmoid4->sigmoid( 0 ) );
-        tableau4.setUpperBound( 1, sigmoid4->sigmoid( 0 ) );
-
-        MILPEncoder milp4( tableau4 );
-        milp4.encodeInputQuery( gurobi4, inputQuery4 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi4.solve() );
-
-        TS_ASSERT( gurobi4.haveFeasibleSolution() );
-
-        Map<String, double> solution4;
-        double costValue4;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi4.extractSolution( solution4, costValue4 ) );
-
-        TS_ASSERT( solution4.exists( "x0" ) );
-        TS_ASSERT( solution4.exists( "x1" ) );
-        TS_ASSERT( !solution4.exists( "a0" ) );
-
-        milp4.addTangentLineOnSigmoid( gurobi4, sigmoid4, 0, sigmoid4->sigmoid( 0 ), 0, 0 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi4.solve() );
-
-        TS_ASSERT( gurobi4.haveFeasibleSolution() );
-        Map<String, double> solution4_2;
-        double costValue4_2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi4.extractSolution( solution4_2, costValue4_2 ) );
-
-        TS_ASSERT( solution4_2.exists( "x0" ) );
-        TS_ASSERT( solution4_2.exists( "x1" ) );
-        TS_ASSERT( !solution4_2.exists( "a0" ) );
-        TS_ASSERT( solution4_2["x0"] == 0 );
-        TS_ASSERT( solution4_2["x1"] == sigmoid4->sigmoid( 0 ) );
-
-#else
-        TS_ASSERT( true );
-#endif // ENABLE_GUROBI
-    }
-
-    void test_add_secant_lines_on_sigmoid()
-    {
-#ifdef ENABLE_GUROBI
-
-        /*
-         * x0_lb >= 0
-        */
-        GurobiWrapper gurobi1;
-
-        InputQuery inputQuery1 = InputQuery();
-        inputQuery1.setNumberOfVariables( 2 );
-
-        MockTableau tableau1 = MockTableau();
-        tableau1.setDimensions( 2, 2 );
-
-        // 0 <= x0 <= 1
-        inputQuery1.setLowerBound( 0, 0 );
-        inputQuery1.setUpperBound( 0, 1 );
-        tableau1.setLowerBound( 0, 0 );
-        tableau1.setUpperBound( 0, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid1 = new SigmoidConstraint( 0, 1 );
-        inputQuery1.addTranscendentalConstraint( sigmoid1 );
-        inputQuery1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
-        inputQuery1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
-        tableau1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
-        tableau1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
-
-        MILPEncoder milp1( tableau1 );
-        milp1.encodeInputQuery( gurobi1, inputQuery1 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
-
-        TS_ASSERT( gurobi1.haveFeasibleSolution() );
-    
-        Map<String, double> solution1;
-        double costValue1;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.extractSolution( solution1, costValue1 ) );
-
-        TS_ASSERT( solution1.exists( "x0" ) );
-        TS_ASSERT( solution1.exists( "x1" ) );
-        TS_ASSERT( !solution1.exists( "a0" ) );
-
-        double xpts1[4] = { 0, 0.5, 0.75, 1 };
-        double ypts1[4] = { 0.5, sigmoid1->sigmoid( 0.5 ), sigmoid1->sigmoid( 0.75 ), sigmoid1->sigmoid( 1 ) };
-        milp1.addSecantLinesOnSigmoid( gurobi1, sigmoid1, 4, xpts1, ypts1, 0, 1);
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
-
-        TS_ASSERT( gurobi1.haveFeasibleSolution() );
-    
-        Map<String, double> solution1_2;
-        double costValue1_2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.extractSolution( solution1_2, costValue1_2 ) );
-
-        TS_ASSERT( solution1_2.exists( "x0" ) );
-        TS_ASSERT( solution1_2.exists( "x1" ) );
-        TS_ASSERT( !solution1_2.exists( "a0" ) );
-
-        /*
-         * x0_ub < 0
-        */
-        GurobiWrapper gurobi2;
-
-        InputQuery inputQuery2 = InputQuery();
-        inputQuery2.setNumberOfVariables( 2 );
-
-        MockTableau tableau2 = MockTableau();
-        tableau2.setDimensions( 2, 2 );
-
-        // -1 <= x0 < 0
-        inputQuery2.setLowerBound( 0, -1 );
-        inputQuery2.setUpperBound( 0, -0.1 );
-        tableau2.setLowerBound( 0, -1 );
-        tableau2.setUpperBound( 0, -0.1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid2 = new SigmoidConstraint( 0, 1 );
-        inputQuery2.addTranscendentalConstraint( sigmoid2 );
-        inputQuery2.setLowerBound( 1, sigmoid2->sigmoid( -1 ) );
-        inputQuery2.setUpperBound( 1, sigmoid2->sigmoid( -0.1 )  );
-        tableau2.setLowerBound( 1, sigmoid2->sigmoid( -1 )  );
-        tableau2.setUpperBound( 1, sigmoid2->sigmoid( -0.1 )  );
-
-        MILPEncoder milp2( tableau2 );
-        milp2.encodeInputQuery( gurobi2, inputQuery2 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.solve() );
-
-        TS_ASSERT( gurobi2.haveFeasibleSolution() );
-        Map<String, double> solution2;
-        double costValue2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.extractSolution( solution2, costValue2 ) );
-
-        TS_ASSERT( solution2.exists( "x0" ) );
-        TS_ASSERT( solution2.exists( "x1" ) );
-        TS_ASSERT( !solution2.exists( "a0" ) );
-
-        double xpts2[4] = { -1, -0.55, -0.2, -0.1 };
-        double ypts2[4] = { sigmoid2->sigmoid( -1 ), sigmoid2->sigmoid( -0.55 ), sigmoid2->sigmoid( -0.2 ), sigmoid2->sigmoid( -0.1 ) };
-        milp2.addSecantLinesOnSigmoid( gurobi2, sigmoid2, 4, xpts2, ypts2, -1, -0.1);
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.solve() );
-
-        TS_ASSERT( gurobi2.haveFeasibleSolution() );
-        Map<String, double> solution2_2;
-        double costValue2_2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi2.extractSolution( solution2_2, costValue2_2 ) );
-
-        TS_ASSERT( solution2_2.exists( "x0" ) );
-        TS_ASSERT( solution2_2.exists( "x1" ) );
-        TS_ASSERT( !solution2_2.exists( "a0" ) );
-
-        /*
-         * x0_lb < 0 and x0_ub > 0
-        */
-        GurobiWrapper gurobi3;
-
-        InputQuery inputQuery3 = InputQuery();
-        inputQuery3.setNumberOfVariables( 2 );
-
-        MockTableau tableau3 = MockTableau();
-        tableau3.setDimensions( 2, 2 );
-
-        // -1 < x0 < 1
-        inputQuery3.setLowerBound( 0, -1 );
-        inputQuery3.setUpperBound( 0, 1 );
-        tableau3.setLowerBound( 0, -1 );
-        tableau3.setUpperBound( 0, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid3 = new SigmoidConstraint( 0, 1 );
-        inputQuery3.addTranscendentalConstraint( sigmoid3 );
-        inputQuery3.setLowerBound( 1, sigmoid3->sigmoid( -1 ) );
-        inputQuery3.setUpperBound( 1, sigmoid3->sigmoid( 1 ) );
-        tableau3.setLowerBound( 1, sigmoid3->sigmoid( -1 ) );
-        tableau3.setUpperBound( 1, sigmoid3->sigmoid( 1 ) );
-
-        MILPEncoder milp3( tableau3 );
-        milp3.encodeInputQuery( gurobi3, inputQuery3 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.solve() );
-
-        TS_ASSERT( gurobi3.haveFeasibleSolution() );
-
-        Map<String, double> solution3;
-        double costValue3;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.extractSolution( solution3, costValue3 ) );
-
-        TS_ASSERT( solution3.exists( "x0" ) );
-        TS_ASSERT( solution3.exists( "x1" ) );
-        TS_ASSERT( solution3.exists( "a0" ) );
-
-        double xpts3[6] = { -1, -0.5, 0, 0.5, 0.75, 1 };
-        double ypts3[6] = { sigmoid3->sigmoid( -1 ), sigmoid3->sigmoid( -0.5 ), sigmoid3->sigmoid( 0 ), sigmoid3->sigmoid( 0.5 ), sigmoid3->sigmoid( 0.75 ), sigmoid3->sigmoid( 1 ) };
-        milp2.addSecantLinesOnSigmoid( gurobi3, sigmoid3, 6, xpts3, ypts3, -1, 1);
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.solve() );
-
-        TS_ASSERT( gurobi3.haveFeasibleSolution() );
-        Map<String, double> solution3_2;
-        double costValue3_2;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi3.extractSolution( solution3_2, costValue3_2 ) );
-
-        TS_ASSERT( solution3_2.exists( "x0" ) );
-        TS_ASSERT( solution3_2.exists( "x1" ) );
-        TS_ASSERT( solution3_2.exists( "a0" ) );
-
-#else
-        TS_ASSERT( true );
-#endif // ENABLE_GUROBI
-    }
-
 };
 
 //

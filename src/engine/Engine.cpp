@@ -2745,9 +2745,9 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     {
         if ( _preprocessedQuery.getTranscendentalConstraints().size() > 0 )
         {
-            IncrementalLinearization* incrLinear = new IncrementalLinearization( *_milpEncoder );
-            _exitCode = incrLinear->solveWithIncrementalLinearization( *_gurobi, _preprocessedQuery.getTranscendentalConstraints(),
-                                                                       timeoutForGurobi - passedTime / 1000000 );
+            IncrementalLinearization* incrLinear = new IncrementalLinearization( *_milpEncoder, _preprocessedQuery );
+            _exitCode = incrLinear->solveWithIncrementalLinearization
+                ( *_gurobi, timeoutForGurobi - passedTime / 1000000 );
             if ( _exitCode == IEngine::SAT )
                 return true;
             else

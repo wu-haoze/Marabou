@@ -248,7 +248,11 @@ double SigmoidConstraint::sigmoidInverse( double y )
 
 double SigmoidConstraint::sigmoidDerivative( double x )
 {
-    return sigmoid( x ) * ( 1 - sigmoid( x ) );
+    if ( FloatUtils::gte( x, GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+        return 0;
+    else if ( FloatUtils::lte( x, -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+        return 0;
+    else return sigmoid( x ) * ( 1 - sigmoid( x ) );
 }
 void SigmoidConstraint::setBinVarName( String binVarName )
 {

@@ -116,62 +116,25 @@ public:
     */
     void registerConstraintBoundTightener( IConstraintBoundTightener *tightener );
 
-    // Tangent point
-    struct TangentPoint
-    {
-      double _x;
-      double _y;
-      TangentPoint( double x, double y )
-      {
-        _x = x;
-        _y = y;
-      };
-      bool operator<( const TangentPoint &other ) const
-      {
-          return _x < other._x;
-      }
-    };
-
-    typedef std::set<TangentPoint> TangentPoints;
-
-    // Secant point
-    struct SecantPoint
-    {
-      double _x;
-      double _y;
-      SecantPoint( double x, double y )
-      {
-        _x = x;
-        _y = y;
-      };
-      bool operator<( const SecantPoint &other ) const
-      {
-          return _x < other._x;
-      }
-    };
-
-    typedef std::set<SecantPoint> SecantPoints; 
-
-
     /*
       Add a new tangent point for licremental linearization.
     */
-    void addTangentPoint( double x, double y );
+    void addTangentPoint( double x );
 
     /*
       Add a new secant point for licremental linearization.
     */
-    void addSecantPoint( double x, double y );
+    void addSecantPoint( double x );
 
     /*
       Return tangent points
     */
-    TangentPoints getTangentPoints();
+    const std::set<double> &getTangentPoints();
 
     /*
       Return secant points
     */
-    SecantPoints getSecantPoints();
+    const std::set<double> & getSecantPoints();
 
 
     /**********************************************************************/
@@ -264,10 +227,10 @@ protected:
 
 private:
   // Points of tangent lines for incremental linearizations.
-  TangentPoints _tangentPts;
+    std::set<double> _tangentPts;
 
   // Points of secant lines for incremental linearizations.
-  SecantPoints _secantPts;
+    std::set<double> _secantPts;
 };
 
 #endif // __TranscendentalConstraint_h__

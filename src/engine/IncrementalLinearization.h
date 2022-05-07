@@ -28,25 +28,26 @@
 class IncrementalLinearization
 {
 public:    
-    IncrementalLinearization( MILPEncoder &milpEncoder);
+    IncrementalLinearization( MILPEncoder &milpEncoder, InputQuery &inputQuery );
 
     /*
       Solve with incremental linarizations.
       Only for the purpose of TranscendetalConstarints
     */
-    IEngine::ExitCode solveWithIncrementalLinearization( GurobiWrapper &gurobi, List<TranscendentalConstraint *> tsConstraints, double timeoutInSeconds );
+    IEngine::ExitCode solveWithIncrementalLinearization( GurobiWrapper &gurobi,
+                                                         double timeoutInSeconds );
 
 private:
     /*
       MILPEncoder
     */
     MILPEncoder &_milpEncoder;
+    InputQuery &_inputQuery;
 
     /*
       add new constraints
     */
-    void incrementLinearConstraint( GurobiWrapper &gurobi,
-                                    TranscendentalConstraint *constraint,
+    void incrementLinearConstraint( TranscendentalConstraint *constraint,
                                     const Map<String, double> &assignment,
                                     unsigned &satisfied,
                                     unsigned &tangentAdded,
