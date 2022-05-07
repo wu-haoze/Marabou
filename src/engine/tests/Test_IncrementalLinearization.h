@@ -82,7 +82,7 @@ public:
 
         IncrementalLinearization *incrLinear = new IncrementalLinearization( milp1 );
         IEngine::ExitCode exitCode = incrLinear->solveWithIncrementalLinearization( gurobi1, inputQuery1.getTranscendentalConstraints(), 1000000000000 );
-        ASSERT( exitCode == IEngine::UNKNOWN );
+        TS_ASSERT( exitCode == IEngine::UNKNOWN );
 #else
         TS_ASSERT( true );
 #endif // ENABLE_GUROBI

@@ -36,11 +36,13 @@ SigmoidConstraint::SigmoidConstraint( unsigned b, unsigned f )
     , _b( b )
     , _f( f )
     , _haveEliminatedVariables( false )
+    , _binVarName( "NONE" )
 {
 }
 
 SigmoidConstraint::SigmoidConstraint( const String &serializedSigmoid )
     : _haveEliminatedVariables( false )
+    , _binVarName( "NONE" )
 {
     String constraintType = serializedSigmoid.substring( 0, 7 );
     ASSERT( constraintType == String( "sigmoid" ) );
@@ -222,13 +224,26 @@ String SigmoidConstraint::serializeToString() const
 
 double SigmoidConstraint::sigmoid( double x )
 {
-    return 1 / ( 1 + std::exp( -x ) );
+    if ( FloatUtils::gte( x, GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+        return 1;
+    else if ( FloatUtils::lte( x, -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+        return 0;
+    else
+        return 1 / ( 1 + std::exp( -x ) );
 }
 
 double SigmoidConstraint::sigmoidInverse( double y )
 {
-    ASSERT( y != 1 );
-    return log( y / ( 1 - y ) );
+    if ( FloatUtils::areEqual
+         ( y, 1,
+           GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
+        return GlobalConfiguration::SIGMOID_INPUT_RANGE;
+    else if ( FloatUtils::areEqual
+              ( y, 0,
+                GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
+        return -GlobalConfiguration::SIGMOID_INPUT_RANGE;
+    else
+        return log( y / ( 1 - y ) );
 }
 
 double SigmoidConstraint::sigmoidDerivative( double x )
@@ -237,11 +252,27 @@ double SigmoidConstraint::sigmoidDerivative( double x )
 }
 void SigmoidConstraint::setBinVarName( String binVarName )
 {
-    ASSERT( _binVarName == "" );
+    ASSERT( _binVarName == "NONE" );
     _binVarName = binVarName;
 }
 
 String SigmoidConstraint::getBinVarName()
 {
     return _binVarName;
+}
+
+bool SigmoidConstraint::phaseFixed()
+{
+    if ( FloatUtils::areEqual( getLowerBound( _b ), getUpperBound( _b ) ) )
+        return true;
+    else if ( FloatUtils::lte( getLowerBound( _b ), -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+        return true;
+    else if ( FloatUtils::gte( getUpperBound( _b ), GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+        return true;
+    else if ( FloatUtils::areEqual( getUpperBound( _f ), 1 ) )
+        return true;
+    else if ( FloatUtils::areEqual( getLowerBound( _f ), 0 ) )
+        return true;
+    else
+        return false;
 }

@@ -2718,7 +2718,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
 
-    double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
+    double timeoutForGurobi = ( timeoutInSeconds == 0 ? 3600
                                 : timeoutInSeconds );
     ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
 
@@ -2746,7 +2746,8 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
         if ( _preprocessedQuery.getTranscendentalConstraints().size() > 0 )
         {
             IncrementalLinearization* incrLinear = new IncrementalLinearization( *_milpEncoder );
-            _exitCode = incrLinear->solveWithIncrementalLinearization( *_gurobi, _preprocessedQuery.getTranscendentalConstraints(), timeoutForGurobi - passedTime / 1000000 );
+            _exitCode = incrLinear->solveWithIncrementalLinearization( *_gurobi, _preprocessedQuery.getTranscendentalConstraints(),
+                                                                       timeoutForGurobi - passedTime / 1000000 );
             if ( _exitCode == IEngine::SAT )
                 return true;
             else

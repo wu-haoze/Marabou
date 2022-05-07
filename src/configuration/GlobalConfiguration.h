@@ -232,6 +232,9 @@ public:
     */
     static const unsigned DNC_DEPTH_THRESHOLD;
 
+
+    static const double SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE;
+    static const double SIGMOID_INPUT_RANGE;
     // Whether to add secant lines at the middle point of sigmoid between lb and ub for fisrt linearization. 
     static const bool SIGMOID_SECANT_LINES_AT_MIDDLE_POINT;
 

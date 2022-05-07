@@ -185,6 +185,8 @@ public:
     */
     void registerBoundManager( BoundManager *boundManager );
 
+    virtual bool phaseFixed() = 0;
+
 protected:
     Map<unsigned, double> _assignment;
     Map<unsigned, double> _lowerBounds;

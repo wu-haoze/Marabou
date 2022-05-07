@@ -45,7 +45,13 @@ private:
     /*
       add new constraints
     */
-    bool incrementLinearConstraint( GurobiWrapper &gurobi, TranscendentalConstraint *constraint, const Map<String, double> &assignment);
+    void incrementLinearConstraint( GurobiWrapper &gurobi,
+                                    TranscendentalConstraint *constraint,
+                                    const Map<String, double> &assignment,
+                                    unsigned &satisfied,
+                                    unsigned &tangentAdded,
+                                    unsigned &secantAdded,
+                                    unsigned &skipped );
 };
 
 #endif // __IncrementalLinearization_h__

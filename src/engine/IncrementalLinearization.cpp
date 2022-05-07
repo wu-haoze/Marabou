@@ -35,9 +35,8 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization( G
     while ( incrementalCount < numOfIncrementalLinearizations && restTimeoutInSeconds > 0 )
     {
         gurobi.setTimeLimit( restTimeoutInSeconds );
-
-        INCREMENTAL_LINEARIZATION_LOG( Stringf( "Start incremental linearization: %u",
-                                incrementalCount + 1 ).ascii() );
+        printf( "Start incremental linearization: %u\n",
+                incrementalCount + 1 );
         
         // Extract the last solution
         Map<String, double> assignment;
@@ -45,17 +44,23 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization( G
         gurobi.extractSolution( assignment, costOrObjective );
 
         // Number of new split points
-        unsigned numOfNewSplitPoints = 0;
-
+        unsigned numSatisfied = 0;
+        unsigned numTangent = 0;
+        unsigned numSecant = 0;
+        unsigned numSkipped = 0;
         for ( const auto &tsConstraint : tsConstraints )
         {
             switch ( tsConstraint->getType() )
             {
                 case TranscendentalFunctionType::SIGMOID:
                 {
-                    bool ret = incrementLinearConstraint( gurobi, tsConstraint, assignment );
-                    if ( ret )
-                        numOfNewSplitPoints++;
+                    incrementLinearConstraint( gurobi,
+                                               tsConstraint,
+                                               assignment,
+                                               numSatisfied,
+                                               numTangent,
+                                               numSecant,
+                                               numSkipped );
                     break;
                 }
                 default:
@@ -67,10 +72,20 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization( G
             }
         }
 
-        if ( numOfNewSplitPoints > 0 )
+        printf( "satisfied:%u\ntangent:%u\nsecant:%u\nskipped:%u\n",
+                numSatisfied, numTangent, numSecant, numSkipped );
+        printf( "In total:%u\n",
+                numSatisfied + numTangent + numSecant + numSkipped );
+
+        if ( numSatisfied == tsConstraints.size() )
         {
-            INCREMENTAL_LINEARIZATION_LOG( Stringf( "%u split points were added.",
-                                            numOfNewSplitPoints ).ascii() );
+            // All sigmoid constraints are satisfied.
+            return IEngine::SAT;
+        }
+
+        if ( numTangent + numSecant > 0 )
+        {
+            //printf( "%u split points were added.\n", numOfNewSplitPoints );
             struct timespec start = TimeUtils::sampleMicro();
             gurobi.solve();
             struct timespec end = TimeUtils::sampleMicro();
@@ -84,7 +99,7 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization( G
         }
         else
         {
-            INCREMENTAL_LINEARIZATION_LOG( String( "No longer solve with linearlizations because no new constraint was added." ).ascii() );
+            printf( "No longer solve with linearlizations because no new constraint was added.\n" );
             return IEngine::UNKNOWN;
         }
 
@@ -103,30 +118,62 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization( G
     return IEngine::UNKNOWN;
 }
 
-bool IncrementalLinearization::incrementLinearConstraint( GurobiWrapper &gurobi, TranscendentalConstraint *constraint, const Map<String, double> &assignment)
+void IncrementalLinearization::incrementLinearConstraint( GurobiWrapper &gurobi,
+                                                          TranscendentalConstraint *constraint,
+                                                          const Map<String, double> &assignment,
+                                                          unsigned &satisfied,
+                                                          unsigned &tangentAdded,
+                                                          unsigned &secantAdded,
+                                                          unsigned &skipped)
 {
     SigmoidConstraint *sigmoid = ( SigmoidConstraint * )constraint;
     unsigned sourceVariable = sigmoid->getB();  // x_b
     unsigned targetVariable = sigmoid->getF();  // x_f
-    
+
     // get x of the found solution and calculate y of the x
     // This x is going to become a new split point
     double xpt = assignment[_milpEncoder.getVariableNameFromVariable( sourceVariable )];
     double ypt = sigmoid->sigmoid( xpt );
+    double yptOfSol = assignment[_milpEncoder.getVariableNameFromVariable( targetVariable )];
+
+    std::cout << "Solution: " << xpt << " " << yptOfSol << std::endl;
+
+    if ( constraint->phaseFixed() ||
+         FloatUtils::areEqual
+         ( ypt, yptOfSol, GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
+    {
+        ++satisfied;
+        return;
+    }
 
     const bool clipUse = GlobalConfiguration::SIGMOID_CLIP_POINT_USE;
     const double clipPoint = GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION;
     if ( clipUse && ( xpt <= -clipPoint || xpt >= clipPoint ) )
-        return false;
+    {
+        ++skipped;
+        return;
+    }
 
-
-    double yptOfSol = assignment[_milpEncoder.getVariableNameFromVariable( targetVariable )];
-    
     // If true, secant lines are added, otherwise a tangent line is added.
-    bool isSolInsideOfConvex = ( xpt >= 0 && ypt > yptOfSol ) || ( xpt < 0 && ypt < yptOfSol );
+    bool isSolInsideOfConvex = ( ( !FloatUtils::isNegative( xpt ) && ypt > yptOfSol )
+                                 || ( FloatUtils::isNegative( xpt ) && ypt < yptOfSol ) );
 
     // get current secant points
     const TranscendentalConstraint::SecantPoints &secantPts = sigmoid->getSecantPoints();
+
+    std::cout << "Sec: ";
+    for ( const auto &pt : secantPts )
+    {
+        std::cout << "("<< pt._x << ", " << pt._y << ") ";
+    }
+    std::cout << "\ntan: ";
+    const TranscendentalConstraint::TangentPoints &tangentPts = sigmoid->getTangentPoints();
+
+    for ( const auto &pt : tangentPts )
+    {
+        std::cout << "("<< pt._x << ", " << pt._y << ") ";
+    }
+    std::cout << std::endl;
 
     // get lower bound and upper bound
     ASSERT( secantPts.size() > 1 );
@@ -145,8 +192,9 @@ bool IncrementalLinearization::incrementLinearConstraint( GurobiWrapper &gurobi,
         {
             if ( FloatUtils::areEqual( pt._x, xpt ))
             {
+                printf("same tangent point needs to be added, this should not happen!!!!\n");
                 // if xpt is same as one of current tangent points, no longer continues.
-                return false;            
+                return;
             }
         }
 
@@ -155,6 +203,7 @@ bool IncrementalLinearization::incrementLinearConstraint( GurobiWrapper &gurobi,
         INCREMENTAL_LINEARIZATION_LOG( Stringf( "new xpt: %f, new ypt: %f for a tangent line",
                                         xpt, ypt ).ascii() );
         sigmoid->addTangentPoint( xpt, ypt );
+        ++tangentAdded;
     }
     else
     {
@@ -167,8 +216,9 @@ bool IncrementalLinearization::incrementLinearConstraint( GurobiWrapper &gurobi,
         {
             if ( FloatUtils::areEqual( pt._x, xpt ))
             {
+                printf("same secant point needs to be added, this should not happen!!!!\n");
                 // if xpt is same as one of current secant points, no longer continues.
-                return false;
+                return;
             }
             else if ( FloatUtils::gt( pt._x, xpt ) && !ptSet )
             {
@@ -188,7 +238,6 @@ bool IncrementalLinearization::incrementLinearConstraint( GurobiWrapper &gurobi,
         INCREMENTAL_LINEARIZATION_LOG( Stringf( "new xpt: %f, new ypt: %f for secant lines",
                                         xpt, ypt ).ascii() );
         sigmoid->addSecantPoint( xpt, ypt );
+        ++secantAdded;
     }
-
-    return true;
 }

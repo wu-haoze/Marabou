@@ -112,6 +112,7 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
             if node.name in self.inputNames:
                 self.madeGraphEquations += [node.name]
                 self.foundnInputFlags += 1
+                self.shapeMap[node.name][0] = 1
                 self.makeNewVariables(node.name)
                 self.inputVars += [np.array(self.varMap[node.name])] 
                 
@@ -983,6 +984,9 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
 
         :meta private:
         """
+        self.outputVars = self.varMap[self.outputName]
+        return #We do not need to reindex the variables. Turn this off for now.
+
         if self.outputName in self.constantMap:
             raise RuntimeError("Output variable %s is a constant, not the output of equations!"%self.outputName)
         outVars = self.varMap[self.outputName].reshape(-1)

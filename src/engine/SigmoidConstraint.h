@@ -130,6 +130,8 @@ public:
     */
     String getBinVarName();
 
+    bool phaseFixed();
+
 private:
     unsigned _b, _f; 
     bool _haveEliminatedVariables;
