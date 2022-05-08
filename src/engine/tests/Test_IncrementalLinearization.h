@@ -106,7 +106,7 @@ public:
         IEngine::ExitCode exitCode =
             incrLinear.solveWithIncrementalLinearization
             ( gurobi1, 30 );
-        TS_ASSERT( exitCode == IEngine::UNKNOWN );
+        TS_ASSERT( exitCode == IEngine::SAT );
 #else
         TS_ASSERT( true );
 #endif // ENABLE_GUROBI

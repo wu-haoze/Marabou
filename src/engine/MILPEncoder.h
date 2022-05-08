@@ -46,19 +46,11 @@ public:
     */
     String getVariableNameFromVariable( unsigned variable );
 
-    /*
-      Add a tangent line
-    */
-    void addTangentLineOnSigmoid( GurobiWrapper &gurobi,
-                                  SigmoidConstraint *sigmoid,
-                                  double x );
-
-    /*
-      Add secant lines
-    */
-    void addSecantLinesOnSigmoid( GurobiWrapper &gurobi,
-                                  SigmoidConstraint *sigmoid,
-                                  const std::set<double> &points );
+    void addCutConstraint( GurobiWrapper &gurobi, bool above,
+                           String xVar, String yVar,
+                           double x, double y,
+                           double slopeLeft, double scalarLeft,
+                           double slopeRight, double scalarRight );
 
     inline void setStatistics( Statistics *statistics )
     {
