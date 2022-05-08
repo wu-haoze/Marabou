@@ -2720,10 +2720,13 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     double timeoutForGurobi = ( timeoutInSeconds == 0 ? 3600
                                 : timeoutInSeconds );
-    ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
+    ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() );
 
+    unsigned threads = 1;
     if ( !_sncMode )
-        _gurobi->setNumberOfThreads( Options::get()->getInt( Options::NUM_WORKERS ) );
+        threads = Options::get()->getInt( Options::NUM_WORKERS );
+
+    _gurobi->setNumberOfThreads( threads );
 
     _gurobi->setTimeLimit( timeoutForGurobi );
 
@@ -2745,9 +2748,11 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     {
         if ( _preprocessedQuery.getTranscendentalConstraints().size() > 0 )
         {
-            IncrementalLinearization* incrLinear = new IncrementalLinearization( *_milpEncoder, _preprocessedQuery );
+            IncrementalLinearization* incrLinear = new IncrementalLinearization
+                ( *_milpEncoder, _preprocessedQuery );
             _exitCode = incrLinear->solveWithIncrementalLinearization
-                ( *_gurobi, timeoutForGurobi - passedTime / 1000000 );
+                ( *_gurobi, timeoutForGurobi - passedTime / 1000000,
+                  threads, _verbosity );
             if ( _exitCode == IEngine::SAT )
                 return true;
             else

@@ -39,6 +39,32 @@ public:
     {
     }
 
+    struct CutPoint {
+        CutPoint (double x, bool above )
+            : _x( x )
+            , _above( above )
+        {};
+
+        double _x;
+        bool _above;
+
+        bool operator<( const CutPoint &other ) const
+        {
+            if ( _above && !other._above )
+                return true;
+            else if ( !_above && other._above )
+                return false;
+            else
+                return FloatUtils::lt( _x, other._x);
+        }
+
+        bool operator==( const CutPoint &other ) const
+        {
+            return ( _above == other._above &&
+                     FloatUtils::areEqual( _x, other._x ) );
+        }
+    };
+
     /*
       Get the type of this constraint.
     */
@@ -117,24 +143,14 @@ public:
     void registerConstraintBoundTightener( IConstraintBoundTightener *tightener );
 
     /*
-      Add a new tangent point for licremental linearization.
-    */
-    void addTangentPoint( double x );
-
-    /*
       Add a new secant point for licremental linearization.
     */
-    void addSecantPoint( double x );
+    void addCutPoint( double x, bool above );
 
     /*
       Return tangent points
     */
-    const std::set<double> &getTangentPoints();
-
-    /*
-      Return secant points
-    */
-    const std::set<double> & getSecantPoints();
+    const std::set<CutPoint> &getCutPoints();
 
 
     /**********************************************************************/
@@ -227,10 +243,7 @@ protected:
 
 private:
   // Points of tangent lines for incremental linearizations.
-    std::set<double> _tangentPts;
-
-  // Points of secant lines for incremental linearizations.
-    std::set<double> _secantPts;
+    std::set<CutPoint> _cutPts;
 };
 
 #endif // __TranscendentalConstraint_h__

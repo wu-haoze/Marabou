@@ -36,7 +36,7 @@ public:
     {
     }
 
-    void test_solve_with_incremental_linearization()
+    void test_solve_with_incremental_linearization_sat()
     {
 #ifdef ENABLE_GUROBI
 
@@ -54,11 +54,11 @@ public:
         inputQuery1.setUpperBound( 0, 1 );
         tableau1.setLowerBound( 0, 0 );
         tableau1.setUpperBound( 0, 1 );
+
         inputQuery1.setLowerBound( 2, -1 );
         inputQuery1.setUpperBound( 2, 1 );
         tableau1.setLowerBound( 2, -1 );
         tableau1.setUpperBound( 2, 1 );
-
 
         // x1 = sigmoid( x0 )
         SigmoidConstraint *sigmoid1 = new SigmoidConstraint( 0, 1 );
@@ -105,7 +105,7 @@ public:
             ( milp1, inputQuery1 );
         IEngine::ExitCode exitCode =
             incrLinear.solveWithIncrementalLinearization
-            ( gurobi1, 1000000000000 );
+            ( gurobi1, 30 );
         TS_ASSERT( exitCode == IEngine::UNKNOWN );
 #else
         TS_ASSERT( true );

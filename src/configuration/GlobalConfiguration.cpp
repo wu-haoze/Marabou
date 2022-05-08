@@ -101,7 +101,7 @@ const double GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE = 1e-4
 const double GlobalConfiguration::SIGMOID_INPUT_RANGE = 10;
 
 const bool GlobalConfiguration::SIGMOID_SECANT_LINES_AT_MIDDLE_POINT = false;
-const bool GlobalConfiguration::SIGMOID_CLIP_POINT_USE = false;
+const bool GlobalConfiguration::SIGMOID_CLIP_POINT_USE = true;
 const double GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION = 3;
 
 #ifdef ENABLE_GUROBI

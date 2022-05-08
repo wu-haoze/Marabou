@@ -39,22 +39,12 @@ void TranscendentalConstraint::registerConstraintBoundTightener( IConstraintBoun
     _constraintBoundTightener = tightener;
 }
 
-void TranscendentalConstraint::addTangentPoint( double x )
+void TranscendentalConstraint::addCutPoint( double x, bool above )
 {
-    _tangentPts.insert( x );
+    _cutPts.insert( TranscendentalConstraint::CutPoint( x, above ) );
 }
 
-const std::set<double> &TranscendentalConstraint::getTangentPoints()
+const std::set<TranscendentalConstraint::CutPoint> &TranscendentalConstraint::getCutPoints()
 {
-    return _tangentPts;
-}
-
-void TranscendentalConstraint::addSecantPoint( double x )
-{
-    _secantPts.insert( x );
-}
-
-const std::set<double> &TranscendentalConstraint::getSecantPoints()
-{
-    return _secantPts;
+    return _cutPts;
 }

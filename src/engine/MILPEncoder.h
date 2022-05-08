@@ -23,6 +23,7 @@
 #include "LinearExpression.h"
 #include "MStringf.h"
 #include "Statistics.h"
+#include "TranscendentalConstraint.h"
 
 #include "Map.h"
 

@@ -36,13 +36,11 @@ SigmoidConstraint::SigmoidConstraint( unsigned b, unsigned f )
     , _b( b )
     , _f( f )
     , _haveEliminatedVariables( false )
-    , _binVarName( "NONE" )
 {
 }
 
 SigmoidConstraint::SigmoidConstraint( const String &serializedSigmoid )
     : _haveEliminatedVariables( false )
-    , _binVarName( "NONE" )
 {
     String constraintType = serializedSigmoid.substring( 0, 7 );
     ASSERT( constraintType == String( "sigmoid" ) );
@@ -210,6 +208,11 @@ void SigmoidConstraint::getEntailedTightenings( List<Tightening> &tightenings ) 
     double bUpperBound = getUpperBound( _b );
     double fUpperBound = getUpperBound( _f );
 
+    //tightenings.append( Tightening( _b, -GlobalConfiguration::SIGMOID_INPUT_RANGE,
+    //                              Tightening::LB ) );
+    //tightenings.append( Tightening( _b, GlobalConfiguration::SIGMOID_INPUT_RANGE,
+    //                                Tightening::UB ) );
+
     tightenings.append( Tightening( _b, bLowerBound, Tightening::LB ) );
     tightenings.append( Tightening( _f, fLowerBound, Tightening::LB ) );
 
@@ -253,16 +256,6 @@ double SigmoidConstraint::sigmoidDerivative( double x )
     else if ( FloatUtils::lte( x, -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
         return 0;
     else return sigmoid( x ) * ( 1 - sigmoid( x ) );
-}
-void SigmoidConstraint::setBinVarName( String binVarName )
-{
-    ASSERT( _binVarName == "NONE" );
-    _binVarName = binVarName;
-}
-
-String SigmoidConstraint::getBinVarName()
-{
-    return _binVarName;
 }
 
 bool SigmoidConstraint::phaseFixed()

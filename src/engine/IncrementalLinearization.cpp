@@ -27,7 +27,11 @@ IncrementalLinearization::IncrementalLinearization( MILPEncoder &milpEncoder,
 {
 }
 
-IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization( GurobiWrapper &gurobi, double timeoutInSeconds )
+IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
+( GurobiWrapper &gurobi,
+  double timeoutInSeconds,
+  unsigned threads,
+  unsigned verbosity )
 {
 
     List<TranscendentalConstraint *> tsConstraints = _inputQuery.getTranscendentalConstraints();
@@ -91,6 +95,8 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization( G
             _milpEncoder.reset();
             _milpEncoder.encodeInputQuery( gurobi, _inputQuery );
             gurobi.setTimeLimit( remainingTimeoutInSeconds );
+            gurobi.setNumberOfThreads( threads );
+            gurobi.setVerbosity( verbosity > 1 );
             gurobi.solve();
             struct timespec end = TimeUtils::sampleMicro();
             unsigned long long passedTime = TimeUtils::timePassed( start, end );
@@ -140,8 +146,6 @@ void IncrementalLinearization::incrementLinearConstraint
     double ypt = sigmoid->sigmoid( xpt );
     double yptOfSol = assignment[_milpEncoder.getVariableNameFromVariable( targetVariable )];
 
-    std::cout << "Solution: " << xpt << " " << yptOfSol << std::endl;
-
     if ( constraint->phaseFixed() ||
          FloatUtils::areEqual
          ( ypt, yptOfSol, GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
@@ -149,6 +153,8 @@ void IncrementalLinearization::incrementLinearConstraint
         ++satisfied;
         return;
     }
+
+    std::cout << "Solution: (" << xpt << " " << yptOfSol << ")" << std::endl;
 
     const bool clipUse = GlobalConfiguration::SIGMOID_CLIP_POINT_USE;
     const double clipPoint = GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION;
@@ -159,30 +165,15 @@ void IncrementalLinearization::incrementLinearConstraint
     }
 
     // If true, secant lines are added, otherwise a tangent line is added.
-    bool isSolInsideOfConvex = ( ( !FloatUtils::isNegative( xpt ) && ypt > yptOfSol )
-                                 || ( FloatUtils::isNegative( xpt ) && ypt < yptOfSol ) );
+    bool above = FloatUtils::gt( yptOfSol, ypt );
+    sigmoid->addCutPoint( xpt, above );
 
-    if( isSolInsideOfConvex )
+    if( above )
     {
-        sigmoid->addSecantPoint( xpt );
         ++secantAdded;
     }
     else
     {
-        sigmoid->addTangentPoint( xpt );
         ++tangentAdded;
     }
-
-    std::cout << "Sec: ";
-    for ( const auto &pt : sigmoid->getSecantPoints()  )
-    {
-        std::cout << pt << " ";
-    }
-
-    std::cout << "\nTan: ";
-    for ( const auto &pt : sigmoid->getTangentPoints() )
-    {
-        std::cout << pt << " ";
-    }
-    std::cout << std::endl;
 }

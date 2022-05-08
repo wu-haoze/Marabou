@@ -35,7 +35,9 @@ public:
       Only for the purpose of TranscendetalConstarints
     */
     IEngine::ExitCode solveWithIncrementalLinearization( GurobiWrapper &gurobi,
-                                                         double timeoutInSeconds );
+                                                         double timeoutInSeconds,
+                                                         unsigned threads = 1,
+                                                         unsigned verbosity = 2 );
 
 private:
     /*

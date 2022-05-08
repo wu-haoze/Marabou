@@ -120,24 +120,11 @@ public:
     */
     static double sigmoidDerivative( double x );
 
-    /*
-      Set the binVarName
-    */
-    void setBinVarName( String binVarName );
-
-    /*
-      Get the binVarName
-    */
-    String getBinVarName();
-
     bool phaseFixed();
 
 private:
     unsigned _b, _f; 
     bool _haveEliminatedVariables;
-  
-    // Binary var name for Gurobi's indicator constraint
-    String _binVarName;
 };
 
 #endif // __SigmoidConstraint_h__

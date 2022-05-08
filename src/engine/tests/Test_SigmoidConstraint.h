@@ -19,6 +19,7 @@
 #include "MarabouError.h"
 #include "SigmoidConstraint.h"
 #include "MockTableau.h"
+#include "TranscendentalConstraint.h"
 #include <string.h>
 
 class MockForSigmoidConstraint
@@ -375,34 +376,22 @@ public:
     void test_sigmoid_add_tangent_point()
     {
         SigmoidConstraint sigmoid1( 0, 1 );
-        sigmoid1.addTangentPoint( 0 );
-        sigmoid1.addTangentPoint( 2 );
-        sigmoid1.addTangentPoint( 1 );
-        auto pts = sigmoid1.getTangentPoints();
+        sigmoid1.addCutPoint( 0, true );
+        sigmoid1.addCutPoint( 2, true );
+        sigmoid1.addCutPoint( 0, false );
+
+        auto pts = sigmoid1.getCutPoints();
 
         auto it1 = pts.begin();
 
-        TS_ASSERT_EQUALS( *it1, 0 );
+        TS_ASSERT_EQUALS( *it1, TranscendentalConstraint::CutPoint( 0, true ) );
         ++it1;
-        TS_ASSERT_EQUALS( *it1, 1 );
+        TS_ASSERT_EQUALS( *it1, TranscendentalConstraint::CutPoint( 2, true ) );
         ++it1;
-        TS_ASSERT_EQUALS( *it1, 2 );
+        TS_ASSERT_EQUALS( *it1, TranscendentalConstraint::CutPoint( 0, false ) );
     }
 
     void test_sigmoid_add_secant_point()
     {
-        SigmoidConstraint sigmoid1( 0, 1 );
-        sigmoid1.addSecantPoint( 0 );
-        sigmoid1.addSecantPoint( 2 );
-        sigmoid1.addSecantPoint( 1 );
-        auto pts = sigmoid1.getSecantPoints();
-
-        auto it1 = pts.begin();
-
-        TS_ASSERT_EQUALS( *it1, 0 );
-        ++it1;
-        TS_ASSERT_EQUALS( *it1, 1 );
-        ++it1;
-        TS_ASSERT_EQUALS( *it1, 2 );
     }
 };
