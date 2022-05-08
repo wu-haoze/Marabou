@@ -494,7 +494,6 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
         double y = sigmoid->sigmoid( x );
         if ( FloatUtils::lte( point._x, 0 ) && point._above )
         {
-            std::cout << x  << " " << y << std::endl;
             // Top left.
             double slopeLeft = 0;
             double scalarLeft = 0;
@@ -522,7 +521,6 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
         }
         else if ( FloatUtils::gte( point._x, 0 ) && !point._above )
         {
-            std::cout << x  << " " << y << std::endl;
             // Bottom right
             double slopeRight = 0;
             double scalarRight = 0;
