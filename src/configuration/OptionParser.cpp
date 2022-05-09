@@ -149,9 +149,12 @@ void OptionParser::initialize()
         ( "lp-tightening-after-split",
           boost::program_options::bool_switch( &((*_boolOptions)[Options::PERFORM_LP_TIGHTENING_AFTER_SPLIT]) ),
           "Whether to skip a LP tightening after a case split" )
-        ( "num-incremental-linearizations",
+        ( "inc-lin",
           boost::program_options::value<int>( &((*_intOptions)[Options::NUMBER_OF_INCREMENTAL_LINEARIZATIONS]) ),
           "Number of incremental linearizations" )
+        ( "eager-lin",
+          boost::program_options::value<int>( &((*_intOptions)[Options::EAGER_LINEARIZATION]) ),
+          "Perform linearization eagerly" )
 #endif // ENABLE_GUROBI
 
         ;

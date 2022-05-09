@@ -96,6 +96,8 @@ public:
 
         // The number of incremental linearizations
         NUMBER_OF_INCREMENTAL_LINEARIZATIONS,
+
+        EAGER_LINEARIZATION,
     };
 
     enum FloatOptions{

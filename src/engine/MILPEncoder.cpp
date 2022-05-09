@@ -18,6 +18,7 @@
 #include "GurobiWrapper.h"
 #include "MILPEncoder.h"
 #include "TimeUtils.h"
+#include "Options.h"
 
 MILPEncoder::MILPEncoder( const ITableau &tableau )
     : _tableau( tableau )
@@ -446,7 +447,6 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
         return;
     }
 
-
     double lambda = ( sigmoid->sigmoid(sourceUb) - sigmoid->sigmoid( sourceLb ) ) /
         ( sourceUb - sourceLb );
     double lambdaPrime = std::min( sigmoid->sigmoidDerivative( sourceLb ),
@@ -486,6 +486,19 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
         terms.append( GurobiWrapper::Term( -lambdaPrime, Stringf( "x%u", sourceVariable ) ) );
         upperBias = targetUb - lambdaPrime * sourceUb;
         gurobi.addLeqConstraint( terms, upperBias );
+    }
+
+    unsigned numEagerLin = Options::get()->getInt( Options::EAGER_LINEARIZATION );
+    if ( numEagerLin > 0 )
+    {
+        double stepSize = ( sourceUb - sourceLb ) / ( (double) numEagerLin );
+        double init = sourceLb + stepSize;
+        while ( FloatUtils::lt( init, sourceUb ) )
+        {
+            sigmoid->addCutPoint( init, true );
+            sigmoid->addCutPoint( init, false );
+            init += stepSize;
+        }
     }
 
     for ( const auto &point : sigmoid->getCutPoints() )
