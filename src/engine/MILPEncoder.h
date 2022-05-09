@@ -63,6 +63,16 @@ public:
     void encodeCostFunction( GurobiWrapper &gurobi,
                              const LinearExpression &cost );
 
+    inline double getLowerBound( unsigned var )
+    {
+        return _tableau.getLowerBound( var );
+    }
+
+    inline double getUpperBound( unsigned var )
+    {
+        return _tableau.getUpperBound( var );
+    }
+
 private:
 
     /*

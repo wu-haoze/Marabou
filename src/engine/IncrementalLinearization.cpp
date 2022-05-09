@@ -173,18 +173,21 @@ void IncrementalLinearization::incrementLinearConstraint
 
     const bool clipUse = GlobalConfiguration::SIGMOID_CLIP_POINT_USE;
     const double clipPoint = GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION;
+    bool above = FloatUtils::gt( yptOfSol, ypt );
+    bool justTangent = ( ( FloatUtils::lte( _milpEncoder.getUpperBound( sourceVariable ), 0 ) && !above ) &&
+                         ( FloatUtils::gte( _milpEncoder.getLowerBound( sourceVariable ), 0 ) && above ) );
+
     if ( (clipUse && ( xpt <= -clipPoint || xpt >= clipPoint ) ) ||
-         ( tangentAdded + secantAdded == cutOff ) )
+         ( !justTangent && secantAdded == cutOff ) )
     {
         ++skipped;
         return;
     }
 
     // If true, secant lines are added, otherwise a tangent line is added.
-    bool above = FloatUtils::gt( yptOfSol, ypt );
     sigmoid->addCutPoint( xpt, above );
 
-    if( above )
+    if( !justTangent )
     {
         ++secantAdded;
     }
