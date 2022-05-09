@@ -54,6 +54,13 @@ void Marabou::run()
 
     unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
     displayResults( totalElapsed );
+    if ( _engine.getExitCode() == IEngine::UNSAT )
+        exit( 20 );
+    else if ( _engine.getExitCode() == IEngine::SAT )
+        exit( 10 );
+    else
+        exit( 0 );
+
 }
 
 void Marabou::prepareInputQuery()

@@ -118,7 +118,7 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
     }
 
 
-    gurobi.dumpModel( Stringf( "test.lp" ) );
+    //gurobi.dumpModel( Stringf( "test.lp" ) );
 
     if ( _statistics )
     {

@@ -106,7 +106,7 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
             _milpEncoder.encodeInputQuery( gurobi, _inputQuery );
             gurobi.setTimeLimit( remainingTimeoutInSeconds );
             gurobi.setNumberOfThreads( threads );
-            gurobi.setVerbosity( verbosity > 1 );
+            gurobi.setVerbosity( verbosity < 100 );
             gurobi.solve();
             struct timespec end = TimeUtils::sampleMicro();
             unsigned long long passedTime = TimeUtils::timePassed( start, end );

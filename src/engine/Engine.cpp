@@ -2730,9 +2730,12 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     _gurobi->setTimeLimit( timeoutForGurobi );
 
-    _gurobi->setVerbosity( _verbosity > 1 );
-    
-    printf("TG: MILP solve starts.\n"); // TG: test purpose. it should be deleted.
+    _gurobi->setVerbosity( 1 );
+
+    printf( "\n"
+            "--------------------------------------------------\n"
+            "------------ Start MILP solving ------------------\n"
+            "--------------------------------------------------\n" );
 
     struct timespec start = TimeUtils::sampleMicro();
     _gurobi->solve();

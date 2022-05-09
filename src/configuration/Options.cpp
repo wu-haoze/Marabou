@@ -64,7 +64,7 @@ void Options::initializeDefaultValues()
     _intOptions[NUMBER_OF_SIMULATIONS] = 100;
     _intOptions[SEED] = 1;
     _intOptions[NUM_BLAS_THREADS] = 1;
-    _intOptions[NUMBER_OF_INCREMENTAL_LINEARIZATIONS] = 5;
+    _intOptions[NUMBER_OF_INCREMENTAL_LINEARIZATIONS] = 100;
 
     /*
       Float options
