@@ -104,19 +104,19 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
                                 "GurobiWrapper::encodeInputQuery: "
                                 "Only Sigmoid is supported\n" );
         }
-    }
-
-    try
+        try
         {
             gurobi.updateModel();
         }
-    catch ( GRBException e )
+        catch ( GRBException e )
         {
             throw CommonError( CommonError::GUROBI_EXCEPTION,
                                Stringf( "Gurobi exception. Gurobi Code: %u, message: %s\n",
                                         e.getErrorCode(),
                                         e.getMessage().c_str() ).ascii() );
         }
+    }
+
 
     gurobi.dumpModel( Stringf( "test.lp" ) );
 
@@ -492,7 +492,9 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
     {
         double x = point._x;
         double y = sigmoid->sigmoid( x );
-        if ( FloatUtils::lte( point._x, 0 ) && point._above )
+        //std::cout << "x " << x << " y " << y << std::endl;
+        //std::cout << sourceLb << " <= x <= " << sourceUb << std::endl;
+        if ( FloatUtils::lt( x, 0 ) && point._above )
         {
             // Top left.
             double slopeLeft = 0;
@@ -519,7 +521,7 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
             addCutConstraint( gurobi, true, xVar, yVar, x, y, slopeLeft,
                               scalarLeft, slopeRight, scalarRight );
         }
-        else if ( FloatUtils::gte( point._x, 0 ) && !point._above )
+        else if ( FloatUtils::gt( x, 0 ) && !point._above )
         {
             // Bottom right
             double slopeRight = 0;
@@ -545,7 +547,7 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
             addCutConstraint( gurobi, false, xVar, yVar, x, y, slopeLeft,
                               scalarLeft, slopeRight, scalarRight );
         }
-        else if ( FloatUtils::gte( point._x, 0 ) && !point._above )
+        else if ( FloatUtils::lte( x, 0 ) && !point._above )
         {
             // Bottom left.
             double slopeLeft = sigmoid->sigmoidDerivative( x );
@@ -560,14 +562,17 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
             }
             else
             {
-                slopeRight = std::min( sigmoid->sigmoidDerivative( sourceUb ),
-                                       sigmoid->sigmoidDerivative( x ) );
+                if ( FloatUtils::areEqual( x, 0 ) )
+                    slopeRight = (targetUb - y ) / ( sourceUb - x );
+                else
+                    slopeRight = std::min( sigmoid->sigmoidDerivative( sourceUb ),
+                                           sigmoid->sigmoidDerivative( x ) );
                 scalarRight = y - slopeRight * x;
             }
             addCutConstraint( gurobi, false, xVar, yVar, x, y, slopeLeft,
                               scalarLeft, slopeRight, scalarRight );
         }
-        else if ( FloatUtils::gte( point._x, 0 ) && !point._above )
+        else if ( FloatUtils::gte( x, 0 ) && point._above )
         {
             // Top right.
             double slopeRight = sigmoid->sigmoidDerivative( x );
@@ -582,12 +587,19 @@ void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi,
             }
             else
             {
-                slopeLeft = std::min( sigmoid->sigmoidDerivative( sourceLb ),
+                if ( FloatUtils::areEqual( x, 0 ) )
+                    slopeLeft = (targetLb - y ) / ( sourceLb - x );
+                else
+                    slopeLeft = std::min( sigmoid->sigmoidDerivative( sourceLb ),
                                       sigmoid->sigmoidDerivative( x ) );
                 scalarLeft = y - slopeLeft * x;
             }
             addCutConstraint( gurobi, true, xVar, yVar, x, y, slopeLeft,
                               scalarLeft, slopeRight, scalarRight );
+        }
+        else
+        {
+            printf("Other case in sigmoid. This should never happen\n");
         }
     }
 
@@ -599,6 +611,11 @@ void MILPEncoder::addCutConstraint( GurobiWrapper &gurobi, bool above,
                                     double slopeLeft, double scalarLeft,
                                     double slopeRight, double scalarRight )
 {
+    /*
+    std::cout << above << " " << xVar.ascii() << " " << yVar.ascii() << " " << x << " " << y
+              << " " << slopeLeft << " " << scalarLeft << " " << slopeRight << " "
+              << scalarRight << std::endl;
+    */
     if ( !FloatUtils::isFinite( slopeLeft ) )
     {
         List<GurobiWrapper::Term> terms;

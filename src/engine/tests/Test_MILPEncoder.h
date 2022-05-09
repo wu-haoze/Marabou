@@ -461,6 +461,63 @@ public:
         TS_ASSERT_THROWS_NOTHING( gurobi2.extractSolution( solution2, costValue2 ) );
 #endif // ENABLE_GUROBI
     }
+
+    void test_encode_sigmoid_with_cut_point()
+    {
+        GurobiWrapper gurobi1;
+
+        InputQuery inputQuery1 = InputQuery();
+        inputQuery1.setNumberOfVariables( 2 );
+
+        MockTableau tableau1 = MockTableau();
+
+        // -1 <= x0 <= 1
+        inputQuery1.setLowerBound( 0, -1 );
+        inputQuery1.setUpperBound( 0, 1 );
+        tableau1.setLowerBound( 0, -1 );
+        tableau1.setUpperBound( 0, 1 );
+
+        // x1 = sigmoid( x0 )
+        SigmoidConstraint *sigmoid1 = new SigmoidConstraint( 0, 1 );
+        inputQuery1.addTranscendentalConstraint( sigmoid1 );
+        inputQuery1.setLowerBound( 1, sigmoid1->sigmoid( -1 ) );
+        inputQuery1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
+        tableau1.setLowerBound( 1, sigmoid1->sigmoid( -1 ) );
+        tableau1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
+
+        sigmoid1->notifyLowerBound( 0, -1 );
+        sigmoid1->notifyUpperBound( 0, 1 );
+        sigmoid1->notifyLowerBound( 1, sigmoid1->sigmoid( -1 ) );
+        sigmoid1->notifyUpperBound( 1, sigmoid1->sigmoid( 1 ) );
+
+        // Above and below
+        sigmoid1->addCutPoint( 0, true );
+        sigmoid1->addCutPoint( 0, false );
+        sigmoid1->addCutPoint( 1, false );
+        sigmoid1->addCutPoint( -1, true );
+        sigmoid1->addCutPoint( 0.1, true );
+        sigmoid1->addCutPoint( 0.1, false );
+        sigmoid1->addCutPoint( -0.1, true );
+        sigmoid1->addCutPoint( -0.1, false );
+
+        MILPEncoder milp1( tableau1 );
+        TS_ASSERT_THROWS_NOTHING( milp1.encodeInputQuery( gurobi1, inputQuery1 ) );
+
+        // binVarName should not be set.
+        TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
+
+        TS_ASSERT( gurobi1.haveFeasibleSolution() );
+
+        Map<String, double> solution1;
+        double costValue1;
+
+        TS_ASSERT_THROWS_NOTHING( gurobi1.extractSolution( solution1, costValue1 ) );
+
+        TS_ASSERT( solution1.exists( "x0" ) );
+        TS_ASSERT( solution1.exists( "x1" ) );
+        TS_ASSERT( solution1.exists( "a0" ) );
+        TS_ASSERT( solution1.exists( "a1" ) );
+    }
 };
 
 //

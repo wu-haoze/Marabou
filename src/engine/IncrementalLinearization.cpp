@@ -42,7 +42,11 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
 
     while ( incrementalCount < numOfIncrementalLinearizations && remainingTimeoutInSeconds > 0 )
     {
-        printf( "Start incremental linearization: %u\n", incrementalCount + 1 );
+        printf( "\n"
+                "--------------------------------------------------\n"
+                "--------Start incremental linearization: %u--------\n"
+                "--------------------------------------------------\n",
+                incrementalCount + 1 );
         
         // Extract the last solution
         Map<String, double> assignment;
@@ -154,7 +158,7 @@ void IncrementalLinearization::incrementLinearConstraint
         return;
     }
 
-    std::cout << "Solution: (" << xpt << " " << yptOfSol << ")" << std::endl;
+    //std::cout << "Solution: (" << xpt << " " << yptOfSol << ")" << std::endl;
 
     const bool clipUse = GlobalConfiguration::SIGMOID_CLIP_POINT_USE;
     const double clipPoint = GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION;
