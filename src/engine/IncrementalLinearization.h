@@ -54,7 +54,8 @@ private:
                                     unsigned &satisfied,
                                     unsigned &tangentAdded,
                                     unsigned &secantAdded,
-                                    unsigned &skipped );
+                                    unsigned &skipped,
+                                    unsigned cutOff );
 };
 
 #endif // __IncrementalLinearization_h__

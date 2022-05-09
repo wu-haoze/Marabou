@@ -39,6 +39,7 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
 
     unsigned incrementalCount = 0;
     double remainingTimeoutInSeconds = timeoutInSeconds;
+    unsigned cutOff = 10;
 
     while ( incrementalCount < numOfIncrementalLinearizations && remainingTimeoutInSeconds > 0 )
     {
@@ -73,7 +74,8 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
                                                numSatisfied,
                                                numTangent,
                                                numSecant,
-                                               numSkipped );
+                                               numSkipped,
+                                               cutOff );
                     break;
                 }
                 default:
@@ -123,6 +125,10 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
 
         if ( gurobi.haveFeasibleSolution() )
         {
+            if ( cutOff > 10000 )
+                cutOff = 10000;
+            else
+                cutOff *= 1.5;
             incrementalCount++;
             continue;
         }
@@ -142,7 +148,8 @@ void IncrementalLinearization::incrementLinearConstraint
   unsigned &satisfied,
   unsigned &tangentAdded,
   unsigned &secantAdded,
-  unsigned &skipped)
+  unsigned &skipped,
+  unsigned cutOff )
 {
     SigmoidConstraint *sigmoid = ( SigmoidConstraint * )constraint;
     unsigned sourceVariable = sigmoid->getB();  // x_b
@@ -167,7 +174,7 @@ void IncrementalLinearization::incrementLinearConstraint
     const bool clipUse = GlobalConfiguration::SIGMOID_CLIP_POINT_USE;
     const double clipPoint = GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION;
     if ( (clipUse && ( xpt <= -clipPoint || xpt >= clipPoint ) ) ||
-         ( tangentAdded + secantAdded == 50 ) )
+         ( tangentAdded + secantAdded == cutOff ) )
     {
         ++skipped;
         return;
