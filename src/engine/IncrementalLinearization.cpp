@@ -58,7 +58,11 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
         unsigned numTangent = 0;
         unsigned numSecant = 0;
         unsigned numSkipped = 0;
-        for ( const auto &tsConstraint : tsConstraints )
+
+        std::vector<TranscendentalConstraint *> temp(tsConstraints.begin(), tsConstraints.end());
+        std::random_shuffle(temp.begin(), temp.end());
+
+        for ( const auto &tsConstraint : temp )
         {
             switch ( tsConstraint->getType() )
             {
@@ -162,7 +166,8 @@ void IncrementalLinearization::incrementLinearConstraint
 
     const bool clipUse = GlobalConfiguration::SIGMOID_CLIP_POINT_USE;
     const double clipPoint = GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION;
-    if ( clipUse && ( xpt <= -clipPoint || xpt >= clipPoint ) )
+    if ( (clipUse && ( xpt <= -clipPoint || xpt >= clipPoint ) ) ||
+         ( tangentAdded + secantAdded == 50 ) )
     {
         ++skipped;
         return;
