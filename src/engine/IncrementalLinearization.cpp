@@ -39,7 +39,7 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
 
     unsigned incrementalCount = 0;
     double remainingTimeoutInSeconds = timeoutInSeconds;
-    unsigned cutOff = 10;
+    unsigned cutOff = 20; // START BY ADDING THIS MANY CONSTRAINT!
 
     while ( incrementalCount < numOfIncrementalLinearizations && remainingTimeoutInSeconds > 0 )
     {
@@ -128,7 +128,7 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
             if ( cutOff > 10000 )
                 cutOff = 10000;
             else
-                cutOff *= 1.5;
+                cutOff *= 2;
             incrementalCount++;
             continue;
         }
