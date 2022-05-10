@@ -2718,8 +2718,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     _milpEncoder->encodeInputQuery( *_gurobi, _preprocessedQuery );
     ENGINE_LOG( "Query encoded in Gurobi...\n" );
 
-    double timeoutForGurobi = ( timeoutInSeconds == 0 ? 3600
-                                : timeoutInSeconds );
+    double timeoutForGurobi = timeoutInSeconds;
     ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() );
 
     unsigned threads = 1;
