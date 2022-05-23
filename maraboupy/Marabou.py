@@ -61,7 +61,7 @@ def read_tf(filename, inputNames=None, outputName=None, modelType="frozen", save
     """
     return MarabouNetworkTF(filename, inputNames, outputName, modelType, savedModelTags)
 
-def read_onnx(filename, inputNames=None, outputName=None):
+def read_onnx(filename, inputNames=None, outputName=None, lbs=None, ubs=None):
     """Constructs a MarabouNetworkONNX object from an ONNX file
 
     Args:
@@ -72,7 +72,7 @@ def read_onnx(filename, inputNames=None, outputName=None):
     Returns:
         :class:`~maraboupy.MarabouNetworkONNX.MarabouNetworkONNX`
     """
-    return MarabouNetworkONNX(filename, inputNames, outputName)
+    return MarabouNetworkONNX(filename, inputNames, outputName, lbs, ubs)
 
 def load_query(filename):
     """Load the serialized inputQuery from the given filename

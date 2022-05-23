@@ -23,9 +23,31 @@ from maraboupy import MarabouCore
 from maraboupy import MarabouUtils
 
 import subprocess
+import onnxruntime
+
+
+def getPrediction(netName, image):
+        session = onnxruntime.InferenceSession(netName, None)
+        imageInput = session.get_inputs()[0].name
+        output_name = session.get_outputs()[0].name
+        output = session.run([output_name], {imageInput: image})[0][0]
+        top = np.argmax(output)
+        output[top] = -10000.0
+        second = np.argmax(output)
+        return top, second
 
 def main():
         args, unknown = arguments().parse_known_args()
+        from tensorflow.keras.datasets import mnist
+        (X_train, Y_train), (X_test, Y_test) = mnist.load_data()
+        point = np.array([[X_test[args.index]]]).astype(np.float32) / 255
+        correct = Y_test[args.index]
+        top,second = getPrediction(args.network, point)
+        if top != correct:
+                print("misclassify!")
+        else:
+                args.target = second
+
         query, network = createQuery(args)
         if query == None:
             print("Unable to create an input query!")
@@ -48,11 +70,47 @@ def main():
         subprocess.run([marabou_binary] + ["--input-query={}".format(name)] + unknown )
         os.remove(name)
 
+def parseBounds(boundsFile):
+        if boundsFile == None:
+                return None, None
+        else:
+                lbs = []
+                ubs = []
+                parseStart = False
+                lbStart = False
+                ubStart = False
+                with open(boundsFile,'r') as in_file:
+                        for line in in_file.readlines():
+                                if "PRIMA finished" in line:
+                                        parseStart = True
+                                        continue
+                                if "img" in line:
+                                        parseStart = False
+                                        continue
+                                if parseStart and "lb:" in line:
+                                        lbStart = True
+                                        continue
+                                if parseStart and "ub:" in line:
+                                        ubStart = True
+                                        lbStart = False
+                                        continue
+                                if parseStart and lbStart:
+                                        line = line[1:-2].split(", ")
+                                        for ele in line:
+                                                lbs.append(float(ele))
+                                if parseStart and ubStart:
+                                        line = line[1:-2].split(", ")
+                                        for ele in line:
+                                                ubs.append(float(ele))
+                return lbs, ubs
+
 def createQuery(args):
     if args.input_query:
         query = Marabou.load_query(args.input_query)
         return query, None
     networkPath = args.network
+
+    lbs, ubs = parseBounds(args.bounds)
 
     suffix = networkPath.split('.')[-1]
     if suffix == "nnet":
@@ -60,7 +118,7 @@ def createQuery(args):
     elif suffix == "pb":
         network = Marabou.read_tf(networkPath)
     elif suffix == "onnx":
-        network = Marabou.read_onnx(networkPath)
+        network = Marabou.read_onnx(networkPath, lbs = lbs, ubs = ubs)
     else:
         print("The network must be in .pb, .nnet, or .onnx format!")
         return None, None
@@ -154,6 +212,9 @@ def arguments():
                                 "../build/Marabou" )
     parser.add_argument('--marabou-binary', type=str, default=marabou_path,
                         help='The path to Marabou binary')
+    parser.add_argument('--bounds', type=str, default=None,
+                        help='bound file')
+
 
     return parser
 
