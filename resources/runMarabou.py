@@ -45,30 +45,35 @@ def main():
         top,second = getPrediction(args.network, point)
         if top != correct:
                 print("misclassify!")
+                exit(1)
         else:
-                args.target = second
+                args.target_label = second
 
-        query, network = createQuery(args)
-        if query == None:
-            print("Unable to create an input query!")
-            print("There are three options to define the benchmark:\n"
-                  "1. Provide an input query file.\n"
-                  "2. Provide a network and a property file.\n"
-                  "3. Provide a network, a dataset (--dataset), an epsilon (-e), "
-                  "target label (-t), and the index of the point in the test set (-i).")
-            exit(1)
+        for i in range(10):
+            if i == top:
+                    continue
+            args.target_label = i
+            query, network = createQuery(args)
+            if query == None:
+                print("Unable to create an input query!")
+                print("There are three options to define the benchmark:\n"
+                      "1. Provide an input query file.\n"
+                      "2. Provide a network and a property file.\n"
+                      "3. Provide a network, a dataset (--dataset), an epsilon (-e), "
+                      "target label (-t), and the index of the point in the test set (-i).")
+                exit(1)
 
-        marabou_binary = args.marabou_binary
-        if not os.access(marabou_binary, os.X_OK):
-            sys.exit('"{}" does not exist or is not executable'.format(marabou_binary))
+            marabou_binary = args.marabou_binary
+            if not os.access(marabou_binary, os.X_OK):
+                sys.exit('"{}" does not exist or is not executable'.format(marabou_binary))
 
-        temp = tempfile.NamedTemporaryFile(dir=args.temp_dir, delete=False)
-        name = temp.name
-        MarabouCore.saveQuery(query, name)
+            temp = tempfile.NamedTemporaryFile(dir=args.temp_dir, delete=False)
+            name = temp.name
+            MarabouCore.saveQuery(query, name)
 
-        print("Running Marabou with the following arguments: ", unknown)
-        subprocess.run([marabou_binary] + ["--input-query={}".format(name)] + unknown )
-        os.remove(name)
+            print("Running Marabou with the following arguments: ", unknown)
+            subprocess.run([marabou_binary] + ["--input-query={}".format(name)] + unknown )
+            os.remove(name)
 
 def parseBounds(boundsFile):
         if boundsFile == None:
@@ -143,6 +148,7 @@ def encode_mnist_linf(network, index, epsilon, target_label):
     (X_train, Y_train), (X_test, Y_test) = mnist.load_data()
     point = np.array(X_test[index]).flatten() / 255
     print("correct label: {}".format(Y_test[index]))
+    print(f"target label: {target_label}")
     for x in np.array(network.inputVars).flatten():
         network.setLowerBound(x, max(0, point[x] - epsilon))
         network.setUpperBound(x, min(1, point[x] + epsilon))

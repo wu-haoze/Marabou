@@ -102,7 +102,7 @@ const double GlobalConfiguration::SIGMOID_INPUT_RANGE = 10;
 
 const bool GlobalConfiguration::SIGMOID_SECANT_LINES_AT_MIDDLE_POINT = false;
 const bool GlobalConfiguration::SIGMOID_CLIP_POINT_USE = true;
-const double GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION = 3;
+const double GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION = 5;
 
 #ifdef ENABLE_GUROBI
 const unsigned GlobalConfiguration::GUROBI_NUMBER_OF_THREADS = 1;
