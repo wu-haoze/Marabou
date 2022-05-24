@@ -275,7 +275,6 @@ class MarabouNetwork:
             MarabouCore.addMaxConstraint(ipq, m[0], m[1])
 
         for m in self.softmaxList:
-            print(m)
             for e in m[1]:
                 assert e < self.numVars
             for e in m[0]:
@@ -430,6 +429,15 @@ class MarabouNetwork:
         """
         ipq = self.getMarabouQuery()
         MarabouCore.saveQuery(ipq, str(filename))
+
+    def saveSmtLib(self, filename=""):
+        """Serializes the inputQuery in the given filename
+
+        Args:
+            filename: (string) file to write serialized inputQuery
+        """
+        ipq = self.getMarabouQuery()
+        MarabouCore.writeSmtLib(ipq, str(filename))
 
     def evaluateWithMarabou(self, inputValues, filename="evaluateWithMarabou.log", options=None):
         """Function to evaluate network at a given point using Marabou as solver

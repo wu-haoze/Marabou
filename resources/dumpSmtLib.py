@@ -40,13 +40,8 @@ def main():
         if not os.access(marabou_binary, os.X_OK):
             sys.exit('"{}" does not exist or is not executable'.format(marabou_binary))
 
-        temp = tempfile.NamedTemporaryFile(dir=args.temp_dir, delete=False)
-        name = temp.name
-        MarabouCore.saveQuery(query, name)
-
-        print("Running Marabou with the following arguments: ", unknown)
-        subprocess.run([marabou_binary] + ["--input-query={}".format(name)] + unknown )
-        os.remove(name)
+        name = args.filename
+        MarabouCore.writeSmtLib(query, name)
 
 def createQuery(args):
     if args.input_query:
@@ -154,6 +149,8 @@ def arguments():
                         help='The index of the point in the test set')
     parser.add_argument('-o,', '--output-name', type=str, default=None,
                         help='The name of the output node')
+    parser.add_argument('-f,', '--filename', type=str, default=None,
+                        help='The name of the output file')
     parser.add_argument('--temp-dir', type=str, default="/tmp/",
                         help='Temporary directory')
     marabou_path = os.path.join(str(pathlib.Path(__file__).parent.absolute()),
