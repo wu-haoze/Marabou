@@ -47,3 +47,44 @@ class Equation:
         """
         self.addendList += [(c, x)]
 
+class QuadraticEquation:
+    """Python class to conveniently represent :class:`~maraboupy.MarabouCore.QuadraticEquation`
+
+    Attributes:
+        addendList (list of tuples): Each addend tuple contains a coefficient and two variable numbers
+        scalar (float): Scalar term for equation
+        EquationType (:class:`~maraboupy.MarabouCore.EquationType`): Equation type (EQ, LE, GE)
+    """
+    def __init__(self, EquationType=MarabouCore.QuadraticEquation.EQ):
+        """Construct empty equation
+        """
+        self.addendList = []
+        self.scalar = None
+        self.EquationType = EquationType
+
+    def setScalar(self, x):
+        """Set scalar of equation
+
+        Args:
+            x (float): scalar RHS of equation
+        """
+        self.scalar = x
+
+    def addAddend(self, c, x):
+        """Add an addend to the equation
+
+        Args:
+            c (float): coefficient of addend
+            x (int): variable number of variable in addend
+        """
+        self.addendList += [(c, x, -1)]
+
+    def addQuadraticAddend(self, c, x, y):
+        """Add an addend to the equation
+
+        Args:
+            c (float): coefficient of addend
+            x (int): variable number of variable in addend
+            y (int): variable number of variable in addend
+        """
+        self.addendList += [(c, x, y)]

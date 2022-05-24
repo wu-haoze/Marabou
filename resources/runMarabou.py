@@ -60,7 +60,7 @@ def createQuery(args):
     elif suffix == "pb":
         network = Marabou.read_tf(networkPath)
     elif suffix == "onnx":
-        network = Marabou.read_onnx(networkPath)
+        network = Marabou.read_onnx(networkPath, outputNames=[args.output_name])
     else:
         print("The network must be in .pb, .nnet, or .onnx format!")
         return None, None
@@ -152,6 +152,8 @@ def arguments():
                         help='The target of the adversarial attack')
     parser.add_argument('-i,', '--index', type=int, default=0,
                         help='The index of the point in the test set')
+    parser.add_argument('-o,', '--output-name', type=str, default=None,
+                        help='The name of the output node')
     parser.add_argument('--temp-dir', type=str, default="/tmp/",
                         help='Temporary directory')
     marabou_path = os.path.join(str(pathlib.Path(__file__).parent.absolute()),

@@ -114,6 +114,11 @@ void addMaxConstraint(InputQuery& ipq, std::set<unsigned> elements, unsigned v){
     ipq.addPiecewiseLinearConstraint(m);
 }
 
+void addSoftmaxConstraint(InputQuery& ipq, std::list<unsigned> inputs,
+                          std::list<unsigned> outputs){
+    std::cout << inputs.size() << " " <<  outputs.size() << std::endl;
+}
+
 void addAbsConstraint(InputQuery& ipq, unsigned b, unsigned f){
     ipq.addPiecewiseLinearConstraint(new AbsoluteValueConstraint(b, f));
 }
@@ -519,6 +524,15 @@ PYBIND11_MODULE(MarabouCore, m) {
             v (int): Output variable from max constraint
         )pbdoc",
         py::arg("inputQuery"), py::arg("elements"), py::arg("v"));
+    m.def("addSoftmaxConstraint", &addSoftmaxConstraint, R"pbdoc(
+        Add a Softmax constraint to the InputQuery
+
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            elements (set of int): Input variables to softmax constraint
+            v (int): Output variable from softmax constraint
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("inputs"), py::arg("outputs"));
     m.def("addAbsConstraint", &addAbsConstraint, R"pbdoc(
         Add an Abs constraint to the InputQuery
 
@@ -545,6 +559,7 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def("dump", &InputQuery::dump)
         .def("setNumberOfVariables", &InputQuery::setNumberOfVariables)
         .def("addEquation", &InputQuery::addEquation)
+        .def("addQuadraticEquation", &InputQuery::addQuadraticEquation)
         .def("getSolutionValue", &InputQuery::getSolutionValue)
         .def("getNumberOfVariables", &InputQuery::getNumberOfVariables)
         .def("getNumInputVariables", &InputQuery::getNumInputVariables)
@@ -569,6 +584,17 @@ PYBIND11_MODULE(MarabouCore, m) {
     eq.def(py::init<Equation::EquationType>());
     eq.def("addAddend", &Equation::addAddend);
     eq.def("setScalar", &Equation::setScalar);
+    py::class_<QuadraticEquation> qeq(m, "QuadraticEquation");
+    py::enum_<QuadraticEquation::QuadraticEquationType>(qeq, "QuadraticEquationType")
+        .value("EQ", QuadraticEquation::QuadraticEquationType::EQ)
+        .value("GE", QuadraticEquation::QuadraticEquationType::GE)
+        .value("LE", QuadraticEquation::QuadraticEquationType::LE)
+        .export_values();
+    qeq.def(py::init());
+    qeq.def(py::init<QuadraticEquation ::QuadraticEquationType>());
+    qeq.def("addAddend", &QuadraticEquation::addAddend);
+    qeq.def("addQuadraticAddend", &QuadraticEquation::addQuadraticAddend);
+    qeq.def("setScalar", &QuadraticEquation::setScalar);
     py::enum_<Statistics::StatisticsUnsignedAttribute>(m, "StatisticsUnsignedAttribute")
         .value("NUM_POPS", Statistics::StatisticsUnsignedAttribute::NUM_POPS)
         .value("CURRENT_DECISION_LEVEL", Statistics::StatisticsUnsignedAttribute::CURRENT_DECISION_LEVEL)

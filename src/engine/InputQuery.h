@@ -22,6 +22,7 @@
 #include "Map.h"
 #include "NetworkLevelReasoner.h"
 #include "PiecewiseLinearConstraint.h"
+#include "QuadraticEquation.h"
 #include "TranscendentalConstraint.h"
 
 class InputQuery
@@ -38,6 +39,7 @@ public:
     void setUpperBound( unsigned variable, double bound );
 
     void addEquation( const Equation &equation );
+    void addQuadraticEquation( const QuadraticEquation &equation );
 
     unsigned getNumberOfVariables() const;
     double getLowerBound( unsigned variable ) const;
@@ -49,6 +51,9 @@ public:
     const List<Equation> &getEquations() const;
     List<Equation> &getEquations();
     void removeEquationsByIndex( const Set<unsigned> indices );
+
+    const List<QuadraticEquation> &getQuadraticEquations() const;
+    List<QuadraticEquation> &getQuadraticEquations();
 
     void addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint );
     const List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints() const;
@@ -91,6 +96,11 @@ public:
       Remove an equation from equation list
     */
     void removeEquation( Equation e );
+
+    /*
+      Remove an equation from equation list
+    */
+    void removeQuadraticEquation( QuadraticEquation e );
 
     /*
       Assignment operator and copy constructor, duplicate the constraints.
@@ -143,6 +153,7 @@ public:
 private:
     unsigned _numberOfVariables;
     List<Equation> _equations;
+    List<QuadraticEquation> _quadraticEquations;
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
     List<PiecewiseLinearConstraint *> _plConstraints;

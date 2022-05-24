@@ -72,6 +72,11 @@ void InputQuery::addEquation( const Equation &equation )
     _equations.append( equation );
 }
 
+void InputQuery::addQuadraticEquation( const QuadraticEquation &equation )
+{
+    _quadraticEquations.append( equation );
+}
+
 unsigned InputQuery::getNumberOfVariables() const
 {
     return _numberOfVariables;
@@ -112,6 +117,11 @@ List<Equation> &InputQuery::getEquations()
     return _equations;
 }
 
+List<QuadraticEquation> &InputQuery::getQuadraticEquations()
+{
+    return _quadraticEquations;
+}
+
 void InputQuery::removeEquationsByIndex( const Set<unsigned> indices )
 {
     unsigned m = _equations.size();
@@ -129,6 +139,11 @@ void InputQuery::removeEquationsByIndex( const Set<unsigned> indices )
 const List<Equation> &InputQuery::getEquations() const
 {
     return _equations;
+}
+
+const List<QuadraticEquation> &InputQuery::getQuadraticEquations() const
+{
+    return _quadraticEquations;
 }
 
 void InputQuery::setSolutionValue( unsigned variable, double value )
@@ -204,6 +219,10 @@ void InputQuery::mergeIdenticalVariables( unsigned v1, unsigned v2 )
     for ( auto &equation : getEquations() )
         equation.updateVariableIndex( v1, v2 );
 
+    // Handle quadratic equations
+    for ( auto &equation : getQuadraticEquations() )
+        equation.updateVariableIndex( v1, v2 );
+
     // Handle PL constraints
     for ( auto &plConstraint : getPiecewiseLinearConstraints() )
     {
@@ -222,12 +241,18 @@ void InputQuery::removeEquation( Equation e )
     _equations.erase( e );
 }
 
+void InputQuery::removeQuadraticEquation( QuadraticEquation e )
+{
+    _quadraticEquations.erase( e );
+}
+
 InputQuery &InputQuery::operator=( const InputQuery &other )
 {
     INPUT_QUERY_LOG( "Calling deep copy constructor..." );
 
     _numberOfVariables = other._numberOfVariables;
     _equations = other._equations;
+    _quadraticEquations = other._quadraticEquations;
     _lowerBounds = other._lowerBounds;
     _upperBounds = other._upperBounds;
     _solution = other._solution;
