@@ -36,10 +36,6 @@ def main():
                   "target label (-t), and the index of the point in the test set (-i).")
             exit(1)
 
-        marabou_binary = args.marabou_binary
-        if not os.access(marabou_binary, os.X_OK):
-            sys.exit('"{}" does not exist or is not executable'.format(marabou_binary))
-
         name = args.filename
         MarabouCore.writeSmtLib(query, name)
 
@@ -90,7 +86,7 @@ def encode_mnist_linf(network, index, epsilon, target_label):
     if target_label == -1:
         print("No output constraint!")
     else:
-        outputVars = network.outputVars.flatten()
+        outputVars = network.outputVars[0].flatten()
         for i in range(10):
             if i != target_label:
                 network.addInequality([outputVars[i],
