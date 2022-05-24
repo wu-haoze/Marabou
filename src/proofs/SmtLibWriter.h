@@ -21,6 +21,8 @@
 #include "PiecewiseLinearConstraint.h"
 #include "SparseUnsortedList.h"
 #include "Vector.h"
+#include "Equation.h"
+#include "QuadraticEquation.h"
 
 /*
 * A class responsible for writing instances of LP+PLC into SMTLIB format
@@ -31,7 +33,8 @@ public:
     /*
       Adds a SMTLIB header to the SMTLIB instance with numberOfVariables variables
     */
-    static void addHeader( unsigned numberOfVariables, List<String> &instance );
+    static void addHeader( unsigned numberOfVariables, List<String> &instance,
+                           bool nonLinear=false );
 
     /*
       Adds a SMTLIB footer to the SMTLIB instance
@@ -43,10 +46,25 @@ public:
     */
     static void addReLUConstraint( unsigned b, unsigned f, const PhaseStatus status, List<String> &instance );
 
+    static void addSoftmaxConstraint( const Vector<unsigned> &inputs,
+                                      const Vector<unsigned> &outputs,
+                                      List<String> &instance );
+
+
     /*
       Adds a line representing a Tableau Row, in SMTLIB format, to the SMTLIB instance
     */
     static void addTableauRow( const Vector<double> &row, List<String> &instance );
+
+    /*
+      Adds a line representing an equation, in SMTLIB format, to the SMTLIB instance
+    */
+    static void addEquation( const Equation &equation, List<String> &instance );
+
+    /*
+      Adds a line representing an equation, in SMTLIB format, to the SMTLIB instance
+    */
+    static void addQuadraticEquation( const QuadraticEquation &equation, List<String> &instance );
 
     /*
       Adds lines representing the ground upper bounds, in SMTLIB format, to the SMTLIB instance

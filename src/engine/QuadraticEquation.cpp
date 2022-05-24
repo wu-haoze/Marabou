@@ -99,8 +99,39 @@ void QuadraticEquation::dump() const
     printf( "%s", output.ascii() );
 }
 
-void QuadraticEquation::dump( String & ) const
+void QuadraticEquation::dump( String &output ) const
 {
+    output = "";
+    for ( const auto &addend : _addends )
+    {
+        if ( FloatUtils::isZero( addend._coefficient ) )
+            continue;
+
+        if ( FloatUtils::isPositive( addend._coefficient ) )
+            output += String( "+" );
+
+        if ( addend._variables.size() == 1)
+            output += Stringf( "%.2lfx%u ", addend._coefficient, addend._variables[0]);
+        else if ( addend._variables.size() == 2)
+            output += Stringf( "%.2lfx%ux%u ", addend._coefficient, addend._variables[0], addend._variables[1]);
+    }
+
+    switch ( _type )
+        {
+        case QuadraticEquation::GE:
+            output += String( " >= " );
+            break;
+
+        case QuadraticEquation::LE:
+            output += String( " <= " );
+            break;
+
+        case QuadraticEquation::EQ:
+            output += String( " = " );
+            break;
+        }
+
+    output += Stringf( "%.2lf\n", _scalar );
 }
 
 Set<unsigned> QuadraticEquation::getParticipatingVariables() const

@@ -14,9 +14,13 @@
 
 #include "SmtLibWriter.h"
 
-void SmtLibWriter::addHeader( unsigned numberOfVariables, List<String> &instance )
+void SmtLibWriter::addHeader( unsigned numberOfVariables, List<String> &instance,
+                              bool nonLinear )
 {
-    instance.append( "( set-logic QF_LRA )\n" );
+    if ( nonLinear )
+        instance.append( "( set-logic QF_NRA )\n" );
+    else
+        instance.append( "( set-logic QF_LRA )\n" );
     for ( unsigned i = 0; i < numberOfVariables; ++i )
         instance.append( "( declare-fun x" + std::to_string( i ) + " () Real )\n" );
 }
@@ -37,6 +41,13 @@ void SmtLibWriter::addReLUConstraint( unsigned b, unsigned f, const PhaseStatus 
         instance.append(  "( assert ( = x" + std::to_string( f ) + " 0 ) )\n" );
 }
 
+void SmtLibWriter::addSoftmaxConstraint( const Vector<unsigned> &inputs,
+                                         const Vector<unsigned> &outputs,
+                                         List<String> &instance )
+{
+    std::cout << inputs.size() << " " << outputs.size() << " " << instance.size() << std::endl;
+}
+
 void SmtLibWriter::addTableauRow( const Vector<double> &row, List<String> &instance )
 {
     unsigned size = row.size();
@@ -54,6 +65,84 @@ void SmtLibWriter::addTableauRow( const Vector<double> &row, List<String> &insta
 
     // Add last element
     assertRowLine += String( " ( * " ) + signedValue( row[size - 1] ) + " x" + std::to_string( size - 1 ) + " )";
+
+    for ( unsigned i = 0; i < counter + 2 ; ++i )
+        assertRowLine += String( " )" );
+
+    instance.append( assertRowLine + "\n" );
+}
+
+void SmtLibWriter::addEquation( const Equation &equation, List<String> &instance )
+{
+    unsigned counter = 0;
+    String assertRowLine = String( "( assert ( = " ) + signedValue( equation._scalar );
+
+    Vector<Equation::Addend> addends;
+    for ( const auto &addend : equation._addends )
+        addends.append( addend );
+    unsigned size = addends.size();
+
+    for ( unsigned i = 0; i < size - 1; ++i )
+    {
+        assertRowLine +=
+            ( String( " ( + ( * " ) + signedValue( addends[i]._coefficient ) + " x" +
+              std::to_string( addends[i]._variable ) + " )" );
+        ++counter;
+    }
+
+    // Add last element
+    assertRowLine += ( String( " ( * " ) + signedValue( addends[size - 1]._coefficient ) +
+                       " x" + std::to_string( addends[size - 1]._variable ) + " )" );
+
+    for ( unsigned i = 0; i < counter + 2 ; ++i )
+        assertRowLine += String( " )" );
+
+    instance.append( assertRowLine + "\n" );
+}
+
+void SmtLibWriter::addQuadraticEquation( const QuadraticEquation &equation, List<String> &instance )
+{
+    unsigned counter = 0;
+    String assertRowLine = String( "( assert ( = " ) + signedValue( equation._scalar );
+
+    Vector<QuadraticEquation::Addend> addends;
+    for ( const auto &addend : equation._addends )
+        addends.append( addend );
+    unsigned size = addends.size();
+
+    for ( unsigned i = 0; i < size - 1; ++i )
+    {
+        if ( addends[i]._variables.size() == 1 )
+        {
+            assertRowLine +=
+                String( " ( + ( * " ) + signedValue( addends[i]._coefficient ) + " x" +
+                std::to_string( addends[i]._variables[0] ) + " )";
+        }
+        else
+        {
+            assertRowLine +=
+                String( " ( + ( * ( * " ) + signedValue( addends[i]._coefficient ) + " x" +
+                std::to_string( addends[i]._variables[0] ) + " ) " +
+                std::to_string( addends[i]._variables[1] ) + " )";
+        }
+
+        ++counter;
+    }
+
+    // Add last element
+    if ( addends[size-1]._variables.size() == 1 )
+    {
+        assertRowLine +=
+            String( " ( * " ) + signedValue( addends[size - 1]._coefficient ) + " x" +
+            std::to_string( addends[size - 1]._variables[0] ) + " )";
+    }
+    else
+    {
+        assertRowLine +=
+            String( " ( * ( * " ) + signedValue( addends[size-1]._coefficient ) + " x" +
+            std::to_string( addends[size-1]._variables[0] ) + " ) " +
+            std::to_string( addends[size-1]._variables[1] ) + " )";
+    }
 
     for ( unsigned i = 0; i < counter + 2 ; ++i )
         assertRowLine += String( " )" );

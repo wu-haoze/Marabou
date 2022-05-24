@@ -409,6 +409,10 @@ void saveQuery(InputQuery& inputQuery, std::string filename){
     inputQuery.saveQuery(String(filename));
 }
 
+void writeSmtLib(InputQuery& inputQuery, std::string filename){
+    inputQuery.dumpSmtLibFile(String(filename));
+}
+
 InputQuery loadQuery(std::string filename){
     return QueryLoader::loadQuery(String(filename));
 }
@@ -478,6 +482,14 @@ PYBIND11_MODULE(MarabouCore, m) {
             filename (str): Name of file to save query
         )pbdoc",
         py::arg("inputQuery"), py::arg("filename"));
+    m.def("writeSmtLib", &writeSmtLib, R"pbdoc(
+        Save to smt2 file
+
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be saved
+            filename (str): Name of file to save query
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("filename"));
     m.def("loadQuery", &loadQuery, R"pbdoc(
         Loads and returns a serialized InputQuery from the given filename
 

@@ -15,11 +15,14 @@
 
 #include "AutoFile.h"
 #include "Debug.h"
+#include "File.h"
 #include "FloatUtils.h"
 #include "InputQuery.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "MaxConstraint.h"
+#include "SoftmaxConstraint.h"
+#include "SmtLibWriter.h"
 
 #define INPUT_QUERY_LOG( x, ... ) LOG( GlobalConfiguration::INPUT_QUERY_LOGGING, "Input Query: %s\n", x )
 
@@ -1303,4 +1306,59 @@ bool InputQuery::constructMaxLayer( NLR::NetworkLevelReasoner *nlr,
 
     INPUT_QUERY_LOG( "\tSuccessful!" );
     return true;
+}
+
+void InputQuery::dumpSmtLibFile( const String &fileName )
+{
+    List<String> instance;
+
+    // Write with SmtLibWriter
+    SmtLibWriter::addHeader( _numberOfVariables, instance, true );
+    Vector<double> lbs;
+    Vector<double> ubs;
+    for ( unsigned i = 0; i < _numberOfVariables; ++i )
+    {
+        lbs.append( _lowerBounds[i] );
+        ubs.append( _upperBounds[i] );
+    }
+
+    SmtLibWriter::addGroundUpperBounds( ubs, instance );
+    SmtLibWriter::addGroundLowerBounds( lbs, instance );
+
+    for ( const auto &eq : _equations )
+        SmtLibWriter::addEquation( eq, instance );
+    for ( const auto &eq : _quadraticEquations )
+        SmtLibWriter::addQuadraticEquation( eq, instance );
+
+    for ( auto &constraint : _plConstraints )
+    {
+        if ( constraint->getType() == PiecewiseLinearFunctionType::RELU )
+        {
+            ReluConstraint *relu = (ReluConstraint *) constraint;
+            SmtLibWriter::addReLUConstraint( relu->getB(), relu->getF(),
+                                             constraint->getPhaseStatus(), instance );
+        }
+        else {
+            throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
+        }
+    }
+
+    for ( auto &constraint : _tsConstraints )
+    {
+        if ( constraint->getType() == TranscendentalFunctionType::SOFTMAX )
+        {
+            SoftmaxConstraint *softmax = (SoftmaxConstraint *) constraint;
+            std::cout << softmax << std::endl;
+            //SmtLibWriter::addReLUConstraint( relu->getB(), relu->getF(),
+            //                                 constraint->getPhaseStatus(), instance );
+        }
+        else {
+            throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
+        }
+    }
+
+
+    SmtLibWriter::addFooter( instance );
+    File file ( fileName );
+    SmtLibWriter::writeInstanceToFile( file, instance );
 }

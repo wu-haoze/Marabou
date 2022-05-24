@@ -30,8 +30,8 @@
 #define __attribute__(x)
 #endif
 
-SoftmaxConstraint::SoftmaxConstraint( Vector<unsigned> inputs,
-                                      Vector<unsigned> outputs )
+SoftmaxConstraint::SoftmaxConstraint( const Vector<unsigned> &inputs,
+                                      const Vector<unsigned> &outputs )
     : TranscendentalConstraint()
     , _inputs( inputs )
     , _outputs( outputs )
@@ -39,7 +39,6 @@ SoftmaxConstraint::SoftmaxConstraint( Vector<unsigned> inputs,
 }
 
 SoftmaxConstraint::SoftmaxConstraint( const String & )
-    : _haveEliminatedVariables( false )
 {
     throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }

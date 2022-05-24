@@ -150,6 +150,8 @@ public:
     void setNetworkLevelReasoner( NLR::NetworkLevelReasoner *nlr );
     NLR::NetworkLevelReasoner *getNetworkLevelReasoner() const;
 
+    void dumpSmtLibFile( const String &fileName );
+
 private:
     unsigned _numberOfVariables;
     List<Equation> _equations;

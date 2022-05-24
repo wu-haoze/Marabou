@@ -25,7 +25,8 @@
 class SoftmaxConstraint : public TranscendentalConstraint
 {
 public:
-    SoftmaxConstraint( unsigned b, unsigned f );
+    SoftmaxConstraint( const Vector<unsigned> &inputs,
+                       const Vector<unsigned> &outputs );
     SoftmaxConstraint( const String &serializedSoftmax );
 
     /*
@@ -86,6 +87,8 @@ public:
       Dump the current state of the constraint.
     */
     void dump( String &output ) const override;
+
+    String serializeToString() const override;
 
 private:
     Vector<unsigned> _inputs;
