@@ -36,8 +36,12 @@ def main():
                   "target label (-t), and the index of the point in the test set (-i).")
             exit(1)
 
+        print("softmax: ", len(network.softmaxList))
         name = args.filename
-        MarabouCore.writeSmtLib(query, name)
+        if ".smt2" in name:
+                MarabouCore.writeSmtLib(query, name)
+        else:
+                MarabouCore.saveQuery(query, name)
 
 def createQuery(args):
     if args.input_query:

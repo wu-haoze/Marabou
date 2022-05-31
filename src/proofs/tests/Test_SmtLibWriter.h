@@ -91,4 +91,30 @@ public:
         expectedLine = "( exit )";
         TS_ASSERT_EQUALS( line, expectedLine );
     }
+
+    void testAddSoftmax()
+    {
+        List<String> instance;
+        const Vector<unsigned> inputs = {0, 1, 2};
+        const Vector<unsigned> outputs = {5, 6, 7};
+        unsigned index = 3;
+
+        TS_ASSERT_THROWS_NOTHING( SmtLibWriter::addSoftmaxConstraint
+                                  ( inputs, outputs, index, instance ) );
+
+        List<String> correct;
+        correct.append( "( declare-fun e3_0 () Real )" );
+        correct.append( "( declare-fun e3_1 () Real )" );
+        correct.append( "( declare-fun e3_2 () Real )" );
+        correct.append( "( declare-fun s3 () Real )" );
+        correct.append( "( assert ( = e3_0 ( exp x0 ) )" );
+        correct.append( "( assert ( = e3_1 ( exp x1 ) )" );
+        correct.append( "( assert ( = e3_2 ( exp x2 ) )" );
+        correct.append( "( assert ( = s3 ( + e3_0 ( + e3_1 e3_2 ) ) )" );
+        correct.append( "( assert ( = e3_0 ( * s3 x5 ) )" );
+        correct.append( "( assert ( = e3_1 ( * s3 x6 ) )" );
+        correct.append( "( assert ( = e3_2 ( * s3 x7 ) )" );
+
+        TS_ASSERT_EQUALS( instance.size(), 11u);
+    }
 };

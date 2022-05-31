@@ -12,6 +12,7 @@
  ** [[ Add lengthier description here ]]
  **/
 
+#include "Debug.h"
 #include "SmtLibWriter.h"
 
 void SmtLibWriter::addHeader( unsigned numberOfVariables, List<String> &instance,
@@ -43,9 +44,41 @@ void SmtLibWriter::addReLUConstraint( unsigned b, unsigned f, const PhaseStatus 
 
 void SmtLibWriter::addSoftmaxConstraint( const Vector<unsigned> &inputs,
                                          const Vector<unsigned> &outputs,
+                                         unsigned index,
                                          List<String> &instance )
 {
-    std::cout << inputs.size() << " " << outputs.size() << " " << instance.size() << std::endl;
+    /*
+      correct.append( "( declare-fun e3_0 () Real )" );
+      correct.append( "( declare-fun e3_1 () Real )" );
+      correct.append( "( declare-fun e3_2 () Real )" );
+      correct.append( "( declare-fun s3 () Real )" );
+      correct.append( "( assert ( = e3_0 ( exp x0 ) )" );
+      correct.append( "( assert ( = e3_1 ( exp x1 ) )" );
+      correct.append( "( assert ( = e3_2 ( exp x2 ) )" );
+      correct.append( "( assert ( = s3 ( + e3_0 ( + e3_1 e3_2 ) ) )" );
+      correct.append( "( assert ( = e3_0 ( * s3 x5 ) )" );
+      correct.append( "( assert ( = e3_1 ( * s3 x6 ) )" );
+      correct.append( "( assert ( = e3_2 ( * s3 x7 ) )" );
+    */
+
+    ASSERT( inputs.size() == outputs.size() );
+    for ( unsigned i = 0; i < inputs.size(); ++i )
+        instance.append( Stringf( "( declare-fun e%u_%u () Real )\n", index, i ) );
+    instance.append( Stringf( "( declare-fun s%u () Real )\n", index ) );
+
+    for ( unsigned i = 0; i < inputs.size(); ++i )
+        instance.append( Stringf( "( assert ( = e%u_%u ( exp x%u ) )\n", index, i, inputs[i] ) );
+
+    String assertRowLine = Stringf( "( assert ( = s%u", index );
+    for ( unsigned i = 0; i < inputs.size() - 1; ++i )
+        assertRowLine += Stringf( " ( + e%u_%u ", index, i );
+    assertRowLine += Stringf( "e%u_%u", index, inputs.size() - 1 );
+    for ( unsigned i = 0; i < inputs.size() + 2; ++i )
+        assertRowLine += Stringf( " )" );
+    instance.append( assertRowLine );
+
+    for ( unsigned i = 0; i < inputs.size(); ++i )
+        instance.append( Stringf( "( assert ( = e%u_%u ( * s%u x%u ) )\n", index, i, index, outputs[i] ) );
 }
 
 void SmtLibWriter::addTableauRow( const Vector<double> &row, List<String> &instance )

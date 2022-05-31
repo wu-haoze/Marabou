@@ -143,3 +143,13 @@ String SoftmaxConstraint::serializeToString() const
 {
     throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
+
+const Vector<unsigned> &SoftmaxConstraint::getInputs() const
+{
+    return _inputs;
+}
+
+const Vector<unsigned> &SoftmaxConstraint::getOutputs() const
+{
+    return _outputs;
+}

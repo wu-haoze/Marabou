@@ -48,6 +48,7 @@ public:
 
     static void addSoftmaxConstraint( const Vector<unsigned> &inputs,
                                       const Vector<unsigned> &outputs,
+                                      unsigned index,
                                       List<String> &instance );
 
 

@@ -90,6 +90,9 @@ public:
 
     String serializeToString() const override;
 
+    const Vector<unsigned> &getInputs() const;
+    const Vector<unsigned> &getOutputs() const;
+
 private:
     Vector<unsigned> _inputs;
     Vector<unsigned> _outputs;

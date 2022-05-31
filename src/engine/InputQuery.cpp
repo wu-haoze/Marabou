@@ -1318,8 +1318,14 @@ void InputQuery::dumpSmtLibFile( const String &fileName )
     Vector<double> ubs;
     for ( unsigned i = 0; i < _numberOfVariables; ++i )
     {
-        lbs.append( _lowerBounds[i] );
-        ubs.append( _upperBounds[i] );
+        if ( _lowerBounds.exists( i ) )
+             lbs.append( _lowerBounds[i] );
+        else
+            lbs.append( FloatUtils::negativeInfinity() );
+        if ( _upperBounds.exists( i ) )
+            ubs.append( _upperBounds[i] );
+        else
+            ubs.append( FloatUtils::infinity() );
     }
 
     SmtLibWriter::addGroundUpperBounds( ubs, instance );
@@ -1343,22 +1349,26 @@ void InputQuery::dumpSmtLibFile( const String &fileName )
         }
     }
 
+    unsigned index = 0;
     for ( auto &constraint : _tsConstraints )
     {
         if ( constraint->getType() == TranscendentalFunctionType::SOFTMAX )
         {
             SoftmaxConstraint *softmax = (SoftmaxConstraint *) constraint;
-            std::cout << softmax << std::endl;
-            //SmtLibWriter::addReLUConstraint( relu->getB(), relu->getF(),
-            //                                 constraint->getPhaseStatus(), instance );
+            SmtLibWriter::addSoftmaxConstraint( softmax->getInputs(),
+                                                softmax->getOutputs(),
+                                                index++,
+                                                instance );
         }
         else {
             throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
         }
     }
 
-
     SmtLibWriter::addFooter( instance );
-    File file ( fileName );
-    SmtLibWriter::writeInstanceToFile( file, instance );
+    AutoFile file( fileName );
+    file->open( IFile::MODE_WRITE_TRUNCATE );
+    for ( const auto &line : instance )
+        file->write( line );
+    file->close();
 }

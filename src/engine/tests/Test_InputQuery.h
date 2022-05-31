@@ -19,15 +19,14 @@
 #include "FloatUtils.h"
 #include "InputQuery.h"
 #include "MockErrno.h"
-#include "MockFileFactory.h"
 #include "ReluConstraint.h"
+#include "SoftmaxConstraint.h"
 #include "MarabouError.h"
 
 #include <string.h>
 
 class MockForInputQuery
-    : public MockFileFactory
-    , public MockErrno
+    : public MockErrno
 {
 public:
 };
@@ -36,13 +35,10 @@ class InputQueryTestSuite : public CxxTest::TestSuite
 {
 public:
     MockForInputQuery *mock;
-    MockFile *file;
 
     void setUp()
     {
         TS_ASSERT( mock = new MockForInputQuery );
-
-        file = &( mock->mockFile );
     }
 
     void tearDown()
@@ -220,29 +216,51 @@ public:
 
     void test_save_query()
     {
-        TS_TRACE( "TODO" );
+    }
 
-        InputQuery *inputQuery = new InputQuery;
+    void test_save_smt()
+    {
+        InputQuery inputQuery;
+        inputQuery.setNumberOfVariables( 18 );
+        for ( unsigned i = 0; i <= 2; ++i )
+        {
+            inputQuery.setLowerBound( i, -1 );
+            inputQuery.setUpperBound( i, 1 );
+        }
+        for ( unsigned i = 6; i <= 8; ++i )
+        {
+            inputQuery.setLowerBound( i, -1 );
+            inputQuery.setUpperBound( i, 1 );
+        }
 
-        // Todo: Load some stuff into the input query
+        SoftmaxConstraint *s1 = new SoftmaxConstraint( {0, 1, 2}, {3, 4, 5} );
+        SoftmaxConstraint *s2 = new SoftmaxConstraint( {6, 7, 8}, {9, 10, 11} );
+        // x12 = x3 * x9 + x4 * x10
+        // x13 = x3 + x4 + x5
+        // x14 = x9 + x10 + x11
+        QuadraticEquation q1;
+        q1.addAddend( 1, 12 );
+        q1.addQuadraticAddend( -1, 3, 9 );
+        q1.addQuadraticAddend( -1, 4, 10 );
+        Equation e1;
+        e1.addAddend( 1, 13 );
+        e1.addAddend( -1, 3 );
+        e1.addAddend( -1, 4 );
+        e1.addAddend( -1, 5 );
+        Equation e2;
+        e2.addAddend( 1, 14 );
+        e2.addAddend( -1, 9 );
+        e2.addAddend( -1, 10 );
+        e2.addAddend( -1, 11 );
+        inputQuery.addTranscendentalConstraint( s1 );
+        inputQuery.addTranscendentalConstraint( s2 );
+        inputQuery.addQuadraticEquation( q1 );
+        inputQuery.addEquation( e1 );
+        inputQuery.addEquation( e2 );
+        inputQuery.addPiecewiseLinearConstraint( new ReluConstraint( 12, 15 ) );
+        inputQuery.addPiecewiseLinearConstraint( new ReluConstraint( 13, 16 ) );
+        inputQuery.addPiecewiseLinearConstraint( new ReluConstraint( 14, 17 ) );
 
-        TS_ASSERT_THROWS_NOTHING( inputQuery->saveQuery( "query.dump" ) );
-
-        // Todo: after saveQuery(), all the relevant information
-        // should have been written to the mockFile. Specifically, we should
-        // have mockFile's write() store everythign that's been written, and then
-        // check that it is as expected here.
-
-        TS_ASSERT_EQUALS( file->lastPath, "query.dump" );
-
-        delete inputQuery;
+        //TS_ASSERT_THROWS_NOTHING( inputQuery.dumpSmtLibFile( "query.smt2" ) );
     }
 };
-
-//
-// Local Variables:
-// compile-command: "make -C ../../.. "
-// tags-file-name: "../../../TAGS"
-// c-basic-offset: 4
-// End:
-//
