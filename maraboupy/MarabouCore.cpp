@@ -41,6 +41,7 @@
 #include "QueryLoader.h"
 #include "ReluConstraint.h"
 #include "Set.h"
+#include "SoftmaxConstraint.h"
 #include "SnCDivideStrategy.h"
 #include "SigmoidConstraint.h"
 #include "SignConstraint.h"
@@ -116,7 +117,14 @@ void addMaxConstraint(InputQuery& ipq, std::set<unsigned> elements, unsigned v){
 
 void addSoftmaxConstraint(InputQuery& ipq, std::list<unsigned> inputs,
                           std::list<unsigned> outputs){
-    std::cout << inputs.size() << " " <<  outputs.size() << std::endl;
+    Vector<unsigned> inputList;
+    for ( const auto &v : inputs )
+        inputList.append( v );
+    Vector<unsigned> outputList;
+    for ( const auto &v : outputs )
+        outputList.append( v );
+    SoftmaxConstraint *m = new SoftmaxConstraint( inputList, outputList );
+    ipq.addTranscendentalConstraint( m );
 }
 
 void addAbsConstraint(InputQuery& ipq, unsigned b, unsigned f){

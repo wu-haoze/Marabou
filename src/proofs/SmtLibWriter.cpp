@@ -67,18 +67,19 @@ void SmtLibWriter::addSoftmaxConstraint( const Vector<unsigned> &inputs,
     instance.append( Stringf( "( declare-fun s%u () Real )\n", index ) );
 
     for ( unsigned i = 0; i < inputs.size(); ++i )
-        instance.append( Stringf( "( assert ( = e%u_%u ( exp x%u ) )\n", index, i, inputs[i] ) );
+        instance.append( Stringf( "( assert ( = e%u_%u ( exp x%u ) ) )\n", index, i, inputs[i] ) );
 
     String assertRowLine = Stringf( "( assert ( = s%u", index );
     for ( unsigned i = 0; i < inputs.size() - 1; ++i )
         assertRowLine += Stringf( " ( + e%u_%u ", index, i );
     assertRowLine += Stringf( "e%u_%u", index, inputs.size() - 1 );
-    for ( unsigned i = 0; i < inputs.size() + 2; ++i )
+    for ( unsigned i = 0; i < inputs.size() + 1; ++i )
         assertRowLine += Stringf( " )" );
+    assertRowLine += Stringf( "\n" );
     instance.append( assertRowLine );
 
     for ( unsigned i = 0; i < inputs.size(); ++i )
-        instance.append( Stringf( "( assert ( = e%u_%u ( * s%u x%u ) )\n", index, i, index, outputs[i] ) );
+        instance.append( Stringf( "( assert ( = e%u_%u ( * s%u x%u ) ) )\n", index, i, index, outputs[i] ) );
 }
 
 void SmtLibWriter::addTableauRow( const Vector<double> &row, List<String> &instance )
@@ -156,7 +157,7 @@ void SmtLibWriter::addQuadraticEquation( const QuadraticEquation &equation, List
             assertRowLine +=
                 String( " ( + ( * ( * " ) + signedValue( addends[i]._coefficient ) + " x" +
                 std::to_string( addends[i]._variables[0] ) + " ) " +
-                std::to_string( addends[i]._variables[1] ) + " )";
+                "x" + std::to_string( addends[i]._variables[1] ) + " )";
         }
 
         ++counter;
@@ -174,7 +175,7 @@ void SmtLibWriter::addQuadraticEquation( const QuadraticEquation &equation, List
         assertRowLine +=
             String( " ( * ( * " ) + signedValue( addends[size-1]._coefficient ) + " x" +
             std::to_string( addends[size-1]._variables[0] ) + " ) " +
-            std::to_string( addends[size-1]._variables[1] ) + " )";
+            "x" + std::to_string( addends[size-1]._variables[1] ) + " )";
     }
 
     for ( unsigned i = 0; i < counter + 2 ; ++i )

@@ -1321,11 +1321,11 @@ void InputQuery::dumpSmtLibFile( const String &fileName )
         if ( _lowerBounds.exists( i ) )
              lbs.append( _lowerBounds[i] );
         else
-            lbs.append( FloatUtils::negativeInfinity() );
+            lbs.append( -10000 );
         if ( _upperBounds.exists( i ) )
             ubs.append( _upperBounds[i] );
         else
-            ubs.append( FloatUtils::infinity() );
+            ubs.append(10000 );
     }
 
     SmtLibWriter::addGroundUpperBounds( ubs, instance );
