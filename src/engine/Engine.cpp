@@ -160,6 +160,13 @@ void Engine::exportInputQueryWithError( String errorMessage )
 
 bool Engine::solve( unsigned timeoutInSeconds )
 {
+    if ( _preprocessedQuery->getQuadraticEquations().size() > 0  ||
+         _tsConstraints.size() > 0 )
+    {
+        _exitCode = IEngine::UNKNOWN;
+        return false;
+    }
+
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
