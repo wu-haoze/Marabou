@@ -36,17 +36,9 @@ def main():
                   "target label (-t), and the index of the point in the test set (-i).")
             exit(1)
 
-        marabou_binary = args.marabou_binary
-        if not os.access(marabou_binary, os.X_OK):
-            sys.exit('"{}" does not exist or is not executable'.format(marabou_binary))
-
-        temp = tempfile.NamedTemporaryFile(dir=args.temp_dir, delete=False)
-        name = temp.name
-        MarabouCore.saveQuery(query, name)
-
-        print("Running Marabou with the following arguments: ", unknown)
-        subprocess.run([marabou_binary] + ["--input-query={}".format(name)] + unknown )
-        os.remove(name)
+        options = MarabouCore.Options()
+        res, _, _ = MarabouCore.solve(query, options)
+        print(res)
 
 def createQuery(args):
     if args.input_query:

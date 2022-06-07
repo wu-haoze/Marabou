@@ -132,8 +132,12 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
     while ( continueTightening )
     {
         continueTightening = processEquations();
-        continueTightening = processQuadraticEquations();
+        std::cout << "processed eq" << std::endl;
+        continueTightening = processQuadraticEquations() || continueTightening;
+        std::cout << "processed quadeq" << std::endl;
         continueTightening = processConstraints() || continueTightening;
+        std::cout << "processed constraint" << std::endl;
+        dumpAllBounds("");
         if ( attemptVariableElimination )
             continueTightening = processIdenticalVariables() || continueTightening;
 
@@ -163,6 +167,8 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
     ASSERT( _preprocessed->getUpperBounds().size() ==
             _preprocessed->getNumberOfVariables() );
 
+    String s;
+    dumpAllBounds( s );
     return std::move( _preprocessed );
 }
 
@@ -658,134 +664,134 @@ bool Preprocessor::processQuadraticEquations()
             }
         }
 
-        if ( hasUnboundedQuadraticTerm )
-            continue;
-
-        // Now, go over each addend in sum (ci * xi) - b ? 0, and see what can be done
-        for ( const auto &addend : equation->_addends )
+        if ( !hasUnboundedQuadraticTerm )
         {
-            if ( addend._variables.size() != 1 )
-                continue;
-
-            ci = addend._coefficient;
-            xi = addend._variables[0];
-
-            // If ci = 0, nothing to do.
-            if ( ciSign[xi] == ZERO )
-                continue;
-
-            /*
-              The expression for xi is:
-
-                   xi ? ( -1/ci ) * ( sum_{j\neqi} ( cj * xj ) - b )
-
-              We use the previously computed auxLb and auxUb and adjust them because
-              xi is removed from the sum. We also need to pay attention to the sign of ci,
-              and to the presence of infinite bounds.
-
-              Assuming "?" stands for equality, we can compute a LB if:
-                1. ci is negative, and no vars except xi were excluded from the auxLb
-                2. ci is positive, and no vars except xi were excluded from the auxUb
-
-              And vice-versa for UB.
-
-              In case "?" is GE or LE, only one direction can be computed.
-            */
-            if ( ciSign[xi] == NEGATIVE )
+            // Now, go over each addend in sum (ci * xi) - b ? 0, and see what can be done
+            for ( const auto &addend : equation->_addends )
             {
-                validLb =
-                    ( ( type == QuadraticEquation::LE ) || ( type == QuadraticEquation::EQ ) )
-                    &&
-                    ( excludedFromLB.empty() ||
-                      ( excludedFromLB.size() == 1 && excludedFromLB.exists( xi ) ) );
-                validUb =
-                    ( ( type == QuadraticEquation::GE ) || ( type == QuadraticEquation::EQ ) )
-                    &&
-                    ( excludedFromUB.empty() ||
-                      ( excludedFromUB.size() == 1 && excludedFromUB.exists( xi ) ) );
-            }
-            else
-            {
-                validLb =
-                    ( ( type == QuadraticEquation::GE ) || ( type == QuadraticEquation::EQ ) )
-                    &&
-                    ( excludedFromUB.empty() ||
-                      ( excludedFromUB.size() == 1 && excludedFromUB.exists( xi ) ) );
-                validUb =
-                    ( ( type == QuadraticEquation::LE ) || ( type == QuadraticEquation::EQ ) )
-                    &&
-                    ( excludedFromLB.empty() ||
-                      ( excludedFromLB.size() == 1 && excludedFromLB.exists( xi ) ) );
-            }
+                if ( addend._variables.size() != 1 )
+                    continue;
 
-            // Now compute the actual bounds and see if they are tighter
-            double epsilon = Options::get()->getFloat( Options::PREPROCESSOR_BOUND_TOLERANCE );
+                ci = addend._coefficient;
+                xi = addend._variables[0];
 
-            if ( validLb )
-            {
+                // If ci = 0, nothing to do.
+                if ( ciSign[xi] == ZERO )
+                    continue;
+
+                /*
+                  The expression for xi is:
+
+                       xi ? ( -1/ci ) * ( sum_{j\neqi} ( cj * xj ) - b )
+
+                  We use the previously computed auxLb and auxUb and adjust them because
+                  xi is removed from the sum. We also need to pay attention to the sign of ci,
+                  and to the presence of infinite bounds.
+
+                  Assuming "?" stands for equality, we can compute a LB if:
+                    1. ci is negative, and no vars except xi were excluded from the auxLb
+                    2. ci is positive, and no vars except xi were excluded from the auxUb
+
+                  And vice-versa for UB.
+
+                  In case "?" is GE or LE, only one direction can be computed.
+                */
                 if ( ciSign[xi] == NEGATIVE )
                 {
-                    lowerBound = auxLb;
-                    if ( !excludedFromLB.exists( xi ) )
-                        lowerBound -= ciTimesUb[xi];
+                    validLb =
+                        ( ( type == QuadraticEquation::LE ) || ( type == QuadraticEquation::EQ ) )
+                        &&
+                        ( excludedFromLB.empty() ||
+                          ( excludedFromLB.size() == 1 && excludedFromLB.exists( xi ) ) );
+                    validUb =
+                        ( ( type == QuadraticEquation::GE ) || ( type == QuadraticEquation::EQ ) )
+                        &&
+                        ( excludedFromUB.empty() ||
+                          ( excludedFromUB.size() == 1 && excludedFromUB.exists( xi ) ) );
                 }
                 else
                 {
-                    lowerBound = auxUb;
-                    if ( !excludedFromUB.exists( xi ) )
-                        lowerBound -= ciTimesUb[xi];
+                    validLb =
+                        ( ( type == QuadraticEquation::GE ) || ( type == QuadraticEquation::EQ ) )
+                        &&
+                        ( excludedFromUB.empty() ||
+                          ( excludedFromUB.size() == 1 && excludedFromUB.exists( xi ) ) );
+                    validUb =
+                        ( ( type == QuadraticEquation::LE ) || ( type == QuadraticEquation::EQ ) )
+                        &&
+                        ( excludedFromLB.empty() ||
+                          ( excludedFromLB.size() == 1 && excludedFromLB.exists( xi ) ) );
                 }
 
-                lowerBound /= -ci;
+                // Now compute the actual bounds and see if they are tighter
+                double epsilon = Options::get()->getFloat( Options::PREPROCESSOR_BOUND_TOLERANCE );
 
-                if (
-                    FloatUtils::gt(
-                        lowerBound, getLowerBound( xi ), epsilon
+                if ( validLb )
+                {
+                    if ( ciSign[xi] == NEGATIVE )
+                    {
+                        lowerBound = auxLb;
+                        if ( !excludedFromLB.exists( xi ) )
+                            lowerBound -= ciTimesUb[xi];
+                    }
+                    else
+                    {
+                        lowerBound = auxUb;
+                        if ( !excludedFromUB.exists( xi ) )
+                            lowerBound -= ciTimesUb[xi];
+                    }
+
+                    lowerBound /= -ci;
+
+                    if (
+                        FloatUtils::gt(
+                            lowerBound, getLowerBound( xi ), epsilon
+                        )
                     )
-                )
-                {
-                    tighterBoundFound = true;
-                    setLowerBound( xi, lowerBound );
-                }
-            }
-
-            if ( validUb )
-            {
-                if ( ciSign[xi] == NEGATIVE )
-                {
-                    upperBound = auxUb;
-                    if ( !excludedFromUB.exists( xi ) )
-                        upperBound -= ciTimesLb[xi];
-                }
-                else
-                {
-                    upperBound = auxLb;
-                    if ( !excludedFromLB.exists( xi ) )
-                        upperBound -= ciTimesLb[xi];
+                    {
+                        tighterBoundFound = true;
+                        setLowerBound( xi, lowerBound );
+                    }
                 }
 
-                upperBound /= -ci;
+                if ( validUb )
+                {
+                    if ( ciSign[xi] == NEGATIVE )
+                    {
+                        upperBound = auxUb;
+                        if ( !excludedFromUB.exists( xi ) )
+                            upperBound -= ciTimesLb[xi];
+                    }
+                    else
+                    {
+                        upperBound = auxLb;
+                        if ( !excludedFromLB.exists( xi ) )
+                            upperBound -= ciTimesLb[xi];
+                    }
 
-                if (
-                    FloatUtils::lt(
-                        upperBound, getUpperBound( xi ), epsilon
+                    upperBound /= -ci;
+
+                    if (
+                        FloatUtils::lt(
+                            upperBound, getUpperBound( xi ), epsilon
+                        )
                     )
-                )
-                {
-                    tighterBoundFound = true;
-                    setUpperBound( xi, upperBound );
+                    {
+                        tighterBoundFound = true;
+                        setUpperBound( xi, upperBound );
+                    }
                 }
-            }
 
-            if ( FloatUtils::gt( getLowerBound( xi ),
-                                 getUpperBound( xi ),
-                                 GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
-            {
-                delete[] ciTimesLb;
-                delete[] ciTimesUb;
-                delete[] ciSign;
-
-                throw InfeasibleQueryException();
+                if ( FloatUtils::gt( getLowerBound( xi ),
+                                     getUpperBound( xi ),
+                                     GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
+                {
+                    delete[] ciTimesLb;
+                    delete[] ciTimesUb;
+                    delete[] ciSign;
+                    std::cout << xi << " " << getLowerBound( xi ) << " " << getUpperBound( xi ) << std::endl;
+                    throw InfeasibleQueryException();
+                }
             }
         }
 
@@ -884,6 +890,7 @@ bool Preprocessor::processConstraints()
         }
     }
 
+    double epsilon = Options::get()->getFloat( Options::PREPROCESSOR_BOUND_TOLERANCE );
     for ( auto &constraint : _preprocessed->getTranscendentalConstraints() )
     {
         for ( unsigned variable : constraint->getParticipatingVariables() )
@@ -898,14 +905,16 @@ bool Preprocessor::processConstraints()
         for ( const auto &tightening : tightenings )
         {
             if ( ( tightening._type == Tightening::LB ) &&
-                 ( FloatUtils::gt( tightening._value, getLowerBound( tightening._variable ) ) ) )
+                 ( FloatUtils::gt( tightening._value, getLowerBound( tightening._variable ),
+                                   epsilon ) ) )
             {
                 tighterBoundFound = true;
                 setLowerBound( tightening._variable, tightening._value );
             }
 
             else if ( ( tightening._type == Tightening::UB ) &&
-                      ( FloatUtils::lt( tightening._value, getUpperBound( tightening._variable ) ) ) )
+                      ( FloatUtils::lt( tightening._value, getUpperBound( tightening._variable ),
+                                        epsilon ) ) )
             {
                 tighterBoundFound = true;
                 setUpperBound( tightening._variable, tightening._value );
