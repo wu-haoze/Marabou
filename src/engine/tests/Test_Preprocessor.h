@@ -24,6 +24,7 @@
 #include "MockErrno.h"
 #include "Preprocessor.h"
 #include "ReluConstraint.h"
+#include "SoftmaxConstraint.h"
 #include "MarabouError.h"
 
 #include <string.h>
@@ -198,6 +199,91 @@ public:
 
         TS_ASSERT_EQUALS( processed.getLowerBound( 0 ), 5.5 );
         TS_ASSERT_EQUALS( processed.getUpperBound( 0 ), 6.5 );
+    }
+
+
+    void test_tighten_quadraticequation_bounds1()
+    {
+        InputQuery inputQuery;
+
+        inputQuery.setNumberOfVariables( 3 );
+        inputQuery.setLowerBound( 0, -1 );
+        inputQuery.setUpperBound( 0, 1 );
+        inputQuery.setLowerBound( 1, -1 );
+        inputQuery.setUpperBound( 1, 2 );
+
+        // x0 * x1 - x2 = 1
+        QuadraticEquation equation1;
+        equation1.addQuadraticAddend( 1, 0, 1 );
+        equation1.addAddend( -1, 2 );
+        equation1.setScalar( 1 );
+        inputQuery.addQuadraticEquation( equation1 );
+
+        InputQuery processed = *( Preprocessor().preprocess( inputQuery, false ) );
+
+        // x4.lb = -2 - 1 = -3
+        // x4.ub = 2 - 1 = 1
+
+        TS_ASSERT_EQUALS( processed.getLowerBound( 2 ), -3 );
+        TS_ASSERT_EQUALS( processed.getUpperBound( 2 ), 1 );
+    }
+
+    void test_tighten_quadraticequation_bounds2()
+    {
+        InputQuery inputQuery;
+
+        inputQuery.setNumberOfVariables( 5 );
+        inputQuery.setLowerBound( 0, -1 );
+        inputQuery.setUpperBound( 0, 1 );
+        inputQuery.setLowerBound( 1, -1 );
+        inputQuery.setUpperBound( 1, 2 );
+        inputQuery.setLowerBound( 2, -1 );
+        inputQuery.setUpperBound( 2, 1 );
+        inputQuery.setLowerBound( 3, -2 );
+        inputQuery.setUpperBound( 3, 1 );
+
+        // x0 * x1 + x2 * x3 - x4 = 1
+        QuadraticEquation equation1;
+        equation1.addQuadraticAddend( 1, 0, 1 );
+        equation1.addQuadraticAddend( 1, 2, 3 );
+        equation1.addAddend( -1, 4 );
+        equation1.setScalar( 1 );
+        inputQuery.addQuadraticEquation( equation1 );
+
+        InputQuery processed = *( Preprocessor().preprocess( inputQuery, false ) );
+
+        // x4.lb = -2 + -2 - 1 = -5
+        // x4.ub = 2 + 2 - 1 = 3
+
+        TS_ASSERT_EQUALS( processed.getLowerBound( 4 ), -5 );
+        TS_ASSERT_EQUALS( processed.getUpperBound( 4 ), 3 );
+    }
+
+    void test_tighten_bounds_using_softmax()
+    {
+        InputQuery inputQuery;
+
+        inputQuery.setNumberOfVariables( 6 );
+        inputQuery.setLowerBound( 0, -1 );
+        inputQuery.setUpperBound( 0, 2 );
+        inputQuery.setLowerBound( 1, -2 );
+        inputQuery.setUpperBound( 1, 1 );
+        inputQuery.setLowerBound( 2, -1 );
+        inputQuery.setUpperBound( 2, 1 );
+
+        SoftmaxConstraint *sm = new SoftmaxConstraint( {0,1,2}, {3,4,5} );
+        inputQuery.addTranscendentalConstraint( sm );
+
+        InputQuery processed = *( Preprocessor().preprocess( inputQuery, false ) );
+
+        std::cout << processed.getLowerBound( 3 ) << std::endl;
+        std::cout << processed.getUpperBound( 4 ) << std::endl;
+        TS_ASSERT( FloatUtils::areEqual( processed.getLowerBound( 3 ), 0.0633792, 0.0001 ) );
+        TS_ASSERT( FloatUtils::areEqual( processed.getUpperBound( 3 ), 0.936239, 0.0001 ) );
+        TS_ASSERT( FloatUtils::areEqual( processed.getLowerBound( 4 ), 0.0132132, 0.0001 ) );
+        TS_ASSERT( FloatUtils::areEqual( processed.getUpperBound( 4 ), 0.786986, 0.0001 ) );
+        TS_ASSERT( FloatUtils::areEqual( processed.getLowerBound( 5 ), 0.0351193, 0.0001 ) );
+        TS_ASSERT( FloatUtils::areEqual( processed.getUpperBound( 5 ), 0.843794, 0.0001 ) );
     }
 
     void test_tighten_bounds_using_constraints()

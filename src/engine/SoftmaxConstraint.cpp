@@ -135,8 +135,89 @@ bool SoftmaxConstraint::constraintObsolete() const
     return false;
 }
 
-void SoftmaxConstraint::getEntailedTightenings( List<Tightening> & ) const
+void SoftmaxConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
 {
+    for ( unsigned i = 0; i < _outputs.size(); ++i )
+    {
+        tightenings.append( Tightening( _outputs[i], 0, Tightening::LB ) );
+        tightenings.append( Tightening( _outputs[i], 1, Tightening::UB ) );
+
+        // First get tighter lower bound
+        bool valid = true;
+        Vector<double> values;
+        for ( unsigned j = 0; j < _inputs.size(); ++j )
+        {
+            if ( i == j )
+            {
+                if ( existsLowerBound( _inputs[j] ) && FloatUtils::isFinite( getLowerBound( _inputs[j] ) ) )
+                {
+                    values.append( getLowerBound( _inputs[j] ) );
+                }
+                else
+                {
+                    valid = false;
+                    break;
+                }
+            }
+            else
+            {
+                if ( existsUpperBound( _inputs[j] ) && FloatUtils::isFinite( getUpperBound( _inputs[j] ) ) )
+                {
+                    values.append( getUpperBound( _inputs[j] ) );
+                }
+                else
+                {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+
+        if ( valid )
+        {
+            Vector<double> result;
+            softmax( values, result );
+            tightenings.append( Tightening( _outputs[i], result[i], Tightening::LB ) );
+        }
+
+        // Now get tighter upper bound
+        valid = true;
+        values.clear();
+        for ( unsigned j = 0; j < _inputs.size(); ++j )
+        {
+            if ( i == j )
+            {
+                if ( existsUpperBound( _inputs[j] ) && FloatUtils::isFinite( getUpperBound( _inputs[j] ) ) )
+                {
+                    values.append( getUpperBound( _inputs[j] ) );
+                }
+                else
+                {
+                    valid = false;
+                    break;
+                }
+            }
+            else
+            {
+                if ( existsLowerBound( _inputs[j] ) && FloatUtils::isFinite( getLowerBound( _inputs[j] ) ) )
+                {
+                    values.append( getLowerBound( _inputs[j] ) );
+                }
+                else
+                {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+
+        if ( valid )
+        {
+            Vector<double> result;
+            softmax( values, result );
+            tightenings.append( Tightening( _outputs[i], result[i], Tightening::UB ) );
+        }
+    }
 }
 
 String SoftmaxConstraint::serializeToString() const
@@ -152,4 +233,25 @@ const Vector<unsigned> &SoftmaxConstraint::getInputs() const
 const Vector<unsigned> &SoftmaxConstraint::getOutputs() const
 {
     return _outputs;
+}
+
+void SoftmaxConstraint::softmax( const Vector<double> &input, Vector<double> &output )
+{
+    // A stable softmax implementation: https://stackoverflow.com/questions/42599498/numercially-stable-softmax
+    double max = *(input.begin() );
+    for ( const auto &value : input )
+        if ( value > max )
+            max = value;
+    output.clear();
+    for ( const auto &value : input )
+        output.append( value - max );
+    double sum = 0;
+    for ( unsigned i = 0; i < output.size(); ++i )
+    {
+        output[i] = std::exp( output[i] );
+        sum += output[i];
+    }
+
+    for ( unsigned i = 0; i < output.size(); ++i )
+        output[i] /= sum;
 }

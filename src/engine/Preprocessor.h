@@ -105,6 +105,11 @@ private:
     bool processEquations();
 
     /*
+      Tighten bounds using the linear equations
+    */
+    bool processQuadraticEquations();
+
+    /*
       Tighten the bounds using the piecewise linear and transcendental constraints
     */
     bool processConstraints();

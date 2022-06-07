@@ -132,6 +132,7 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
     while ( continueTightening )
     {
         continueTightening = processEquations();
+        continueTightening = processQuadraticEquations();
         continueTightening = processConstraints() || continueTightening;
         if ( attemptVariableElimination )
             continueTightening = processIdenticalVariables() || continueTightening;
@@ -490,6 +491,353 @@ bool Preprocessor::processEquations()
     return tighterBoundFound;
 }
 
+bool Preprocessor::processQuadraticEquations()
+{
+    enum {
+        ZERO = 0,
+        POSITIVE = 1,
+        NEGATIVE = 2,
+        INFINITE = 3,
+    };
+
+    bool tighterBoundFound = false;
+
+    List<QuadraticEquation > &equations( _preprocessed->getQuadraticEquations() );
+    List<QuadraticEquation>::iterator equation = equations.begin();
+
+    while ( equation != equations.end() )
+    {
+        // The equation is of the form sum (ci * xi * xj) + sum (ci * xi) - b ? 0
+        QuadraticEquation::QuadraticEquationType type = equation->_type;
+
+        unsigned maxVar = 0;
+        for ( const auto &addend : equation->_addends )
+        {
+            if ( addend._variables.size() == 1 )
+                for ( const auto &var : addend._variables )
+                    if ( var > maxVar )
+                        maxVar = var;
+        }
+
+        ++maxVar;
+
+        double *ciTimesLb = new double[maxVar];
+        double *ciTimesUb = new double[maxVar];
+        char *ciSign = new char[maxVar];
+
+        Set<unsigned> excludedFromLB;
+        Set<unsigned> excludedFromUB;
+
+        unsigned xi;
+        unsigned xj;
+        double xiLB;
+        double xiUB;
+        double xjLB;
+        double xjUB;
+        double ci;
+        double lowerBound;
+        double upperBound;
+        bool validLb;
+        bool validUb;
+        bool hasUnboundedQuadraticTerm = false;
+        double quadLb;
+        double quadUb;
+
+        // The first goal is to compute the LB and UB of: sum (ci * xi) - b
+        // For this we first identify unbounded variables
+        double auxLb = -equation->_scalar;
+        double auxUb = -equation->_scalar;
+        for ( const auto &addend : equation->_addends )
+        {
+            ci = addend._coefficient;
+            xi = addend._variables[0];
+
+            if ( addend._variables.size() == 2 )
+            {
+                if ( FloatUtils::isZero( ci ) )
+                    continue;
+
+                xj = addend._variables[1];
+
+                xiLB = getLowerBound( xi );
+                xiUB = getUpperBound( xi );
+                xjLB = getLowerBound( xj );
+                xjUB = getUpperBound( xj );
+
+                if ( !FloatUtils::isFinite( xiLB ) ||
+                     !FloatUtils::isFinite( xiUB ) ||
+                     !FloatUtils::isFinite( xjLB ) ||
+                     !FloatUtils::isFinite( xjUB ) )
+                {
+                    hasUnboundedQuadraticTerm = true;
+                    break;
+                }
+                else
+                {
+                    // Compute the bound of xi * xj
+                    quadLb = xiLB * xjLB;
+                    quadUb = quadLb;
+                    double temp = xiLB * xjUB;
+                    if ( temp < quadLb )
+                        quadLb = temp;
+                    if ( temp > quadUb )
+                        quadUb = temp;
+
+                    temp = xiUB * xjLB;
+                    if ( temp < quadLb )
+                        quadLb = temp;
+                    if ( temp > quadUb )
+                        quadUb = temp;
+
+                    temp = xiUB * xjUB;
+                    if ( temp < quadLb )
+                        quadLb = temp;
+                    if ( temp > quadUb )
+                        quadUb = temp;
+
+                    if ( ci > 0 )
+                    {
+                        auxLb += ci * quadLb;
+                        auxUb += ci * quadUb;
+                    }
+                    else
+                    {
+                        auxLb += ci * quadUb;
+                        auxUb += ci * quadLb;
+                    }
+                }
+            }
+            else if ( addend._variables.size() == 1 )
+            {
+                xi = addend._variables[0];
+
+                if ( FloatUtils::isZero( ci ) )
+                {
+                    ciSign[xi] = ZERO;
+                    ciTimesLb[xi] = 0;
+                    ciTimesUb[xi] = 0;
+                    continue;
+                }
+
+                ciSign[xi] = ci > 0 ? POSITIVE : NEGATIVE;
+
+                xiLB = getLowerBound( xi );
+                xiUB = getUpperBound( xi );
+
+                if ( FloatUtils::isFinite( xiLB ) )
+                {
+                    ciTimesLb[xi] = ci * xiLB;
+                    if ( ciSign[xi] == POSITIVE )
+                        auxLb += ciTimesLb[xi];
+                    else
+                        auxUb += ciTimesLb[xi];
+                }
+                else
+                {
+                    if ( ci > 0 )
+                        excludedFromLB.insert( xi );
+                    else
+                        excludedFromUB.insert( xi );
+                }
+
+                if ( FloatUtils::isFinite( xiUB ) )
+                {
+                    ciTimesUb[xi] = ci * xiUB;
+                    if ( ciSign[xi] == POSITIVE )
+                        auxUb += ciTimesUb[xi];
+                    else
+                        auxLb += ciTimesUb[xi];
+                }
+                else
+                {
+                    if ( ci > 0 )
+                        excludedFromUB.insert( xi );
+                    else
+                        excludedFromLB.insert( xi );
+                }
+            }
+        }
+
+        if ( hasUnboundedQuadraticTerm )
+            continue;
+
+        // Now, go over each addend in sum (ci * xi) - b ? 0, and see what can be done
+        for ( const auto &addend : equation->_addends )
+        {
+            if ( addend._variables.size() != 1 )
+                continue;
+
+            ci = addend._coefficient;
+            xi = addend._variables[0];
+
+            // If ci = 0, nothing to do.
+            if ( ciSign[xi] == ZERO )
+                continue;
+
+            /*
+              The expression for xi is:
+
+                   xi ? ( -1/ci ) * ( sum_{j\neqi} ( cj * xj ) - b )
+
+              We use the previously computed auxLb and auxUb and adjust them because
+              xi is removed from the sum. We also need to pay attention to the sign of ci,
+              and to the presence of infinite bounds.
+
+              Assuming "?" stands for equality, we can compute a LB if:
+                1. ci is negative, and no vars except xi were excluded from the auxLb
+                2. ci is positive, and no vars except xi were excluded from the auxUb
+
+              And vice-versa for UB.
+
+              In case "?" is GE or LE, only one direction can be computed.
+            */
+            if ( ciSign[xi] == NEGATIVE )
+            {
+                validLb =
+                    ( ( type == QuadraticEquation::LE ) || ( type == QuadraticEquation::EQ ) )
+                    &&
+                    ( excludedFromLB.empty() ||
+                      ( excludedFromLB.size() == 1 && excludedFromLB.exists( xi ) ) );
+                validUb =
+                    ( ( type == QuadraticEquation::GE ) || ( type == QuadraticEquation::EQ ) )
+                    &&
+                    ( excludedFromUB.empty() ||
+                      ( excludedFromUB.size() == 1 && excludedFromUB.exists( xi ) ) );
+            }
+            else
+            {
+                validLb =
+                    ( ( type == QuadraticEquation::GE ) || ( type == QuadraticEquation::EQ ) )
+                    &&
+                    ( excludedFromUB.empty() ||
+                      ( excludedFromUB.size() == 1 && excludedFromUB.exists( xi ) ) );
+                validUb =
+                    ( ( type == QuadraticEquation::LE ) || ( type == QuadraticEquation::EQ ) )
+                    &&
+                    ( excludedFromLB.empty() ||
+                      ( excludedFromLB.size() == 1 && excludedFromLB.exists( xi ) ) );
+            }
+
+            // Now compute the actual bounds and see if they are tighter
+            double epsilon = Options::get()->getFloat( Options::PREPROCESSOR_BOUND_TOLERANCE );
+
+            if ( validLb )
+            {
+                if ( ciSign[xi] == NEGATIVE )
+                {
+                    lowerBound = auxLb;
+                    if ( !excludedFromLB.exists( xi ) )
+                        lowerBound -= ciTimesUb[xi];
+                }
+                else
+                {
+                    lowerBound = auxUb;
+                    if ( !excludedFromUB.exists( xi ) )
+                        lowerBound -= ciTimesUb[xi];
+                }
+
+                lowerBound /= -ci;
+
+                if (
+                    FloatUtils::gt(
+                        lowerBound, getLowerBound( xi ), epsilon
+                    )
+                )
+                {
+                    tighterBoundFound = true;
+                    setLowerBound( xi, lowerBound );
+                }
+            }
+
+            if ( validUb )
+            {
+                if ( ciSign[xi] == NEGATIVE )
+                {
+                    upperBound = auxUb;
+                    if ( !excludedFromUB.exists( xi ) )
+                        upperBound -= ciTimesLb[xi];
+                }
+                else
+                {
+                    upperBound = auxLb;
+                    if ( !excludedFromLB.exists( xi ) )
+                        upperBound -= ciTimesLb[xi];
+                }
+
+                upperBound /= -ci;
+
+                if (
+                    FloatUtils::lt(
+                        upperBound, getUpperBound( xi ), epsilon
+                    )
+                )
+                {
+                    tighterBoundFound = true;
+                    setUpperBound( xi, upperBound );
+                }
+            }
+
+            if ( FloatUtils::gt( getLowerBound( xi ),
+                                 getUpperBound( xi ),
+                                 GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
+            {
+                delete[] ciTimesLb;
+                delete[] ciTimesUb;
+                delete[] ciSign;
+
+                throw InfeasibleQueryException();
+            }
+        }
+
+        delete[] ciTimesLb;
+        delete[] ciTimesUb;
+        delete[] ciSign;
+
+        /*
+          Next, do another sweep over the equation.
+          Look for almost-fixed variables and fix them, and remove the equation
+          entirely if it has nothing left to contribute.
+        */
+        bool allFixed = true;
+        for ( const auto &addend : equation->_addends )
+        {
+            for ( const auto var : addend._variables )
+            {
+                double lb = getLowerBound( var );
+                double ub = getUpperBound( var );
+                if ( !FloatUtils::areEqual( lb, ub, GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
+                {
+                    allFixed = false;
+                    break;
+                }
+            }
+        }
+
+        if ( !allFixed )
+        {
+            ++equation;
+        }
+        else
+        {
+            double sum = 0;
+            for ( const auto &addend : equation->_addends )
+            {
+                if ( addend._variables.size() == 1 )
+                    sum += addend._coefficient * getLowerBound( addend._variables[0] );
+                else
+                    sum += addend._coefficient * getLowerBound( addend._variables[0] ) * getLowerBound( addend._variables[1] );
+            }
+            if ( FloatUtils::areDisequal( sum, equation->_scalar, GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
+            {
+                throw InfeasibleQueryException();
+            }
+            equation = equations.erase( equation );
+        }
+    }
+
+    return tighterBoundFound;
+}
+
 bool Preprocessor::processConstraints()
 {
     bool tighterBoundFound = false;
@@ -655,6 +1003,8 @@ void Preprocessor::collectFixedValues()
     //      appeared in an equation)
     Set<unsigned> usedVariables;
     for ( const auto &equation : _preprocessed->getEquations() )
+        usedVariables += equation.getParticipatingVariables();
+    for ( const auto &equation : _preprocessed->getQuadraticEquations() )
         usedVariables += equation.getParticipatingVariables();
     for ( const auto &constraint : _preprocessed->getPiecewiseLinearConstraints() )
     {

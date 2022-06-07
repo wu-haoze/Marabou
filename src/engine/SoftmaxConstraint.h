@@ -96,6 +96,8 @@ public:
 private:
     Vector<unsigned> _inputs;
     Vector<unsigned> _outputs;
+
+    static void softmax( const Vector<double> &input, Vector<double> &output );
 };
 
 #endif // __SoftmaxConstraint_h__

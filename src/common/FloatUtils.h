@@ -125,7 +125,6 @@ public:
     {
         return !isNan( x ) && !isInf( x );
     }
-
 };
 
 #endif // __FloatUtils_h__
