@@ -1944,6 +1944,7 @@ unsigned Engine::performBackwardAnalysis( InputQuery &inputQuery )
             }
         }
         _statistics.incNumTighteningsFromSymbolicBoundTightening( numTightenedBounds );
+	std::cout << "Backward Analysis - done, tightened bounds: " << numTightenedBounds << std::endl;
         return numTightenedBounds;
     }
     return 0;
@@ -2357,6 +2358,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
 	if ( _performBackwardAnalysis )
         {
+	  try{
 	    if ( _verbosity > 0 )
 	      printf( "Performing backward analysis...\n" );
 	    numTightened = performBackwardAnalysis( *_currentInputQuery );
@@ -2369,6 +2371,11 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 	      if ( _verbosity > 0 )
 		printf( "Unfixed constraints after deeppoly: %u\n", thisUnfixed );
 	    }
+	  }
+	  catch ( const InfeasibleQueryException & )
+	  {
+	    continue;
+	  }
 
 	    if ( !Options::get()->getBool( Options::BACKWARD_PROPAGATION_TO_CONVERGENCE ) )
 	      continueTightening = false;
