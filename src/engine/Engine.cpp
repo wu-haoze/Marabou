@@ -42,7 +42,7 @@ using namespace prop;
 Engine::Engine()
     : _context()
     , _boundManager( _context )
-    , _theorySolver(NULL)
+    , _theoryEngine(NULL)
     , _satSolver(NULL)
     , _theoryProxy(NULL)
     , _tableau( _boundManager )
@@ -77,7 +77,7 @@ Engine::Engine()
     , _queryId( "" )
 {
     _satSolver = new MinisatSatSolver(&_statistics);
-    _theoryProxy = new TheoryProxy(*_theorySolver);
+    _theoryProxy = new TheoryProxy(*_theoryEngine);
 
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -108,6 +108,12 @@ Engine::~Engine()
     delete _theoryProxy;
     _theoryProxy = NULL;
   }
+
+  if ( _theoryEngine ) {
+    delete _theoryEngine;
+    _theoryEngine = NULL;
+  }
+
 
     if ( _work )
     {

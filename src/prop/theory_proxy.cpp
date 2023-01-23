@@ -19,12 +19,12 @@
 
 #include "context/context.h"
 
-#include "TheorySolver.h"
+#include "TheoryEngine.h"
 
 namespace prop {
 
-TheoryProxy::TheoryProxy( TheorySolver *theorySolver )
-  : d_theoryEngine(theorySolver)//,
+TheoryProxy::TheoryProxy( TheoryEngine *theoryEngine )
+  : d_theoryEngine(theoryEngine)//,
     //d_queue(CVC4::context::Context()),
     //d_stopSearch(false, CVC4::context::UserContext())
 {

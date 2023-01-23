@@ -43,7 +43,7 @@
 #include "SumOfInfeasibilitiesManager.h"
 #include "SymbolicBoundTighteningType.h"
 
-#include "TheorySolver.h"
+#include "TheoryEngine.h"
 
 #include <context/context.h>
 #include <atomic>
@@ -274,7 +274,7 @@ private:
     */
     Statistics _statistics;
 
-    TheorySolver *_theorySolver;
+    TheoryEngine *_theoryEngine;
     prop::MinisatSatSolver *_satSolver;
     prop::TheoryProxy *_theoryProxy;
 

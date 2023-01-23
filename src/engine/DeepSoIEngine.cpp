@@ -1,8 +1,8 @@
 /*********************                                                        */
-/*! \file DeepSoISolver.cpp
+/*! \file DeepSoIEngine.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Wu
+ **   Guy Katz, Duligur Ibeling, Andrew Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -17,8 +17,8 @@
 #include "AutoConstraintMatrixAnalyzer.h"
 #include "Debug.h"
 #include "DisjunctionConstraint.h"
-#include "DeepSoISolver.h"
-#include "DeepSoISolverState.h"
+#include "DeepSoIEngine.h"
+#include "EngineState.h"
 #include "InfeasibleQueryException.h"
 #include "InputQuery.h"
 #include "MStringf.h"
@@ -39,24 +39,22 @@
 
 using namespace prop;
 
-DeepSoISolver::DeepSoISolver()
+DeepSoIEngine::DeepSoIEngine()
     : _context()
     , _boundManager( _context )
-    , _satSolver(NULL)
-    , _theoryProxy(NULL)
     , _tableau( _boundManager )
     , _preprocessedQuery( nullptr )
     , _rowBoundTightener( *_tableau )
-    , _smtCore( this )
+    , _smtCore( NULL )
     , _numPlConstraintsDisabledByValidSplits( 0 )
     , _preprocessingEnabled( false )
     , _initialStateStored( false )
     , _work( NULL )
-    , _basisRestorationRequired( DeepSoISolver::RESTORATION_NOT_NEEDED )
-    , _basisRestorationPerformed( DeepSoISolver::NO_RESTORATION_PERFORMED )
+    , _basisRestorationRequired( DeepSoIEngine::RESTORATION_NOT_NEEDED )
+    , _basisRestorationPerformed( DeepSoIEngine::NO_RESTORATION_PERFORMED )
     , _costFunctionManager( _tableau )
     , _quitRequested( false )
-    , _exitCode( DeepSoISolver::NOT_DONE )
+    , _exitCode( DeepSoIEngine::NOT_DONE )
     , _numVisitedStatesAtPreviousRestoration( 0 )
     , _networkLevelReasoner( NULL )
     , _verbosity( Options::get()->getInt( Options::VERBOSITY ) )
@@ -75,9 +73,6 @@ DeepSoISolver::DeepSoISolver()
     , _sncMode( false )
     , _queryId( "" )
 {
-    _satSolver = new MinisatSatSolver(&_statistics);
-    _theoryProxy = new TheoryProxy(this);
-
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
     _rowBoundTightener->setStatistics( &_statistics );
@@ -93,34 +88,24 @@ DeepSoISolver::DeepSoISolver()
         GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY :
         GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY_GUROBI ;
 
-    // SmtCore more or less functions as PropDeepSoISolver
+    // SmtCore more or less functions as PropEngine
 }
 
-DeepSoISolver::~DeepSoISolver()
+DeepSoIEngine::~DeepSoIEngine()
 {
-  if ( _satSolver ) {
-    delete _satSolver;
-    _satSolver = NULL;
-  }
-
-  if ( _theoryProxy ) {
-    delete _theoryProxy;
-    _theoryProxy = NULL;
-  }
-
-    if ( _work )
+  if ( _work )
     {
-        delete[] _work;
-        _work = NULL;
+      delete[] _work;
+      _work = NULL;
     }
 }
 
-void DeepSoISolver::setVerbosity( unsigned verbosity )
+void DeepSoIEngine::setVerbosity( unsigned verbosity )
 {
     _verbosity = verbosity;
 }
 
-void DeepSoISolver::adjustWorkMemorySize()
+void DeepSoIEngine::adjustWorkMemorySize()
 {
     if ( _work )
     {
@@ -130,11 +115,11 @@ void DeepSoISolver::adjustWorkMemorySize()
 
     _work = new double[_tableau->getM()];
     if ( !_work )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DeepSoISolver::work" );
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DeepSoIEngine::work" );
 }
 
 
-void DeepSoISolver::applySnCSplit( PiecewiseLinearCaseSplit sncSplit, String queryId )
+void DeepSoIEngine::applySnCSplit( PiecewiseLinearCaseSplit sncSplit, String queryId )
 {
   _sncMode = true;
   _sncSplit = sncSplit;
@@ -142,12 +127,12 @@ void DeepSoISolver::applySnCSplit( PiecewiseLinearCaseSplit sncSplit, String que
   applySplit( sncSplit );
 }
 
-void DeepSoISolver::setRandomSeed( unsigned seed )
+void DeepSoIEngine::setRandomSeed( unsigned seed )
 {
     srand( seed );
 }
 
-InputQuery DeepSoISolver::prepareSnCInputQuery()
+InputQuery DeepSoIEngine::prepareSnCInputQuery()
 {
     List<Tightening> bounds = _sncSplit.getBoundTightenings();
     List<Equation> equations = _sncSplit.getEquations();
@@ -171,14 +156,14 @@ InputQuery DeepSoISolver::prepareSnCInputQuery()
     return sncIPQ;
 }
 
-void DeepSoISolver::exportInputQueryWithError( String errorMessage )
+void DeepSoIEngine::exportInputQueryWithError( String errorMessage )
 {
     String ipqFileName = ( _queryId.length() > 0 ) ? _queryId + ".ipq" : "failedMarabouQuery.ipq";
     prepareSnCInputQuery().saveQuery( ipqFileName );
-    printf( "DeepSoISolver: %s!\nInput query has been saved as %s. Please attach the input query when you open the issue on GitHub.\n", errorMessage.ascii(), ipqFileName.ascii() );
+    printf( "Engine: %s!\nInput query has been saved as %s. Please attach the input query when you open the issue on GitHub.\n", errorMessage.ascii(), ipqFileName.ascii() );
 }
 
-bool DeepSoISolver::solve( unsigned timeoutInSeconds )
+bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
@@ -192,7 +177,7 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
 
     updateDirections();
     if ( _lpSolverType == LPSolverType::NATIVE )
-        storeInitialDeepSoISolverState();
+        storeInitialEngineState();
     else if ( _lpSolverType == LPSolverType::GUROBI )
     {
         ENGINE_LOG( "Encoding convex relaxation into Gurobi...");
@@ -203,7 +188,7 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
     mainLoopStatistics();
     if ( _verbosity > 0 )
     {
-        printf( "\nDeepSoISolver::solve: Initial statistics\n" );
+        printf( "\nDeepSoIEngine::solve: Initial statistics\n" );
         _statistics.print();
         printf( "\n---\n" );
     }
@@ -224,12 +209,12 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
         {
             if ( _verbosity > 0 )
             {
-                printf( "\n\nDeepSoISolver: quitting due to timeout...\n\n" );
+                printf( "\n\nEngine: quitting due to timeout...\n\n" );
                 printf( "Final statistics:\n" );
                 _statistics.print();
             }
 
-            _exitCode = DeepSoISolver::TIMEOUT;
+            _exitCode = DeepSoIEngine::TIMEOUT;
             _statistics.timeout();
             return false;
         }
@@ -238,12 +223,12 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
         {
             if ( _verbosity > 0 )
             {
-                printf( "\n\nDeepSoISolver: quitting due to external request...\n\n" );
+                printf( "\n\nEngine: quitting due to external request...\n\n" );
                 printf( "Final statistics:\n" );
                 _statistics.print();
             }
 
-            _exitCode = DeepSoISolver::QUIT_REQUESTED;
+            _exitCode = DeepSoIEngine::QUIT_REQUESTED;
             return false;
         }
 
@@ -311,10 +296,10 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
                                                  mainLoopEnd ) );
                     if ( _verbosity > 0 )
                     {
-                        printf( "\nDeepSoISolver::solve: sat assignment found\n" );
+                        printf( "\nDeepSoIEngine::solve: sat assignment found\n" );
                         _statistics.print();
                     }
-                    _exitCode = DeepSoISolver::SAT;
+                    _exitCode = DeepSoIEngine::SAT;
 
                     return true;
                 }
@@ -341,7 +326,7 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
             if ( !handleMalformedBasisException() )
             {
                 ASSERT( _lpSolverType == LPSolverType::NATIVE );
-                _exitCode = DeepSoISolver::ERROR;
+                _exitCode = DeepSoIEngine::ERROR;
                 exportInputQueryWithError( "Cannot restore tableau" );
                 struct timespec mainLoopEnd = TimeUtils::sampleMicro();
                 _statistics.incLongAttribute
@@ -365,10 +350,10 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
                                              mainLoopEnd ) );
                 if ( _verbosity > 0 )
                 {
-                    printf( "\nDeepSoISolver::solve: unsat query\n" );
+                    printf( "\nDeepSoIEngine::solve: unsat query\n" );
                     _statistics.print();
                 }
-                _exitCode = DeepSoISolver::UNSAT;
+                _exitCode = DeepSoIEngine::UNSAT;
                 return false;
             }
             else
@@ -386,7 +371,7 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
             String message =
                 Stringf( "Caught a MarabouError. Code: %u. Message: %s ",
                          e.getCode(), e.getUserMessage() );
-            _exitCode = DeepSoISolver::ERROR;
+            _exitCode = DeepSoIEngine::ERROR;
             exportInputQueryWithError( message );
             struct timespec mainLoopEnd = TimeUtils::sampleMicro();
             _statistics.incLongAttribute
@@ -397,7 +382,7 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
         }
         catch ( ... )
         {
-            _exitCode = DeepSoISolver::ERROR;
+            _exitCode = DeepSoIEngine::ERROR;
             exportInputQueryWithError( "Unknown error" );
             struct timespec mainLoopEnd = TimeUtils::sampleMicro();
             _statistics.incLongAttribute
@@ -409,7 +394,7 @@ bool DeepSoISolver::solve( unsigned timeoutInSeconds )
     }
 }
 
-void DeepSoISolver::mainLoopStatistics()
+void DeepSoIEngine::mainLoopStatistics()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -433,7 +418,7 @@ void DeepSoISolver::mainLoopStatistics()
                                   TimeUtils::timePassed( start, end ) );
 }
 
-void DeepSoISolver::performBoundTighteningAfterCaseSplit()
+void DeepSoIEngine::performBoundTighteningAfterCaseSplit()
 {
     // Tighten bounds of a first hidden layer with MILP solver
     performMILPSolverBoundedTighteningForSingleLayer( 1 );
@@ -449,7 +434,7 @@ void DeepSoISolver::performBoundTighteningAfterCaseSplit()
             ( _networkLevelReasoner->getLayerIndexToLayer().size() - 1 );
 }
 
-bool DeepSoISolver::adjustAssignmentToSatisfyNonLinearConstraints()
+bool DeepSoIEngine::adjustAssignmentToSatisfyNonLinearConstraints()
 {
     ENGINE_LOG( "Linear constraints satisfied. Now trying to satisfy non-linear"
                 " constraints..." );
@@ -496,30 +481,30 @@ bool DeepSoISolver::adjustAssignmentToSatisfyNonLinearConstraints()
     }
 }
 
-bool DeepSoISolver::performPrecisionRestorationIfNeeded()
+bool DeepSoIEngine::performPrecisionRestorationIfNeeded()
 {
     // If the basis has become malformed, we need to restore it
     if ( basisRestorationNeeded() )
     {
-        if ( _basisRestorationRequired == DeepSoISolver::STRONG_RESTORATION_NEEDED )
+        if ( _basisRestorationRequired == DeepSoIEngine::STRONG_RESTORATION_NEEDED )
         {
             performPrecisionRestoration( PrecisionRestorer::RESTORE_BASICS );
-            _basisRestorationPerformed = DeepSoISolver::PERFORMED_STRONG_RESTORATION;
+            _basisRestorationPerformed = DeepSoIEngine::PERFORMED_STRONG_RESTORATION;
         }
         else
         {
             performPrecisionRestoration( PrecisionRestorer::DO_NOT_RESTORE_BASICS );
-            _basisRestorationPerformed = DeepSoISolver::PERFORMED_WEAK_RESTORATION;
+            _basisRestorationPerformed = DeepSoIEngine::PERFORMED_WEAK_RESTORATION;
         }
 
         _numVisitedStatesAtPreviousRestoration =
             _statistics.getUnsignedAttribute( Statistics::NUM_VISITED_TREE_STATES );
-        _basisRestorationRequired = DeepSoISolver::RESTORATION_NOT_NEEDED;
+        _basisRestorationRequired = DeepSoIEngine::RESTORATION_NOT_NEEDED;
         return true;
     }
 
     // Restoration is not required
-    _basisRestorationPerformed = DeepSoISolver::NO_RESTORATION_PERFORMED;
+    _basisRestorationPerformed = DeepSoIEngine::NO_RESTORATION_PERFORMED;
 
     // Possible restoration due to preceision degradation
     if ( shouldCheckDegradation() && highDegradation() )
@@ -531,37 +516,37 @@ bool DeepSoISolver::performPrecisionRestorationIfNeeded()
     return false;
 }
 
-bool DeepSoISolver::handleMalformedBasisException()
+bool DeepSoIEngine::handleMalformedBasisException()
 {
     // Debug
     printf( "MalformedBasisException caught!\n" );
     //
 
-    if ( _basisRestorationPerformed == DeepSoISolver::NO_RESTORATION_PERFORMED )
+    if ( _basisRestorationPerformed == DeepSoIEngine::NO_RESTORATION_PERFORMED )
     {
         if ( _numVisitedStatesAtPreviousRestoration !=
              _statistics.getUnsignedAttribute
              ( Statistics::NUM_VISITED_TREE_STATES ) )
         {
             // We've tried a strong restoration before, and it didn't work. Do a weak restoration
-            _basisRestorationRequired = DeepSoISolver::WEAK_RESTORATION_NEEDED;
+            _basisRestorationRequired = DeepSoIEngine::WEAK_RESTORATION_NEEDED;
         }
         else
         {
-            _basisRestorationRequired = DeepSoISolver::STRONG_RESTORATION_NEEDED;
+            _basisRestorationRequired = DeepSoIEngine::STRONG_RESTORATION_NEEDED;
         }
         return true;
     }
-    else if ( _basisRestorationPerformed == DeepSoISolver::PERFORMED_STRONG_RESTORATION )
+    else if ( _basisRestorationPerformed == DeepSoIEngine::PERFORMED_STRONG_RESTORATION )
     {
-        _basisRestorationRequired = DeepSoISolver::WEAK_RESTORATION_NEEDED;
+        _basisRestorationRequired = DeepSoIEngine::WEAK_RESTORATION_NEEDED;
         return true;
     }
     else
         return false;
 }
 
-void DeepSoISolver::performConstraintFixingStep()
+void DeepSoIEngine::performConstraintFixingStep()
 {
     // Statistics
     _statistics.incLongAttribute( Statistics::NUM_CONSTRAINT_FIXING_STEPS );
@@ -581,7 +566,7 @@ void DeepSoISolver::performConstraintFixingStep()
                                   TimeUtils::timePassed( start, end ) );
 }
 
-bool DeepSoISolver::performSimplexStep()
+bool DeepSoIEngine::performSimplexStep()
 {
     // Statistics
     _statistics.incLongAttribute( Statistics::NUM_SIMPLEX_STEPS );
@@ -782,7 +767,7 @@ bool DeepSoISolver::performSimplexStep()
     return false;
 }
 
-void DeepSoISolver::fixViolatedPlConstraintIfPossible()
+void DeepSoIEngine::fixViolatedPlConstraintIfPossible()
 {
     List<PiecewiseLinearConstraint::Fix> fixes;
 
@@ -875,12 +860,12 @@ void DeepSoISolver::fixViolatedPlConstraintIfPossible()
     _tableau->setNonBasicAssignment( fix._variable, fix._value, true );
 }
 
-bool DeepSoISolver::processInputQuery( InputQuery &inputQuery )
+bool DeepSoIEngine::processInputQuery( InputQuery &inputQuery )
 {
     return processInputQuery( inputQuery, GlobalConfiguration::PREPROCESS_INPUT_QUERY );
 }
 
-void DeepSoISolver::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
+void DeepSoIEngine::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
 {
     for ( const auto &plConstraint : inputQuery.getPiecewiseLinearConstraints() )
     {
@@ -903,10 +888,10 @@ void DeepSoISolver::informConstraintsOfInitialBounds( InputQuery &inputQuery ) c
     }
 }
 
-void DeepSoISolver::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
+void DeepSoIEngine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
 {
     if ( _verbosity > 0 )
-        printf( "DeepSoISolver::processInputQuery: Input query (before preprocessing): "
+        printf( "DeepSoIEngine::processInputQuery: Input query (before preprocessing): "
                 "%u equations, %u variables\n",
                 inputQuery.getEquations().size(),
                 inputQuery.getNumberOfVariables() );
@@ -921,7 +906,7 @@ void DeepSoISolver::invokePreprocessor( const InputQuery &inputQuery, bool prepr
             ( new InputQuery( inputQuery ) );
 
     if ( _verbosity > 0 )
-        printf( "DeepSoISolver::processInputQuery: Input query (after preprocessing): "
+        printf( "DeepSoIEngine::processInputQuery: Input query (after preprocessing): "
                 "%u equations, %u variables\n\n",
                 _preprocessedQuery->getEquations().size(),
                 _preprocessedQuery->getNumberOfVariables() );
@@ -929,13 +914,13 @@ void DeepSoISolver::invokePreprocessor( const InputQuery &inputQuery, bool prepr
     unsigned infiniteBounds = _preprocessedQuery->countInfiniteBounds();
     if ( infiniteBounds != 0 )
     {
-        _exitCode = DeepSoISolver::ERROR;
+        _exitCode = DeepSoIEngine::ERROR;
         throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
                              Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
     }
 }
 
-void DeepSoISolver::printInputBounds( const InputQuery &inputQuery ) const
+void DeepSoIEngine::printInputBounds( const InputQuery &inputQuery ) const
 {
     printf( "Input bounds:\n" );
     for ( unsigned i = 0; i < inputQuery.getNumInputVariables(); ++i )
@@ -977,12 +962,12 @@ void DeepSoISolver::printInputBounds( const InputQuery &inputQuery ) const
     printf( "\n" );
 }
 
-void DeepSoISolver::storeEquationsInDegradationChecker()
+void DeepSoIEngine::storeEquationsInDegradationChecker()
 {
     _degradationChecker.storeEquations( *_preprocessedQuery );
 }
 
-double *DeepSoISolver::createConstraintMatrix()
+double *DeepSoIEngine::createConstraintMatrix()
 {
     const List<Equation> &equations( _preprocessedQuery->getEquations() );
     unsigned m = equations.size();
@@ -991,7 +976,7 @@ double *DeepSoISolver::createConstraintMatrix()
     // Step 1: create a constraint matrix from the equations
     double *constraintMatrix = new double[n*m];
     if ( !constraintMatrix )
-        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DeepSoISolver::constraintMatrix" );
+        throw MarabouError( MarabouError::ALLOCATION_FAILED, "DeepSoIEngine::constraintMatrix" );
     std::fill_n( constraintMatrix, n*m, 0.0 );
 
     unsigned equationIndex = 0;
@@ -999,7 +984,7 @@ double *DeepSoISolver::createConstraintMatrix()
     {
         if ( equation._type != Equation::EQ )
         {
-            _exitCode = DeepSoISolver::ERROR;
+            _exitCode = DeepSoIEngine::ERROR;
             throw MarabouError( MarabouError::NON_EQUALITY_INPUT_EQUATION_DISCOVERED );
         }
 
@@ -1012,7 +997,7 @@ double *DeepSoISolver::createConstraintMatrix()
     return constraintMatrix;
 }
 
-void DeepSoISolver::removeRedundantEquations( const double *constraintMatrix )
+void DeepSoIEngine::removeRedundantEquations( const double *constraintMatrix )
 {
     const List<Equation> &equations( _preprocessedQuery->getEquations() );
     unsigned m = equations.size();
@@ -1035,7 +1020,7 @@ void DeepSoISolver::removeRedundantEquations( const double *constraintMatrix )
     }
 }
 
-void DeepSoISolver::selectInitialVariablesForBasis( const double *constraintMatrix, List<unsigned> &initialBasis, List<unsigned> &basicRows )
+void DeepSoIEngine::selectInitialVariablesForBasis( const double *constraintMatrix, List<unsigned> &initialBasis, List<unsigned> &basicRows )
 {
     /*
       This method permutes rows and columns in the constraint matrix (prior
@@ -1206,7 +1191,7 @@ void DeepSoISolver::selectInitialVariablesForBasis( const double *constraintMatr
     delete[] rowOrdering;
 }
 
-void DeepSoISolver::addAuxiliaryVariables()
+void DeepSoIEngine::addAuxiliaryVariables()
 {
     List<Equation> &equations( _preprocessedQuery->getEquations() );
 
@@ -1230,7 +1215,7 @@ void DeepSoISolver::addAuxiliaryVariables()
     }
 }
 
-void DeepSoISolver::augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, const List<unsigned> &basicRows )
+void DeepSoIEngine::augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, const List<unsigned> &basicRows )
 {
     unsigned m = _preprocessedQuery->getEquations().size();
     unsigned n = _preprocessedQuery->getNumberOfVariables();
@@ -1243,7 +1228,7 @@ void DeepSoISolver::augmentInitialBasisIfNeeded( List<unsigned> &initialBasis, c
     }
 }
 
-void DeepSoISolver::initializeTableau( const double *constraintMatrix, const List<unsigned> &initialBasis )
+void DeepSoIEngine::initializeTableau( const double *constraintMatrix, const List<unsigned> &initialBasis )
 {
     const List<Equation> &equations( _preprocessedQuery->getEquations() );
     unsigned m = equations.size();
@@ -1277,7 +1262,7 @@ void DeepSoISolver::initializeTableau( const double *constraintMatrix, const Lis
     _activeEntryStrategy->initialize( _tableau );
 }
 
-void DeepSoISolver::initializeBoundsAndConstraintWatchersInTableau( unsigned
+void DeepSoIEngine::initializeBoundsAndConstraintWatchersInTableau( unsigned
                                                              numberOfVariables )
 {
     _plConstraints = _preprocessedQuery->getPiecewiseLinearConstraints();
@@ -1304,7 +1289,7 @@ void DeepSoISolver::initializeBoundsAndConstraintWatchersInTableau( unsigned
                                       _plConstraints.size() );
 }
 
-void DeepSoISolver::initializeNetworkLevelReasoning()
+void DeepSoIEngine::initializeNetworkLevelReasoning()
 {
     _networkLevelReasoner = _preprocessedQuery->getNetworkLevelReasoner();
 
@@ -1312,7 +1297,7 @@ void DeepSoISolver::initializeNetworkLevelReasoning()
         _networkLevelReasoner->setTableau( _tableau );
 }
 
-bool DeepSoISolver::processInputQuery( InputQuery &inputQuery, bool preprocess )
+bool DeepSoIEngine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 {
     ENGINE_LOG( "processInputQuery starting\n" );
     struct timespec start = TimeUtils::sampleMicro();
@@ -1432,7 +1417,7 @@ bool DeepSoISolver::processInputQuery( InputQuery &inputQuery, bool preprocess )
         _statistics.setLongAttribute( Statistics::PREPROCESSING_TIME_MICRO,
                                       TimeUtils::timePassed( start, end ) );
 
-        _exitCode = DeepSoISolver::UNSAT;
+        _exitCode = DeepSoIEngine::UNSAT;
         return false;
     }
 
@@ -1450,7 +1435,7 @@ bool DeepSoISolver::processInputQuery( InputQuery &inputQuery, bool preprocess )
     return true;
 }
 
-void DeepSoISolver::performMILPSolverBoundedTightening( InputQuery *inputQuery )
+void DeepSoIEngine::performMILPSolverBoundedTightening( InputQuery *inputQuery )
 {
     if ( _networkLevelReasoner && Options::get()->gurobiEnabled() )
     {
@@ -1520,7 +1505,7 @@ void DeepSoISolver::performMILPSolverBoundedTightening( InputQuery *inputQuery )
     }
 }
 
-void DeepSoISolver::performMILPSolverBoundedTighteningForSingleLayer( unsigned targetIndex )
+void DeepSoIEngine::performMILPSolverBoundedTighteningForSingleLayer( unsigned targetIndex )
 {
     if ( _networkLevelReasoner && _isGurobyEnabled && !_performLpTighteningAfterSplit
             && _milpSolverBoundTighteningType != MILPSolverBoundTighteningType::NONE )
@@ -1560,7 +1545,7 @@ void DeepSoISolver::performMILPSolverBoundedTighteningForSingleLayer( unsigned t
     }
 }
 
-void DeepSoISolver::extractSolution( InputQuery &inputQuery )
+void DeepSoIEngine::extractSolution( InputQuery &inputQuery )
 {
     if ( _solveWithMILP )
     {
@@ -1604,7 +1589,7 @@ void DeepSoISolver::extractSolution( InputQuery &inputQuery )
     }
 }
 
-bool DeepSoISolver::allVarsWithinBounds() const
+bool DeepSoIEngine::allVarsWithinBounds() const
 {
     if ( _lpSolverType == LPSolverType::GUROBI )
     {
@@ -1615,7 +1600,7 @@ bool DeepSoISolver::allVarsWithinBounds() const
         return !_tableau->existsBasicOutOfBounds();
 }
 
-void DeepSoISolver::collectViolatedPlConstraints()
+void DeepSoIEngine::collectViolatedPlConstraints()
 {
     _violatedPlConstraints.clear();
     for ( const auto &constraint : _plConstraints )
@@ -1625,12 +1610,12 @@ void DeepSoISolver::collectViolatedPlConstraints()
     }
 }
 
-bool DeepSoISolver::allPlConstraintsHold()
+bool DeepSoIEngine::allPlConstraintsHold()
 {
     return _violatedPlConstraints.empty();
 }
 
-void DeepSoISolver::selectViolatedPlConstraint()
+void DeepSoIEngine::selectViolatedPlConstraint()
 {
     ASSERT( !_violatedPlConstraints.empty() );
 
@@ -1639,12 +1624,12 @@ void DeepSoISolver::selectViolatedPlConstraint()
     ASSERT( _plConstraintToFix );
 }
 
-void DeepSoISolver::reportPlViolation()
+void DeepSoIEngine::reportPlViolation()
 {
     _smtCore.reportViolatedConstraint( _plConstraintToFix );
 }
 
-void DeepSoISolver::storeState( DeepSoISolverState &state, TableauStateStorageLevel level ) const
+void DeepSoIEngine::storeState( EngineState &state, TableauStateStorageLevel level ) const
 {
     _tableau->storeState( state._tableauState, level );
     state._tableauStateStorageLevel = level;
@@ -1655,7 +1640,7 @@ void DeepSoISolver::storeState( DeepSoISolverState &state, TableauStateStorageLe
     state._numPlConstraintsDisabledByValidSplits = _numPlConstraintsDisabledByValidSplits;
 }
 
-void DeepSoISolver::restoreState( const DeepSoISolverState &state )
+void DeepSoIEngine::restoreState( const EngineState &state )
 {
     ENGINE_LOG( "Restore state starting" );
 
@@ -1690,12 +1675,12 @@ void DeepSoISolver::restoreState( const DeepSoISolverState &state )
     _smtCore.resetSplitConditions();
 }
 
-void DeepSoISolver::setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints )
+void DeepSoIEngine::setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints )
 {
     _numPlConstraintsDisabledByValidSplits = numConstraints;
 }
 
-bool DeepSoISolver::attemptToMergeVariables( unsigned x1, unsigned x2 )
+bool DeepSoIEngine::attemptToMergeVariables( unsigned x1, unsigned x2 )
 {
     /*
       First, we need to ensure that the variables are both non-basic.
@@ -1790,7 +1775,7 @@ bool DeepSoISolver::attemptToMergeVariables( unsigned x1, unsigned x2 )
     return true;
 }
 
-void DeepSoISolver::applySplit( const PiecewiseLinearCaseSplit &split )
+void DeepSoIEngine::applySplit( const PiecewiseLinearCaseSplit &split )
 {
     ENGINE_LOG( "" );
     ENGINE_LOG( "Applying a split. " );
@@ -1919,7 +1904,7 @@ void DeepSoISolver::applySplit( const PiecewiseLinearCaseSplit &split )
     ENGINE_LOG( "Done with split\n" );
 }
 
-void DeepSoISolver::applyBoundTightenings()
+void DeepSoIEngine::applyBoundTightenings()
 {
     List<Tightening> tightenings;
     _boundManager.getTightenings( tightenings );
@@ -1932,17 +1917,17 @@ void DeepSoISolver::applyBoundTightenings()
             _tableau->tightenUpperBound( tightening._variable, tightening._value );
     }
 }
-void DeepSoISolver::applyAllRowTightenings()
+void DeepSoIEngine::applyAllRowTightenings()
 {
     applyBoundTightenings();
 }
 
-void DeepSoISolver::applyAllConstraintTightenings()
+void DeepSoIEngine::applyAllConstraintTightenings()
 {
     applyBoundTightenings();
 }
 
-void DeepSoISolver::applyAllBoundTightenings()
+void DeepSoIEngine::applyAllBoundTightenings()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -1955,7 +1940,7 @@ void DeepSoISolver::applyAllBoundTightenings()
                                   TimeUtils::timePassed( start, end ) );
 }
 
-bool DeepSoISolver::applyAllValidConstraintCaseSplits()
+bool DeepSoIEngine::applyAllValidConstraintCaseSplits()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -1971,7 +1956,7 @@ bool DeepSoISolver::applyAllValidConstraintCaseSplits()
     return appliedSplit;
 }
 
-bool DeepSoISolver::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constraint )
+bool DeepSoIEngine::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *constraint )
 {
     if ( constraint->isActive() && constraint->phaseFixed() )
     {
@@ -1994,13 +1979,13 @@ bool DeepSoISolver::applyValidConstraintCaseSplit( PiecewiseLinearConstraint *co
     return false;
 }
 
-bool DeepSoISolver::shouldCheckDegradation()
+bool DeepSoIEngine::shouldCheckDegradation()
 {
     return _statistics.getLongAttribute( Statistics::NUM_MAIN_LOOP_ITERATIONS ) %
         GlobalConfiguration::DEGRADATION_CHECKING_FREQUENCY == 0 ;
 }
 
-bool DeepSoISolver::highDegradation()
+bool DeepSoIEngine::highDegradation()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -2026,7 +2011,7 @@ bool DeepSoISolver::highDegradation()
     return result;
 }
 
-void DeepSoISolver::tightenBoundsOnConstraintMatrix()
+void DeepSoIEngine::tightenBoundsOnConstraintMatrix()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -2044,7 +2029,7 @@ void DeepSoISolver::tightenBoundsOnConstraintMatrix()
           TimeUtils::timePassed( start, end ) );
 }
 
-void DeepSoISolver::explicitBasisBoundTightening()
+void DeepSoIEngine::explicitBasisBoundTightening()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -2072,7 +2057,7 @@ void DeepSoISolver::explicitBasisBoundTightening()
           TimeUtils::timePassed( start, end ) );
 }
 
-void DeepSoISolver::performPrecisionRestoration( PrecisionRestorer::RestoreBasics restoreBasics )
+void DeepSoIEngine::performPrecisionRestoration( PrecisionRestorer::RestoreBasics restoreBasics )
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -2119,33 +2104,33 @@ void DeepSoISolver::performPrecisionRestoration( PrecisionRestorer::RestoreBasic
     }
 }
 
-void DeepSoISolver::storeInitialDeepSoISolverState()
+void DeepSoIEngine::storeInitialEngineState()
 {
     if ( !_initialStateStored )
     {
-        _precisionRestorer.storeInitialDeepSoISolverState( *this );
+        _precisionRestorer.storeInitialEngineState( *this );
         _initialStateStored = true;
     }
 }
 
-bool DeepSoISolver::basisRestorationNeeded() const
+bool DeepSoIEngine::basisRestorationNeeded() const
 {
     return
-        _basisRestorationRequired == DeepSoISolver::STRONG_RESTORATION_NEEDED ||
-        _basisRestorationRequired == DeepSoISolver::WEAK_RESTORATION_NEEDED;
+        _basisRestorationRequired == DeepSoIEngine::STRONG_RESTORATION_NEEDED ||
+        _basisRestorationRequired == DeepSoIEngine::WEAK_RESTORATION_NEEDED;
 }
 
-const Statistics *DeepSoISolver::getStatistics() const
+const Statistics *DeepSoIEngine::getStatistics() const
 {
     return &_statistics;
 }
 
-InputQuery *DeepSoISolver::getInputQuery()
+InputQuery *DeepSoIEngine::getInputQuery()
 {
     return &( *_preprocessedQuery );
 }
 
-void DeepSoISolver::checkBoundCompliancyWithDebugSolution()
+void DeepSoIEngine::checkBoundCompliancyWithDebugSolution()
 {
     if ( _smtCore.checkSkewFromDebuggingSolution() )
     {
@@ -2179,27 +2164,27 @@ void DeepSoISolver::checkBoundCompliancyWithDebugSolution()
     }
 }
 
-void DeepSoISolver::quitSignal()
+void DeepSoIEngine::quitSignal()
 {
     _quitRequested = true;
 }
 
-DeepSoISolver::ExitCode DeepSoISolver::getExitCode() const
+DeepSoIEngine::ExitCode DeepSoIEngine::getExitCode() const
 {
     return _exitCode;
 }
 
-std::atomic_bool *DeepSoISolver::getQuitRequested()
+std::atomic_bool *DeepSoIEngine::getQuitRequested()
 {
     return &_quitRequested;
 }
 
-List<unsigned> DeepSoISolver::getInputVariables() const
+List<unsigned> DeepSoIEngine::getInputVariables() const
 {
     return _preprocessedQuery->getInputVariables();
 }
 
-void DeepSoISolver::performSimulation()
+void DeepSoIEngine::performSimulation()
 {
     if ( _simulationSize == 0 || !_networkLevelReasoner ||
          _milpSolverBoundTighteningType == MILPSolverBoundTighteningType::NONE )
@@ -2227,7 +2212,7 @@ void DeepSoISolver::performSimulation()
     _networkLevelReasoner->simulate( &simulations );
 }
 
-void DeepSoISolver::performSymbolicBoundTightening( InputQuery *inputQuery )
+void DeepSoIEngine::performSymbolicBoundTightening( InputQuery *inputQuery )
 {
     if ( _symbolicBoundTighteningType == SymbolicBoundTighteningType::NONE ||
          ( !_networkLevelReasoner ) )
@@ -2315,7 +2300,7 @@ void DeepSoISolver::performSymbolicBoundTightening( InputQuery *inputQuery )
                                   numTightenedBounds );
 }
 
-bool DeepSoISolver::shouldExitDueToTimeout( unsigned timeout ) const
+bool DeepSoIEngine::shouldExitDueToTimeout( unsigned timeout ) const
 {
     // A timeout value of 0 means no time limit
     if ( timeout == 0 )
@@ -2324,7 +2309,7 @@ bool DeepSoISolver::shouldExitDueToTimeout( unsigned timeout ) const
     return _statistics.getTotalTimeInMicro() / MICROSECONDS_TO_SECONDS > timeout;
 }
 
-void DeepSoISolver::preContextPushHook()
+void DeepSoIEngine::preContextPushHook()
 {
     struct timespec start = TimeUtils::sampleMicro();
     _boundManager.storeLocalBounds();
@@ -2333,7 +2318,7 @@ void DeepSoISolver::preContextPushHook()
     _statistics.incLongAttribute( Statistics::TIME_CONTEXT_PUSH_HOOK, TimeUtils::timePassed( start, end ) );
 }
 
-void DeepSoISolver::postContextPopHook()
+void DeepSoIEngine::postContextPopHook()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
@@ -2344,7 +2329,7 @@ void DeepSoISolver::postContextPopHook()
     _statistics.incLongAttribute( Statistics::TIME_CONTEXT_POP_HOOK, TimeUtils::timePassed( start, end ) );
 }
 
-void DeepSoISolver::reset()
+void DeepSoIEngine::reset()
 {
     resetStatistics();
     clearViolatedPLConstraints();
@@ -2353,7 +2338,7 @@ void DeepSoISolver::reset()
     resetExitCode();
 }
 
-void DeepSoISolver::resetStatistics()
+void DeepSoIEngine::resetStatistics()
 {
     Statistics statistics;
     _statistics = statistics;
@@ -2366,28 +2351,28 @@ void DeepSoISolver::resetStatistics()
     _statistics.stampStartingTime();
 }
 
-void DeepSoISolver::clearViolatedPLConstraints()
+void DeepSoIEngine::clearViolatedPLConstraints()
 {
     _violatedPlConstraints.clear();
     _plConstraintToFix = NULL;
 }
 
-void DeepSoISolver::resetSmtCore()
+void DeepSoIEngine::resetSmtCore()
 {
     _smtCore.reset();
     _smtCore.initializeScoreTrackerIfNeeded( _plConstraints );
 }
 
-void DeepSoISolver::resetExitCode()
+void DeepSoIEngine::resetExitCode()
 {
-    _exitCode = DeepSoISolver::NOT_DONE;
+    _exitCode = DeepSoIEngine::NOT_DONE;
 }
 
-void DeepSoISolver::resetBoundTighteners()
+void DeepSoIEngine::resetBoundTighteners()
 {
 }
 
-void DeepSoISolver::warmStart()
+void DeepSoIEngine::warmStart()
 {
     // An NLR is required for a warm start
     if ( !_networkLevelReasoner )
@@ -2441,7 +2426,7 @@ void DeepSoISolver::warmStart()
     delete[] inputAssignment;
 }
 
-void DeepSoISolver::checkOverallProgress()
+void DeepSoIEngine::checkOverallProgress()
 {
     // Get fresh statistics
     unsigned numVisitedStates =
@@ -2463,13 +2448,13 @@ void DeepSoISolver::checkOverallProgress()
              GlobalConfiguration::MAX_ITERATIONS_WITHOUT_PROGRESS )
         {
             ENGINE_LOG( "checkOverallProgress detected cycling. Requesting a precision restoration" );
-            _basisRestorationRequired = DeepSoISolver::STRONG_RESTORATION_NEEDED;
+            _basisRestorationRequired = DeepSoIEngine::STRONG_RESTORATION_NEEDED;
             _lastIterationWithProgress = currentIteration;
         }
     }
 }
 
-void DeepSoISolver::updateDirections()
+void DeepSoIEngine::updateDirections()
 {
     if ( GlobalConfiguration::USE_POLARITY_BASED_DIRECTION_HEURISTICS )
         for ( const auto &constraint : _plConstraints )
@@ -2478,7 +2463,7 @@ void DeepSoISolver::updateDirections()
                 constraint->updateDirection();
 }
 
-void DeepSoISolver::decideBranchingHeuristics()
+void DeepSoIEngine::decideBranchingHeuristics()
 {
     DivideStrategy divideStrategy = Options::get()->getDivideStrategy();
     if ( divideStrategy == DivideStrategy::Auto )
@@ -2511,7 +2496,7 @@ void DeepSoISolver::decideBranchingHeuristics()
     _smtCore.initializeScoreTrackerIfNeeded( _plConstraints );
 }
 
-PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintBasedOnPolarity()
+PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintBasedOnPolarity()
 {
     ENGINE_LOG( Stringf( "Using Polarity-based heuristics..." ).ascii() );
 
@@ -2544,7 +2529,7 @@ PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintBasedOnPolarity()
         return NULL;
 }
 
-PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintBasedOnTopology()
+PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintBasedOnTopology()
 {
     // We push the first unfixed ReLU in the topology order to the _candidatePlConstraints
     ENGINE_LOG( Stringf( "Using EarliestReLU heuristics..." ).ascii() );
@@ -2563,7 +2548,7 @@ PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintBasedOnTopology()
     return NULL;
 }
 
-PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintBasedOnIntervalWidth()
+PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintBasedOnIntervalWidth()
 {
     // We push the first unfixed ReLU in the topology order to the _candidatePlConstraints
     ENGINE_LOG( Stringf( "Using LargestInterval heuristics..." ).ascii() );
@@ -2604,7 +2589,7 @@ PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintBasedOnIntervalWi
     }
 }
 
-PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraint( DivideStrategy
+PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraint( DivideStrategy
                                                           strategy )
 {
     ENGINE_LOG( Stringf( "Picking a split PLConstraint..." ).ascii() );
@@ -2638,7 +2623,7 @@ PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraint( DivideStrategy
     return candidatePLConstraint;
 }
 
-PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintSnC( SnCDivideStrategy strategy )
+PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintSnC( SnCDivideStrategy strategy )
 {
     PiecewiseLinearConstraint *candidatePLConstraint = NULL;
     if ( strategy == SnCDivideStrategy::Polarity )
@@ -2653,7 +2638,7 @@ PiecewiseLinearConstraint *DeepSoISolver::pickSplitPLConstraintSnC( SnCDivideStr
     return candidatePLConstraint;
 }
 
-bool DeepSoISolver::restoreSmtState( SmtState & smtState )
+bool DeepSoIEngine::restoreSmtState( SmtState & smtState )
 {
     try
     {
@@ -2698,10 +2683,10 @@ bool DeepSoISolver::restoreSmtState( SmtState & smtState )
         {
             if ( _verbosity > 0 )
             {
-                printf( "\nDeepSoISolver::solve: UNSAT query\n" );
+                printf( "\nDeepSoIEngine::solve: UNSAT query\n" );
                 _statistics.print();
             }
-            _exitCode = DeepSoISolver::UNSAT;
+            _exitCode = DeepSoIEngine::UNSAT;
             for ( PiecewiseLinearConstraint *p : _plConstraints )
                 p->setActiveConstraint( true );
             return false;
@@ -2710,12 +2695,12 @@ bool DeepSoISolver::restoreSmtState( SmtState & smtState )
     return true;
 }
 
-void DeepSoISolver::storeSmtState( SmtState & smtState )
+void DeepSoIEngine::storeSmtState( SmtState & smtState )
 {
     _smtCore.storeSmtState( smtState );
 }
 
-bool DeepSoISolver::solveWithMILPEncoding( unsigned timeoutInSeconds )
+bool DeepSoIEngine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 {
     try
     {
@@ -2733,7 +2718,7 @@ bool DeepSoISolver::solveWithMILPEncoding( unsigned timeoutInSeconds )
     }
     catch ( const InfeasibleQueryException & )
     {
-        _exitCode = DeepSoISolver::UNSAT;
+        _exitCode = DeepSoIEngine::UNSAT;
         return false;
     }
 
@@ -2759,22 +2744,22 @@ bool DeepSoISolver::solveWithMILPEncoding( unsigned timeoutInSeconds )
         {
             // TODO: Return UNKNOW exitCode insted of throwing Error after implementing python interface to support UNKNOWN.
             throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED, "UNKNOWN (Marabou doesn't support UNKNOWN cases with exitCode yet.)" );
-            // _exitCode = IDeepSoISolver::UNKNOWN;
+            // _exitCode = IDeepSoIEngine::UNKNOWN;
             // return false;
         }
-        _exitCode = IDeepSoISolver::SAT;
+        _exitCode = TheoryEngine::SAT;
         return true;
     }
     else if ( _gurobi->infeasible() )
-        _exitCode = IDeepSoISolver::UNSAT;
+        _exitCode = TheoryEngine::UNSAT;
     else if ( _gurobi->timeout() )
-        _exitCode = IDeepSoISolver::TIMEOUT;
+        _exitCode = TheoryEngine::TIMEOUT;
     else
         throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
     return false;
 }
 
-void DeepSoISolver::extractSolutionFromGurobi( InputQuery &inputQuery )
+void DeepSoIEngine::extractSolutionFromGurobi( InputQuery &inputQuery )
 {
     ASSERT( _gurobi != nullptr );
     Map<String, double> assignment;
@@ -2815,17 +2800,17 @@ void DeepSoISolver::extractSolutionFromGurobi( InputQuery &inputQuery )
     }
 }
 
-bool DeepSoISolver::preprocessingEnabled() const
+bool DeepSoIEngine::preprocessingEnabled() const
 {
     return _preprocessingEnabled;
 }
 
-const Preprocessor *DeepSoISolver::getPreprocessor()
+const Preprocessor *DeepSoIEngine::getPreprocessor()
 {
     return &_preprocessor;
 }
 
-bool DeepSoISolver::performDeepSoILocalSearch()
+bool DeepSoIEngine::performDeepSoILocalSearch()
 {
     ENGINE_LOG( "Performing local search..." );
     struct timespec start = TimeUtils::sampleMicro();
@@ -2942,7 +2927,7 @@ bool DeepSoISolver::performDeepSoILocalSearch()
     return false;
 }
 
-void DeepSoISolver::minimizeHeuristicCost( const LinearExpression &heuristicCost )
+void DeepSoIEngine::minimizeHeuristicCost( const LinearExpression &heuristicCost )
 {
     ENGINE_LOG( "Optimizing w.r.t. the current heuristic cost..." );
 
@@ -2991,14 +2976,14 @@ void DeepSoISolver::minimizeHeuristicCost( const LinearExpression &heuristicCost
     ENGINE_LOG( "Optimizing w.r.t. the current heuristic cost - done\n" );
 }
 
-double DeepSoISolver::computeHeuristicCost( const LinearExpression &heuristicCost )
+double DeepSoIEngine::computeHeuristicCost( const LinearExpression &heuristicCost )
 {
     return ( _costFunctionManager->
              computeGivenCostFunctionDirectly( heuristicCost._addends ) +
              heuristicCost._constant );
 }
 
-void DeepSoISolver::updatePseudoImpactWithSoICosts( double costOfLastAcceptedPhasePattern,
+void DeepSoIEngine::updatePseudoImpactWithSoICosts( double costOfLastAcceptedPhasePattern,
                                             double costOfProposedPhasePattern )
 {
     ASSERT( _soiManager );
@@ -3019,7 +3004,7 @@ void DeepSoISolver::updatePseudoImpactWithSoICosts( double costOfLastAcceptedPha
         _smtCore.updatePLConstraintScore( constraint, score );
 }
 
-void DeepSoISolver::bumpUpPseudoImpactOfPLConstraintsNotInSoI()
+void DeepSoIEngine::bumpUpPseudoImpactOfPLConstraintsNotInSoI()
 {
     ASSERT( _soiManager );
     for ( const auto &plConstraint : _plConstraints )
@@ -3031,7 +3016,7 @@ void DeepSoISolver::bumpUpPseudoImpactOfPLConstraintsNotInSoI()
     }
 }
 
-void DeepSoISolver::informLPSolverOfBounds()
+void DeepSoIEngine::informLPSolverOfBounds()
 {
     if ( _lpSolverType == LPSolverType::GUROBI )
     {
@@ -3055,7 +3040,7 @@ void DeepSoISolver::informLPSolverOfBounds()
     }
 }
 
-bool DeepSoISolver::minimizeCostWithGurobi( const LinearExpression &costFunction )
+bool DeepSoIEngine::minimizeCostWithGurobi( const LinearExpression &costFunction )
 {
     ASSERT( _gurobi && _milpEncoder );
 
@@ -3084,7 +3069,7 @@ bool DeepSoISolver::minimizeCostWithGurobi( const LinearExpression &costFunction
     return false;
 }
 
-void DeepSoISolver::checkGurobiBoundConsistency() const
+void DeepSoIEngine::checkGurobiBoundConsistency() const
 {
     if ( _gurobi && _milpEncoder )
     {
@@ -3116,12 +3101,12 @@ void DeepSoISolver::checkGurobiBoundConsistency() const
     }
 }
 
-bool DeepSoISolver::consistentBounds() const
+bool DeepSoIEngine::consistentBounds() const
 {
     return _boundManager.consistentBounds();
 }
 
-InputQuery DeepSoISolver::buildQueryFromCurrentState() const {
+InputQuery DeepSoIEngine::buildQueryFromCurrentState() const {
     InputQuery query = *_preprocessedQuery;
     for ( unsigned i = 0; i < query.getNumberOfVariables(); ++i ) {
         query.setLowerBound( i, _tableau->getLowerBound( i ) );

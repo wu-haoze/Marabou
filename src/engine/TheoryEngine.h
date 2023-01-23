@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file TheorySolver.h
+/*! \file TheoryEngine.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Andrew Wu
@@ -13,8 +13,8 @@
 
 **/
 
-#ifndef __TheorySolver_h__
-#define __TheorySolver_h__
+#ifndef __TheoryEngine_h__
+#define __TheoryEngine_h__
 
 #include "DivideStrategy.h"
 #include "SnCDivideStrategy.h"
@@ -33,10 +33,10 @@ class SmtState;
 class String;
 class PiecewiseLinearConstraint;
 
-class TheorySolver
+class TheoryEngine
 {
 public:
-    virtual ~TheorySolver() {};
+    virtual ~TheoryEngine() {};
 
     enum ExitCode {
         UNSAT = 0,
@@ -123,4 +123,4 @@ public:
     virtual bool consistentBounds() const = 0;
 };
 
-#endif // __TheorySolver_h__
+#endif // __TheoryEngine_h__
