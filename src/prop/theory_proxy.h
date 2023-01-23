@@ -23,7 +23,7 @@
 #include "sat_solver_types.h"
 #include "effort.h"
 
-class Engine;
+#include "TheorySolver.h"
 
 using namespace CVC4::context;
 
@@ -40,7 +40,7 @@ class TheoryProxy
   //using NodeSet = CDHashSet<Node>;
 
  public:
-  TheoryProxy(Engine* theoryEngine);
+  TheoryProxy(TheorySolver *theorySolver);
 
   ~TheoryProxy();
   void theoryCheck(Effort effort);
@@ -90,7 +90,7 @@ class TheoryProxy
 
    private:
   /** The theory engine we are using. */
-  Engine* d_theoryEngine;
+  TheorySolver *d_theoryEngine;
 
   /** Queue of asserted facts */
   //CDQueue<TNode> d_queue;

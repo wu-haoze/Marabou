@@ -1,8 +1,8 @@
 /*********************                                                        */
-/*! \file Engine.h
+/*! \file DeepSoISolver
  ** \verbatim
  ** Top contributors (to current version):
- **   Guy Katz, Duligur Ibeling, Andrew Wu
+ **   Andrew Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -13,8 +13,10 @@
 
  **/
 
-#ifndef __Engine_h__
-#define __Engine_h__
+#ifndef __DeepSoISolver_h__
+#define __DeepSoISolver_h__
+
+#include "TheorySolver.h"
 
 #include "AutoCostFunctionManager.h"
 #include "AutoProjectedSteepestEdge.h"
@@ -27,7 +29,6 @@
 #include "DivideStrategy.h"
 #include "GlobalConfiguration.h"
 #include "GurobiWrapper.h"
-#include "IEngine.h"
 #include "InputQuery.h"
 #include "LinearExpression.h"
 #include "LPSolverType.h"
@@ -43,8 +44,6 @@
 #include "SumOfInfeasibilitiesManager.h"
 #include "SymbolicBoundTighteningType.h"
 
-#include "TheorySolver.h"
-
 #include <context/context.h>
 #include <atomic>
 
@@ -52,9 +51,9 @@
 #undef ERROR
 #endif
 
-#define ENGINE_LOG(x, ...) LOG(GlobalConfiguration::ENGINE_LOGGING, "Engine: %s\n", x)
+#define DEEPSOISOLVER_LOG(x, ...) LOG(GlobalConfiguration::DEEPSOISOLVER_LOGGING, "DeepSoISolver: %s\n", x)
 
-class EngineState;
+class DeepSoISolverState;
 class InputQuery;
 class PiecewiseLinearConstraint;
 class String;
@@ -67,15 +66,15 @@ namespace prop {
 
 using CVC4::context::Context;
 
-class Engine : public IEngine, public SignalHandler::Signalable
+class DeepSoISolver : public TheorySolver
 {
 public:
     enum {
           MICROSECONDS_TO_SECONDS = 1000000,
     };
 
-    Engine();
-    ~Engine();
+    DeepSoISolver();
+    ~DeepSoISolver();
 
     /*
       Attempt to find a feasible solution for the input within a time limit
@@ -113,8 +112,8 @@ public:
     /*
       Methods for storing and restoring the state of the engine.
     */
-    void storeState( EngineState &state, TableauStateStorageLevel level ) const;
-    void restoreState( const EngineState &state );
+    void storeState( DeepSoISolverState &state, TableauStateStorageLevel level ) const;
+    void restoreState( const DeepSoISolverState &state );
     void setNumPlConstraintsDisabledByValidSplits( unsigned numConstraints );
 
     /*
@@ -137,7 +136,7 @@ public:
     /*
       Get the exit code
     */
-    Engine::ExitCode getExitCode() const;
+    DeepSoISolver::ExitCode getExitCode() const;
 
     /*
       Get the quitRequested flag
@@ -177,7 +176,7 @@ public:
     void clearViolatedPLConstraints();
 
     /*
-      Set the Engine's level of verbosity
+      Set the DeepSoISolver's level of verbosity
     */
     void setVerbosity( unsigned verbosity );
 
@@ -274,7 +273,9 @@ private:
     */
     Statistics _statistics;
 
-    TheorySolver *_theorySolver;
+    /*
+      Sat Solver
+    */
     prop::MinisatSatSolver *_satSolver;
     prop::TheoryProxy *_theoryProxy;
 
@@ -452,7 +453,7 @@ private:
     /*
       Stored options
       Do this since Options object is not thread safe and
-      there is a chance that multiple Engine object be accessing the Options object.
+      there is a chance that multiple DeepSoISolver object be accessing the Options object.
     */
     unsigned _simulationSize;
     bool _isGurobyEnabled;
@@ -588,7 +589,7 @@ private:
       Store the original engine state within the precision restorer.
       Restore the tableau from the original version.
     */
-    void storeInitialEngineState();
+    void storeInitialDeepSoISolverState();
     void performPrecisionRestoration( PrecisionRestorer::RestoreBasics restoreBasics );
     bool basisRestorationNeeded() const;
 
@@ -752,4 +753,4 @@ private:
     void checkGurobiBoundConsistency() const;
 };
 
-#endif // __Engine_h__
+#endif // __DeepSoISolver_h__
