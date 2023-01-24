@@ -23,6 +23,7 @@
 #include "Preprocessor.h"
 #include "MarabouError.h"
 
+namespace marabou {
 int main()
 {
     try
@@ -118,6 +119,8 @@ int main()
     }
 
     return 0;
+}
+
 }
 
 //

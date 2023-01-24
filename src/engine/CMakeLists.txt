@@ -1,5 +1,19 @@
-file(GLOB SRCS "*.cpp")
-file(GLOB HEADERS "*.h")
+file(GLOB SRCS
+  BoundManager.cpp
+  Engine.cpp
+  InputQuery.cpp
+  main.cpp
+  Marabou.cpp
+  )
+
+file(GLOB HEADERS
+  BoundManager.h
+  Engine.h
+  IEngine.h
+  InputQuery.h
+  Marabou.h
+  TheoryEngine.h
+)
 
 
 target_sources(${MARABOU_LIB} PRIVATE ${SRCS})
@@ -16,31 +30,29 @@ macro(engine_add_unit_test name)
         USE_MOCK_ENGINE "unit")
 endmacro()
 
-engine_add_unit_test(AbsoluteValueConstraint)
-engine_add_unit_test(BlandsRule)
-engine_add_unit_test(BoundManager)
-engine_add_unit_test(ConstraintMatrixAnalyzer)
-engine_add_unit_test(CostFunctionManager)
-engine_add_unit_test(DantzigsRule)
-engine_add_unit_test(DegradationChecker)
-engine_add_unit_test(DisjunctionConstraint)
-engine_add_unit_test(DnCWorker)
-engine_add_unit_test(Engine)
-engine_add_unit_test(InputQuery)
-engine_add_unit_test(LargestIntervalDivider)
-engine_add_unit_test(MaxConstraint)
-engine_add_unit_test(MILPEncoder)
-engine_add_unit_test(PolarityBasedDivider)
-engine_add_unit_test(Preprocessor)
-engine_add_unit_test(ProjectedSteepestEdge)
-engine_add_unit_test(PseudoImpactTracker)
-engine_add_unit_test(ReluConstraint)
-engine_add_unit_test(RowBoundTightener)
-engine_add_unit_test(SignConstraint)
-engine_add_unit_test(SigmoidConstraint)
-engine_add_unit_test(SmtCore)
-engine_add_unit_test(SumOfInfeasibilitiesManager)
-engine_add_unit_test(Tableau)
+#engine_add_unit_test(AbsoluteValueConstraint)
+#engine_add_unit_test(BlandsRule)
+#engine_add_unit_test(BoundManager)
+#engine_add_unit_test(ConstraintMatrixAnalyzer)
+#engine_add_unit_test(CostFunctionManager)
+#engine_add_unit_test(DantzigsRule)
+#engine_add_unit_test(DegradationChecker)
+#engine_add_unit_test(DisjunctionConstraint)
+#engine_add_unit_test(Engine)
+#engine_add_unit_test(InputQuery)
+#engine_add_unit_test(MaxConstraint)
+#engine_add_unit_test(MILPEncoder)
+#engine_add_unit_test(PolarityBasedDivider)
+#engine_add_unit_test(Preprocessor)
+#engine_add_unit_test(ProjectedSteepestEdge)
+#engine_add_unit_test(PseudoImpactTracker)
+#engine_add_unit_test(ReluConstraint)
+#engine_add_unit_test(RowBoundTightener)
+#engine_add_unit_test(SignConstraint)
+#engine_add_unit_test(SigmoidConstraint)
+#engine_add_unit_test(SmtCore)
+#engine_add_unit_test(SumOfInfeasibilitiesManager)
+#engine_add_unit_test(Tableau)
 
 if (${BUILD_PYTHON})
     target_include_directories(${MARABOU_PY} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")

@@ -13,13 +13,14 @@
 
  **/
 
-#ifndef __Marabou_h__
-#define __Marabou_h__
+#pragma once
 
 #include "AcasParser.h"
 #include "OnnxParser.h"
 #include "Engine.h"
 #include "InputQuery.h"
+
+namespace marabou {
 
 class Marabou
 {
@@ -78,12 +79,4 @@ private:
     Engine _engine;
 };
 
-#endif // __Marabou_h__
-
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
+} // namespace marabou

@@ -17,7 +17,7 @@
 #define __PiecewiseLinearCaseSplit_h__
 
 #include "Equation.h"
-#include "IEngine.h"
+#include "TheoryEngine.h"
 #include "MString.h"
 #include "Pair.h"
 #include "Tightening.h"

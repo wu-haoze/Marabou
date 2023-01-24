@@ -13,8 +13,7 @@
 
  **/
 
-#ifndef __DeepSoIEngine_h__
-#define __DeepSoIEngine_h__
+#pragma once
 
 #include "TheoryEngine.h"
 
@@ -65,6 +64,8 @@ namespace prop {
 
 
 using CVC4::context::Context;
+
+namespace marabou {
 
 class DeepSoIEngine : public TheoryEngine, public SignalHandler::Signalable
 {
@@ -136,7 +137,7 @@ public:
     /*
       Get the exit code
     */
-    DeepSoIEngine::ExitCode getExitCode() const;
+    ExitCode getExitCode() const;
 
     /*
       Get the quitRequested flag
@@ -747,4 +748,4 @@ private:
     void checkGurobiBoundConsistency() const;
 };
 
-#endif // __DeepSoIEngine_h__
+}

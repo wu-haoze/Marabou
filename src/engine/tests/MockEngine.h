@@ -16,7 +16,7 @@
 #ifndef __MockEngine_h__
 #define __MockEngine_h__
 
-#include "IEngine.h"
+#include "TheoryEngine.h"
 #include "List.h"
 #include "PiecewiseLinearCaseSplit.h"
 #include "PiecewiseLinearConstraint.h"
@@ -24,7 +24,7 @@
 
 class String;
 
-class MockEngine : public IEngine
+class MockEngine : public TheoryEngine
 {
 public:
     MockEngine()
@@ -112,12 +112,12 @@ public:
     }
 
     unsigned _timeToSolve;
-    IEngine::ExitCode _exitCode;
+    TheoryEngine::ExitCode _exitCode;
     bool solve( unsigned timeoutInSeconds )
     {
         if ( timeoutInSeconds >= _timeToSolve )
-            _exitCode = IEngine::TIMEOUT;
-        return _exitCode == IEngine::SAT;
+            _exitCode = TheoryEngine::TIMEOUT;
+        return _exitCode == TheoryEngine::SAT;
     }
 
     void setTimeToSolve( unsigned timeToSolve )
@@ -125,12 +125,12 @@ public:
         _timeToSolve = timeToSolve;
     }
 
-    void setExitCode( IEngine::ExitCode exitCode )
+    void setExitCode( TheoryEngine::ExitCode exitCode )
     {
         _exitCode = exitCode;
     }
 
-    IEngine::ExitCode getExitCode() const
+    TheoryEngine::ExitCode getExitCode() const
     {
         return _exitCode;
     }

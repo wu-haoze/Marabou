@@ -13,10 +13,10 @@
 
 **/
 
-#ifndef __TheoryEngine_h__
-#define __TheoryEngine_h__
+#pragma once
 
 #include "DivideStrategy.h"
+#include "ExitCode.h"
 #include "SnCDivideStrategy.h"
 #include "TableauStateStorageLevel.h"
 #include "List.h"
@@ -33,21 +33,11 @@ class SmtState;
 class String;
 class PiecewiseLinearConstraint;
 
-class TheoryEngine
-{
+namespace marabou {
+
+class TheoryEngine {
 public:
     virtual ~TheoryEngine() {};
-
-    enum ExitCode {
-        UNSAT = 0,
-        SAT = 1,
-        ERROR = 2,
-        UNKNOWN = 3,
-        TIMEOUT = 4,
-        QUIT_REQUESTED = 5,
-
-        NOT_DONE = 999,
-    };
 
     /*
       Add equations and apply tightenings from a PL case split.
@@ -123,4 +113,4 @@ public:
     virtual bool consistentBounds() const = 0;
 };
 
-#endif // __TheoryEngine_h__
+} // namespace marabou

@@ -21,13 +21,13 @@
 #include "SmtCore.h"
 #include "TableauStateStorageLevel.h"
 
-void PrecisionRestorer::storeInitialEngineState( const IEngine &engine )
+void PrecisionRestorer::storeInitialEngineState( const TheoryEngine &engine )
 {
     engine.storeState( _initialEngineState,
                        TableauStateStorageLevel::STORE_ENTIRE_TABLEAU_STATE );
 }
 
-void PrecisionRestorer::restorePrecision( IEngine &engine,
+void PrecisionRestorer::restorePrecision( TheoryEngine &engine,
                                           ITableau &tableau,
                                           SmtCore &smtCore,
                                           RestoreBasics restoreBasics )

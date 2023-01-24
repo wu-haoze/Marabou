@@ -20,6 +20,8 @@
 #include "MpsParser.h"
 #include <cstdio>
 
+namespace marabou {
+
 int main( int argc, char *argv[] )
 {
     if ( argc != 2 )
@@ -64,6 +66,7 @@ int main( int argc, char *argv[] )
     return 0;
 }
 
+}
 //
 // Local Variables:
 // compile-command: "make -C ../../.. "

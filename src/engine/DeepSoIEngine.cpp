@@ -39,6 +39,8 @@
 
 using namespace prop;
 
+namespace marabou {
+
 DeepSoIEngine::DeepSoIEngine()
     : _context()
     , _boundManager( _context )
@@ -3113,4 +3115,6 @@ InputQuery DeepSoIEngine::buildQueryFromCurrentState() const {
         query.setUpperBound( i, _tableau->getUpperBound( i ) );
     }
     return query;
+}
+
 }

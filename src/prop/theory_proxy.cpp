@@ -21,6 +21,8 @@
 
 #include "TheoryEngine.h"
 
+using namespace marabou;
+
 namespace prop {
 
 TheoryProxy::TheoryProxy( TheoryEngine *theoryEngine )

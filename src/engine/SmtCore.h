@@ -30,16 +30,19 @@
 
 #define SMT_LOG( x, ... ) LOG( GlobalConfiguration::SMT_CORE_LOGGING, "SmtCore: %s\n", x )
 
-class EngineState;
-class IEngine;
-class String;
-
 using CVC4::context::Context;
+
+class String;
+class EngineState;
+
+namespace marabou {
+
+class TheoryEngine;
 
 class SmtCore
 {
 public:
-    SmtCore( IEngine *engine );
+    SmtCore( TheoryEngine *engine );
     ~SmtCore();
 
     /*
@@ -200,7 +203,7 @@ private:
     /*
       The engine.
     */
-    IEngine *_engine;
+    TheoryEngine *_engine;
 
     /*
       Context for synchronizing the search.
@@ -257,12 +260,6 @@ private:
     unsigned _numRejectedPhasePatternProposal;
 };
 
-#endif // __SmtCore_h__
+} // namespace marabou
 
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
+#endif // __SmtCore_h__

@@ -23,13 +23,14 @@
 #include "sat_solver_types.h"
 #include "effort.h"
 
-#include "TheoryEngine.h"
-
 using namespace CVC4::context;
+
+namespace marabou {
+class TheoryEngine;
+}
 
 namespace prop {
 
-  class TheoryEngine;
   class TNode;
   class Node;
 /**
@@ -40,7 +41,7 @@ class TheoryProxy
   //using NodeSet = CDHashSet<Node>;
 
  public:
-  TheoryProxy(TheoryEngine *theoryEngine);
+  TheoryProxy(marabou::TheoryEngine *theoryEngine);
 
   ~TheoryProxy();
   void theoryCheck(Effort effort);
@@ -90,7 +91,7 @@ class TheoryProxy
 
    private:
   /** The theory engine we are using. */
-  TheoryEngine *d_theoryEngine;
+  marabou::TheoryEngine *d_theoryEngine;
 
   /** Queue of asserted facts */
   //CDQueue<TNode> d_queue;

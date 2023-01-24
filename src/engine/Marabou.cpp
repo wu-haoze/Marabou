@@ -16,6 +16,7 @@
 
 #include "AcasParser.h"
 #include "AutoFile.h"
+#include "ExitCode.h"
 #include "GlobalConfiguration.h"
 #include "File.h"
 #include "MStringf.h"
@@ -25,10 +26,13 @@
 #include "PropertyParser.h"
 #include "MarabouError.h"
 #include "QueryLoader.h"
+#include "TimeUtils.h"
 
 #ifdef _WIN32
 #undef ERROR
 #endif
+
+namespace marabou {
 
 Marabou::Marabou()
     : _acasParser( NULL )
@@ -196,24 +200,23 @@ void Marabou::exportAssignment() const
 
 void Marabou::solveQuery()
 {
-    if ( _engine.processInputQuery( _inputQuery ) )
-        _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+    _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
 
-    if ( _engine.getExitCode() == Engine::SAT )
-        _engine.extractSolution( _inputQuery );
+    //if ( _engine.getExitCode() == SAT )
+    //    _engine.extractSolution( _inputQuery );
 }
 
 void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 {
-    Engine::ExitCode result = _engine.getExitCode();
+    ExitCode result = _engine.getExitCode();
     String resultString;
 
-    if ( result == Engine::UNSAT )
+    if ( result == UNSAT )
     {
         resultString = "unsat";
         printf( "unsat\n" );
     }
-    else if ( result == Engine::SAT )
+    else if ( result == SAT )
     {
         resultString = "sat";
         printf( "sat\n" );
@@ -251,12 +254,12 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
             printf( "\n" );
         }
     }
-    else if ( result == Engine::TIMEOUT )
+    else if ( result == TIMEOUT )
     {
         resultString = "TIMEOUT";
         printf( "Timeout\n" );
     }
-    else if ( result == Engine::ERROR )
+    else if ( result == ERROR )
     {
         resultString = "ERROR";
         printf( "Error\n" );
@@ -294,10 +297,4 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
     }
 }
 
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//
+} // namespace marabou

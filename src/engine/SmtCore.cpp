@@ -18,7 +18,7 @@
 #include "EngineState.h"
 #include "FloatUtils.h"
 #include "GlobalConfiguration.h"
-#include "IEngine.h"
+#include "TheoryEngine.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "Options.h"
@@ -26,7 +26,7 @@
 #include "ReluConstraint.h"
 #include "SmtCore.h"
 
-SmtCore::SmtCore( IEngine *engine )
+SmtCore::SmtCore( TheoryEngine *engine )
     : _statistics( NULL )
     , _engine( engine )
     , _context( _engine->getContext() )

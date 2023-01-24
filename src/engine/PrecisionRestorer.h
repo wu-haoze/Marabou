@@ -18,7 +18,7 @@
 
 #include "EngineState.h"
 
-class SmtCore;
+using namespace marabou;
 
 class PrecisionRestorer
 {
@@ -28,9 +28,9 @@ public:
         DO_NOT_RESTORE_BASICS = 1,
     };
 
-    void storeInitialEngineState( const IEngine &engine );
+    void storeInitialEngineState( const TheoryEngine &engine );
 
-    void restorePrecision( IEngine &engine,
+    void restorePrecision( TheoryEngine &engine,
                            ITableau &tableau,
                            SmtCore &smtCore,
                            RestoreBasics restoreBasics );
