@@ -25,7 +25,7 @@
 #include "BoundManager.h"
 #include "DantzigsRule.h"
 #include "DegradationChecker.h"
-#include "DivideStrategy.h"
+#include "ExitCode.h"
 #include "GlobalConfiguration.h"
 #include "GurobiWrapper.h"
 #include "InputQuery.h"
@@ -38,7 +38,6 @@
 #include "Preprocessor.h"
 #include "SignalHandler.h"
 #include "SmtCore.h"
-#include "SnCDivideStrategy.h"
 #include "Statistics.h"
 #include "SumOfInfeasibilitiesManager.h"
 #include "SymbolicBoundTighteningType.h"
@@ -191,17 +190,6 @@ public:
       Store the current stack of the smtCore into smtState
     */
     void storeSmtState( SmtState &smtState );
-
-    /*
-      Pick the piecewise linear constraint for splitting
-    */
-    PiecewiseLinearConstraint *pickSplitPLConstraint( DivideStrategy strategy );
-
-    /*
-      Call-back from QueryDividers
-      Pick the piecewise linear constraint for splitting
-    */
-    PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy strategy );
 
     /*
       PSA: The following two methods are for DnC only and should be used very
@@ -667,22 +655,6 @@ private:
       Decide which branch heuristics to use.
     */
     void decideBranchingHeuristics();
-
-    /*
-      Among the earliest K ReLUs, pick the one with Polarity closest to 0.
-      K is equal to GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD
-    */
-    PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnPolarity();
-
-    /*
-      Pick the first unfixed ReLU in the topological order
-    */
-    PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnTopology();
-
-    /*
-      Pick the input variable with the largest interval
-    */
-    PiecewiseLinearConstraint *pickSplitPLConstraintBasedOnIntervalWidth();
 
     /*
       Solve the input query with a MILP solver (Gurobi)

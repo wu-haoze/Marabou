@@ -7,11 +7,11 @@ target_include_directories(${MARABOU_LIB} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_sources(${MARABOU_TEST_LIB} PRIVATE ${SRCS})
 target_include_directories(${MARABOU_TEST_LIB} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
-set (CONSTRAINT_TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
-macro(constraint_add_unit_test name)
+set (CONSTRAINTS_TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+macro(constraints_add_unit_test name)
     set(USE_MOCK_COMMON FALSE)
     set(USE_MOCK_ENGINE FALSE)
-    marabou_add_test(${CONSTRAINT_TESTS_DIR}/Test_${name} constraint USE_MOCK_COMMON
+    marabou_add_test(${CONSTRAINT_TESTS_DIR}/Test_${name} constraints USE_MOCK_COMMON
         USE_MOCK_ENGINE "unit")
 endmacro()
 

@@ -1,6 +1,9 @@
 file(GLOB SRCS
   BoundManager.cpp
+  DeepSoIEngine.cpp
   Engine.cpp
+  Equation.cpp
+  PiecewiseLinearCaseSplit.cpp
   InputQuery.cpp
   main.cpp
   Marabou.cpp
@@ -8,7 +11,10 @@ file(GLOB SRCS
 
 file(GLOB HEADERS
   BoundManager.h
+  DeepSoIEngine.h
   Engine.h
+  Equation.h
+  PiecewiseLinearCaseSplit.h
   IEngine.h
   InputQuery.h
   Marabou.h

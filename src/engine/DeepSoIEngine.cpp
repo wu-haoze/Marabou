@@ -56,7 +56,7 @@ DeepSoIEngine::DeepSoIEngine()
     , _basisRestorationPerformed( DeepSoIEngine::NO_RESTORATION_PERFORMED )
     , _costFunctionManager( _tableau )
     , _quitRequested( false )
-    , _exitCode( DeepSoIEngine::NOT_DONE )
+    , _exitCode( ExitCode::NOT_DONE )
     , _numVisitedStatesAtPreviousRestoration( 0 )
     , _networkLevelReasoner( NULL )
     , _verbosity( Options::get()->getInt( Options::VERBOSITY ) )
@@ -215,7 +215,7 @@ bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
                 _statistics.print();
             }
 
-            _exitCode = DeepSoIEngine::TIMEOUT;
+            _exitCode = ExitCode::TIMEOUT;
             _statistics.timeout();
             return false;
         }
@@ -229,7 +229,7 @@ bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
                 _statistics.print();
             }
 
-            _exitCode = DeepSoIEngine::QUIT_REQUESTED;
+            _exitCode = ExitCode::QUIT_REQUESTED;
             return false;
         }
 
@@ -300,7 +300,7 @@ bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
                         printf( "\nDeepSoIEngine::solve: sat assignment found\n" );
                         _statistics.print();
                     }
-                    _exitCode = DeepSoIEngine::SAT;
+                    _exitCode = ExitCode::SAT;
 
                     return true;
                 }
@@ -327,7 +327,7 @@ bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
             if ( !handleMalformedBasisException() )
             {
                 ASSERT( _lpSolverType == LPSolverType::NATIVE );
-                _exitCode = DeepSoIEngine::ERROR;
+                _exitCode = ExitCode::ERROR;
                 exportInputQueryWithError( "Cannot restore tableau" );
                 struct timespec mainLoopEnd = TimeUtils::sampleMicro();
                 _statistics.incLongAttribute
@@ -354,7 +354,7 @@ bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
                     printf( "\nDeepSoIEngine::solve: unsat query\n" );
                     _statistics.print();
                 }
-                _exitCode = DeepSoIEngine::UNSAT;
+                _exitCode = ExitCode::UNSAT;
                 return false;
             }
             else
@@ -372,7 +372,7 @@ bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
             String message =
                 Stringf( "Caught a MarabouError. Code: %u. Message: %s ",
                          e.getCode(), e.getUserMessage() );
-            _exitCode = DeepSoIEngine::ERROR;
+            _exitCode = ExitCode::ERROR;
             exportInputQueryWithError( message );
             struct timespec mainLoopEnd = TimeUtils::sampleMicro();
             _statistics.incLongAttribute
@@ -383,7 +383,7 @@ bool DeepSoIEngine::solve( unsigned timeoutInSeconds )
         }
         catch ( ... )
         {
-            _exitCode = DeepSoIEngine::ERROR;
+            _exitCode = ExitCode::ERROR;
             exportInputQueryWithError( "Unknown error" );
             struct timespec mainLoopEnd = TimeUtils::sampleMicro();
             _statistics.incLongAttribute
@@ -915,7 +915,7 @@ void DeepSoIEngine::invokePreprocessor( const InputQuery &inputQuery, bool prepr
     unsigned infiniteBounds = _preprocessedQuery->countInfiniteBounds();
     if ( infiniteBounds != 0 )
     {
-        _exitCode = DeepSoIEngine::ERROR;
+        _exitCode = ExitCode::ERROR;
         throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
                              Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
     }
@@ -985,7 +985,7 @@ double *DeepSoIEngine::createConstraintMatrix()
     {
         if ( equation._type != Equation::EQ )
         {
-            _exitCode = DeepSoIEngine::ERROR;
+            _exitCode = ExitCode::ERROR;
             throw MarabouError( MarabouError::NON_EQUALITY_INPUT_EQUATION_DISCOVERED );
         }
 
@@ -1418,7 +1418,7 @@ bool DeepSoIEngine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         _statistics.setLongAttribute( Statistics::PREPROCESSING_TIME_MICRO,
                                       TimeUtils::timePassed( start, end ) );
 
-        _exitCode = DeepSoIEngine::UNSAT;
+        _exitCode = ExitCode::UNSAT;
         return false;
     }
 
@@ -2170,7 +2170,7 @@ void DeepSoIEngine::quitSignal()
     _quitRequested = true;
 }
 
-DeepSoIEngine::ExitCode DeepSoIEngine::getExitCode() const
+ExitCode DeepSoIEngine::getExitCode() const
 {
     return _exitCode;
 }
@@ -2366,7 +2366,7 @@ void DeepSoIEngine::resetSmtCore()
 
 void DeepSoIEngine::resetExitCode()
 {
-    _exitCode = DeepSoIEngine::NOT_DONE;
+    _exitCode = ExitCode::NOT_DONE;
 }
 
 void DeepSoIEngine::resetBoundTighteners()
@@ -2497,148 +2497,6 @@ void DeepSoIEngine::decideBranchingHeuristics()
     _smtCore.initializeScoreTrackerIfNeeded( _plConstraints );
 }
 
-PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintBasedOnPolarity()
-{
-    ENGINE_LOG( Stringf( "Using Polarity-based heuristics..." ).ascii() );
-
-    if ( !_networkLevelReasoner )
-        throw MarabouError( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
-
-    List<PiecewiseLinearConstraint *> constraints =
-        _networkLevelReasoner->getConstraintsInTopologicalOrder();
-
-    Map<double, PiecewiseLinearConstraint *> scoreToConstraint;
-    for ( auto &plConstraint : constraints )
-    {
-        if ( plConstraint->supportPolarity() &&
-             plConstraint->isActive() && !plConstraint->phaseFixed() )
-        {
-            plConstraint->updateScoreBasedOnPolarity();
-            scoreToConstraint[plConstraint->getScore()] = plConstraint;
-            if ( scoreToConstraint.size() >=
-                 GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD )
-                break;
-        }
-    }
-    if ( scoreToConstraint.size() > 0 )
-    {
-        ENGINE_LOG( Stringf( "Score of the picked ReLU: %f",
-                             ( *scoreToConstraint.begin() ).first ).ascii() );
-        return (*scoreToConstraint.begin()).second;
-    }
-    else
-        return NULL;
-}
-
-PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintBasedOnTopology()
-{
-    // We push the first unfixed ReLU in the topology order to the _candidatePlConstraints
-    ENGINE_LOG( Stringf( "Using EarliestReLU heuristics..." ).ascii() );
-
-    if ( !_networkLevelReasoner )
-        throw MarabouError( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
-
-    List<PiecewiseLinearConstraint *> constraints =
-        _networkLevelReasoner->getConstraintsInTopologicalOrder();
-
-    for ( auto &plConstraint : constraints )
-    {
-        if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
-            return plConstraint;
-    }
-    return NULL;
-}
-
-PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintBasedOnIntervalWidth()
-{
-    // We push the first unfixed ReLU in the topology order to the _candidatePlConstraints
-    ENGINE_LOG( Stringf( "Using LargestInterval heuristics..." ).ascii() );
-
-    unsigned inputVariableWithLargestInterval = 0;
-    double largestIntervalSoFar = 0;
-    for ( const auto &variable : _preprocessedQuery->getInputVariables() )
-    {
-        double interval = _tableau->getUpperBound( variable ) -
-            _tableau->getLowerBound( variable );
-        if ( interval > largestIntervalSoFar )
-        {
-            inputVariableWithLargestInterval = variable;
-            largestIntervalSoFar = interval;
-        }
-    }
-
-    if ( largestIntervalSoFar == 0 )
-        return NULL;
-    else
-    {
-        double mid = ( _tableau->getLowerBound( inputVariableWithLargestInterval )
-                       + _tableau->getUpperBound( inputVariableWithLargestInterval )
-                       ) / 2;
-        PiecewiseLinearCaseSplit s1;
-        s1.storeBoundTightening( Tightening( inputVariableWithLargestInterval,
-                                             mid, Tightening::UB ) );
-        PiecewiseLinearCaseSplit s2;
-        s2.storeBoundTightening( Tightening( inputVariableWithLargestInterval,
-                                             mid, Tightening::LB ) );
-
-        List<PiecewiseLinearCaseSplit> splits;
-        splits.append( s1 );
-        splits.append( s2 );
-        _disjunctionForSplitting = std::unique_ptr<DisjunctionConstraint>
-            ( new DisjunctionConstraint( splits ) );
-        return _disjunctionForSplitting.get();
-    }
-}
-
-PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraint( DivideStrategy
-                                                          strategy )
-{
-    ENGINE_LOG( Stringf( "Picking a split PLConstraint..." ).ascii() );
-
-    PiecewiseLinearConstraint *candidatePLConstraint = NULL;
-    if ( strategy == DivideStrategy::PseudoImpact )
-    {
-        if ( _smtCore.getStackDepth() > 3 )
-            candidatePLConstraint = _smtCore.getConstraintsWithHighestScore();
-        else if ( _preprocessedQuery->getInputVariables().size() <
-                  GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
-            candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
-        else
-            candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
-    }
-    else if ( strategy == DivideStrategy::Polarity )
-        candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
-    else if ( strategy == DivideStrategy::EarliestReLU )
-        candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
-    else if ( strategy == DivideStrategy::LargestInterval &&
-              ( _smtCore.getStackDepth() %
-                GlobalConfiguration::INTERVAL_SPLITTING_FREQUENCY == 0 )
-              )
-    {
-        // Conduct interval splitting periodically.
-        candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
-    }
-    ENGINE_LOG( Stringf( ( candidatePLConstraint ?
-                           "Picked..." :
-                           "Unable to pick using the current strategy..." ) ).ascii() );
-    return candidatePLConstraint;
-}
-
-PiecewiseLinearConstraint *DeepSoIEngine::pickSplitPLConstraintSnC( SnCDivideStrategy strategy )
-{
-    PiecewiseLinearConstraint *candidatePLConstraint = NULL;
-    if ( strategy == SnCDivideStrategy::Polarity )
-        candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
-    else if ( strategy == SnCDivideStrategy::EarliestReLU )
-        candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
-
-    ENGINE_LOG( Stringf( "Done updating scores..." ).ascii() );
-    ENGINE_LOG( Stringf( ( candidatePLConstraint ?
-                           "Picked..." :
-                           "Unable to pick using the current strategy..." ) ).ascii() );
-    return candidatePLConstraint;
-}
-
 bool DeepSoIEngine::restoreSmtState( SmtState & smtState )
 {
     try
@@ -2687,7 +2545,7 @@ bool DeepSoIEngine::restoreSmtState( SmtState & smtState )
                 printf( "\nDeepSoIEngine::solve: UNSAT query\n" );
                 _statistics.print();
             }
-            _exitCode = DeepSoIEngine::UNSAT;
+            _exitCode = ExitCode::UNSAT;
             for ( PiecewiseLinearConstraint *p : _plConstraints )
                 p->setActiveConstraint( true );
             return false;
@@ -2719,7 +2577,7 @@ bool DeepSoIEngine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     }
     catch ( const InfeasibleQueryException & )
     {
-        _exitCode = DeepSoIEngine::UNSAT;
+        _exitCode = ExitCode::UNSAT;
         return false;
     }
 
@@ -2748,13 +2606,13 @@ bool DeepSoIEngine::solveWithMILPEncoding( unsigned timeoutInSeconds )
             // _exitCode = IDeepSoIEngine::UNKNOWN;
             // return false;
         }
-        _exitCode = TheoryEngine::SAT;
+        _exitCode = ExitCode::SAT;
         return true;
     }
     else if ( _gurobi->infeasible() )
-        _exitCode = TheoryEngine::UNSAT;
+        _exitCode = ExitCode::UNSAT;
     else if ( _gurobi->timeout() )
-        _exitCode = TheoryEngine::TIMEOUT;
+      _exitCode = ExitCode::TIMEOUT;
     else
         throw NLRError( NLRError::UNEXPECTED_RETURN_STATUS_FROM_GUROBI );
     return false;

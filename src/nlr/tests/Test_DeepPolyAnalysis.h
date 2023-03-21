@@ -15,7 +15,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "../../engine/tests/MockTableau.h"
+#include "MockTableau.h"
 #include "FloatUtils.h"
 #include "InputQuery.h"
 #include "Layer.h"

@@ -90,18 +90,6 @@ public:
     virtual void reset() = 0;
     virtual List<unsigned> getInputVariables() const = 0;
 
-    /*
-      Pick the piecewise linear constraint for internal splitting
-    */
-    virtual PiecewiseLinearConstraint *pickSplitPLConstraint( DivideStrategy
-                                                              strategy ) = 0;
-
-    /*
-      Pick the piecewise linear constraint for SnC splitting
-    */
-    virtual PiecewiseLinearConstraint *pickSplitPLConstraintSnC( SnCDivideStrategy
-                                                                 strategy ) = 0;
-
     virtual void applyAllBoundTightenings() = 0;
 
     virtual bool applyAllValidConstraintCaseSplits() = 0;
