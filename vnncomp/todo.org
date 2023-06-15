@@ -1,0 +1,16 @@
+- Prepare script
+  - Create working directory [done]
+    - wd_b = script_dir/$benchmark/
+    - wd_v = $wd_b/$onnx_$vnnlib/
+  - Load ONNX
+    - Simplification with onnxsim and store "$onnx" as $wd_b/"$onnx".simp
+    - Convert large network like VGG with dnnv 
+    - Decompose large network like VGG to multiple sub-networks: "$onnx".simp1, "$onnx".simp2, "$onnx".simp3...
+    - Convert $onnx.simp with onnxtotorch to pytorch network as $wd_b/$onnx".torch
+  - Load VNNLIB
+    - Convert VNNLIB to vnnlib object
+    - encode input property function and encode output property function as benchmark/$benchmark/$onnx_$property/encode_prop_marabou.py
+    - encode input property function and encode output property function as benchmark/$benchmark/$onnx_$property/encode_prop_pytorch.py
+  - Create Marabou input queries
+    - take in a list $wd_b/"$onnx".simp[1..N] and create a set of input query objects?
+  - Warm up

@@ -1,0 +1,7 @@
+onnx2pytorch
+onnx
+onnxruntime
+vnnlib
+onnxsim
+git+https://github.com/dlshriver/DNNV.git#egg=dnnv
+
