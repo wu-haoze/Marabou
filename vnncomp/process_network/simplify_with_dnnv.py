@@ -17,7 +17,7 @@ os.environ["DNNV_OPTIONAL_SIMPLIFIERS"] = "ReluifyMaxPool"
 def main():
     """main entry point"""
 
-    assert len(sys.argv) == 2, "expected 1 arguments: [input .onnx filename]"
+    assert len(sys.argv) == 3, "expected 2 arguments: [input .onnx filename] [output .onnx filename]"
 
     onnx_filename = sys.argv[1]
 
@@ -32,7 +32,7 @@ def main():
 
     print("exporting...")
     t = time.perf_counter()
-    simplified_op_graph1.export_onnx('output.onnx')
+    simplified_op_graph1.export_onnx(sys.argv[2])
     diff = time.perf_counter() - t
     print(f"export runtime: {diff}")
 

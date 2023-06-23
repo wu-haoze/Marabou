@@ -120,6 +120,8 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
         if ( result == IEngine::UNSAT )
         {
             // If UNSAT, continue to solve
+            printf("unsat, task remaining: %u\n", _numUnsolvedSubQueries->load());
+
             *_numUnsolvedSubQueries -= 1;
             if ( _numUnsolvedSubQueries->load() == 0 || _parallelDeepSoI )
                 *_shouldQuitSolving = true;
@@ -165,6 +167,7 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
                 *_numUnsolvedSubQueries += 1;
             }
             *_numUnsolvedSubQueries -= 1;
+            printf("timeout, task remaining: %u\n", _numUnsolvedSubQueries->load());
             delete subQuery;
         }
         else if ( result == IEngine::QUIT_REQUESTED )

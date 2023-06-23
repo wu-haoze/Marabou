@@ -3,14 +3,31 @@
     - wd_b = script_dir/$benchmark/
     - wd_v = $wd_b/$onnx_$vnnlib/
   - Load ONNX
-    - Simplification with onnxsim and store "$onnx" as $wd_b/"$onnx".simp
-    - Convert large network like VGG with dnnv 
+    - Simplification with onnxsim and store "$onnx" as $wd_b/"$onnx".simp [done]
+    - Convert large network like VGG with dnnv [done]
     - Decompose large network like VGG to multiple sub-networks: "$onnx".simp1, "$onnx".simp2, "$onnx".simp3...
     - Convert $onnx.simp with onnxtotorch to pytorch network as $wd_b/$onnx".torch
+    - merge convolution and batch norm
   - Load VNNLIB
-    - Convert VNNLIB to vnnlib object
-    - encode input property function and encode output property function as benchmark/$benchmark/$onnx_$property/encode_prop_marabou.py
+    - Convert VNNLIB to vnnlib object [done]
+    - encode input property function and encode output property function as benchmark/$benchmark/$onnx_$property/encode_prop_marabou.py [on going]
     - encode input property function and encode output property function as benchmark/$benchmark/$onnx_$property/encode_prop_pytorch.py
   - Create Marabou input queries
     - take in a list $wd_b/"$onnx".simp[1..N] and create a set of input query objects?
   - Warm up
+
+- Solve script
+  - Random generation
+  - Adversarial attack
+  - Bound propagation
+    - 
+    - Support a lot of operations
+  - Verification
+
+
+
+- Problems:
+Dreamroom: onnxruntime cannot run (Proj operation)
+CollinsYOLO: vnnlib loading takes too long, see how abcrown handles it
+
+Use https://github.com/KaidiXu/onnx2pytorch 

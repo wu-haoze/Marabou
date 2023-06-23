@@ -1,10 +1,14 @@
 #!/bin/bash
 
+INIT_DIR=$PWD
+
+echo $INIT_DIR
+
 BENCHMARK=$2
-ONNX_FILE=$3
-VNNLIB_FILE=$4
-NET_NAME=$(basename $ONNX_FILE)
-PROP_NAME=$(basename $VNNLIB_FILE)
+ONNX_FILE=$(realpath $3)
+VNNLIB_FILE=$(realpath $4)
+NET_NAME=$(basename ${ONNX_FILE%.onnx})
+PROP_NAME=$(basename ${VNNLIB_FILE%.vnnlib})
 
 echo "Solving benchmark set '$BENCHMARK' with onnx file '$ONNX_FILE' and vnnlib file '$VNNLIB_FILE'"
 echo "Network name: $NET_NAME"
@@ -25,13 +29,27 @@ then
     rm -rf $WORKING_DIR_INSTANCE
 fi
 mkdir $WORKING_DIR_INSTANCE
+
+cd $SCRIPT_DIR
+echo "Current directory: $PWD"
 echo "Working directory: $WORKING_DIR_INSTANCE"
 
+
+
+############################### NETWORK PROCESSING #################################
+
 ####### Simplify #######
-ONNX_FILE_SIMP=$WORKING_DIR_BENCHMARK/$NET_NAME.simp
+ONNX_FILE_SIMP=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp.onnx
 if [[ ! -f $ONNX_FILE_SIMP ]]
 then
     python3 -m onnxsim $ONNX_FILE $ONNX_FILE_SIMP
+    if [ $? != 0 ]
+    then
+        echo "Simplification failed with default argument"
+        python3 -m onnxsim $ONNX_FILE $ONNX_FILE_SIMP --mutable-initializer
+    fi
+else
+    echo "Simplified network already exists"
 fi
 if [[ -f $ONNX_FILE_SIMP ]]
 then
@@ -42,24 +60,66 @@ else
 fi
 
 ###### Remove Softmax ######
-ONNX_FILE_PRESOFTMAX="$ONNX_FILE_SIMP".presoftmax
+ONNX_FILE_PRESOFTMAX=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp_presoftmax.onnx
 if [[ ! -f $ONNX_FILE_PRESOFTMAX ]]
 then
     python3 process_network/get_presoftmax_network.py $ONNX_FILE_SIMP $ONNX_FILE_PRESOFTMAX
+else
+    echo "Pre-softmax network already exists"
 fi
 if [[ -f $ONNX_FILE_PRESOFTMAX ]]
 then
-    echo "Simplified ONNX file: $ONNX_FILE_SIMP"
+    echo "Pre-softmax ONNX file: $ONNX_FILE_PRESOFTMAX"
 else
-    echo "Simplified ONNX file NOT FOUND!"
+    echo "Pre-softmax ONNX file NOT FOUND!"
     exit 1
 fi
 
-exit 0
+###### Convert large networks ######
+echo "Convert Max to ReLU"
+ONNX_FILE_POSTDNNV=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp_presoftmax_postdnnv.onnx
+if [[ ! -f $ONNX_FILE_POSTDNNV ]]
+then
+    python3 process_network/simplify_with_dnnv.py $ONNX_FILE_PRESOFTMAX $ONNX_FILE_POSTDNNV
+    if [ $? != 0 ]
+    then
+        echo "DNNV preprocessing failed"
+        cp $ONNX_FILE_PRESOFTMAX $ONNX_FILE_POSTDNNV
+    fi
+fi
 
-# Convert large networks
-echo "TODO: convert large networks..."
-${TOOL_DIR}/vnncomp_scripts/maxpool_to_relu.py $ONNX_FILE
+if [[ -f $ONNX_FILE_POSTDNNV ]]
+then
+    echo "Post-DNNV ONNX file: $ONNX_FILE_POSTDNNV"
+else
+    echo "Post-DNNV ONNX file NOT FOUND!"
+    exit 1
+fi
+
+
+############################### PROPERTY PROCESSING #################################
+VNNLIB_FILE_PICKLED=$WORKING_DIR_INSTANCE/vnnlib.pkl
+IPQ_FILE=$WORKING_DIR_INSTANCE/query.ipq
+python3 process_property/parse_vnnlib.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE $VNNLIB_FILE_PICKLED $IPQ_FILE
+if [[ -f $VNNLIB_FILE_PICKLED ]]
+then
+    echo "VNNLIB parsed: $VNNLIB_FILE_PICKLED"
+else
+    echo "VNNLIB not parsed!"
+    exit 1
+fi
+
+exit 10
+
+if [[ -f $IPQ_FILE ]]
+then
+    echo "Ipq created: $IPQ_FILE"
+else
+    echo "Ipq not created"
+    exit 1
+fi
+
+exit $?
 
 # Warmup, using a 1 second timeout.
 echo
