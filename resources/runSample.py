@@ -4,7 +4,8 @@ import numpy as np
 import random
 import pickle
 import sys
-
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
 
 assert(len(sys.argv) == 6)
 

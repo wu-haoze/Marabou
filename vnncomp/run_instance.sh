@@ -44,11 +44,16 @@ pids=()
 #python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_2 2 10000000000 &
 #pids+=($!)
 # big step
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_3 3 0.1 10000000 &
-pids+=($!)
+#python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_3 3 0.1 10000000 &
+#pids+=($!)
 # small step
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
+#python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
+#pids+=($!)
+$SCRIPT_DIR/../build/Marabou --input-query $WORKING_DIR_INSTANCE/query.ipq --milp --num-workers 64 &
 pids+=($!)
+#python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
+#pids+=($!)
+
 
 for pid in "${pids[@]}"; do
     echo "Process id $pid"

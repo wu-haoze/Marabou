@@ -38,13 +38,17 @@ class Resize(Operator):
 
         if len(scales) == 0:
             scales = None
+            sizes = [i.item() for i in sizes]
         elif len(sizes) == 0:
             sizes = None
+            scales = [i.item() for i in scales]
         else:
             raise ValueError(
                 "Only one of the two, scales or sizes, needs to be defined."
             )
 
+        # inside the scales, if each element is a one-element tensor, extract it to a float.
+        scales = tuple([tmp.item() if isinstance(tmp, torch.Tensor) else tmp for tmp in scales])
         return F.interpolate(
             inp,
             scale_factor=scales,
@@ -52,7 +56,6 @@ class Resize(Operator):
             mode=self.mode,
             align_corners=self.align_corners,
         )
-
 
 class Upsample(Resize):
     """Deprecated onnx operator."""

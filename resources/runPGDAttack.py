@@ -6,9 +6,10 @@ import pickle
 import sys
 from onnx2pytorch import ConvertModel
 import torch
-
-
-torch.set_num_threads(4)
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+torch.set_num_interop_threads(2)
+torch.set_num_threads(2)
 
 assert(len(sys.argv) == 7)
 
@@ -39,7 +40,8 @@ print(f"PGD Attack using random seed {seed} with {attempts} attempts, writing re
 
 # Load the onnx model
 sess_opt = ort.SessionOptions()
-sess_opt.intra_op_num_threads = 4
+sess_opt.intra_op_num_threads = 2
+sess_opt.inter_op_num_threads = 2
 ort_model = ort.InferenceSession(onnx_network, sess_opt)
 name, shape, dtype = [(i.name, i.shape, i.type) for i in ort_model.get_inputs()][0]
 if shape[0] in ["batch_size", "unk__195"]:
@@ -94,7 +96,6 @@ def pgd_attack(model, input_spec, output_spec, steps=20, device="cpu"):
 
         cost = convert_output_spec_to_loss(outputs, output_spec)
         costs.append(cost.detach().numpy())
-        #print("cost is ", cost.detach().numpy())
         # Update adversarial images
         grad = torch.autograd.grad(cost, adv_images,
                                    retain_graph=False, create_graph=False)[0]
