@@ -87,7 +87,7 @@ def pgd_attack(model, input_spec, output_spec, steps=20, device="cpu"):
         adv_images.requires_grad = True
         outputs = model(adv_images)
         ort_outputs = ort_model.run(None, {name: adv_images.detach().numpy().astype(dtype)})[0]
-        print(ort_outputs - outputs.detach().numpy())
+        #print("diff:", ort_outputs - outputs.detach().numpy())
         #print(ort_outputs)
         if output_property_hold(ort_outputs, output_specs):
             return adv_images.detach().numpy().flatten(), ort_outputs

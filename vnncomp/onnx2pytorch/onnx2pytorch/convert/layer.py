@@ -41,7 +41,6 @@ def convert_layer(node, layer_type, params=None):
         "AvgPool",
     ], "Incorrect layer type: {}".format(layer_type)
     kwargs = extract_attributes(node)
-    print(kwargs)
     kernel_size_length = len(kwargs["kernel_size"])
     try:
         layer = getattr(nn, "{}{}d".format(layer_type, kernel_size_length))
