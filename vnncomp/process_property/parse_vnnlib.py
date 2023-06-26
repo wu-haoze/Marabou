@@ -67,13 +67,17 @@ def toMarabouEquation(equation):
     return eq
 
 def create_marabou_query(onnx_file, box_spec_list):
+    pert_dim = 0
+    input_spec, output_specs = box_spec_list[0]
+    for i, (lb, ub) in enumerate(input_spec):
+        if lb < ub:
+            pert_dim += 1
+    print(f"Perturbation dimension is {pert_dim}")
+
     network = MarabouNetworkONNX(onnx_file)
     outputVars = network.outputVars[0].flatten()
     if len(box_spec_list) == 1:
         input_spec, output_specs = box_spec_list[0]
-        for i, (lb, ub) in enumerate(input_spec):
-            network.setLowerBound(i, lb)
-            network.setUpperBound(i, ub)
         if len(output_specs) == 1:
             output_props, rhss = output_specs[0]
             for i in range(len(rhss)):
@@ -94,6 +98,8 @@ def create_marabou_query(onnx_file, box_spec_list):
                     conjuncts.append(toMarabouEquation(eq))
                 disjuncts.append(conjuncts)
             network.addDisjunctionConstraint(disjuncts)
+    else:
+        print("Unsupported input spec")
     return network
 
 

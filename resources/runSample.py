@@ -19,28 +19,35 @@ with open(sys.argv[2], "rb") as f:
 output_file = sys.argv[3]
 
 seed = int(sys.argv[4])
-print(f"Using random seed {seed}")
 np.random.seed(seed)
 random.seed(seed)
 
 num_samples = int(sys.argv[5])
-print(f"Sampling {num_samples} points")
+print(f"Sampling {num_samples} points, using random seed {seed}, writing results to {output_file}")
 
 # Define the output property as a function that returns True or False
 def output_property_hold(outputs, output_specs):
     outputs = outputs.flatten()
-    print(output_specs)
+    # go through each disjunct
     for output_props, rhss in output_specs:
+        # go through each conjunct
         hold = True
-        for i in range(len(rhss)):
-            output_prop, rhs = output_props[i], rhss[i]
-        if sum([outputs[i] * c for i, c in output_prop.items()]) <= rhs:
+        for index in range(len(rhss)):
+            output_prop, rhs = output_props[index], rhss[index]
+            if sum([outputs[i] * c for i, c in output_prop.items()]) > rhs:
+                hold = False
+                break
+        if hold:
             return True
     return False
 
 # Load the onnx model
-model = ort.InferenceSession(onnx_network)
+sess_opt = ort.SessionOptions()
+sess_opt.intra_op_num_threads = 4
+model = ort.InferenceSession(onnx_network, sess_opt)
 name, shape, dtype = [(i.name, i.shape, i.type) for i in model.get_inputs()][0]
+if shape[0] in ["batch_size", "unk__195"]:
+    shape[0] = 1
 assert dtype in ['tensor(float)', 'tensor(double)']
 dtype = "float32" if dtype == 'tensor(float)' else "float64"
 
@@ -49,14 +56,15 @@ for _ in range(num_samples):
     index = np.random.randint(len(specs))
     box_spec = specs[index]
     input_spec, output_specs = box_spec
-    point = np.array([np.random.uniform(low, high) for low, high in input_spec],  dtype=dtype).reshape(shape) # check if reshape order is correct
+    random_point = [np.random.uniform(low, high) for low, high in input_spec]
+    point = np.array(random_point, dtype=dtype).reshape(shape) # check if reshape order is correct
     # Run the model on the point
     output = model.run(None, {name: point})[0]
     # Check if the output satisfies the property
     if output_property_hold(output, output_specs):
+        print(f"Satisfying assignment found. Input spec {index}, {point} {output}")
         res = 'sat'
-        names = [i.name for i in sess.get_inputs()]
-        for index, x in enumerate(len(input_specs[0])):
+        for index, x in enumerate(random_point):
             if index == 0:
                 res += "\n("
             else:
@@ -65,8 +73,12 @@ for _ in range(num_samples):
             res += f"(X_{index} {x})"
 
         # next print the Y values
-        for index, x in enumerate(flat_out):
+        for index, x in enumerate(output.flatten()):
             res += f"\n (Y_{index} {x})"
 
         res += ")\n"
+        with open(output_file, 'w') as out_file:
+            print(f"Recording satisfying assignment to {output_file}!")
+            out_file.write(res)
+            exit(10)
         break

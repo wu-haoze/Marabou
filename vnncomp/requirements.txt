@@ -5,3 +5,5 @@ vnnlib
 onnxsim
 git+https://github.com/dlshriver/DNNV.git#egg=dnnv
 git+https://github.com/dlshriver/vnnlib.git@main
+onnx2pytorch
+

@@ -30,8 +30,6 @@ then
 fi
 mkdir $WORKING_DIR_INSTANCE
 
-cd $SCRIPT_DIR
-echo "Current directory: $PWD"
 echo "Working directory: $WORKING_DIR_INSTANCE"
 
 
@@ -63,7 +61,7 @@ fi
 ONNX_FILE_PRESOFTMAX=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp_presoftmax.onnx
 if [[ ! -f $ONNX_FILE_PRESOFTMAX ]]
 then
-    python3 process_network/get_presoftmax_network.py $ONNX_FILE_SIMP $ONNX_FILE_PRESOFTMAX
+    python3 $SCRIPT_DIR/process_network/get_presoftmax_network.py $ONNX_FILE_SIMP $ONNX_FILE_PRESOFTMAX
 else
     echo "Pre-softmax network already exists"
 fi
@@ -80,7 +78,7 @@ echo "Convert Max to ReLU"
 ONNX_FILE_POSTDNNV=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp_presoftmax_postdnnv.onnx
 if [[ ! -f $ONNX_FILE_POSTDNNV ]]
 then
-    python3 process_network/simplify_with_dnnv.py $ONNX_FILE_PRESOFTMAX $ONNX_FILE_POSTDNNV
+    python3 $SCRIPT_DIR/process_network/simplify_with_dnnv.py $ONNX_FILE_PRESOFTMAX $ONNX_FILE_POSTDNNV
     if [ $? != 0 ]
     then
         echo "DNNV preprocessing failed"
@@ -100,7 +98,7 @@ fi
 ############################### PROPERTY PROCESSING #################################
 VNNLIB_FILE_PICKLED=$WORKING_DIR_INSTANCE/vnnlib.pkl
 IPQ_FILE=$WORKING_DIR_INSTANCE/query.ipq
-python3 process_property/parse_vnnlib.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE $VNNLIB_FILE_PICKLED $IPQ_FILE
+python3 $SCRIPT_DIR/process_property/parse_vnnlib.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE $VNNLIB_FILE_PICKLED $IPQ_FILE
 if [[ -f $VNNLIB_FILE_PICKLED ]]
 then
     echo "VNNLIB parsed: $VNNLIB_FILE_PICKLED"
@@ -109,7 +107,7 @@ else
     exit 1
 fi
 
-exit 10
+exit 0
 
 if [[ -f $IPQ_FILE ]]
 then
