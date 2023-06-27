@@ -66,7 +66,9 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     outputVarsMap = dict()
     queriesMap = dict()
 
-    network = MarabouNetworkONNXThresh(onnx_file)
+    candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id}.onnx"
+    network = MarabouNetworkONNXThresh(onnx_file,
+                                       candidateSubONNXFileName=candidateSubONNXFileName)
     inputVars = network.inputVars[0].flatten()
     if len(box_spec_list) == 1:
         pert_dim = 0
@@ -90,7 +92,9 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
 
         onnxFile = network.subONNXFile
         del network
-        network = MarabouNetworkONNXThresh(onnxFile)
+        candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id}.onnx"
+        network = MarabouNetworkONNXThresh(onnxFile,
+                                           candidateSubONNXFileName=candidateSubONNXFileName)
         query_id += 1
 
     outputVars = network.outputVars[0].flatten()

@@ -28,9 +28,11 @@ import torch
 class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
     def __init__(self, filename, inputNames=None, outputNames=None,
-                 equalityThreshold=3000, nonlinearityThreshold=1000):
+                 equalityThreshold=5000, nonlinearityThreshold=5000,
+                 candidateSubONNXFileName=None):
         super().__init__()
         self.thresholdReached = False
+        self.candidateSubONNXFileName = candidateSubONNXFileName
         self.subONNXFile = None
 
         self.readONNXThresh(filename, inputNames, outputNames,
@@ -96,10 +98,10 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         # Check that input/outputs are in the graph
         for name in inputNames:
             if not len([nde for nde in self.graph.node if name in nde.input]):
-                raise RuntimeError("Input %s not found in graph!" % name)
+                raise RuntimeError("Input {} not found in graph!".format(name))
         for name in outputNames:
             if not len([nde for nde in self.graph.node if name in nde.output]):
-                raise RuntimeError("Output %s not found in graph!" % name)
+                raise RuntimeError("Output {} not found in graph!".format(name))
 
         self.inputNames = inputNames
         self.outputNames = outputNames
@@ -219,12 +221,11 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         print(f"No residual after: {noResidualAfter}, no residual before: {noResidualBefore}")
         if noResidualAfter or noResidualBefore:
             outputName = self.getNode(nodeName).output[0]
-            self.outputNames = [outputName]
-
-            self.subONNXFile = self.filename + ".part"
+            self.subONNXFile = self.candidateSubONNXFileName
             onnx.utils.extract_model(self.filename, self.subONNXFile,
                                      input_names=[outputName],
                                      output_names=self.outputNames)
+            self.outputNames = [outputName]
             return True
         else:
             return False
