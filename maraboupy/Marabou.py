@@ -16,19 +16,8 @@ Marabou defines key functions that make up the main user interface to Maraboupy
 import warnings
 from maraboupy.MarabouCore import *
 
-# Import parsers if required packages are installed
-try:
-    from maraboupy.MarabouNetworkNNet import *
-except ImportError:
-    warnings.warn("NNet parser is unavailable because the numpy package is not installed")
-try:
-    from maraboupy.MarabouNetworkTF import *
-except ImportError:
-    warnings.warn("Tensorflow parser is unavailable because tensorflow package is not installed")
-try:
-    from maraboupy.MarabouNetworkONNX import *
-except ImportError:
-    warnings.warn("ONNX parser is unavailable because onnx or onnxruntime packages are not installed")
+from maraboupy.MarabouNetworkONNX import *
+from maraboupy.MarabouNetworkONNXThesh import *
 
 def read_nnet(filename, normalize=False):
     """Constructs a MarabouNetworkNnet object from a .nnet file
@@ -61,7 +50,21 @@ def read_tf(filename, inputNames=None, outputNames=None, modelType="frozen", sav
     """
     return MarabouNetworkTF(filename, inputNames, outputNames, modelType, savedModelTags)
 
-def read_onnx(filename, inputNames=None, outputNames=None, reindexOutputVars=True):
+def read_onnx_thresh(filename, inputNames=None, outputNames=None, equalityThreshold=3000, nonliearityThreshold=1000):
+    """Constructs a MarabouNetworkONNX object from an ONNX file
+
+    Args:
+        filename (str): Path to the ONNX file
+        inputNames (list of str, optional): List of node names corresponding to inputs
+        outputNames (list of str, optional): List of node names corresponding to outputs
+
+    Returns:
+        :class:`~maraboupy.MarabouNetworkONNX.MarabouNetworkONNX`
+    """
+    return MarabouNetworkONNXThesh(filename, inputNames, outputNames,
+                                   equalityThreshold, nonliearityThreshold)
+
+def read_onnx(filename, inputNames=None, outputNames=None, reindexOutputVars=False):
     """Constructs a MarabouNetworkONNX object from an ONNX file
 
     Args:

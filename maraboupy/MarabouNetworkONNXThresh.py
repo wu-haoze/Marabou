@@ -11,7 +11,7 @@ in the top-level source directory) and their institutional affiliations.
 All rights reserved. See the file COPYING in the top-level source
 directory for licensing information.
 
-MarabouNetworkONNX represents neural networks with piecewise linear constraints derived from the ONNX format
+MarabouNetworkONNXThresh represents neural networks with piecewise linear constraints derived from the ONNX format
 '''
 
 import numpy as np
@@ -25,20 +25,16 @@ from onnx import TensorProto
 import itertools
 import torch
 
-class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
-    """Constructs a MarabouNetworkONNX object from an ONNX file
+class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
-    Args:
-        filename (str): Path to the ONNX file
-        inputNames: (list of str, optional): List of node names corresponding to inputs
-        outputNames: (list of str, optional): List of node names corresponding to outputs
-
-    Returns:
-        :class:`~maraboupy.Marabou.marabouNetworkONNX.marabouNetworkONNX`
-    """
-    def __init__(self, filename, inputNames=None, outputNames=None, reindexOutputVars=True):
+    def __init__(self, filename, inputNames=None, outputNames=None,
+                 equalityThreshold=3000, nonlinearityThreshold=1000):
         super().__init__()
-        self.readONNX(filename, inputNames, outputNames, reindexOutputVars=reindexOutputVars)
+        self.thresholdReached = False
+        self.subONNXFile = None
+
+        self.readONNXThresh(filename, inputNames, outputNames,
+                            equalityThreshold, nonlinearityThreshold)
 
     def clear(self):
         """Reset values to represent empty network
@@ -66,20 +62,25 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
         self.outputNames = None
         self.graph = None
 
-    def readONNX(self, filename, inputNames, outputNames, reindexOutputVars=True):
-        """Read an ONNX file and create a MarabouNetworkONNX object
+    def readONNXThresh(self, filename, inputNames, outputNames,
+                       equalityThreshold, nonlinearityThreshold):
+        """Read an ONNX file and create a MarabouNetworkONNXThresh object
 
         Args:
             filename: (str): Path to the ONNX file
             inputNames: (list of str): List of node names corresponding to inputs
             outputNames: (list of str): List of node names corresponding to outputs
             reindexOutputVars: (bool): Reindex the variables so that the output variables are immediate after input variables.
-            
+
         :meta private:
         """
         self.filename = filename
+
+        self.equalityThreshold = equalityThreshold
+        self.nonlinearityThreshold = nonlinearityThreshold
+
         self.graph = onnx.load(filename).graph
-        
+
         # Get default inputs/outputs if no names are provided
         if not inputNames:
             assert len(self.graph.input) >= 1
@@ -91,97 +92,144 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
             outputNames = [out.name for out in self.graph.output if out.name not in initNames]
         elif isinstance(outputNames, str):
             outputNames = [outputNames]
-            
+
         # Check that input/outputs are in the graph
         for name in inputNames:
             if not len([nde for nde in self.graph.node if name in nde.input]):
-                raise RuntimeError(f"Input {name} not found in graph!")
+                raise RuntimeError("Input %s not found in graph!" % name)
         for name in outputNames:
             if not len([nde for nde in self.graph.node if name in nde.output]):
-                raise RuntimeError(f"Output {name} not found in graph!")
-            
+                raise RuntimeError("Output %s not found in graph!" % name)
+
         self.inputNames = inputNames
         self.outputNames = outputNames
-        
-        # Process the shapes and values of the graph while making Marabou equations and constraints 
+
+        # Process the shapes and values of the graph while making Marabou equations and constraints
         self.foundnInputFlags = 0
         self.processGraph()
-        
-        # If the given inputNames/outputNames specify only a portion of the network, then we will have
-        # shape information saved not relevant to the portion of the network. Remove extra shapes.
-        self.cleanShapes()
 
-        if reindexOutputVars:
-            # Other Marabou input parsers assign output variables immediately after input variables and before any
-            # intermediate variables. This function reassigns variable numbering to match other parsers.
-            # If this is skipped, the output variables will be the last variables defined.
-            self.reassignOutputVariables()
-        else:
-            self.outputVars = [self.varMap[outputName] for outputName in self.outputNames]
+        self.outputVars = [self.varMap[outputName] for outputName in self.outputNames]
 
     def processGraph(self):
         """Processes the ONNX graph to produce Marabou equations
-        
+
         :meta private:
         """
         # Add shapes for the graph's inputs
         for node in self.graph.input:
             self.shapeMap[node.name] = list([dim.dim_value if dim.dim_value > 0 else 1 for dim in node.type.tensor_type.shape.dim])
-            
+
             # If we find one of the specified inputs, create new variables
             if node.name in self.inputNames:
                 self.madeGraphEquations += [node.name]
                 self.foundnInputFlags += 1
                 self.makeNewVariables(node.name)
-                self.inputVars += [np.array(self.varMap[node.name])] 
-                
+                self.inputVars += [np.array(self.varMap[node.name])]
+
         # Add shapes for constants
         for node in self.graph.initializer:
             self.shapeMap[node.name] = list(node.dims)
             self.madeGraphEquations += [node.name]
-            
+
         # Recursively create remaining shapes and equations as needed
         for outputName in self.outputNames:
             self.makeGraphEquations(outputName, True)
 
     def makeGraphEquations(self, nodeName, makeEquations):
         """Recursively populates self.shapeMap, self.varMap, and self.constantMap while adding equations and constraints
-        
+
         Args:
             nodeName (str): Name of node for making the shape
             makeEquations (bool): Create Marabou equations for this node if True
-            
+
         :meta private:
         """
         if nodeName in self.madeGraphEquations:
             return
-        
+
         if nodeName in self.inputNames:
-            self.foundnInputFlags += 1   
+            self.foundnInputFlags += 1
             # If an inputName is an intermediate layer of the network, we don't need to create Marabou
             # equations for its inputs. However, we still need to call makeMarabouEquations in order to
             # compute shapes. We just need to set the makeEquations flag to false
             makeEquations = False
         self.madeGraphEquations += [nodeName]
-        
+
         # Recursively call makeGraphEquations, then call makeMarabouEquations
-        # This ensures that shapes and values of a node's inputs have been computed first 
+        # This ensures that shapes and values of a node's inputs have been computed first
         for inNodeName in self.getInputNodes(nodeName):
             self.makeGraphEquations(inNodeName, makeEquations)
-            
+
         # By this point, all input variables need to have been found
         if self.foundnInputFlags != len(self.inputNames):
             err_msg = "These input variables could not be found: %s"%(", ".join([inVar for inVar in self.inputNames if inVar not in self.varMap]))
             raise RuntimeError(err_msg)
 
-        # Compute node's shape and create Marabou equations as needed
-        self.makeMarabouEquations(nodeName, makeEquations)
-        
+        if not self.thresholdReached:
+            # Compute node's shape and create Marabou equations as needed
+            self.makeMarabouEquations(nodeName, makeEquations)
+
+            numEquations = len(self.equList)
+            numNonLinearities = (len(self.reluList) + len(self.sigmoidList) +
+                                 len(self.maxList) + len(self.absList) + len(self.signList))
+            if (numEquations > self.equalityThreshold and
+                numNonLinearities > self.nonlinearityThreshold):
+                print(f"Split threshold reached: {numEquations} equations, {numNonLinearities} nonlinear constraints")
+                if self.splitNetworkAtNode(nodeName):
+                    self.thresholdReached = True
+
         # Create new variables when we find one of the inputs
         if nodeName in self.inputNames:
             self.makeNewVariables(nodeName)
-            self.inputVars += [np.array(self.varMap[nodeName])]  
-            
+            self.inputVars += [np.array(self.varMap[nodeName])]
+
+    def splitNetworkAtNode(self, nodeName):
+        print(f"Attempting to split the network at node {nodeName}")
+        assert(len(self.outputNames) == 1)
+        currentNodeName = self.outputNames[0]
+        noResidualAfter = True
+        while currentNodeName != nodeName:
+            inNodeNames = self.getInputNodes(currentNodeName)
+            if len(inNodeNames) > 1:
+                noResidualAfter = False
+                break
+            else:
+                currentNodeName = inNodeNames[0]
+
+        assert(len(self.inputNames) == 1)
+        currentNodeName = nodeName
+        noResidualBefore = True
+        while currentNodeName != self.inputNames[0]:
+            inNodeNames = self.getInputNodes(currentNodeName)
+            print(inNodeNames)
+            numVariableNode = 0
+            for inNodeName in inNodeNames:
+                if inNodeName in self.constantMap:
+                    continue
+                else:
+                    numVariableNode += 1
+            if numVariableNode > 1:
+                noResidualBefore = False
+                break
+            elif numVariableNode == 1:
+                currentNodeName = inNodeNames[0]
+            else:
+                break
+
+        print(f"No residual after: {noResidualAfter}, no residual before: {noResidualBefore}")
+        if noResidualAfter or noResidualBefore:
+            outputName = self.getNode(nodeName).output[0]
+            self.outputNames = [outputName]
+
+            self.subONNXFile = self.filename + ".part"
+            onnx.utils.extract_model(self.filename, self.subONNXFile,
+                                     input_names=[outputName],
+                                     output_names=self.outputNames)
+            return True
+        else:
+            return False
+
+
     def makeMarabouEquations(self, nodeName, makeEquations):
         """Compute the shape and values of a node assuming the input shapes and values have been computed already.
 

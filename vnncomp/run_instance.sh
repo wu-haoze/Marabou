@@ -12,7 +12,7 @@ BENCHMARK=$2
 ONNX_FILE=$3
 VNNLIB_FILE=$4
 RESULTS_FILE=$5
-TIMEOUT=10
+TIMEOUT=60
 
 echo "Running benchmark instance in category '$BENCHMARK' with onnx file '$ONNX_FILE', vnnlib file '$VNNLIB_FILE', results file $RESULTS_FILE, and timeout $TIMEOUT"
 
@@ -49,7 +49,7 @@ pids=()
 # small step
 #python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
 #pids+=($!)
-$SCRIPT_DIR/../build/Marabou --input-query $WORKING_DIR_INSTANCE/query.ipq --milp --num-workers 64 &
+$SCRIPT_DIR/../build/Marabou --input-query $WORKING_DIR_INSTANCE/query.ipq --milp --num-workers 64 --verbosity=2 &
 pids+=($!)
 #python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
 #pids+=($!)
@@ -89,6 +89,7 @@ done
 
 pkill -9 python3
 pkill -9 python
+pkill -9 Marabou
 
 # do some cleanup work
 echo "Cleanup done"

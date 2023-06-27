@@ -11,6 +11,7 @@ import pathlib
 sys.path.insert(0, os.path.join(str(pathlib.Path(__file__).parent.absolute()), "../../"))
 
 from maraboupy.MarabouNetworkONNX import *
+from maraboupy.MarabouNetworkONNXThresh import *
 from maraboupy import MarabouCore
 from maraboupy.MarabouUtils import *
 
@@ -50,14 +51,7 @@ def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
         # Pickle the list and write it to the file
         pickle.dump(box_spec_list, f)
 
-    network = create_marabou_query(onnx_file, box_spec_list)
-    print("Number of relus: {}".format(len(network.reluList)))
-    print("Number of maxs: {}".format(len(network.maxList)))
-    print("Number of disjunctions: {}".format(len(network.disjunctionList)))
-    print("Number of equations: {}".format(len(network.equList)))
-    print("Number of variables: {}".format(network.numVars))
-    ipq = network.getMarabouQuery()
-    MarabouCore.saveQuery(ipq, ipq_output)
+    create_marabou_query(onnx_file, box_spec_list, ipq_output)
 
 def toMarabouEquation(equation):
     eq = MarabouCore.Equation(equation.EquationType)
@@ -66,18 +60,42 @@ def toMarabouEquation(equation):
         eq.addAddend(c, x)
     return eq
 
-def create_marabou_query(onnx_file, box_spec_list):
-    pert_dim = 0
-    input_spec, output_specs = box_spec_list[0]
-    for i, (lb, ub) in enumerate(input_spec):
-        if lb < ub:
-            pert_dim += 1
-    print(f"Perturbation dimension is {pert_dim}")
+def create_marabou_query(onnx_file, box_spec_list, ipq_output):
+    query_id = 1
+    inputVarsMap = dict()
+    outputVarsMap = dict()
+    queriesMap = dict()
 
-    network = MarabouNetworkONNX(onnx_file)
+    network = MarabouNetworkONNXThresh(onnx_file)
+    inputVars = network.inputVars[0].flatten()
+    if len(box_spec_list) == 1:
+        pert_dim = 0
+        input_spec, _ = box_spec_list[0]
+        for i, (lb, ub) in enumerate(input_spec):
+            if lb < ub:
+                pert_dim += 1
+            network.setLowerBound(inputVars[i], lb)
+            network.setUpperBound(inputVars[i], ub)
+        print(f"Perturbation dimension is {pert_dim}")
+    else:
+        print("Unsupported input spec")
+        exit(12)
+
+    while network.subONNXFile is not None:
+        queryName = f"{ipq_output}_{query_id}"
+        network.saveQuery(queryName)
+        inputVarsMap[query_id] = network.inputVars
+        outputVarsMap[query_id] = network.outputVars
+        queriesMap[query_id] = queryName
+
+        onnxFile = network.subONNXFile
+        del network
+        network = MarabouNetworkONNXThresh(onnxFile)
+        query_id += 1
+
     outputVars = network.outputVars[0].flatten()
     if len(box_spec_list) == 1:
-        input_spec, output_specs = box_spec_list[0]
+        _, output_specs = box_spec_list[0]
         if len(output_specs) == 1:
             output_props, rhss = output_specs[0]
             for i in range(len(rhss)):
@@ -98,9 +116,14 @@ def create_marabou_query(onnx_file, box_spec_list):
                     conjuncts.append(toMarabouEquation(eq))
                 disjuncts.append(conjuncts)
             network.addDisjunctionConstraint(disjuncts)
-    else:
-        print("Unsupported input spec")
-    return network
+
+
+    queryName = f"{ipq_output}_{query_id}"
+    network.saveQuery(queryName)
+    inputVarsMap[query_id] = network.inputVars
+    outputVarsMap[query_id] = network.outputVars
+    queriesMap[query_id] = queryName
+    return
 
 
 if __name__ == "__main__":
