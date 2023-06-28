@@ -81,6 +81,8 @@ private:
         _upperBounds[var] = value;
     }
 
+    void transformDisjunctionConstraints();
+
     /*
       Transform the piecewise linear constraints if needed. For instance, this
       will make sure all disjuncts in all disjunctions contain only bounds and

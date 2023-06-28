@@ -803,7 +803,11 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         if len(inputShape) == 2 and inputShape[0] == 1:
             self.addSoftmaxConstraint(list(np.array(inVars).flatten()), list(np.array(outVars).flatten()))
         else:
-            axis = ( len(inputShape) + axis ) % len(inputShape)
+            if axis > len(inputShape) - 1:
+                if axis == len(inputShape):
+                    axis -= 1
+            else:
+                axis = ( len(inputShape) + axis ) % len(inputShape)
             perm = []
             for i, s in enumerate(inputShape):
                 if i == axis:
@@ -1440,6 +1444,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         # No new variables are needed, we just need to store the output in constantMap
         if firstInputConstant and secondInputConstant:
             self.constantMap[nodeName] = input1 + input2
+
             return
 
 

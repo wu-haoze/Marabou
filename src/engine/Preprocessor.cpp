@@ -67,6 +67,8 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
     */
     makeAllEquationsEqualities();
 
+    transformDisjunctionConstraints();
+
     /*
       Attempt to construct a network level reasoner
     */
@@ -104,6 +106,9 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
         if ( !constraint->supportVariableElimination() )
             for ( const auto &var : constraint->getParticipatingVariables() )
                 _uneliminableVariables.insert( var );
+    for ( const auto &constraint : _preprocessed->getTranscendentalConstraints() )
+        for ( const auto &var : constraint->getParticipatingVariables() )
+            _uneliminableVariables.insert( var );
 
     /*
       Set any missing bounds
@@ -199,10 +204,20 @@ void Preprocessor::separateMergedAndFixed()
           });
 }
 
+void Preprocessor::transformDisjunctionConstraints()
+{
+    for ( auto &plConstraint : _preprocessed->getPiecewiseLinearConstraints() ) {
+        if (plConstraint->getType() == DISJUNCTION)
+            plConstraint->transformToUseAuxVariables( *_preprocessed );
+    }
+}
+
 void Preprocessor::transformConstraintsIfNeeded()
 {
-    for ( auto &plConstraint : _preprocessed->getPiecewiseLinearConstraints() )
-        plConstraint->transformToUseAuxVariables( *_preprocessed );
+    for ( auto &plConstraint : _preprocessed->getPiecewiseLinearConstraints() ) {
+        if (plConstraint->getType() != DISJUNCTION)
+            plConstraint->transformToUseAuxVariables( *_preprocessed );
+    }
 }
 
 void Preprocessor::makeAllEquationsEqualities()

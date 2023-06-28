@@ -78,6 +78,16 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     #test_network(network)
 
     inputVars = network.inputVars[0].flatten()
+
+
+    input_spec, _ = box_spec_list[0]
+    for i in range(len(input_spec)):
+        lb, ub = input_spec[i]
+        mid = (lb + ub) / 2
+        lb = mid - 0.002
+        ub = mid + 0.002
+        input_spec[i] = (lb, ub)
+
     if len(box_spec_list) == 1:
         pert_dim = 0
         input_spec, _ = box_spec_list[0]
@@ -129,6 +139,7 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
                 disjuncts.append(conjuncts)
             network.addDisjunctionConstraint(disjuncts)
 
+    print("Number of disunctions:", len(network.disjunctionList))
 
     queryName = f"{ipq_output}_{query_id}"
     network.saveQuery(queryName)
