@@ -18,17 +18,19 @@ import numpy as np
 import onnx
 import onnxruntime
 from onnx import numpy_helper
+import os
 from onnx.helper import get_attribute_value
 from maraboupy import MarabouUtils
 from maraboupy import MarabouNetwork
 from onnx import TensorProto
 import itertools
 import torch
+import tempfile
 
 class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
     def __init__(self, filename, inputNames=None, outputNames=None,
-                 equalityThreshold=5000, nonlinearityThreshold=5000,
+                 equalityThreshold=10000, nonlinearityThreshold=10000,
                  candidateSubONNXFileName=None):
         super().__init__()
         self.thresholdReached = False
@@ -186,7 +188,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
             self.inputVars += [np.array(self.varMap[nodeName])]
 
     def splitNetworkAtNode(self, nodeName):
-        print(f"Attempting to split the network at node {nodeName}")
+        print(f"Attempting to split the network at node {nodeName}...")
         assert(len(self.outputNames) == 1)
         currentNodeName = self.outputNames[0]
         noResidualAfter = True
@@ -203,7 +205,6 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         noResidualBefore = True
         while currentNodeName != self.inputNames[0]:
             inNodeNames = self.getInputNodes(currentNodeName)
-            print(inNodeNames)
             numVariableNode = 0
             for inNodeName in inNodeNames:
                 if inNodeName in self.constantMap:
@@ -226,6 +227,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
                                      input_names=[outputName],
                                      output_names=self.outputNames)
             self.outputNames = [outputName]
+            print(f"Attempting to split the network at node {nodeName} - successful!")
             return True
         else:
             return False
@@ -241,6 +243,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         :meta private:
         """
         node = self.getNode(nodeName)
+        print(node.op_type)
         if node.op_type == 'Constant':
             self.constant(node)
         elif node.op_type == 'Identity': 
@@ -253,6 +256,10 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
             self.flatten(node)
         elif node.op_type == "Transpose":
             self.transpose(node)
+        elif node.op_type == 'Slice':
+            self.slice(node)
+        elif node.op_type == 'Gather':
+            self.gather(node)
         elif node.op_type == "BatchNormalization":
             self.batchNorm(node, makeEquations)
         elif node.op_type == 'Concat':
@@ -273,6 +280,8 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
             self.reluEquations(node, makeEquations)
         elif node.op_type == 'Sigmoid':
             self.sigmoidEquations(node, makeEquations)
+        elif node.op_type == 'Sign':
+            self.signEquations(node, makeEquations)
         elif node.op_type == 'Split':
             self.splitEquations(node, nodeName, makeEquations)
         elif node.op_type == 'Resize':
@@ -496,6 +505,94 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         elif inputName in self.constantMap:
             self.constantMap[nodeName] = np.transpose(self.constantMap[inputName], perm)
 
+    def slice(self, node):
+        """Function representing slice
+
+        Args:
+            node (node): ONNX node representing slice operation
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+        inputName, starts, ends, axes, steps = node.input
+        # create a temporary file in the current directory
+        tf = tempfile.NamedTemporaryFile(dir=".")
+
+        # get the file name
+        temp_file_name = tf.name
+        print(temp_file_name)
+
+        # close the file
+        tf.close()
+        onnx.utils.extract_model(self.filename, temp_file_name,
+                                 input_names=[inputName],
+                                 output_names=[nodeName])
+        session = onnxruntime.InferenceSession(temp_file_name)
+        os.remove(temp_file_name)
+
+        # get the input and output names
+        input_name = session.get_inputs()[0].name
+        output_name = session.get_outputs()[0].name
+
+        if inputName in self.varMap:
+            # prepare the input data
+            input_data = np.array(self.varMap[inputName], dtype="float32")
+            # run the inference session and get the output predictions
+            output_data = session.run([output_name], {input_name: input_data})[0].astype(int)
+            self.shapeMap[nodeName] = output_data.shape
+            self.varMap[nodeName] = output_data
+        else:
+            # prepare the input data
+            input_data = np.array(self.constantMap[inputName], dtype="float32")
+            # run the inference session and get the output predictions
+            output_data = session.run([output_name], {input_name: input_data})[0].astype(int)
+            self.shapeMap[nodeName] = output_data.shape
+            self.constantMap[nodeName] = output_data
+
+    def gather(self, node):
+        """Function representing gather
+
+        Args:
+            node (node): ONNX node representing gather operation
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+        inputName = node.input[0]
+        # create a temporary file in the current directory
+        tf = tempfile.NamedTemporaryFile(dir=".")
+
+        # get the file name
+        temp_file_name = tf.name
+
+        # close the file
+        tf.close()
+        onnx.utils.extract_model(self.filename, temp_file_name,
+                                 input_names=[inputName],
+                                 output_names=[nodeName])
+        session = onnxruntime.InferenceSession(temp_file_name)
+        os.remove(temp_file_name)
+
+        # get the input and output names
+        input_name = session.get_inputs()[0].name
+        output_name = session.get_outputs()[0].name
+
+        if inputName in self.varMap:
+            # prepare the input data
+            input_data = np.array(self.varMap[inputName], dtype="float32")
+            # run the inference session and get the output predictions
+            output_data = session.run([output_name], {input_name: input_data})[0].astype(int)
+            self.shapeMap[nodeName] = output_data.shape
+            self.varMap[nodeName] = output_data
+        else:
+            # prepare the input data
+            input_data = np.array(self.constantMap[inputName], dtype="float32")
+            # run the inference session and get the output predictions
+            output_data = session.run([output_name], {input_name: input_data})[0].astype(int)
+            self.shapeMap[nodeName] = output_data.shape
+            self.constantMap[nodeName] = output_data
+
+
     def batchNorm(self, node, makeEquations):
         """Function to generate equations for a BatchNormalization
 
@@ -539,8 +636,8 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
                 # To know this computation,
                 # refer to https://github.com/onnx/onnx/blob/master/docs/Operators.md#batchnormalization.
                 e = MarabouUtils.Equation()
-                e.addAddend(-1, outputVars[i][j])
                 e.addAddend(1 / np.sqrt(input_variances[i] + epsilon) * scales[i], inputVars[i][j])
+                e.addAddend(-1, outputVars[i][j])
                 e.setScalar(input_means[i] / np.sqrt(input_variances[i] + epsilon) * scales[i] - biases[i])
                 self.addEquation(e)
 
@@ -554,7 +651,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         :meta private:
         """
         nodeName = node.output[0]
-        
+
         # Extract attributes and define shape
         inputShape = self.shapeMap[node.input[0]]
         kernel_shape = [1, 1]
@@ -564,15 +661,15 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
                 kernel_shape = get_attribute_value(attr)
             elif attr.name == 'strides':
                 strides = get_attribute_value(attr)
-                
+
         outputShape = [dim for dim in inputShape]
         outputShape[2] = int(np.ceil((inputShape[2] - ((kernel_shape[0] - 1) + 1) + 1) / strides[0]))
         outputShape[3] = int(np.ceil((inputShape[3] - ((kernel_shape[1] - 1) + 1) + 1) / strides[1]))
         self.shapeMap[nodeName] = outputShape
-        
+
         if not makeEquations:
             return
-        
+
         inVars = self.varMap[node.input[0]]
         outVars = self.makeNewVariables(nodeName)
         for i in range(outputShape[2]):
@@ -604,65 +701,121 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
                 strides = get_attribute_value(attr)
             elif attr.name == 'pads':
                 pads = get_attribute_value(attr)
-        pad_left, pad_bottom, pad_right, pad_top = pads
-                
-        # Get input shape information
-        # First input should be variable tensor, the second a weight matrix defining filters
-        shape0 = self.shapeMap[node.input[0]]
-        shape1 = self.shapeMap[node.input[1]]
-        input_channels = shape0[1]
-        input_width = shape0[2]
-        input_height = shape0[3]
-        num_filters = shape1[0]
-        filter_channels = shape1[1]
-        filter_width = shape1[2]
-        filter_height = shape1[3]
-        
-        # The third input is optional and specifies a bias for each filter
-        # Bias is 0 if third input is not given
-        biases = np.zeros(num_filters)
-        if len(node.input) == 3:
-            biases = self.constantMap[node.input[2]]
+        if len(pads) == 2:
+            pad_left, pad_right = pads
 
-        # The number of channels should match between input variable and filters
-        assert input_channels == filter_channels
+            # Get input shape information
+            # First input should be variable tensor, the second a weight matrix defining filters
+            shape0 = self.shapeMap[node.input[0]]
+            shape1 = self.shapeMap[node.input[1]]
+            print(shape0, shape1)
+            input_channels = shape0[1]
+            input_width = shape0[2]
+            num_filters = shape1[0]
+            filter_channels = shape1[1]
+            filter_width = shape1[2]
 
-        # Compute output shape
-        out_width = (input_width - filter_width + pad_left + pad_right) // strides[0] + 1
-        out_height = (input_height - filter_height + pad_bottom + pad_top) // strides[1] + 1
-        out_channels = num_filters
-        self.shapeMap[nodeName] = [shape0[0], out_channels, out_width, out_height]
-        
-        if not makeEquations:
-            return
-        
-        inVars = self.varMap[node.input[0]]
-        weights = self.constantMap[node.input[1]]
-        outVars = self.makeNewVariables(nodeName)
+            # The third input is optional and specifies a bias for each filter
+            # Bias is 0 if third input is not given
+            biases = np.zeros(num_filters)
+            if len(node.input) == 3:
+                biases = self.constantMap[node.input[2]]
 
-        ### Generate actual equations ###
-        # There is one equation for every output variable
-        for i in range(out_width):
-            for j in range(out_height):
+            # The number of channels should match between input variable and filters
+            assert input_channels == filter_channels
+
+            # Compute output shape
+            out_width = (input_width - filter_width + pad_left + pad_right) // strides[0] + 1
+            out_channels = num_filters
+            self.shapeMap[nodeName] = [shape0[0], out_channels, out_width]
+
+            if not makeEquations:
+                return
+
+            inVars = self.varMap[node.input[0]]
+            weights = self.constantMap[node.input[1]]
+            outVars = self.makeNewVariables(nodeName)
+
+            ### Generate actual equations ###
+            # There is one equation for every output variable
+            for i in range(out_width):
                 for k in range(out_channels): # Out_channel corresponds to filter number
                     e = MarabouUtils.Equation()
 
                     # The equation convolves the filter with the specified input region
                     # Iterate over the filter
                     for di in range(filter_width):
-                        for dj in range(filter_height):
-                            for dk in range(filter_channels):
-                                w_ind = int(strides[0]*i+di - pad_left)
-                                h_ind = int(strides[1]*j+dj - pad_bottom)
-                                if h_ind < input_height and h_ind >= 0 and w_ind < input_width and w_ind >= 0:
-                                    var = inVars[0][dk][w_ind][h_ind]
-                                    c = weights[k][dk][di][dj]
-                                    e.addAddend(c, var)
+                        for dk in range(filter_channels):
+                            w_ind = int(strides[0]*i+di - pad_left)
+                            if w_ind < input_width and w_ind >= 0:
+                                var = inVars[0][dk][w_ind]
+                                c = weights[k][dk][di]
+                                e.addAddend(c, var)
 
                     # Add output variable
-                    e.addAddend(-1, outVars[0][k][i][j])
+                    e.addAddend(-1, outVars[0][k][i])
                     e.setScalar(-biases[k])
                     self.addEquation(e)
+        else:
+            pad_left, pad_bottom, pad_right, pad_top = pads
+
+            # Get input shape information
+            # First input should be variable tensor, the second a weight matrix defining filters
+            shape0 = self.shapeMap[node.input[0]]
+            shape1 = self.shapeMap[node.input[1]]
+            input_channels = shape0[1]
+            input_width = shape0[2]
+            input_height = shape0[3]
+            num_filters = shape1[0]
+            filter_channels = shape1[1]
+            filter_width = shape1[2]
+            filter_height = shape1[3]
+
+            # The third input is optional and specifies a bias for each filter
+            # Bias is 0 if third input is not given
+            biases = np.zeros(num_filters)
+            if len(node.input) == 3:
+                biases = self.constantMap[node.input[2]]
+
+            # The number of channels should match between input variable and filters
+            assert input_channels == filter_channels
+
+            # Compute output shape
+            out_width = (input_width - filter_width + pad_left + pad_right) // strides[0] + 1
+            out_height = (input_height - filter_height + pad_bottom + pad_top) // strides[1] + 1
+            out_channels = num_filters
+            self.shapeMap[nodeName] = [shape0[0], out_channels, out_width, out_height]
+
+            if not makeEquations:
+                return
+
+            inVars = self.varMap[node.input[0]]
+            weights = self.constantMap[node.input[1]]
+            outVars = self.makeNewVariables(nodeName)
+
+            ### Generate actual equations ###
+            # There is one equation for every output variable
+            for i in range(out_width):
+                for j in range(out_height):
+                    for k in range(out_channels): # Out_channel corresponds to filter number
+                        e = MarabouUtils.Equation()
+
+                        # The equation convolves the filter with the specified input region
+                        # Iterate over the filter
+                        for di in range(filter_width):
+                            for dj in range(filter_height):
+                                for dk in range(filter_channels):
+                                    w_ind = int(strides[0]*i+di - pad_left)
+                                    h_ind = int(strides[1]*j+dj - pad_bottom)
+                                    if h_ind < input_height and h_ind >= 0 and w_ind < input_width and w_ind >= 0:
+                                        var = inVars[0][dk][w_ind][h_ind]
+                                        c = weights[k][dk][di][dj]
+                                        e.addAddend(c, var)
+
+                        # Add output variable
+                        e.addAddend(-1, outVars[0][k][i][j])
+                        e.setScalar(-biases[k])
+                        self.addEquation(e)
         
     def gemmEquations(self, node, makeEquations):  
         """Function to generate equations corresponding to Gemm (general matrix multiplication)
@@ -754,7 +907,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         self.shapeMap[nodeName] = shape1[:-1] + shape2[1:]
         if not makeEquations:
             return
-            
+
         firstInputConstant = False; secondInputConstant = False
         if inputName1 in self.constantMap:
             input1 = self.constantMap[inputName1]
@@ -966,7 +1119,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         # Get the inputs
         inputName1, inputName2 = node.input
         shape1 = self.shapeMap[inputName1]
-        # shape2 = self.shapeMap[inputName2] # comment out since this is never used.
+        shape2 = self.shapeMap[inputName2]
 
 
         # Get the broadcasted shape
@@ -981,12 +1134,21 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         input1 = input1.reshape(-1)
         outputVariables = outputVariables.reshape(-1)
 
-        for i in range(len(input1)):
-            e = MarabouUtils.Equation()
-            e.addAddend(multiple, input1[i])
-            e.addAddend(-1, outputVariables[i])
-            e.setScalar(0.0)
-            self.addEquation(e)
+        if hasattr(multiple, "__len__"):
+            multiple = multiple.reshape(input1.shape)
+            for i in range(len(input1)):
+                e = MarabouUtils.Equation()
+                e.addAddend(multiple[i], input1[i])
+                e.addAddend(-1, outputVariables[i])
+                e.setScalar(0.0)
+                self.addEquation(e)
+        else:
+            for i in range(len(input1)):
+                e = MarabouUtils.Equation()
+                e.addAddend(multiple, input1[i])
+                e.addAddend(-1, outputVariables[i])
+                e.setScalar(0.0)
+                self.addEquation(e)
         return
 
     def addEquations(self, node, makeEquations):
@@ -1072,6 +1234,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         numEquationsChanged = 0
         for equ in self.equList:
             (c,var) = equ.addendList[-1]
+            #print(c, var)
             assert c == -1
             if var in varInput:
                 ind = np.where(var == varInput)[0][0]
@@ -1147,7 +1310,34 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         for f in outputVars:
             self.setLowerBound(f, 0.0)
             self.setUpperBound(f, 1.0)
-    
+
+    def signEquations(self, node, makeEquations):
+        """Function to generate equations corresponding to Sign
+
+        Args:
+            node (node): ONNX node representing the Sign operation
+            makeEquations (bool): True if we need to create new variables and add new Sign
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+        inputName = node.input[0]
+        self.shapeMap[nodeName] = self.shapeMap[inputName]
+        if not makeEquations:
+            return
+
+        # Get variables
+        inputVars = self.varMap[inputName].reshape(-1)
+        outputVars = self.makeNewVariables(nodeName).reshape(-1)
+        assert len(inputVars) == len(outputVars)
+
+        # Generate equations
+        for i in range(len(inputVars)):
+            self.addSign(inputVars[i], outputVars[i])
+        for f in outputVars:
+            self.setLowerBound(f, -1.0)
+            self.setUpperBound(f, 1.0)
+
     def tanhEquations(self, node, makeEquations):
         """Function to generate equations corresponding to Tanh
 

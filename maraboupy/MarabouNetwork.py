@@ -125,6 +125,15 @@ class MarabouNetwork:
         """
         self.sigmoidList += [(v1, v2)]
 
+    def addSign(self, v1, v2):
+        """Function to add a new Sign constraint
+
+        Args:
+            v1 (int): Variable representing input of Sign
+            v2 (int): Variable representing output of Sign
+        """
+        self.signList += [(v1, v2)]
+
     def addMaxConstraint(self, elements, v):
         """Function to add a new Max constraint
 

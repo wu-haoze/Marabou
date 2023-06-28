@@ -60,15 +60,23 @@ def toMarabouEquation(equation):
         eq.addAddend(c, x)
     return eq
 
+def test_network(network_object):
+    testInputs = [np.random.random(inVars.shape) for inVars in network_object.inputVars]
+    outputsMarabou = network_object.evaluateWithMarabou(testInputs)
+    outputsONNX = network_object.evaluateWithoutMarabou(testInputs)
+    print("Testing",  max(outputsMarabou[0] - outputsONNX[0]))
+
 def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     query_id = 1
     inputVarsMap = dict()
     outputVarsMap = dict()
     queriesMap = dict()
 
-    candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id}.onnx"
+    candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
     network = MarabouNetworkONNXThresh(onnx_file,
                                        candidateSubONNXFileName=candidateSubONNXFileName)
+    test_network(network)
+
     inputVars = network.inputVars[0].flatten()
     if len(box_spec_list) == 1:
         pert_dim = 0
@@ -92,10 +100,10 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
 
         onnxFile = network.subONNXFile
         del network
-        candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id}.onnx"
+        query_id += 1
+        candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
         network = MarabouNetworkONNXThresh(onnxFile,
                                            candidateSubONNXFileName=candidateSubONNXFileName)
-        query_id += 1
 
     outputVars = network.outputVars[0].flatten()
     if len(box_spec_list) == 1:

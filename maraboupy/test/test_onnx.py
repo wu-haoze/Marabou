@@ -245,18 +245,18 @@ def evaluateFile(filename, inputNames = None, outputNames = None, testInputs = N
     # Load network relative to this file's location
     filename = os.path.join(os.path.dirname(__file__), NETWORK_FOLDER, filename)
     network = Marabou.read_onnx(filename, inputNames = inputNames, outputNames = outputNames)
-    
+
     # Create test points if none provided. This creates a list of test points.
     # Each test point is itself a list, representing the values for each input array.
     if not testInputs:
         testInputs = [[np.random.random(inVars.shape) for inVars in network.inputVars] for _ in range(numPoints)]
-    
+
     # Evaluate test points using both Marabou and ONNX, and assert that the error is less than TOL
     for testInput in testInputs:
         err = network.findError(testInput, options=OPT, filename="")
         for i in range(len(err)):
             assert max(err[i].flatten()) < TOL
-    
+
 def evaluateIntermediateLayers(filename, inputNames = None, outputNames = None, intermediateNames = None, testInputs = None, numPoints = None):
     """
     This function loads three networks: the full network, the initial portion up to the intermediate layer, and 
