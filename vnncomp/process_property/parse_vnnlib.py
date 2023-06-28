@@ -16,7 +16,6 @@ from maraboupy import MarabouCore
 from maraboupy.MarabouUtils import *
 
 def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
-    # Load the onnx model
     model = onnx.load(onnx_file)
 
     # Get the input and output nodes
@@ -64,6 +63,7 @@ def test_network(network_object):
     testInputs = [np.random.random(inVars.shape) for inVars in network_object.inputVars]
     outputsMarabou = network_object.evaluateWithMarabou(testInputs)
     outputsONNX = network_object.evaluateWithoutMarabou(testInputs)
+    print(outputsMarabou, outputsONNX)
     print("Testing",  max(outputsMarabou[0] - outputsONNX[0]))
 
 def create_marabou_query(onnx_file, box_spec_list, ipq_output):
@@ -75,7 +75,7 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
     network = MarabouNetworkONNXThresh(onnx_file,
                                        candidateSubONNXFileName=candidateSubONNXFileName)
-    test_network(network)
+    #test_network(network)
 
     inputVars = network.inputVars[0].flatten()
     if len(box_spec_list) == 1:

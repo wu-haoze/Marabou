@@ -163,6 +163,9 @@ void OptionParser::initialize()
         ( "no-parallel-deepsoi",
           boost::program_options::bool_switch( &(*_boolOptions)[Options::NO_PARALLEL_DEEPSOI] )->default_value( (*_boolOptions)[Options::NO_PARALLEL_DEEPSOI] ),
           "Do not use the parallel deep-soi solving mode when multiple threads are allowed." )
+        ( "softmax-bound",
+          boost::program_options::value<std::string>( &(*_stringOptions)[Options::SOFTMAX_BOUND_TYPE] )->default_value( (*_stringOptions)[Options::SOFTMAX_BOUND_TYPE] ),
+          "Softmax bound type." )
 #ifdef ENABLE_GUROBI
         ( "lp-solver",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::LP_SOLVER]) )->default_value( (*_stringOptions)[Options::LP_SOLVER] ),

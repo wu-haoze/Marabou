@@ -45,6 +45,9 @@ public:
         MAX,
         SIGN,
         SIGMOID,
+        SOFTMAX,
+
+        QUADRATIC,
     };
 
     /*

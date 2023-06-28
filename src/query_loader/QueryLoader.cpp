@@ -23,9 +23,11 @@
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "MaxConstraint.h"
+#include "QuadraticConstraint.h"
 #include "QueryLoader.h"
 #include "ReluConstraint.h"
 #include "SignConstraint.h"
+#include "SoftmaxConstraint.h"
 
 InputQuery QueryLoader::loadQuery( const String &fileName )
 {
@@ -225,6 +227,21 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
         else if ( coType == "sigmoid")
         {
             inputQuery.addTranscendentalConstraint( new SigmoidConstraint( serializeConstraint ) );
+        }
+        else if ( coType == "softmax")
+        {
+            SoftmaxConstraint *softmax = new SoftmaxConstraint( serializeConstraint );
+            inputQuery.addTranscendentalConstraint(softmax);
+            Equation eq;
+            for ( const auto &output : softmax->getOutputs() )
+                eq.addAddend(1, output);
+            eq.setScalar(1);
+            inputQuery.addEquation(eq);
+        }
+        else if ( coType == "quad")
+        {
+            QuadraticConstraint *quad = new QuadraticConstraint( serializeConstraint );
+            inputQuery.addTranscendentalConstraint(quad);
         }
         else
         {

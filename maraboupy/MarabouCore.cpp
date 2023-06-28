@@ -38,9 +38,11 @@
 #include "Options.h"
 #include "PiecewiseLinearConstraint.h"
 #include "PropertyParser.h"
+#include "QuadraticConstraint.h"
 #include "QueryLoader.h"
 #include "ReluConstraint.h"
 #include "Set.h"
+#include "SoftmaxConstraint.h"
 #include "SnCDivideStrategy.h"
 #include "SigmoidConstraint.h"
 #include "SignConstraint.h"
@@ -96,6 +98,12 @@ void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
     ipq.addPiecewiseLinearConstraint(r);
 }
 
+void addQuadConstraint(InputQuery& ipq, unsigned var1, unsigned var2,
+                       unsigned var3){
+  TranscendentalConstraint* r = new QuadraticConstraint(var1, var2, var3);
+  ipq.addTranscendentalConstraint(r);
+}
+
 void addSigmoidConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
     TranscendentalConstraint* s = new SigmoidConstraint(var1, var2);
     ipq.addTranscendentalConstraint(s);
@@ -112,6 +120,20 @@ void addMaxConstraint(InputQuery& ipq, std::set<unsigned> elements, unsigned v){
         e.insert(var);
     PiecewiseLinearConstraint* m = new MaxConstraint(v, e);
     ipq.addPiecewiseLinearConstraint(m);
+}
+
+void addSoftmaxConstraint( InputQuery& ipq, std::list<unsigned> inputs,
+                           std::list<unsigned> outputs ){
+  Vector<unsigned> inputList;
+  for ( const auto &e :inputs )
+    inputList.append(e);
+
+  Vector<unsigned> outputList;
+  for ( const auto &e :outputs )
+    outputList.append(e);
+
+  SoftmaxConstraint *s = new SoftmaxConstraint(inputList, outputList);
+  ipq.addTranscendentalConstraint(s);
 }
 
 void addAbsConstraint(InputQuery& ipq, unsigned b, unsigned f){
@@ -562,6 +584,16 @@ PYBIND11_MODULE(MarabouCore, m) {
             var2 (int): Output variable to Relu constraint
         )pbdoc",
         py::arg("inputQuery"), py::arg("var1"), py::arg("var2"));
+    m.def("addQuadConstraint", &addQuadConstraint, R"pbdoc(
+        Add a Quad constraint to the InputQuery
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            var1 (int): Input variable to Quad constraint
+            var2 (int): Input variable to Quad constraint
+            var3 (int): Output variable to Quad constraint
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("var1"), py::arg("var2"), py::arg("var3"));
+
     m.def("addSigmoidConstraint", &addSigmoidConstraint, R"pbdoc(
         Add a Sigmoid constraint to the InputQuery
 
@@ -589,6 +621,14 @@ PYBIND11_MODULE(MarabouCore, m) {
             v (int): Output variable from max constraint
         )pbdoc",
         py::arg("inputQuery"), py::arg("elements"), py::arg("v"));
+    m.def("addSoftmaxConstraint", &addSoftmaxConstraint, R"pbdoc(
+        Add a Softmax constraint to the InputQuery
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            inputs (list of int): Input variables to softmax constraint
+            outputs (list of int): Output variables from softmax constraint
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("inputs"), py::arg("outputs"));
     m.def("addAbsConstraint", &addAbsConstraint, R"pbdoc(
         Add an Abs constraint to the InputQuery
 
