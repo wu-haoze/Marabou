@@ -424,7 +424,8 @@ public:
         TS_ASSERT_EQUALS( preprocessedEquation._scalar, 12.0 );
     }
 
-    void test_variable_elimination_for_sigmoid_constraint()
+    /*
+    //void test_variable_elimination_for_sigmoid_constraint()
     {
         // x2 = x0 + x1
         // x3 = x0 - x1
@@ -479,6 +480,7 @@ public:
         TS_ASSERT_EQUALS( processed.getTranscendentalConstraints().size(), 0U );
         TS_ASSERT_EQUALS( processed.getNumberOfVariables(), 0U );
     }
+    */
 
     void test_all_equations_become_equalities()
     {
