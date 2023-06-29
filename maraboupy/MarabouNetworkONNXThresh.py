@@ -266,12 +266,16 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
             self.gather(node)
         elif node.op_type == 'Unsqueeze':
             self.unsqueeze(node)
+        elif node.op_type == 'Upsample':
+            self.upsample(node)
         elif node.op_type == "BatchNormalization":
             self.batchNorm(node, makeEquations)
         elif node.op_type == 'Concat':
             self.concatEquations(node)
         elif node.op_type == "MaxPool":
             self.maxpoolEquations(node, makeEquations)
+        elif node.op_type == "ConvTranspose":
+            self.convTransposeEquations(node, makeEquations)
         elif node.op_type == "Conv":
             self.convEquations(node, makeEquations)
         elif node.op_type == 'Gemm':
@@ -685,6 +689,48 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
             self.constantMap[nodeName] = output_data
 
 
+    def upsample(self, node):
+        """Function to generate equations corresponding to upsample
+
+        Args:
+            node (node): ONNX node representing the Resize operation
+            makeEquations (bool): True if we need to create new variables and write Marabou equations
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+        inputName, scaleName = node.input[0], node.input[1]
+
+        # Check number of dimension of input
+        inputVars = self.varMap[inputName]
+        inputShape = inputVars.shape
+        assert(inputVars.ndim == 4)
+
+        # Get and check attributes
+        mode = None
+
+        for attr in node.attribute:
+            if attr.name == "mode":
+                mode = get_attribute_value(attr)
+        assert(mode is None or mode == b"nearest")
+
+        # Get scales
+        scales = self.constantMap[scaleName]
+        assert(len(scales) == inputVars.ndim)
+
+        # Set output shape
+        outputShape = (int(inputShape[0] * scales[0]), int(inputShape[1] * scales[1]),
+                       int(inputShape[2] * scales[2]), int(inputShape[3] * scales[3]))
+        self.shapeMap[nodeName] = outputShape
+
+        # Get variables
+        outVars = inputVars
+        for i in range(4):
+            outVars = np.repeat(outVars, scales[i], i)
+        assert(outVars.shape == outputShape)
+        self.varMap[nodeName] = outVars
+
+
     def batchNorm(self, node, makeEquations):
         """Function to generate equations for a BatchNormalization
 
@@ -861,6 +907,108 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
                 e.setScalar(0)
                 self.addEquation(e)
         return
+
+    def insert_value(self, arr, value, z_width, z_height):
+        newWidth = (arr.shape[0] - 1) * z_width + arr.shape[0]
+        newHeight = (arr.shape[1] - 1) * z_height + arr.shape[1]
+        resultArr = (np.ones((newWidth, newHeight)) * value).astype(int)
+        for i in range(newWidth):
+            for j in range(newHeight):
+                if i % (1 + z_width) == 0 and j % (1 + z_height) == 0:
+                    resultArr[i][j] = arr[int(i / (1 + z_width))][int(j / (1 + z_height))]
+        return resultArr
+
+    def convTransposeEquations(self, node, makeEquations):
+        """Function to generate equations for a 2D convolution
+
+        Args:
+            node (node): ONNX node representing the 2D Convolution operation
+            makeEquations (bool): True if we need to create new variables and write Marabou equations
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+
+        # Extract information about convolution
+        for attr in node.attribute:
+            auto_pad = None
+            if attr.name == 'strides':
+                strides = get_attribute_value(attr)
+            elif attr.name == "auto_pad":
+                auto_pad = get_attribute_value(attr)
+            elif attr.name == "kernel_shape":
+                filter_width, filter_height = get_attribute_value(attr)
+            elif attr.name == 'pads':
+                pad_left, pad_bottom, pad_right, pad_top = get_attribute_value(attr)
+
+        assert(auto_pad is None or auto_pad == b'NOTSET')
+        #assert(pad_left == 0 and pad_bottom == 0 and pad_right == 0 and pad_top == 0)
+
+        # Get input shape information
+        # First input should be variable tensor, the second a weight matrix defining filters
+        shape0 = self.shapeMap[node.input[0]]
+        shape1 = self.shapeMap[node.input[1]]
+        input_channels = shape0[1]
+        input_width = shape0[2]
+        input_height = shape0[3]
+        num_filters = shape1[1]
+        filter_channels = shape1[0]
+
+        # The number of channels should match between input variable and filters
+        assert input_channels == filter_channels
+
+        # Compute output shape
+        out_width = (input_width - 1) * strides[0] + filter_width #- pad_left - pad_right
+        out_height = (input_height - 1) * strides[1] + filter_height #- pad_bottom - pad_top
+        out_channels = num_filters
+        self.shapeMap[nodeName] = [shape0[0], out_channels, out_width, out_height]
+        if not makeEquations:
+            return
+
+        inVars = self.varMap[node.input[0]]
+        weights = self.constantMap[node.input[1]]
+
+        # The third input is optional and specifies a bias for each filter
+        # Bias is 0 if third input is not given
+        biases = np.zeros(num_filters)
+        if len(node.input) == 3:
+            biases = self.constantMap[node.input[2]]
+
+        outVars = self.makeNewVariables(nodeName)
+
+        for k in range(out_channels): # Out_channel corresponds to filter number
+            indexToAddends = dict()
+            for i in range(out_width):
+                for j in range(out_height):
+                    indexToAddends[(i,j)] = []
+
+            for i in range(input_width):
+                for j in range(input_height):
+                    for di in range(filter_width):
+                        for dj in range(filter_height):
+                            w_ind = int(strides[0] * i+di)
+                            h_ind = int(strides[1] * j+dj)
+                            for dk in range(filter_channels):
+                                var = inVars[0][dk][i][j]
+                                c = weights[dk][k][di][dj]
+                                indexToAddends[(w_ind, h_ind)].append((c, var))
+
+            for i in range(out_width):
+                for j in range(out_height):
+                    e = MarabouUtils.Equation()
+                    for c, v in indexToAddends[(i,j)]:
+                        e.addAddend(c, v)
+                    e.addAddend(-1, outVars[0][k][i][j])
+                    e.setScalar(-biases[k])
+                    self.addEquation(e)
+
+        if pad_left > 0 and pad_top > 0:
+            out_width -= (pad_left + pad_right)
+            out_height -= (pad_bottom + pad_top)
+            self.shapeMap[nodeName] = [shape0[0], out_channels, out_width, out_height]
+            outVars = outVars[:,:,pad_left:-pad_right,pad_top:-pad_bottom]
+            self.varMap[nodeName] = outVars
+
 
     def convEquations(self, node, makeEquations):
         """Function to generate equations for a 2D convolution

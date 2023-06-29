@@ -14,8 +14,13 @@ from maraboupy.MarabouNetworkONNX import *
 from maraboupy.MarabouNetworkONNXThresh import *
 from maraboupy import MarabouCore
 from maraboupy.MarabouUtils import *
+from maraboupy.Marabou import createOptions
 
 def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
+    network = MarabouNetworkONNXThresh("/home/haozewu/Projects/vnncomp-23/vnncomp2023_benchmarks/benchmarks/cgan/onnx/split.onnx")
+    test_network(network)
+    exit(0)
+
     model = onnx.load(onnx_file)
 
     # Get the input and output nodes
@@ -61,10 +66,11 @@ def toMarabouEquation(equation):
 
 def test_network(network_object):
     testInputs = [np.random.random(inVars.shape) for inVars in network_object.inputVars]
-    outputsMarabou = network_object.evaluateWithMarabou(testInputs)
+    options = createOptions(tighteningStrategy="none")
+    outputsMarabou = network_object.evaluateWithMarabou(testInputs, options=options)
     outputsONNX = network_object.evaluateWithoutMarabou(testInputs)
-    print(outputsMarabou, outputsONNX)
-    print("Testing",  max(outputsMarabou[0] - outputsONNX[0]))
+    print(outputsMarabou[0][0][0][0], outputsONNX[0][0][0][0])
+    #print("Testing",  max(outputsMarabou[0][0] - outputsONNX[0][0]))
 
 def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     query_id = 1
@@ -78,15 +84,6 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     #test_network(network)
 
     inputVars = network.inputVars[0].flatten()
-
-
-    input_spec, _ = box_spec_list[0]
-    for i in range(len(input_spec)):
-        lb, ub = input_spec[i]
-        mid = (lb + ub) / 2
-        lb = mid - 0.002
-        ub = mid + 0.002
-        input_spec[i] = (lb, ub)
 
     if len(box_spec_list) == 1:
         pert_dim = 0

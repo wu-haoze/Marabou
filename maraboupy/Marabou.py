@@ -17,7 +17,6 @@ import warnings
 from maraboupy.MarabouCore import *
 
 from maraboupy.MarabouNetworkONNX import *
-from maraboupy.MarabouNetworkONNXThesh import *
 
 def read_nnet(filename, normalize=False):
     """Constructs a MarabouNetworkNnet object from a .nnet file
