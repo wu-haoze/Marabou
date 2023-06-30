@@ -38,3 +38,14 @@ void TranscendentalConstraint::registerConstraintBoundTightener( IConstraintBoun
 {
     _constraintBoundTightener = tightener;
 }
+
+
+void TranscendentalConstraint::addCutPoint( double x, bool above )
+{
+  _cutPts.insert( TranscendentalConstraint::CutPoint( x, above ) );
+}
+
+const std::set<TranscendentalConstraint::CutPoint> &TranscendentalConstraint::getCutPoints()
+{
+  return _cutPts;
+}

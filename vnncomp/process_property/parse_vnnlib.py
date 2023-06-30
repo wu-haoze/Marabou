@@ -17,9 +17,9 @@ from maraboupy.MarabouUtils import *
 from maraboupy.Marabou import createOptions
 
 def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
-    network = MarabouNetworkONNXThresh("/home/haozewu/Projects/vnncomp-23/vnncomp2023_benchmarks/benchmarks/cgan/onnx/split.onnx")
-    test_network(network)
-    exit(0)
+    #network = MarabouNetworkONNXThresh("/home/haozewu/Projects/vnncomp-23/vnncomp2023_benchmarks/benchmarks/cgan/onnx/split.onnx")
+    #test_network(network)
+    #exit(0)
 
     model = onnx.load(onnx_file)
 
@@ -143,6 +143,10 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     inputVarsMap[query_id] = network.inputVars
     outputVarsMap[query_id] = network.outputVars
     queriesMap[query_id] = queryName
+
+    with open(f"{ipq_output}.pickle", 'wb') as handle:
+        print("Saving query info to", f"{ipq_output}.pickle")
+        pickle.dump((query_id, queriesMap, inputVarsMap, outputVarsMap), handle, protocol=pickle.HIGHEST_PROTOCOL)
     return
 
 

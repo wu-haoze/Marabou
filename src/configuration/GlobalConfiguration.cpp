@@ -67,8 +67,6 @@ const bool GlobalConfiguration::USE_HARRIS_RATIO_TEST = true;
 
 const double GlobalConfiguration::SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT = 0.00000005;
 
-const double GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT = 20;
-
 const bool GlobalConfiguration::PREPROCESS_INPUT_QUERY = true;
 const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;
 const bool GlobalConfiguration::PL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING = true;
@@ -98,6 +96,13 @@ const GlobalConfiguration::BasisFactorizationType GlobalConfiguration::BASIS_FAC
 const unsigned GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD = 5;
 
 const unsigned GlobalConfiguration::DNC_DEPTH_THRESHOLD = 5;
+
+const double GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE = 1e-6;
+const double GlobalConfiguration::SIGMOID_INPUT_RANGE = 15;
+
+const bool GlobalConfiguration::SIGMOID_SECANT_LINES_AT_MIDDLE_POINT = false;
+const bool GlobalConfiguration::SIGMOID_CLIP_POINT_USE = true;
+const double GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION = 3;
 
 const double GlobalConfiguration::MINIMAL_COEFFICIENT_FOR_TIGHTENING = 0.01;
 const double GlobalConfiguration::LEMMA_CERTIFICATION_TOLERANCE = 0.0000001;

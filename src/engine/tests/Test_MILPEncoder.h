@@ -396,6 +396,9 @@ public:
         tableau1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
         tableau1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
 
+        sigmoid1->notifyLowerBound(0, 0);
+        sigmoid1->notifyUpperBound(0, 1);
+
         MILPEncoder milp1( tableau1 );
         milp1.encodeInputQuery( gurobi1, inputQuery1 );
 
@@ -436,6 +439,8 @@ public:
         inputQuery2.setUpperBound( 1, sigmoid2->sigmoid( -0.1 )  );
         tableau2.setLowerBound( 1, sigmoid2->sigmoid( -1 )  );
         tableau2.setUpperBound( 1, sigmoid2->sigmoid( -0.1 )  );
+        sigmoid2->notifyLowerBound(0, -1);
+        sigmoid2->notifyUpperBound(0, -0.1);
 
         MILPEncoder milp2( tableau2 );
         milp2.encodeInputQuery( gurobi2, inputQuery2 );
@@ -476,6 +481,8 @@ public:
         inputQuery3.setUpperBound( 1, sigmoid3->sigmoid( 1 ) );
         tableau3.setLowerBound( 1, sigmoid3->sigmoid( -1 ) );
         tableau3.setUpperBound( 1, sigmoid3->sigmoid( 1 ) );
+        sigmoid3->notifyLowerBound(0, -1);
+        sigmoid3->notifyUpperBound(0, 1);
 
         MILPEncoder milp3( tableau3 );
         milp3.encodeInputQuery( gurobi3, inputQuery3 );
@@ -491,7 +498,6 @@ public:
 
         TS_ASSERT( solution3.exists( "x0" ) );
         TS_ASSERT( solution3.exists( "x1" ) );
-        TS_ASSERT( solution3.exists( "a0" ) );
 
         /*
          * x0_lb = 0 and x0_ub = 0
@@ -517,6 +523,8 @@ public:
         inputQuery4.setUpperBound( 1, sigmoid4->sigmoid( 0 ) );
         tableau4.setLowerBound( 1, sigmoid4->sigmoid( 0 ) );
         tableau4.setUpperBound( 1, sigmoid4->sigmoid( 0 ) );
+        sigmoid4->notifyLowerBound(0, 0);
+        sigmoid4->notifyUpperBound(0, 0);
 
         MILPEncoder milp4( tableau4 );
         milp4.encodeInputQuery( gurobi4, inputQuery4 );
@@ -532,7 +540,6 @@ public:
 
         TS_ASSERT( solution4.exists( "x0" ) );
         TS_ASSERT( solution4.exists( "x1" ) );
-        TS_ASSERT( !solution4.exists( "a0" ) );
 
         /*
          * x0_lb < 0 and x0_ub = 0
@@ -558,6 +565,8 @@ public:
         inputQuery5.setUpperBound( 1, sigmoid5->sigmoid( 0 ) );
         tableau5.setLowerBound( 1, sigmoid5->sigmoid( -1 ) );
         tableau5.setUpperBound( 1, sigmoid5->sigmoid( 0 ) );
+        sigmoid5->notifyLowerBound(0, -1);
+        sigmoid5->notifyUpperBound(0, 0);
 
         MILPEncoder milp5( tableau5 );
         milp5.encodeInputQuery( gurobi5, inputQuery5 );
@@ -573,7 +582,6 @@ public:
 
         TS_ASSERT( solution5.exists( "x0" ) );
         TS_ASSERT( solution5.exists( "x1" ) );
-        TS_ASSERT( !solution5.exists( "a0" ) );
 
         /*
          * x0_lb = 0 and x0_ub > 0
@@ -599,6 +607,8 @@ public:
         inputQuery6.setUpperBound( 1, sigmoid6->sigmoid( 1 ) );
         tableau6.setLowerBound( 1, sigmoid6->sigmoid( 0 ) );
         tableau6.setUpperBound( 1, sigmoid6->sigmoid( 1 ) );
+        sigmoid6->notifyLowerBound(0, 0);
+        sigmoid6->notifyUpperBound(0, 1);
 
         MILPEncoder milp6( tableau6 );
         milp6.encodeInputQuery( gurobi6, inputQuery6 );
@@ -614,7 +624,6 @@ public:
 
         TS_ASSERT( solution6.exists( "x0" ) );
         TS_ASSERT( solution6.exists( "x1" ) );
-        TS_ASSERT( !solution6.exists( "a0" ) );
 
 #else
         TS_ASSERT( true );
@@ -653,6 +662,8 @@ public:
         inputQuery1.setUpperBound( x1, sigmoid1->sigmoid( 1 ) );
         tableau1.setLowerBound( x1, sigmoid1->sigmoid( 0 ) );
         tableau1.setUpperBound( x1, sigmoid1->sigmoid( 1 ) );
+        sigmoid1->notifyLowerBound(0, 0);
+        sigmoid1->notifyUpperBound(0, 1);
 
         // x2 = x1
         Equation equation1( Equation::EQ );
@@ -696,6 +707,8 @@ public:
         inputQuery2.setUpperBound( x1, sigmoid2->sigmoid( -0.1 )  );
         tableau2.setLowerBound( x1, sigmoid2->sigmoid( -1 )  );
         tableau2.setUpperBound( x1, sigmoid2->sigmoid( -0.1 )  );
+        sigmoid2->notifyLowerBound(0, -1);
+        sigmoid2->notifyUpperBound(0, -0.1);
 
         // x2 = x1
         Equation equation2( Equation::EQ );
@@ -739,6 +752,8 @@ public:
         inputQuery3.setUpperBound( x1, sigmoid3->sigmoid( 1 ) );
         tableau3.setLowerBound( x1, sigmoid3->sigmoid( -1 ) );
         tableau3.setUpperBound( x1, sigmoid3->sigmoid( 1 ) );
+        sigmoid3->notifyLowerBound(0, -1);
+        sigmoid3->notifyUpperBound(0, 1);
 
         // x2 = x1
         Equation equation3( Equation::EQ );
@@ -782,6 +797,8 @@ public:
         inputQuery4.setUpperBound( x1, sigmoid4->sigmoid( 0 ) );
         tableau4.setLowerBound( x1, sigmoid4->sigmoid( 0 ) );
         tableau4.setUpperBound( x1, sigmoid4->sigmoid( 0 ) );
+        sigmoid4->notifyLowerBound(0, 0);
+        sigmoid4->notifyUpperBound(0, 0);
 
         // x2 = x1
         Equation equation4( Equation::EQ );
@@ -824,6 +841,8 @@ public:
         inputQuery5.setUpperBound( x1, sigmoid5->sigmoid( 0 ) );
         tableau5.setLowerBound( x1, sigmoid5->sigmoid( -1 ) );
         tableau5.setUpperBound( x1, sigmoid5->sigmoid( 0 ) );
+        sigmoid5->notifyLowerBound(0, -1);
+        sigmoid5->notifyUpperBound(0, 0);
 
         // x2 = x1
         Equation equation5( Equation::EQ );
@@ -868,6 +887,8 @@ public:
         inputQuery6.setUpperBound( x1, sigmoid6->sigmoid( 1 ) );
         tableau6.setLowerBound( x1, sigmoid6->sigmoid( 0 ) );
         tableau6.setUpperBound( x1, sigmoid6->sigmoid( 1 ) );
+        sigmoid6->notifyLowerBound(0, 0);
+        sigmoid6->notifyUpperBound(0, 1);
 
         // x2 = x1
         Equation equation6( Equation::EQ );

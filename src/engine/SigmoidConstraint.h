@@ -2,7 +2,7 @@
 /*! \file SigmoidConstraint.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Teruhiro Tagomori
+ **   Teruhiro Tagomori, Haoze Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -95,15 +95,8 @@ public:
     /*
       Get the index of the B and F variables.
     */
-    inline unsigned getB() const
-    {
-      return _b;
-    }
-
-    inline unsigned getF() const
-    {
-      return _f;
-    }
+    unsigned getB() const;
+    unsigned getF() const;
 
     /*
       Compute the sigmoid function.

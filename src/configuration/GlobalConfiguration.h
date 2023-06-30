@@ -193,8 +193,6 @@ public:
     // Symbolic tightening rounding constant
     static const double SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT;
 
-    static const double SIGMOID_CUTOFF_CONSTANT;
-
     /*
       Constraint fixing heuristics
     */
@@ -231,6 +229,17 @@ public:
     /* The max number of DnC splits
     */
     static const unsigned DNC_DEPTH_THRESHOLD;
+
+    static const double SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE;
+    static const double SIGMOID_INPUT_RANGE;
+    // Whether to add secant lines at the middle point of sigmoid between lb and ub for fisrt linearization.
+    static const bool SIGMOID_SECANT_LINES_AT_MIDDLE_POINT;
+
+    // Wheter to use clip point for sigmoid linearization
+    static const bool SIGMOID_CLIP_POINT_USE;
+
+    // A clip point of sigmoig linearlization
+    static const double SIGMOID_CLIP_POINT_OF_LINEARIZATION;
 
     /* Minimal coefficient of a variable in a Tableau row, that is used for bound tightening
     */

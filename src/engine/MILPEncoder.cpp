@@ -24,6 +24,13 @@ MILPEncoder::MILPEncoder( const ITableau &tableau )
     , _statistics( NULL )
 {}
 
+void MILPEncoder::reset()
+{
+  _variableToVariableName.clear();
+  _binVarIndex = 0;
+  _plVarIndex = 0;
+}
+
 void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
                                     const InputQuery &inputQuery,
                                     bool relax )
@@ -410,137 +417,265 @@ void MILPEncoder::encodeSignConstraint( GurobiWrapper &gurobi,
 
 void MILPEncoder::encodeSigmoidConstraint( GurobiWrapper &gurobi, SigmoidConstraint *sigmoid )
 {
-    unsigned sourceVariable = sigmoid->getB();  // x_b
+      unsigned sourceVariable = sigmoid->getB();  // x_b
     unsigned targetVariable = sigmoid->getF();  // x_f
     double sourceLb = _tableau.getLowerBound( sourceVariable );
     double sourceUb = _tableau.getUpperBound( sourceVariable );
+    double targetLb = _tableau.getLowerBound( targetVariable );
+    double targetUb = _tableau.getUpperBound( targetVariable );
+    String xVar = Stringf( "x%u", sourceVariable );
+    String yVar = Stringf( "x%u", targetVariable );
 
-    if ( sourceLb == sourceUb )
+    if ( sigmoid->phaseFixed() )
     {
-        // tangent line: x_f = tangentSlope * (x_b - tangentPoint) + yAtTangentPoint
-        // In this case, tangentePoint is equal to sourceLb or sourceUb
-        double yAtTangentPoint = sigmoid->sigmoid( sourceLb );
-        double tangentSlope = sigmoid->sigmoidDerivative( sourceLb );
-
         List<GurobiWrapper::Term> terms;
         terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -tangentSlope, Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addEqConstraint( terms, -tangentSlope * sourceLb + yAtTangentPoint );
+        gurobi.addLeqConstraint( terms, _tableau.getLowerBound( targetVariable ) );
+        return;
     }
-    else if ( FloatUtils::lt( sourceLb, 0 ) && FloatUtils::gt( sourceUb, 0 ) )
+
+    double lambda = ( sigmoid->sigmoid(sourceUb) - sigmoid->sigmoid( sourceLb ) ) /
+        ( sourceUb - sourceLb );
+    double lambdaPrime = std::min( sigmoid->sigmoidDerivative( sourceLb ),
+                                   sigmoid->sigmoidDerivative( sourceUb ) );
+    double upperBias = 0;
+    double lowerBias = 0;
+
+    if ( !FloatUtils::isNegative( sourceLb ) )
     {
         List<GurobiWrapper::Term> terms;
-        String binVarName = Stringf( "a%u", _binVarIndex ); // a = 1 -> the case where x_b >= 0, otherwise where x_b <= 0
-        gurobi.addVariable( binVarName,
-                            0,
-                            1,
-                            GurobiWrapper::BINARY );
-
-        // Constraint where x_b >= 0
-        // Upper line is tangent and lower line is secant for an overapproximation with a linearization.
-
-        int binVal = 1;
-
-        // tangent line: x_f = tangentSlope * (x_b - tangentPoint) + yAtTangentPoint
-        double tangentPoint = sourceUb / 2;
-        double yAtTangentPoint = sigmoid->sigmoid( tangentPoint );
-        double tangentSlope = sigmoid->sigmoidDerivative( tangentPoint );
         terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -tangentSlope, Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addLeqIndicatorConstraint( binVarName, binVal, terms, -tangentSlope * tangentPoint + yAtTangentPoint );
-        terms.clear();
-
-        // secant line: x_f = secantSlope * (x_b - 0) + y_l
-        double y_l = sigmoid->sigmoid( 0 );
-        double y_u = sigmoid->sigmoid( sourceUb );
-        double secantSlope = ( y_u - y_l ) / sourceUb;
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -secantSlope, Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addGeqIndicatorConstraint( binVarName, binVal, terms, y_l );
-        terms.clear();
-
-        // lower bound of x_b
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addGeqIndicatorConstraint( binVarName, binVal, terms, 0 );  
-        terms.clear();
-
-        // lower bound of x_f
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        gurobi.addGeqIndicatorConstraint( binVarName, binVal, terms, y_l );  
-        terms.clear(); 
-
-        // Constraints where x_b <= 0
-        // Upper line is secant and lower line is tangent for an overapproximation with a linearization.
-
-        binVal = 0;
-
-        // tangent line: x_f = tangentSlope * (x_b - tangentPoint) + yAtTangentPoint
-        tangentPoint = sourceLb / 2;
-        yAtTangentPoint = sigmoid->sigmoid( tangentPoint );
-        tangentSlope = sigmoid->sigmoidDerivative( tangentPoint );
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -tangentSlope, Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addGeqIndicatorConstraint( binVarName, binVal, terms, -tangentSlope * tangentPoint + yAtTangentPoint );
-        terms.clear();
-
-        // secant line: x_f = secantSlope * (x_b - sourceLb) + y_l
-        y_u = y_l;
-        y_l = sigmoid->sigmoid( sourceLb );
-        secantSlope = ( y_u - y_l ) / ( 0 - sourceLb );
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -secantSlope, Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addLeqIndicatorConstraint( binVarName, binVal, terms, -secantSlope * sourceLb + y_l );
-        terms.clear();
-
-        // upper bound of x_b
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
-        gurobi.addLeqIndicatorConstraint( binVarName, binVal, terms, 0 );  
-        terms.clear();
-
-        // upper bound of x_f
-        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        gurobi.addLeqIndicatorConstraint( binVarName, binVal, terms, y_u );  
-        terms.clear(); 
-
-        _binVarIndex++;
+        terms.append( GurobiWrapper::Term( -lambda, Stringf( "x%u", sourceVariable ) ) );
+        lowerBias = targetLb - lambda * sourceLb;
+        gurobi.addGeqConstraint( terms, lowerBias );
     }
     else
-    {   
-        // tangent line: x_f = tangentSlope * (x_b - tangentPoint) + yAtTangentPoint
-        double tangentPoint = ( sourceLb + sourceUb ) / 2;
-        double yAtTangentPoint = sigmoid->sigmoid( tangentPoint );
-        double tangentSlope = sigmoid->sigmoidDerivative( tangentPoint );
-
+    {
         List<GurobiWrapper::Term> terms;
         terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -tangentSlope, Stringf( "x%u", sourceVariable ) ) );
+        terms.append( GurobiWrapper::Term( -lambdaPrime, Stringf( "x%u", sourceVariable ) ) );
+        lowerBias = targetLb - lambdaPrime * sourceLb;
+        gurobi.addGeqConstraint( terms, lowerBias );
+    }
 
-        if ( FloatUtils::gte( sourceLb, 0 ) )
-        {
-            gurobi.addLeqConstraint( terms, -tangentSlope * tangentPoint + yAtTangentPoint );
-        }
-        else
-        {
-            gurobi.addGeqConstraint( terms, -tangentSlope * tangentPoint + yAtTangentPoint );
-        }
-        terms.clear();
-
-        double y_l = sigmoid->sigmoid( sourceLb );
-        double y_u = sigmoid->sigmoid( sourceUb );
-
-        double secantSlope = ( y_u - y_l ) / ( sourceUb - sourceLb );
+    if ( !FloatUtils::isPositive( sourceUb ) )
+    {
+        List<GurobiWrapper::Term> terms;
         terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-        terms.append( GurobiWrapper::Term( -secantSlope, Stringf( "x%u", sourceVariable ) ) );
+        terms.append( GurobiWrapper::Term( -lambda, Stringf( "x%u", sourceVariable ) ) );
+        upperBias = targetUb - lambda * sourceUb;
+        gurobi.addLeqConstraint( terms, upperBias );
+    }
+    else
+    {
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( GurobiWrapper::Term( -lambdaPrime, Stringf( "x%u", sourceVariable ) ) );
+        upperBias = targetUb - lambdaPrime * sourceUb;
+        gurobi.addLeqConstraint( terms, upperBias );
+    }
 
-        if ( FloatUtils::gte( sourceLb, 0 ) )
+    /*
+    unsigned numEagerLin = Options::get()->getInt( Options::EAGER_LINEARIZATION );
+    if ( numEagerLin > 0 )
+    {
+        double stepSize = ( sourceUb - sourceLb ) / ( (double) numEagerLin );
+        double init = sourceLb + stepSize;
+        while ( FloatUtils::lt( init, sourceUb ) )
         {
-            gurobi.addGeqConstraint( terms, -secantSlope * sourceLb + y_l );
+            sigmoid->addCutPoint( init, true );
+            sigmoid->addCutPoint( init, false );
+            init += stepSize;
+        }
+    }
+    */
+
+    for ( const auto &point : sigmoid->getCutPoints() )
+    {
+        double x = point._x;
+        double y = sigmoid->sigmoid( x );
+        //std::cout << "x " << x << " y " << y << std::endl;
+        //std::cout << sourceLb << " <= x <= " << sourceUb << std::endl;
+        if ( FloatUtils::lt( x, 0 ) && point._above )
+        {
+            // Top left.
+            double slopeLeft = 0;
+            double scalarLeft = 0;
+
+            if ( FloatUtils::areEqual( x, sourceLb ) )
+            {
+                slopeLeft = FloatUtils::infinity();
+            }
+            else
+            {
+                slopeLeft = ( y - targetLb ) / ( x - sourceLb );
+                scalarLeft = y - slopeLeft * x;
+            }
+
+            double slopeRight = 0;
+            double scalarRight = 0;
+            if ( FloatUtils::lte( sourceUb, 0 ) )
+                slopeRight =  ( y - targetUb ) / ( x - sourceUb );
+            else
+                slopeRight =  ( y - upperBias ) / ( x );
+            scalarRight = y - slopeRight * x;
+
+            addCutConstraint( gurobi, true, xVar, yVar, x, y, slopeLeft,
+                              scalarLeft, slopeRight, scalarRight );
+        }
+        else if ( FloatUtils::gt( x, 0 ) && !point._above )
+        {
+            // Bottom right
+            double slopeRight = 0;
+            double scalarRight = 0;
+            if ( FloatUtils::areEqual( x, sourceUb ) )
+            {
+                slopeRight = FloatUtils::infinity();
+            }
+            else
+            {
+                slopeRight = ( y - targetUb ) / ( x - sourceUb );
+                scalarRight = y - slopeRight * x;
+            }
+
+            double slopeLeft = 0;
+            double scalarLeft = 0;
+            if ( FloatUtils::gte( sourceLb, 0 ) )
+                slopeLeft =  ( y - targetLb ) / ( x - sourceLb );
+            else
+                slopeLeft =  ( y - lowerBias ) / ( x );
+            scalarLeft = y - slopeLeft * x;
+
+            addCutConstraint( gurobi, false, xVar, yVar, x, y, slopeLeft,
+                              scalarLeft, slopeRight, scalarRight );
+        }
+        else if ( FloatUtils::lte( x, 0 ) && !point._above )
+        {
+            // Bottom left.
+            double slopeLeft = sigmoid->sigmoidDerivative( x );
+            double scalarLeft = y - slopeLeft * x;
+
+            double slopeRight = 0;
+            double scalarRight = 0;
+            if ( FloatUtils::lte( sourceUb, 0 ) )
+            {
+                slopeRight =  slopeLeft;
+                scalarRight = scalarLeft;
+            }
+            else
+            {
+                if ( FloatUtils::areEqual( x, 0 ) )
+                    slopeRight = (targetUb - y ) / ( sourceUb - x );
+                else
+                    slopeRight = std::min( sigmoid->sigmoidDerivative( sourceUb ),
+                                           sigmoid->sigmoidDerivative( x ) );
+                scalarRight = y - slopeRight * x;
+            }
+            addCutConstraint( gurobi, false, xVar, yVar, x, y, slopeLeft,
+                              scalarLeft, slopeRight, scalarRight );
+        }
+        else if ( FloatUtils::gte( x, 0 ) && point._above )
+        {
+            // Top right.
+            double slopeRight = sigmoid->sigmoidDerivative( x );
+            double scalarRight = y - slopeRight * x;
+
+            double slopeLeft = 0;
+            double scalarLeft = 0;
+            if ( FloatUtils::gte( sourceLb, 0 ) )
+            {
+                slopeLeft =  slopeRight;
+                scalarLeft = scalarRight;
+            }
+            else
+            {
+                if ( FloatUtils::areEqual( x, 0 ) )
+                    slopeLeft = (targetLb - y ) / ( sourceLb - x );
+                else
+                    slopeLeft = std::min( sigmoid->sigmoidDerivative( sourceLb ),
+                                      sigmoid->sigmoidDerivative( x ) );
+                scalarLeft = y - slopeLeft * x;
+            }
+            addCutConstraint( gurobi, true, xVar, yVar, x, y, slopeLeft,
+                              scalarLeft, slopeRight, scalarRight );
         }
         else
         {
-            gurobi.addLeqConstraint( terms, -secantSlope * sourceLb + y_l );
+            printf("Other case in sigmoid. This should never happen\n");
         }
+    }
+
+    return;
+}
+
+void MILPEncoder::addCutConstraint( GurobiWrapper &gurobi, bool above,
+                                    String xVar, String yVar, double x, double y,
+                                    double slopeLeft, double scalarLeft,
+                                    double slopeRight, double scalarRight )
+{
+    /*
+    std::cout << above << " " << xVar.ascii() << " " << yVar.ascii() << " " << x << " " << y
+              << " " << slopeLeft << " " << scalarLeft << " " << slopeRight << " "
+              << scalarRight << std::endl;
+    */
+    if ( !FloatUtils::isFinite( slopeLeft ) )
+    {
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, yVar ) );
+        terms.append( GurobiWrapper::Term( -slopeRight, xVar ) );
+        if ( above )
+            gurobi.addLeqConstraint( terms, scalarRight );
+        else
+            printf("This shouldn't happen!");
+    }
+    else if ( !FloatUtils::isFinite( slopeRight ) )
+    {
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, yVar ) );
+        terms.append( GurobiWrapper::Term( -slopeLeft, xVar ) );
+        if ( above )
+            printf("This shouldn't happen!");
+        else
+            gurobi.addGeqConstraint( terms, scalarLeft );
+    }
+    else if ( FloatUtils::areEqual( slopeLeft, slopeRight ) )
+    {
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, yVar ) );
+        terms.append( GurobiWrapper::Term( -slopeLeft, xVar ) );
+        if ( above )
+            gurobi.addLeqConstraint( terms, scalarLeft );
+        else
+            gurobi.addGeqConstraint( terms, scalarLeft );
+    }
+    else
+    {
+        String binVar = Stringf( "a%u", _binVarIndex );
+        gurobi.addVariable( binVar, 0, 1, GurobiWrapper::BINARY );
+        ++_binVarIndex;
+
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, yVar ) );
+        terms.append( GurobiWrapper::Term( -slopeLeft, xVar ) );
+        if ( above )
+            gurobi.addLeqIndicatorConstraint( binVar, 0, terms, scalarLeft );
+        else
+            gurobi.addGeqIndicatorConstraint( binVar, 0, terms, scalarLeft );
         terms.clear();
+        terms.append( GurobiWrapper::Term( 1, yVar ) );
+        terms.append( GurobiWrapper::Term( -slopeRight, xVar ) );
+        if ( above )
+            gurobi.addLeqIndicatorConstraint( binVar, 1, terms, scalarRight );
+        else
+            gurobi.addGeqIndicatorConstraint( binVar, 1, terms, scalarRight );
+        terms.clear();
+        terms.append( GurobiWrapper::Term( 1, xVar ) );
+        gurobi.addLeqIndicatorConstraint( binVar, 0, terms, x );
+        gurobi.addGeqIndicatorConstraint( binVar, 1, terms, x );
+        terms.clear();
+        terms.append( GurobiWrapper::Term( 1, yVar ) );
+        gurobi.addLeqIndicatorConstraint( binVar, 0, terms, y );
+        gurobi.addGeqIndicatorConstraint( binVar, 1, terms, y );
     }
 }
 

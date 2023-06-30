@@ -19,6 +19,7 @@
 #include "DisjunctionConstraint.h"
 #include "Engine.h"
 #include "EngineState.h"
+#include "IncrementalLinearization.h"
 #include "InfeasibleQueryException.h"
 #include "InputQuery.h"
 #include "MStringf.h"
@@ -2871,23 +2872,38 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
                                 : timeoutInSeconds );
     ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
     _gurobi->setTimeLimit( timeoutForGurobi );
+
+    unsigned threads = 1;
     if ( !_sncMode )
-        _gurobi->setNumberOfThreads( Options::get()->getInt( Options::NUM_WORKERS ) );
+      threads = Options::get()->getInt( Options::NUM_WORKERS );
+
+    _gurobi->setNumberOfThreads( threads );
     _gurobi->setVerbosity( _verbosity > 1 );
+
+    struct timespec start = TimeUtils::sampleMicro();
     _gurobi->solve();
+    struct timespec end = TimeUtils::sampleMicro();
+    unsigned long long passedTime = TimeUtils::timePassed( start, end );
 
     if ( _gurobi->haveFeasibleSolution() )
     {
-        // Return UNKNOWN if input query has transcendental constratints.
-        if ( _preprocessedQuery->getTranscendentalConstraints().size() > 0 )
-        {
-            // TODO: Return UNKNOWN exitCode instead of throwing Error after implementing python interface to support UNKNOWN.
-            throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED, "UNKNOWN (Marabou doesn't support UNKNOWN cases with exitCode yet.)" );
-            // _exitCode = IEngine::UNKNOWN;
-            // return false;
+          // Return UNKNOWN if input query has transcendental constratints.
+          if ( _preprocessedQuery->getTranscendentalConstraints().size() > 0 )
+          {
+            IncrementalLinearization* incrLinear = new IncrementalLinearization
+              ( *_milpEncoder, *_preprocessedQuery );
+            _exitCode = incrLinear->solveWithIncrementalLinearization
+              ( *_gurobi, timeoutForGurobi - passedTime / 1000000,
+                threads, _verbosity );
+            if ( _exitCode == IEngine::SAT )
+              return true;
+            else
+              return false;
         }
-        _exitCode = IEngine::SAT;
-        return true;
+        else {
+          _exitCode = IEngine::SAT;
+          return true;
+        }
     }
     else if ( _gurobi->infeasible() )
         _exitCode = IEngine::UNSAT;

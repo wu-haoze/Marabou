@@ -39,6 +39,33 @@ public:
     {
     }
 
+
+  struct CutPoint {
+    CutPoint (double x, bool above )
+      : _x( x )
+      , _above( above )
+    {};
+
+    double _x;
+    bool _above;
+
+    bool operator<( const CutPoint &other ) const
+    {
+      if ( _above && !other._above )
+        return true;
+      else if ( !_above && other._above )
+        return false;
+      else
+        return FloatUtils::lt( _x, other._x);
+    }
+
+    bool operator==( const CutPoint &other ) const
+    {
+      return ( _above == other._above &&
+               FloatUtils::areEqual( _x, other._x ) );
+    }
+  };
+
     /*
       Get the type of this constraint.
     */
@@ -116,6 +143,15 @@ public:
     */
     void registerConstraintBoundTightener( IConstraintBoundTightener *tightener );
 
+  /*
+          Add a new secant point for licremental linearization.
+  */
+  void addCutPoint( double x, bool above );
+
+  /*
+          Return tangent points
+  */
+  const std::set<CutPoint> &getCutPoints();
 
     /**********************************************************************/
     /*          Context-dependent Members Initialization and Cleanup      */
@@ -127,6 +163,8 @@ public:
       it discovers a tighter (entailed) bound.
     */
     void registerBoundManager( BoundManager *boundManager );
+
+  virtual bool phaseFixed() { return false; }
 
 protected:
     Map<unsigned, double> _assignment;
@@ -239,6 +277,9 @@ protected:
       return false;
     }
 
+private:
+  // Points of tangent lines for incremental linearizations.
+  std::set<CutPoint> _cutPts;
 };
 
 #endif // __TranscendentalConstraint_h__

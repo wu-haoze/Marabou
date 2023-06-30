@@ -31,6 +31,8 @@ class MILPEncoder
 public:
     MILPEncoder( const ITableau &tableau );
 
+    void reset();
+
     /*
       Encode the input query as a Gurobi query, variables and inequalities
       are from inputQuery, and latest variable bounds are from tableau
@@ -43,6 +45,12 @@ public:
     */
     String getVariableNameFromVariable( unsigned variable );
 
+    void addCutConstraint( GurobiWrapper &gurobi, bool above,
+                           String xVar, String yVar,
+                           double x, double y,
+                           double slopeLeft, double scalarLeft,
+                           double slopeRight, double scalarRight );
+
     inline void setStatistics( Statistics *statistics )
     {
         _statistics = statistics;
@@ -53,6 +61,17 @@ public:
     */
     void encodeCostFunction( GurobiWrapper &gurobi,
                              const LinearExpression &cost );
+
+
+  inline double getLowerBound( unsigned var )
+  {
+    return _tableau.getLowerBound( var );
+  }
+
+  inline double getUpperBound( unsigned var )
+  {
+    return _tableau.getUpperBound( var );
+  }
 
 private:
 
@@ -75,6 +94,11 @@ private:
       Index for Guroby binary variables
     */
     unsigned _binVarIndex = 0;
+
+  /*
+          Index for Guroby piece-wise linear variables
+  */
+  unsigned _plVarIndex = 0;
 
     /*
       Encode an (in)equality into Gurobi.

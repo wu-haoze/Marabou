@@ -35,13 +35,12 @@ IEngine::ExitCode IncrementalLinearization::solveWithIncrementalLinearization
 {
 
     List<TranscendentalConstraint *> tsConstraints = _inputQuery.getTranscendentalConstraints();
-    const unsigned numOfIncrementalLinearizations = Options::get()->getInt( Options::NUMBER_OF_INCREMENTAL_LINEARIZATIONS );
 
     unsigned incrementalCount = 0;
     double remainingTimeoutInSeconds = timeoutInSeconds;
     unsigned cutOff = 30; // START BY ADDING THIS MANY CONSTRAINT!
 
-    while ( incrementalCount < numOfIncrementalLinearizations && remainingTimeoutInSeconds > 0 )
+    while ( remainingTimeoutInSeconds > 0 )
     {
         printf( "\n"
                 "--------------------------------------------------\n"

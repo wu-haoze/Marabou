@@ -2,7 +2,7 @@
 /*! \file SigmoidConstraint.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Teruhiro Tagomori
+ **   Teruhiro Tagomori, Haoze Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -14,7 +14,6 @@
 
 #include "SigmoidConstraint.h"
 
-#include "ConstraintBoundTightener.h"
 #include "TranscendentalConstraint.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
@@ -92,19 +91,15 @@ void SigmoidConstraint::notifyLowerBound( unsigned variable, double bound )
     ASSERT( variable == _b || variable == _f );
 
     if ( _statistics )
-        _statistics->incLongAttribute( Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
+        _statistics->incLongAttribute(
+            Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
 
-    if ( existsLowerBound( variable ) && !FloatUtils::gt( bound, getLowerBound( variable ) ) )
-        return;
-
-    setLowerBound( variable, bound );
-
-    if ( _constraintBoundTightener )
+    if ( tightenLowerBound( variable, bound ) )
     {
         if ( variable == _f )
-            _constraintBoundTightener->registerTighterLowerBound( _b, sigmoidInverse(bound) );
+          tightenLowerBound( _b, sigmoidInverse( bound ) );
         else if ( variable == _b )
-            _constraintBoundTightener->registerTighterLowerBound( _f, sigmoid(bound) );
+          tightenLowerBound( _f, sigmoid( bound ) );
     }
 }
 
@@ -113,19 +108,15 @@ void SigmoidConstraint::notifyUpperBound( unsigned variable, double bound )
     ASSERT( variable == _b || variable == _f );
 
     if ( _statistics )
-        _statistics->incLongAttribute( Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
+        _statistics->incLongAttribute(
+            Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
 
-    if ( existsUpperBound( variable ) && !FloatUtils::lt( bound, getUpperBound( variable ) ) )
-        return;
-
-    setUpperBound( variable, bound );
-
-    if ( _constraintBoundTightener )
+    if ( tightenUpperBound( variable, bound ) )
     {
-        if ( variable == _f )
-            _constraintBoundTightener->registerTighterUpperBound( _b, sigmoidInverse(bound) );
-        else if ( variable == _b )
-            _constraintBoundTightener->registerTighterUpperBound( _f, sigmoid(bound) );
+      if ( variable == _f )
+        tightenUpperBound( _b, sigmoidInverse( bound ) );
+      else if ( variable == _b )
+        tightenUpperBound( _f, sigmoid( bound ) );
     }
 }
 
@@ -208,11 +199,6 @@ void SigmoidConstraint::getEntailedTightenings( List<Tightening> &tightenings ) 
     double bUpperBound = getUpperBound( _b );
     double fUpperBound = getUpperBound( _f );
 
-    //tightenings.append( Tightening( _b, -GlobalConfiguration::SIGMOID_INPUT_RANGE,
-    //                              Tightening::LB ) );
-    //tightenings.append( Tightening( _b, GlobalConfiguration::SIGMOID_INPUT_RANGE,
-    //                                Tightening::UB ) );
-
     tightenings.append( Tightening( _b, bLowerBound, Tightening::LB ) );
     tightenings.append( Tightening( _f, fLowerBound, Tightening::LB ) );
 
@@ -225,51 +211,61 @@ String SigmoidConstraint::serializeToString() const
     return Stringf( "sigmoid,%u,%u", _f, _b );
 }
 
+unsigned SigmoidConstraint::getB() const
+{
+    return _b;
+}
+
+unsigned SigmoidConstraint::getF() const
+{
+    return _f;
+}
+
 double SigmoidConstraint::sigmoid( double x )
 {
-    if ( FloatUtils::gte( x, GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
-        return 1;
-    else if ( FloatUtils::lte( x, -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
-        return 0;
-    else
-        return 1 / ( 1 + std::exp( -x ) );
+  if ( FloatUtils::gte( x, GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+    return 1;
+  else if ( FloatUtils::lte( x, -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+    return 0;
+  else
+    return 1 / ( 1 + std::exp( -x ) );
 }
 
 double SigmoidConstraint::sigmoidInverse( double y )
 {
-    if ( FloatUtils::areEqual
-         ( y, 1,
-           GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
-        return GlobalConfiguration::SIGMOID_INPUT_RANGE;
-    else if ( FloatUtils::areEqual
-              ( y, 0,
-                GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
-        return -GlobalConfiguration::SIGMOID_INPUT_RANGE;
-    else
-        return log( y / ( 1 - y ) );
+  if ( FloatUtils::areEqual
+       ( y, 1,
+         GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
+    return GlobalConfiguration::SIGMOID_INPUT_RANGE;
+  else if ( FloatUtils::areEqual
+            ( y, 0,
+              GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
+    return -GlobalConfiguration::SIGMOID_INPUT_RANGE;
+  else
+    return log( y / ( 1 - y ) );
 }
 
 double SigmoidConstraint::sigmoidDerivative( double x )
 {
-    if ( FloatUtils::gte( x, GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
-        return 0;
-    else if ( FloatUtils::lte( x, -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
-        return 0;
-    else return sigmoid( x ) * ( 1 - sigmoid( x ) );
+  if ( FloatUtils::gte( x, GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+    return 0;
+  else if ( FloatUtils::lte( x, -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+    return 0;
+  else return sigmoid( x ) * ( 1 - sigmoid( x ) );
 }
 
 bool SigmoidConstraint::phaseFixed()
 {
-    if ( FloatUtils::areEqual( getLowerBound( _b ), getUpperBound( _b ) ) )
-        return true;
-    else if ( FloatUtils::lte( getLowerBound( _b ), -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
-        return true;
-    else if ( FloatUtils::gte( getUpperBound( _b ), GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
-        return true;
-    else if ( FloatUtils::areEqual( getUpperBound( _f ), 1 ) )
-        return true;
-    else if ( FloatUtils::areEqual( getLowerBound( _f ), 0 ) )
-        return true;
-    else
-        return false;
+  if ( FloatUtils::areEqual( getLowerBound( _b ), getUpperBound( _b ) ) )
+    return true;
+  else if ( FloatUtils::lte( getLowerBound( _b ), -GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+    return true;
+  else if ( FloatUtils::gte( getUpperBound( _b ), GlobalConfiguration::SIGMOID_INPUT_RANGE ) )
+    return true;
+  else if ( FloatUtils::areEqual( getUpperBound( _f ), 1 ) )
+    return true;
+  else if ( FloatUtils::areEqual( getLowerBound( _f ), 0 ) )
+    return true;
+  else
+    return false;
 }
