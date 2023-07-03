@@ -167,6 +167,9 @@ private:
     bool constructReluLayer( NLR::NetworkLevelReasoner *nlr,
                              Map<unsigned, unsigned> &handledVariableToLayer,
                              unsigned newLayerIndex );
+  bool constructCosineLayer( NLR::NetworkLevelReasoner *nlr,
+                           Map<unsigned, unsigned> &handledVariableToLayer,
+                           unsigned newLayerIndex );
     bool constructSigmoidLayer( NLR::NetworkLevelReasoner *nlr,
                              Map<unsigned, unsigned> &handledVariableToLayer,
                              unsigned newLayerIndex );

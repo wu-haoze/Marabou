@@ -45,7 +45,7 @@ SigmoidConstraint::SigmoidConstraint( const String &serializedSigmoid )
     ASSERT( constraintType == String( "sigmoid" ) );
 
     // Remove the constraint type in serialized form
-    String serializedValues = serializedSigmoid.substring( 8, serializedSigmoid.length() - 5 );
+    String serializedValues = serializedSigmoid.substring( 8, serializedSigmoid.length() - 8 );
     List<String> values = serializedValues.tokenize( "," );
 
     ASSERT( values.size() == 2 );

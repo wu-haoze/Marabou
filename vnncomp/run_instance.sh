@@ -12,7 +12,7 @@ BENCHMARK=$2
 ONNX_FILE=$3
 VNNLIB_FILE=$4
 RESULTS_FILE=$5
-TIMEOUT=1200
+TIMEOUT=10
 
 echo "Running benchmark instance in category '$BENCHMARK' with onnx file '$ONNX_FILE', vnnlib file '$VNNLIB_FILE', results file $RESULTS_FILE, and timeout $TIMEOUT"
 

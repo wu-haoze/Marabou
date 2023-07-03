@@ -14,6 +14,7 @@
  **/
 
 #include "AutoFile.h"
+#include "CosineConstraint.h"
 #include "Debug.h"
 #include "FloatUtils.h"
 #include "InputQuery.h"
@@ -695,7 +696,8 @@ bool InputQuery::constructNetworkLevelReasoner()
             constructSigmoidLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructMaxLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructQuadraticLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
-            constructSoftmaxLayer( nlr, handledVariableToLayer, newLayerIndex )
+            constructSoftmaxLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
+            constructCosineLayer( nlr, handledVariableToLayer, newLayerIndex )
             )
     {
         ++newLayerIndex;
@@ -986,6 +988,95 @@ bool InputQuery::constructSigmoidLayer( NLR::NetworkLevelReasoner *nlr,
     }
 
     nlr->addLayer( newLayerIndex, NLR::Layer::SIGMOID, newNeurons.size() );
+
+    NLR::Layer *layer = nlr->getLayer( newLayerIndex );
+    for ( const auto &newNeuron : newNeurons )
+    {
+        handledVariableToLayer[newNeuron._variable] = newLayerIndex;
+
+        layer->setLb( newNeuron._neuron, _lowerBounds.exists( newNeuron._variable ) ?
+                      _lowerBounds[newNeuron._variable] : FloatUtils::negativeInfinity() );
+        layer->setUb( newNeuron._neuron, _upperBounds.exists( newNeuron._variable ) ?
+                      _upperBounds[newNeuron._variable] : FloatUtils::infinity() );
+
+        unsigned sourceLayer = handledVariableToLayer[newNeuron._sourceVariable];
+        unsigned sourceNeuron = nlr->getLayer( sourceLayer )->variableToNeuron( newNeuron._sourceVariable );
+
+        // Mark the layer dependency
+        nlr->addLayerDependency( sourceLayer, newLayerIndex );
+
+        // Add the new neuron
+        nlr->setNeuronVariable( NLR::NeuronIndex( newLayerIndex, newNeuron._neuron ), newNeuron._variable );
+
+        // Mark the activation connection
+        nlr->addActivationSource( sourceLayer,
+                                  sourceNeuron,
+                                  newLayerIndex,
+                                  newNeuron._neuron );
+    }
+
+    INPUT_QUERY_LOG( "\tSuccessful!" );
+    return true;
+}
+
+bool InputQuery::constructCosineLayer( NLR::NetworkLevelReasoner *nlr,
+                                     Map<unsigned, unsigned> &handledVariableToLayer,
+                                     unsigned newLayerIndex )
+{
+    INPUT_QUERY_LOG( "Attempting to construct Cosine Layer..." );
+    struct NeuronInformation
+    {
+    public:
+
+        NeuronInformation( unsigned variable, unsigned neuron, unsigned sourceVariable )
+            : _variable( variable )
+            , _neuron( neuron )
+            , _sourceVariable( sourceVariable )
+        {
+        }
+
+        unsigned _variable;
+        unsigned _neuron;
+        unsigned _sourceVariable;
+    };
+
+    List<NeuronInformation> newNeurons;
+
+    // Look for Sigmoids where all b variables have already been handled
+    const List<TranscendentalConstraint *> &tsConstraints =
+        getTranscendentalConstraints();
+
+    for ( const auto &tsc : tsConstraints )
+    {
+        // Only consider Sigmoids
+        if ( tsc->getType() != COSINE )
+            continue;
+
+        const CosineConstraint *cosine = (const CosineConstraint *)tsc;
+
+        // Has the b variable been handled?
+        unsigned b = cosine->getB();
+        if ( !handledVariableToLayer.exists( b ) )
+            continue;
+
+        // If the f variable has also been handled, ignore this constraint
+        unsigned f = cosine->getF();
+        if ( handledVariableToLayer.exists( f ) )
+            continue;
+
+        // B has been handled, f hasn't. Add f
+        newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
+        // nlr->addConstraintInTopologicalOrder( tsc );
+    }
+
+    // No neurons found for the new layer
+    if ( newNeurons.empty() )
+    {
+        INPUT_QUERY_LOG( "\tFailed!" );
+        return false;
+    }
+
+    nlr->addLayer( newLayerIndex, NLR::Layer::COSINE, newNeurons.size() );
 
     NLR::Layer *layer = nlr->getLayer( newLayerIndex );
     for ( const auto &newNeuron : newNeurons )

@@ -48,6 +48,8 @@ public:
         SOFTMAX,
 
         QUADRATIC,
+
+        COSINE,
     };
 
     /*

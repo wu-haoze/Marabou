@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include "AcasParser.h"
 #include "CommonError.h"
+#include "CosineConstraint.h"
 #include "DnCManager.h"
 #include "DisjunctionConstraint.h"
 #include "Engine.h"
@@ -102,6 +103,11 @@ void addQuadConstraint(InputQuery& ipq, unsigned var1, unsigned var2,
                        unsigned var3){
   TranscendentalConstraint* r = new QuadraticConstraint(var1, var2, var3);
   ipq.addTranscendentalConstraint(r);
+}
+
+void addCosineConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
+  TranscendentalConstraint* s = new CosineConstraint(var1, var2);
+  ipq.addTranscendentalConstraint(s);
 }
 
 void addSigmoidConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
@@ -593,7 +599,15 @@ PYBIND11_MODULE(MarabouCore, m) {
             var3 (int): Output variable to Quad constraint
         )pbdoc",
           py::arg("inputQuery"), py::arg("var1"), py::arg("var2"), py::arg("var3"));
+    m.def("addCosineConstraint", &addCosineConstraint, R"pbdoc(
+        Add a Cosine constraint to the InputQuery
 
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            var1 (int): Input variable to cosine constraint
+            var2 (int): Output variable to cosine constraint
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("var1"), py::arg("var2"));
     m.def("addSigmoidConstraint", &addSigmoidConstraint, R"pbdoc(
         Add a Sigmoid constraint to the InputQuery
 

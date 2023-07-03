@@ -49,6 +49,7 @@ class MarabouNetwork:
         self.equList = []
         self.additionalEquList = [] # used to store user defined equations
         self.reluList = []
+        self.cosineList = []
         self.sigmoidList = []
         self.maxList = []
         self.softmaxList = []
@@ -124,6 +125,15 @@ class MarabouNetwork:
             x (:class:`~maraboupy.MarabouUtils.Equation`): New equation to add
         """
         self.quadList += [(v1, v2, v3)]
+
+    def addCosine(self, v1, v2):
+        """Function to add a new Sigmoid constraint
+
+        Args:
+            v1 (int): Variable representing input of Cosine
+            v2 (int): Variable representing output of Cosine
+        """
+        self.cosineList += [(v1, v2)]
 
     def addSigmoid(self, v1, v2):
         """Function to add a new Sigmoid constraint
@@ -285,6 +295,10 @@ class MarabouNetwork:
         for r in self.quadList:
             assert r[2] < self.numVars and r[1] < self.numVars and r[0] < self.numVars
             MarabouCore.addQuadConstraint(ipq, r[0], r[1], r[2])
+
+        for r in self.cosineList:
+            assert r[1] < self.numVars and r[0] < self.numVars
+            MarabouCore.addCosineConstraint(ipq, r[0], r[1])
 
         for r in self.sigmoidList:
             assert r[1] < self.numVars and r[0] < self.numVars

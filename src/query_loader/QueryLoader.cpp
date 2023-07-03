@@ -28,6 +28,7 @@
 #include "ReluConstraint.h"
 #include "SignConstraint.h"
 #include "SoftmaxConstraint.h"
+#include "CosineConstraint.h"
 
 InputQuery QueryLoader::loadQuery( const String &fileName )
 {
@@ -228,6 +229,10 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
         {
             inputQuery.addTranscendentalConstraint( new SigmoidConstraint( serializeConstraint ) );
         }
+        else if ( coType == "cosine")
+            {
+                inputQuery.addTranscendentalConstraint( new CosineConstraint( serializeConstraint ) );
+            }
         else if ( coType == "softmax")
         {
             SoftmaxConstraint *softmax = new SoftmaxConstraint( serializeConstraint );

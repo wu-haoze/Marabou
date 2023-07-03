@@ -19,6 +19,8 @@
 #include "SoftmaxConstraint.h"
 #include "SymbolicBoundTighteningType.h"
 
+#include "math.h"
+
 namespace NLR {
 
 Layer::~Layer()
@@ -244,6 +246,15 @@ void Layer::computeAssignment()
         }
       }
     }
+    else if ( _type == COSINE )
+    {
+      for ( unsigned i = 0; i < _size; ++i )
+        {
+          NeuronIndex sourceIndex = *_neuronToActivationSources[i].begin();
+          double inputValue = _layerOwner->getLayer( sourceIndex._layer )->getAssignment( sourceIndex._neuron );
+          _assignment[i] = std::cos(inputValue);
+        }
+    }
     else
     {
         printf( "Error! Neuron type %u unsupported\n", _type );
@@ -463,7 +474,7 @@ double *Layer::getBiases() const
 void Layer::addActivationSource( unsigned sourceLayer, unsigned sourceNeuron, unsigned targetNeuron )
 {
     ASSERT( _type == RELU || _type == ABSOLUTE_VALUE || _type == MAX || _type == SIGN
-            || _type == SIGMOID || _type == SOFTMAX || _type == QUADRATIC );
+            || _type == SIGMOID || _type == SOFTMAX || _type == QUADRATIC || _type == COSINE );
 
     if ( !_neuronToActivationSources.exists( targetNeuron ) )
         _neuronToActivationSources[targetNeuron] = List<NeuronIndex>();
@@ -1802,6 +1813,9 @@ String Layer::typeToString( Type type )
       return "QUADRATIC";
       break;
 
+    case COSINE:
+      return "COSINE";
+      break;
 
     default:
         return "UNKNOWN TYPE";
@@ -1863,6 +1877,7 @@ void Layer::dump() const
     case SIGMOID:
     case QUADRATIC:
     case SOFTMAX:
+    case COSINE:
         for ( unsigned i = 0; i < _size; ++i )
         {
             if ( _eliminatedNeurons.exists( i ) )

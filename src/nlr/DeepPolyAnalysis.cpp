@@ -16,6 +16,7 @@
 #include "Debug.h"
 #include "DeepPolyAnalysis.h"
 #include "DeepPolyAbsoluteValueElement.h"
+#include "DeepPolyCosineElement.h"
 #include "DeepPolyInputElement.h"
 #include "DeepPolyQuadraticElement.h"
 #include "DeepPolyMaxPoolElement.h"
@@ -231,6 +232,11 @@ DeepPolyElement *DeepPolyAnalysis::createDeepPolyElement( Layer *layer )
                                          _workSymbolicLowerBias,
                                          _workSymbolicUpperBias );
     }
+    else if ( type == Layer::COSINE )
+      {
+        deepPolyElement = new DeepPolyCosineElement( layer );
+      }
+
     else
         throw NLRError( NLRError::LAYER_TYPE_NOT_SUPPORTED,
                         Stringf( "Layer %u not yet supported",
