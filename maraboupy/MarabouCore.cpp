@@ -389,17 +389,17 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
         }
       else if ( mode == 2)
-        {
-          // SNC
-	  Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
-          Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
-          Options::get()->setBool( Options::DNC_MODE, true );
-          Options::get()->setInt( Options::NUM_WORKERS, 24 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 24 );
-          Options::get()->setInt( Options::INITIAL_TIMEOUT, 1 ); 
-          Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
-	  Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 3 );
-        }
+      {
+	// SNC
+	Options::get()->setBool( Options::SOLVE_WITH_MILP, false );
+	Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
+	Options::get()->setBool( Options::DNC_MODE, true );
+	Options::get()->setInt( Options::NUM_WORKERS, 64 );
+	Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
+	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
+	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
+      }
       else if (mode == 3)
         {
           // MILP small
