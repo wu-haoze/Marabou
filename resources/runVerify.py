@@ -74,6 +74,8 @@ if max_query_id > 1 and len(outputVarsMap) == 0:
         elif mode == "default":
             mode = MODE_MILP
         else:
+            with open(sys.argv[4], 'w') as out_file:
+                out_file.write("unknown")
             exit(0)
 
         result, vals, stats = MarabouCore.solve(ipq, mode=mode)
@@ -245,4 +247,7 @@ elif result == "sat":
         out_file.write(res)
     exit(10)
 else:
+    with open(sys.argv[4], 'w') as out_file:
+        out_file.write("unknown")
+
     exit(30)

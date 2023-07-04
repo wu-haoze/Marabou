@@ -83,11 +83,16 @@ while true; do
         exit_codes+=($(wait $pid 2>/dev/null; echo $?))
     done
     # if any of them is 10 or 20, break the loop
-    if [[ " ${exit_codes[@]} " =~ " 10 " ]] || [[ " ${exit_codes[@]} " =~ " 20 " ]]; then
+    if [[ " ${exit_codes[@]} " =~ " 10 " ]]; then
         echo "Problem solved!"
         break
     fi
 
+    if [[ " ${exit_codes[@]} " =~ " 20 " ]]; then
+        echo "Problem solved!"
+	sleep 10
+        break
+    fi
 
     # Initialize a flag variable
     all_exist=1
@@ -139,6 +144,7 @@ do
         if [ "$first_line" == "sat" ]; then
             cp "$filename" "$RESULTS_FILE"
             echo "sat"
+	    break
         elif [ "$first_line" == "unsat" ]; then
             cp "$filename" "$RESULTS_FILE"
             echo "unsat"

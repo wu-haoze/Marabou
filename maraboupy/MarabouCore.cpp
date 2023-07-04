@@ -385,13 +385,14 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 32 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+          Options::get()->setInt( Options::NUM_WORKERS, 50 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 50 );
         }
       else if ( mode == 2)
       {
 	// SNC
 	Options::get()->setBool( Options::SOLVE_WITH_MILP, false );
+	Options::get()->setInt( Options::VERBOSITY, 0 );
 	Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
 	Options::get()->setBool( Options::DNC_MODE, true );
 	Options::get()->setInt( Options::NUM_WORKERS, 64 );
@@ -402,19 +403,23 @@ std::tuple<std::string, std::map<int, double>, Statistics>
       }
       else if (mode == 3)
         {
-          // MILP small
-          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+	  Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 8 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 8 );
+	Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
+	Options::get()->setBool( Options::DNC_MODE, true );
+	Options::get()->setInt( Options::NUM_WORKERS, 64 );
+	Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
+	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
+	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
         }
       else if (mode == 4)
         {
           // MILP 2
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-	  Options::get()->setInt( Options::NUM_WORKERS, 32 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+	  Options::get()->setInt( Options::NUM_WORKERS, 50 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 50 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "lse2" );
         }
       else if (mode == 5)
@@ -422,8 +427,8 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP 3
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 32 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+          Options::get()->setInt( Options::NUM_WORKERS, 50 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 50 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "er" );
         }
 

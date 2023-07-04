@@ -2882,7 +2882,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
     _gurobi->setTimeLimit( timeoutForGurobi );
 
-    unsigned threads = 2;
+    unsigned threads = 1;
     if ( !_sncMode )
       threads = Options::get()->getInt( Options::NUM_WORKERS );
 

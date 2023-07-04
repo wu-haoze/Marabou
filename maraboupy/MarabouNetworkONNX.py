@@ -197,6 +197,8 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
         print(node.op_type)
         if node.op_type == 'Shape':
             self.shape_(node)
+        elif node.op_type == 'Dropout':
+            self.identity(node)
         elif node.op_type == 'Constant':
             self.constant(node)
         elif node.op_type == 'ConstantOfShape':

@@ -52,7 +52,7 @@ def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
         pickle.dump(box_spec_list, f)
 
     print(os.path.basename(onnx_file))
-    if "vgg16-7" not in os.path.basename(onnx_file):
+    if "vgg16-7" not in os.path.basename(onnx_file) and "ml4acopf" not in os.path.basename(onnx_file):
         create_marabou_query(onnx_file, box_spec_list, ipq_output)
 
 def toMarabouEquation(equation):

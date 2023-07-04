@@ -81,7 +81,7 @@ const unsigned GlobalConfiguration::PSE_ITERATIONS_BEFORE_RESET = 1000;
 const double GlobalConfiguration::PSE_GAMMA_ERROR_THRESHOLD = 0.001;
 const double GlobalConfiguration::PSE_GAMMA_UPDATE_TOLERANCE = 0.000000001;
 
-const double GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE = 1e-6;
+const double GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE = 1e-7;
 
 const bool GlobalConfiguration::ONLY_AUX_INITIAL_BASIS = false;
 
@@ -97,8 +97,8 @@ const unsigned GlobalConfiguration::POLARITY_CANDIDATES_THRESHOLD = 5;
 
 const unsigned GlobalConfiguration::DNC_DEPTH_THRESHOLD = 5;
 
-const double GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE = 1e-6;
-const double GlobalConfiguration::SIGMOID_INPUT_RANGE = 15;
+const double GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE = 1e-7;
+const double GlobalConfiguration::SIGMOID_INPUT_RANGE = 20;
 
 const bool GlobalConfiguration::SIGMOID_SECANT_LINES_AT_MIDDLE_POINT = false;
 const bool GlobalConfiguration::SIGMOID_CLIP_POINT_USE = true;

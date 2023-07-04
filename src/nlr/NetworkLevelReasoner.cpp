@@ -203,7 +203,7 @@ void NetworkLevelReasoner::deepPolyPropagation()
     }
     std::cout << "Max layer size: " << _maxLayerSize << std::endl;
   }
-  if ( _maxLayerSize > 15000 )
+  if ( _maxLayerSize > 20000 )
     return;
 
   if ( _deepPolyAnalysis == nullptr )

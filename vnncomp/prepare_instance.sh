@@ -122,10 +122,7 @@ then
     echo "Ipq created: $IPQ_FILE"
 else
     echo "Ipq not created"
-    exit 1
 fi
-
-exit $?
 
 # Warmup, using a 1 second timeout.
 echo

@@ -50,11 +50,11 @@ def output_property_hold(outputs, output_specs):
 
 # Load the onnx model
 sess_opt = ort.SessionOptions()
-sess_opt.intra_op_num_threads = 4
-sess_opt.inter_op_num_threads = 4
+sess_opt.intra_op_num_threads = 8
+sess_opt.inter_op_num_threads = 8
 model = ort.InferenceSession(onnx_network, sess_opt)
 name, shape, dtype = [(i.name, i.shape, i.type) for i in model.get_inputs()][0]
-if shape[0] in ["batch_size", "unk__195"]:
+if isinstance(shape[0], str):
     shape[0] = 1
 assert dtype in ['tensor(float)', 'tensor(double)']
 dtype = "float32" if dtype == 'tensor(float)' else "float64"

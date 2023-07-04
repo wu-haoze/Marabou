@@ -30,7 +30,7 @@ import tempfile
 class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
     def __init__(self, filename, inputNames=None, outputNames=None,
-                 equalityThreshold=10000, nonlinearityThreshold=10000,
+                 equalityThreshold=100000, nonlinearityThreshold=100000,
                  candidateSubONNXFileName=None):
         super().__init__()
         self.thresholdReached = False
@@ -246,6 +246,8 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         print(node.op_type)
         if node.op_type == 'Shape':
             self.shape_(node)
+        elif node.op_type == 'Dropout':
+            self.identity(node)
         elif node.op_type == 'Constant':
             self.constant(node)
         elif node.op_type == 'ConstantOfShape':
