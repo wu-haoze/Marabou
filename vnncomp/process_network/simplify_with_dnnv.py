@@ -1,6 +1,5 @@
 """ https://github.com/stanleybak/vnncomp2022/issues/2#issuecomment-1159092312
-Need to install DNNV first:
-pip install git+https://github.com/dlshriver/DNNV.git@develop
+
 """
 
 import time
@@ -8,7 +7,7 @@ import time
 import sys
 
 from dnnv.nn import parse
-from dnnv.nn.transformers.simplifiers import (simplify, DEFAULT_SIMPLIFIERS, ReluifyMaxPool)
+from dnnv.nn.transformers.simplifiers import (simplify, ReluifyMaxPool)
 from pathlib import Path
 
 import os
@@ -26,7 +25,7 @@ def main():
     print("starting...")
     t = time.perf_counter()
 
-    simplified_op_graph1 = simplify(op_graph)
+    simplified_op_graph1 = simplify(op_graph, ReluifyMaxPool(op_graph))
     diff = time.perf_counter() - t
     print(f"simplify runtime: {diff}")
 

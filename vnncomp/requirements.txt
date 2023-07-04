@@ -1,8 +1,7 @@
-onnx2pytorch
-onnx
-onnxruntime
+protobuf==3.20.1
+onnx==1.10.2
+onnxruntime==1.15.0
 vnnlib
-onnxsim
-git+https://github.com/dlshriver/DNNV.git#egg=dnnv
+onnxsim==0.4.31
+git+https://github.com/dlshriver/DNNV.git@develop
 git+https://github.com/dlshriver/vnnlib.git@main
-

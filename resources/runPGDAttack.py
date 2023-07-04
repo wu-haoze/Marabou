@@ -8,14 +8,21 @@ from onnx2pytorch import ConvertModel
 import torch
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
-torch.set_num_interop_threads(2)
-torch.set_num_threads(2)
+torch.set_num_interop_threads(4)
+torch.set_num_threads(4)
 
 assert(len(sys.argv) == 7)
 
 # python runPGDAttack.py [network] [spec pickle] [output file] [seed] [alpha] [attempts]
 
 onnx_network = sys.argv[1]
+
+output_file = sys.argv[3]
+
+if "vgg16-7" in os.path.basename(onnx_network):
+    with open(output_file, 'w') as out_file:
+        out_file.write("unknown")
+    exit(0)
 
 onnx_model = onnx.load(onnx_network)
 pytorch_model = ConvertModel(onnx_model)
@@ -25,8 +32,6 @@ pytorch_model.to("cpu")
 # output_props : List[Dict[index:float], float]
 with open(sys.argv[2], "rb") as f:
     specs = pickle.load(f)
-
-output_file = sys.argv[3]
 
 seed = int(sys.argv[4])
 np.random.seed(seed)
@@ -40,8 +45,8 @@ print(f"PGD Attack using random seed {seed} with {attempts} attempts, writing re
 
 # Load the onnx model
 sess_opt = ort.SessionOptions()
-sess_opt.intra_op_num_threads = 2
-sess_opt.inter_op_num_threads = 2
+sess_opt.intra_op_num_threads = 4
+sess_opt.inter_op_num_threads = 4
 ort_model = ort.InferenceSession(onnx_network, sess_opt)
 name, shape, dtype = [(i.name, i.shape, i.type) for i in ort_model.get_inputs()][0]
 if shape[0] in ["batch_size", "unk__195"]:

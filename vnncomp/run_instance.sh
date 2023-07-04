@@ -35,6 +35,11 @@ project_path=$(dirname "$script_path")
 home=$project_path"/opt"
 export GRB_LICENSE_FILE="$home/gurobi.lic"
 
+if [[ -f "$RESULTS_FILE" ]]
+then
+    rm "$RESULTS_FILE"
+fi
+
 for i in {1..100}
 do
     if [[ -f "$RESULTS_FILE"_"$i" ]]
@@ -61,6 +66,9 @@ pids+=($!)
 python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_6 nodefault &
 pids+=($!)
 
+# Define a list of files
+FILES=("$RESULTS_FILE"_1 "$RESULTS_FILE"_2 "$RESULTS_FILE"_3 "$RESULTS_FILE"_4 "$RESULTS_FILE"_5 "$RESULTS_FILE"_6)
+
 
 for pid in "${pids[@]}"; do
     echo "Process id $pid"
@@ -79,6 +87,24 @@ while true; do
         echo "Problem solved!"
         break
     fi
+
+
+    # Initialize a flag variable
+    all_exist=1
+    # Loop over the files
+    for file in "${FILES[@]}"; do
+      # Check if the file exists and is a regular file
+	if [ ! -f "$file" ]; then
+	    all_exist=0
+	fi
+    done
+
+    # Check the flag value
+    if [ $all_exist -eq 1 ]; then
+	echo "All threads finished1"
+	break;
+    fi
+
     elapsed=$(ps -o etimes= -p $$) # Get the elapsed time of this script
     if [ $elapsed -ge $TIMEOUT ]; then
         echo "Timeout reached"

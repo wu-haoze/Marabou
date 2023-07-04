@@ -17,6 +17,11 @@ assert(len(sys.argv) == 6)
 
 # python runSample.py [ipq_file.pickle] [onnx_file] [vnnlib] [output file] [mode]
 
+if "vgg16-7" in os.path.basename(sys.argv[2]):
+    with open(sys.argv[4], 'w') as out_file:
+        out_file.write("unknown")
+    exit(0)
+
 # output_props : List[Dict[index:float], float]
 with open(sys.argv[1], "rb") as f:
     max_query_id, queriesMap, inputVarsMap, outputVarsMap  = pickle.load(f)

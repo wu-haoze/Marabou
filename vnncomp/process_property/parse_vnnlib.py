@@ -148,28 +148,27 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
                                                candidateSubONNXFileName=candidateSubONNXFileName)
 
         outputVars = network.outputVars[0].flatten()
-        if len(box_spec_list) == 1:
-            _, output_specs = box_spec_list[0]
-            if len(output_specs) == 1:
-                output_props, rhss = output_specs[0]
+        _, output_specs = box_spec_list[0]
+        if len(output_specs) == 1:
+            output_props, rhss = output_specs[0]
+            for i in range(len(rhss)):
+                eq = Equation(MarabouCore.Equation.LE)
+                for out_index, c in output_props[i].items():
+                    eq.addAddend(c, outputVars[out_index])
+                eq.setScalar(rhss[i])
+                network.addEquation(eq)
+        elif len(output_specs) > 1:
+            disjuncts = []
+            for output_props, rhss in output_specs:
+                conjuncts = []
                 for i in range(len(rhss)):
                     eq = Equation(MarabouCore.Equation.LE)
                     for out_index, c in output_props[i].items():
                         eq.addAddend(c, outputVars[out_index])
                     eq.setScalar(rhss[i])
-                    network.addEquation(eq)
-            elif len(output_specs) > 1:
-                disjuncts = []
-                for output_props, rhss in output_specs:
-                    conjuncts = []
-                    for i in range(len(rhss)):
-                        eq = Equation(MarabouCore.Equation.LE)
-                        for out_index, c in output_props[i].items():
-                            eq.addAddend(c, outputVars[out_index])
-                        eq.setScalar(rhss[i])
-                        conjuncts.append(toMarabouEquation(eq))
-                    disjuncts.append(conjuncts)
-                network.addDisjunctionConstraint(disjuncts)
+                    conjuncts.append(toMarabouEquation(eq))
+                disjuncts.append(conjuncts)
+            network.addDisjunctionConstraint(disjuncts)
 
         print("Number of disunctions:", len(network.disjunctionList))
 

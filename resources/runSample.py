@@ -13,11 +13,17 @@ assert(len(sys.argv) == 6)
 
 onnx_network = sys.argv[1]
 
+output_file = sys.argv[3]
+
+if "vgg16-7" in os.path.basename(onnx_network):
+    with open(output_file, 'w') as out_file:
+        out_file.write("unknown")
+    exit(0)
+
+
 # output_props : List[Dict[index:float], float]
 with open(sys.argv[2], "rb") as f:
     specs = pickle.load(f)
-
-output_file = sys.argv[3]
 
 seed = int(sys.argv[4])
 np.random.seed(seed)
@@ -45,6 +51,7 @@ def output_property_hold(outputs, output_specs):
 # Load the onnx model
 sess_opt = ort.SessionOptions()
 sess_opt.intra_op_num_threads = 4
+sess_opt.inter_op_num_threads = 4
 model = ort.InferenceSession(onnx_network, sess_opt)
 name, shape, dtype = [(i.name, i.shape, i.type) for i in model.get_inputs()][0]
 if shape[0] in ["batch_size", "unk__195"]:
