@@ -90,6 +90,9 @@ public:
     // Add a new EQ indicator constraint
     void addEqIndicatorConstraint(  const String binVarName, const int binVal, const List<Term> &terms, double scalar );
 
+    // Add a quad constraint
+    void addQuadraticConstraint( const String input1, const String input2, const String output );
+
     // A cost function to minimize, or an objective function to maximize
     void setCost( const List<Term> &terms, double constant = 0 );
     void setObjective( const List<Term> &terms, double constant = 0 );

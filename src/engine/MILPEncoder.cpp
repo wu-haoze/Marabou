@@ -100,6 +100,12 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
         case TranscendentalFunctionType::SIGMOID:
             encodeSigmoidConstraint( gurobi, (SigmoidConstraint *)tsConstraint );
             break;
+        case TranscendentalFunctionType::QUADRATIC:
+          encodeQuadraticConstraint( gurobi, (QuadraticConstraint *)tsConstraint );
+          break;
+        case TranscendentalFunctionType::SOFTMAX:
+          encodeSoftmaxConstraint( gurobi, (SoftmaxConstraint *)tsConstraint );
+          break;
         default:
             throw MarabouError( MarabouError::UNSUPPORTED_TRANSCENDENTAL_CONSTRAINT,
                                 "GurobiWrapper::encodeInputQuery: "
@@ -147,6 +153,20 @@ void MILPEncoder::encodeEquation( GurobiWrapper &gurobi, const Equation &equatio
     default:
         break;
     }
+}
+
+
+void MILPEncoder::encodeSoftmaxConstraint( GurobiWrapper &, SoftmaxConstraint * )
+{
+  return;
+}
+
+void MILPEncoder::encodeQuadraticConstraint( GurobiWrapper &gurobi, QuadraticConstraint *quad )
+{
+  auto bs = quad->getBs();
+  auto f = quad->getF();
+  gurobi.addQuadraticConstraint(Stringf( "x%u", *(bs.begin()) ), Stringf( "x%u", *(bs.end()) ), Stringf( "x%u", f ));
+  return;
 }
 
 void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi,

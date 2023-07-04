@@ -24,6 +24,9 @@
 #include "MStringf.h"
 #include "Statistics.h"
 
+#include "SoftmaxConstraint.h"
+#include "QuadraticConstraint.h"
+
 #include "Map.h"
 
 class MILPEncoder
@@ -158,6 +161,9 @@ private:
       Encode a Sigmoid constraint
     */
     void encodeSigmoidConstraint( GurobiWrapper &gurobi, SigmoidConstraint *sigmoid );
+
+  void encodeSoftmaxConstraint( GurobiWrapper &gurobi, SoftmaxConstraint *sigmoid );
+  void encodeQuadraticConstraint( GurobiWrapper &gurobi, QuadraticConstraint *sigmoid );
 };
 
 #endif // __MILPEncoder_h__

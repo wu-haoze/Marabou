@@ -30,7 +30,7 @@ import tempfile
 class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
     def __init__(self, filename, inputNames=None, outputNames=None,
-                 equalityThreshold=10000, nonlinearityThreshold=10000,
+                 equalityThreshold=5000, nonlinearityThreshold=5000,
                  candidateSubONNXFileName=None):
         super().__init__()
         self.thresholdReached = False
@@ -1369,8 +1369,8 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
                 axis = get_attribute_value(attr)
 
         for inputName in node.input:
-            print(self.shapeMap[inputName])
-            self.varMap[inputName] = self.varMap[inputName].reshape(self.shapeMap[inputName])
+            if inputName in self.varMap:
+                self.varMap[inputName] = self.varMap[inputName].reshape(self.shapeMap[inputName])
 
         # Set maps of shape and var
         hasVariable = False
@@ -1448,8 +1448,8 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
                 for j in range(len(reshapedInputVars)):
                     # Add equation
                     e = MarabouUtils.Equation()
-                    e.addAddend(-1, outputVars[j])
                     e.addAddend(1, reshapedInputVars[j])
+                    e.addAddend(-1, outputVars[j])
                     e.setScalar(0)
                     self.addEquation(e)
                 break
@@ -1885,7 +1885,6 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
         assert(input2 in self.constantMap)
         exp = self.constantMap[input2]
-        assert(exp == 2)
 
         # Get variables
         inputVars = self.varMap[input1].reshape(-1)
@@ -1894,9 +1893,12 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
         # Generate equations
         for i in range(len(inputVars)):
-            self.addQuadratic(inputVars[i], inputVars[i], outputVars[i])
-        for f in outputVars:
-            self.setLowerBound(f, 0.0)
+            currentIn = inputVars[i]
+            for j in range(int(exp) - 2):
+                currentOut = self.getNewVariable()
+                self.addQuadratic(currentIn, inputVars[i], currentOut)
+                currentIn = currentOut
+            self.addQuadratic(currentIn, inputVars[i], outputVars[i])
 
 
     def reluEquations(self, node, makeEquations):
@@ -1978,9 +1980,6 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
         # Generate equations
         for i in range(len(inputVars)):
             self.addCosine(inputVars[i], outputVars[i])
-        for f in outputVars:
-            self.setLowerBound(f, -1)
-            self.setLowerBound(f, 1)
 
     def sinEquations(self, node, makeEquations):
         """Function to generate equations corresponding to pointwise Relu
@@ -2011,9 +2010,6 @@ class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
             e.setScalar(-3.14159265359 / 2)
 
             self.addCosine(var, outputVars[i])
-        for f in outputVars:
-            self.setLowerBound(f, -1)
-            self.setLowerBound(f, 1)
 
     def sigmoidEquations(self, node, makeEquations):
         """Function to generate equations corresponding to Sigmoid

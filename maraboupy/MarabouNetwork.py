@@ -521,9 +521,11 @@ class MarabouNetwork:
 
         ipq = self.getMarabouQuery()
         for k in inputDict:
-            ipq.setLowerBound(k, inputDict[k])
-            ipq.setUpperBound(k, inputDict[k])
+            ipq.setLowerBound(k, inputDict[k] - 0.01)
+            ipq.setUpperBound(k, inputDict[k] + 0.01)
 
+        MarabouCore.saveQuery(ipq, "test.ipq")
+        return None
         if options == None:
             options = MarabouCore.Options()
         exitCode, outputDict, _ = MarabouCore.solve(ipq, options, str(filename))

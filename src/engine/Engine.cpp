@@ -984,9 +984,7 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
     unsigned infiniteBounds = _preprocessedQuery->countInfiniteBounds();
     if ( infiniteBounds != 0 )
     {
-        _exitCode = Engine::ERROR;
-        throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
-                             Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
+      std::cout << Stringf( "Have %u infinite bounds", infiniteBounds ).ascii() << std::endl;
     }
 }
 
@@ -2887,8 +2885,15 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     if ( _gurobi->haveFeasibleSolution() )
     {
+      bool haveNonSigmoid = false;
+      for ( const auto &constraint: _preprocessedQuery->getTranscendentalConstraints() ) {
+        if (constraint->getType() != TranscendentalFunctionType::SIGMOID) {
+          haveNonSigmoid = true;
+          break;
+        }
+      }
           // Return UNKNOWN if input query has transcendental constratints.
-          if ( _preprocessedQuery->getTranscendentalConstraints().size() > 0 )
+      if ( (!haveNonSigmoid) && _preprocessedQuery->getTranscendentalConstraints().size() > 0 )
           {
             IncrementalLinearization* incrLinear = new IncrementalLinearization
               ( *_milpEncoder, *_preprocessedQuery );

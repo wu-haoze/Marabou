@@ -96,17 +96,18 @@ void CosineConstraint::notifyLowerBound( unsigned variable, double bound )
         _statistics->incLongAttribute(
             Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
 
+    if ( variable == _f )
+      tightenLowerBound( _f, std::min(1.0, std::max(-1.0, bound ) ) );
+    else {
     if ( tightenLowerBound( variable, bound ) )
     {
-      if ( variable == _b )
-      {
         if ( existsUpperBound( _b ) )
         {
           double newLb = -1;
           double newUb = 1;
           findRangeOfCosOutput( getLowerBound( _b ), getUpperBound( _b ), newLb, newUb );
-          tightenLowerBound( _f, newLb );
-          tightenUpperBound( _f, newUb );
+          tightenLowerBound( _f, std::min(1.0, std::max(-1.0, newLb ) ) );
+          tightenUpperBound( _f, std::min(1.0, std::max(-1.0, newUb ) ) );
         }
       }
     }
@@ -120,17 +121,18 @@ void CosineConstraint::notifyUpperBound( unsigned variable, double bound )
         _statistics->incLongAttribute(
             Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
 
+    if ( variable == _f )
+      tightenUpperBound( _f, std::min(1.0, std::max(-1.0, bound ) ) );
+    else {
     if ( tightenUpperBound( variable, bound ) )
     {
-      if ( variable == _b )
-      {
         if ( existsLowerBound( _b ) )
         {
           double newLb = -1;
           double newUb = 1;
           findRangeOfCosOutput( getLowerBound( _b ), getUpperBound( _b ), newLb, newUb );
-          tightenLowerBound( _f, newLb );
-          tightenUpperBound( _f, newUb );
+          tightenLowerBound( _f, std::min(1.0, std::max(-1.0, newLb ) ) );
+          tightenUpperBound( _f, std::min(1.0, std::max(-1.0, newUb ) ) );
         }
       }
     }
@@ -266,7 +268,6 @@ void CosineConstraint::findRangeOfCosOutput(double lower, double upper, double &
   // Initialize the min and max values to be the cos of the lower bound
   double min = std::cos(upper);
   double max = std::cos(upper);
-  std::cout << min << " " << max << std::endl;
   // Loop through the range of x with a small increment
   for (double x = lower; x <= upper; x += 0.0005) {
     // Calculate the cos of x
@@ -279,7 +280,6 @@ void CosineConstraint::findRangeOfCosOutput(double lower, double upper, double &
       max = y;
     }
   }
-
   newLb = min;
   newUb = max;
 }

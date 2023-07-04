@@ -251,7 +251,8 @@ protected:
         _boundManager->setLowerBound( var, value );
         return true;
       }
-      else if ( !existsLowerBound( var ) || _lowerBounds[var] < value )
+      else if ( !existsLowerBound( var ) || FloatUtils::lt(_lowerBounds[var],
+                                                           value, 0.0000001 ) )
       {
         _lowerBounds[var] = value;
         return true;
@@ -269,7 +270,8 @@ protected:
         _boundManager->setUpperBound( var, value );
         return true;
       }
-      else if ( !existsUpperBound( var ) || _upperBounds[var] > value )
+      else if ( !existsUpperBound( var ) || FloatUtils::gt( _upperBounds[var],
+                                                            value, 0.0000001 ) )
       {
         _upperBounds[var] = value;
         return true;

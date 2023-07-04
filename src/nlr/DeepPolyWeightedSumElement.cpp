@@ -109,6 +109,9 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
 
     while ( currentElement->hasPredecessor() )
     {
+      if (currentElement->getLayerType() == Layer::QUADRATIC)
+        break;
+
         // We have the symbolic bounds in terms of the current abstract
         // element--currentElement, stored in _work1SymbolicLb,
         // _work1SymbolicUb, _workSymbolicLowerBias, _workSymbolicLowerBias,

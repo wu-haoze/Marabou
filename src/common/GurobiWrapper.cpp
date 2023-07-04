@@ -211,6 +211,11 @@ void GurobiWrapper::addEqIndicatorConstraint( const String binVarName, const int
     addIndicatorConstraint( binVarName, binVal, terms, scalar, GRB_EQUAL );
 }
 
+void GurobiWrapper::addQuadraticConstraint( const String input1, const String input2, const String output )
+{
+    _model->addQConstr((*_nameToVariable[output]) == (*_nameToVariable[input1]) * (*_nameToVariable[input2]), "quad");
+}
+
 void GurobiWrapper::addIndicatorConstraint( const String binVarName, const int binVal, const List<Term> &terms, double scalar, char sense )
 {
     try

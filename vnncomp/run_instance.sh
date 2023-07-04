@@ -12,7 +12,7 @@ BENCHMARK=$2
 ONNX_FILE=$3
 VNNLIB_FILE=$4
 RESULTS_FILE=$5
-TIMEOUT=10
+TIMEOUT=1200
 
 echo "Running benchmark instance in category '$BENCHMARK' with onnx file '$ONNX_FILE', vnnlib file '$VNNLIB_FILE', results file $RESULTS_FILE, and timeout $TIMEOUT"
 
@@ -39,8 +39,8 @@ done
 
 # Run the processes in the background and store their PIDs in an array
 pids=()
-#python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_1 1 10000000000 &
-#pids+=($!)
+#python3 -u $SCRIPT_DIR/../resources/enumeratePoints.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_1 1 10000000000 &
+pids+=($!)
 #python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_2 2 10000000000 &
 #pids+=($!)
 # big step
@@ -49,7 +49,7 @@ pids=()
 # small step
 #python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
 #pids+=($!)
-python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 &
+python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 &
 pids+=($!)
 #python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
 #pids+=($!)

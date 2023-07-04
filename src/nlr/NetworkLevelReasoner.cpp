@@ -194,10 +194,23 @@ void NetworkLevelReasoner::symbolicBoundPropagation()
 
 void NetworkLevelReasoner::deepPolyPropagation()
 {
-    if ( _deepPolyAnalysis == nullptr )
-        _deepPolyAnalysis = std::unique_ptr<DeepPolyAnalysis>
-            ( new DeepPolyAnalysis( this ) );
-    _deepPolyAnalysis->run();
+  if ( _maxLayerSize == 0 ) {
+    for ( const auto &pair : _layerIndexToLayer )
+    {
+      unsigned thisLayerSize = pair.second->getSize();
+      if ( thisLayerSize > _maxLayerSize )
+        _maxLayerSize = thisLayerSize;
+    }
+    std::cout << "Max layer size: " << _maxLayerSize << std::endl;
+  }
+  if ( _maxLayerSize > 15000 )
+    return;
+
+  if ( _deepPolyAnalysis == nullptr )
+    _deepPolyAnalysis = std::unique_ptr<DeepPolyAnalysis>
+      ( new DeepPolyAnalysis( this ) );
+
+  _deepPolyAnalysis->run();
 }
 
 void NetworkLevelReasoner::lpRelaxationPropagation()
@@ -335,8 +348,8 @@ void NetworkLevelReasoner::dumpTopology() const
             printf(" %u", sourceLayer.first );
         printf("\n");
     }
-    for ( const auto &layer : _layerIndexToLayer )
-        layer.second->dump();
+    //for ( const auto &layer : _layerIndexToLayer )
+    //    layer.second->dump();
 }
 
 unsigned NetworkLevelReasoner::getNumberOfLayers() const

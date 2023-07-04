@@ -455,19 +455,22 @@ std::tuple<std::string, std::map<int, std::tuple<double, double>>, Statistics>
 
         bool dnc = Options::get()->getBool( Options::DNC_MODE );
 
-        Engine engine;
+        Engine *engine = new Engine();
 
-        if(!engine.calculateBounds(inputQuery)) {
-            std::string exitCode = exitCodeToString(engine.getExitCode());
-            return std::make_tuple(exitCode, ret, *(engine.getStatistics()));
+        if(!engine->calculateBounds(inputQuery)) {
+            std::string exitCode = exitCodeToString(engine->getExitCode());
+            auto tup = std::make_tuple(exitCode, ret, *(engine->getStatistics()));
+            delete engine;
+            return tup;
         }
 
         // Extract bounds
-        engine.extractBounds(inputQuery);
+        engine->extractBounds(inputQuery);
         for(unsigned int i=0; i<inputQuery.getNumberOfVariables(); ++i) {
             // set lower bound and upper bound in tuple
             ret[i] = std::make_tuple(inputQuery.getLowerBounds()[i], inputQuery.getUpperBounds()[i]);
         }
+        delete engine;
 
     }
     catch(const MarabouError &e){

@@ -462,6 +462,7 @@ bool Preprocessor::processEquations()
                 delete[] ciTimesUb;
                 delete[] ciSign;
 
+                std::cout << xi << " " << getLowerBound( xi ) << " " << getUpperBound( xi ) << std::endl;
                 throw InfeasibleQueryException();
             }
         }
@@ -500,6 +501,7 @@ bool Preprocessor::processEquations()
 
             if ( FloatUtils::areDisequal( sum, equation->_scalar, GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
             {
+                std::cout << "Eq" << sum << " " << equation->_scalar << std::endl;
                 throw InfeasibleQueryException();
             }
             equation = equations.erase( equation );
@@ -550,6 +552,7 @@ bool Preprocessor::processConstraints()
                                  getUpperBound( tightening._variable ),
                                  GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
             {
+                std::cout << "Constraint" << tightening._variable  << " " << getLowerBound( tightening._variable ) << " " << getUpperBound( tightening._variable ) << std::endl;
                 throw InfeasibleQueryException();
             }
         }
@@ -592,6 +595,8 @@ bool Preprocessor::processConstraints()
                                  getUpperBound( tightening._variable ),
                                  GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) )
             {
+                std::cout << getLowerBound( tightening._variable ) << " " << getUpperBound( tightening._variable ) << " " << FloatUtils::gt( 1, 1, GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD ) << std::endl;
+                std::cout << "Constraint" << tightening._variable  << " " << getLowerBound( tightening._variable ) << " " << getUpperBound( tightening._variable ) << std::endl;
                 throw InfeasibleQueryException();
             }
         }
@@ -888,8 +893,10 @@ void Preprocessor::eliminateVariables()
                     ( Statistics::PP_NUM_EQUATIONS_REMOVED );
 
             // No addends left, scalar should be 0
-            if ( !FloatUtils::isZero( equation->_scalar ) )
+            if ( !FloatUtils::isZero( equation->_scalar ) ){
+                std::cout << "Elim" << std::endl;
                 throw InfeasibleQueryException();
+            }
             else
                 equation = equations.erase( equation );
         }

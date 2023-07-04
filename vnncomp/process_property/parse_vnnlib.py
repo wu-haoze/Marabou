@@ -17,10 +17,6 @@ from maraboupy.MarabouUtils import *
 from maraboupy.Marabou import createOptions
 
 def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
-    #network = MarabouNetworkONNXThresh("/home/haozewu/Projects/vnncomp-23/vnncomp2023_benchmarks/benchmarks/cgan/onnx/split.onnx")
-    #test_network(network)
-    #exit(0)
-
     model = onnx.load(onnx_file)
 
     # Get the input and output nodes
@@ -55,7 +51,9 @@ def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
         # Pickle the list and write it to the file
         pickle.dump(box_spec_list, f)
 
-    create_marabou_query(onnx_file, box_spec_list, ipq_output)
+    print(os.path.basename(onnx_file))
+    if "vgg16-7" not in os.path.basename(onnx_file):
+        create_marabou_query(onnx_file, box_spec_list, ipq_output)
 
 def toMarabouEquation(equation):
     eq = MarabouCore.Equation(equation.EquationType)
@@ -69,7 +67,9 @@ def test_network(network_object):
     options = createOptions(tighteningStrategy="none")
     outputsMarabou = network_object.evaluateWithMarabou(testInputs, options=options)
     outputsONNX = network_object.evaluateWithoutMarabou(testInputs)
-    print(outputsMarabou[0][0][0][0], outputsONNX[0][0][0][0])
+    print("###############Here #####################")
+    print("Onnx:", list(outputsONNX[0][0]))
+    #print("Marabou:", outputsMarabou[0])
     #print("Testing",  max(outputsMarabou[0][0] - outputsONNX[0][0]))
 
 def create_marabou_query(onnx_file, box_spec_list, ipq_output):
@@ -78,52 +78,20 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
     outputVarsMap = dict()
     queriesMap = dict()
 
-    candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
-    network = MarabouNetworkONNXThresh(onnx_file,
-                                       candidateSubONNXFileName=candidateSubONNXFileName)
-    #test_network(network)
+    if len(box_spec_list) > 1:
+        print("Multiple input specs!")
+        for box_spec in box_spec_list:
+            network = MarabouNetworkONNX(onnx_file, reindexOutputVars=False)
+            inputVars = network.inputVars[0].flatten()
+            pert_dim = 0
+            input_spec, output_specs = box_spec
+            for i, (lb, ub) in enumerate(input_spec):
+                if lb < ub:
+                    pert_dim += 1
+                network.setLowerBound(inputVars[i], lb)
+                network.setUpperBound(inputVars[i], ub)
+            print(f"Perturbation dimension is {pert_dim}")
 
-    inputVars = network.inputVars[0].flatten()
-
-    if len(box_spec_list) == 1:
-        pert_dim = 0
-        input_spec, _ = box_spec_list[0]
-        for i, (lb, ub) in enumerate(input_spec):
-            if lb < ub:
-                pert_dim += 1
-            network.setLowerBound(inputVars[i], lb)
-            network.setUpperBound(inputVars[i], ub)
-        print(f"Perturbation dimension is {pert_dim}")
-    else:
-        print("Unsupported input spec")
-        exit(12)
-
-    while network.subONNXFile is not None:
-        queryName = f"{ipq_output}_{query_id}"
-        network.saveQuery(queryName)
-        inputVarsMap[query_id] = network.inputVars
-        outputVarsMap[query_id] = network.outputVars
-        queriesMap[query_id] = queryName
-
-        onnxFile = network.subONNXFile
-        del network
-        query_id += 1
-        candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
-        network = MarabouNetworkONNXThresh(onnxFile,
-                                           candidateSubONNXFileName=candidateSubONNXFileName)
-
-    outputVars = network.outputVars[0].flatten()
-    if len(box_spec_list) == 1:
-        _, output_specs = box_spec_list[0]
-        if len(output_specs) == 1:
-            output_props, rhss = output_specs[0]
-            for i in range(len(rhss)):
-                eq = Equation(MarabouCore.Equation.LE)
-                for out_index, c in output_props[i].items():
-                    eq.addAddend(c, outputVars[out_index])
-                eq.setScalar(rhss[i])
-                network.addEquation(eq)
-        elif len(output_specs) > 1:
             disjuncts = []
             for output_props, rhss in output_specs:
                 conjuncts = []
@@ -136,17 +104,84 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
                 disjuncts.append(conjuncts)
             network.addDisjunctionConstraint(disjuncts)
 
-    print("Number of disunctions:", len(network.disjunctionList))
+            print("Number of disunctions:", len(network.disjunctionList))
+            queryName = f"{ipq_output}_{query_id}"
+            network.saveQuery(queryName)
+            queriesMap[query_id] = queryName
+            del network
+            query_id += 1
 
-    queryName = f"{ipq_output}_{query_id}"
-    network.saveQuery(queryName)
-    inputVarsMap[query_id] = network.inputVars
-    outputVarsMap[query_id] = network.outputVars
-    queriesMap[query_id] = queryName
-
-    with open(f"{ipq_output}.pickle", 'wb') as handle:
         print("Saving query info to", f"{ipq_output}.pickle")
-        pickle.dump((query_id, queriesMap, inputVarsMap, outputVarsMap), handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(f"{ipq_output}.pickle", 'wb') as handle:
+            pickle.dump((query_id, queriesMap, inputVarsMap, outputVarsMap), handle, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
+        network = MarabouNetworkONNXThresh(onnx_file,
+                                           candidateSubONNXFileName=candidateSubONNXFileName)
+        inputVars = network.inputVars[0].flatten()
+
+        if len(box_spec_list) == 1:
+            pert_dim = 0
+            input_spec, _ = box_spec_list[0]
+            for i, (lb, ub) in enumerate(input_spec):
+                if lb < ub:
+                    pert_dim += 1
+                network.setLowerBound(inputVars[i], lb)
+                network.setUpperBound(inputVars[i], ub)
+            print(f"Perturbation dimension is {pert_dim}")
+        else:
+            print("Unsupported input spec")
+            exit(12)
+
+        while network.subONNXFile is not None:
+            queryName = f"{ipq_output}_{query_id}"
+            network.saveQuery(queryName)
+            inputVarsMap[query_id] = network.inputVars
+            outputVarsMap[query_id] = network.outputVars
+            queriesMap[query_id] = queryName
+
+            onnxFile = network.subONNXFile
+            del network
+            query_id += 1
+            candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
+            network = MarabouNetworkONNXThresh(onnxFile,
+                                               candidateSubONNXFileName=candidateSubONNXFileName)
+
+        outputVars = network.outputVars[0].flatten()
+        if len(box_spec_list) == 1:
+            _, output_specs = box_spec_list[0]
+            if len(output_specs) == 1:
+                output_props, rhss = output_specs[0]
+                for i in range(len(rhss)):
+                    eq = Equation(MarabouCore.Equation.LE)
+                    for out_index, c in output_props[i].items():
+                        eq.addAddend(c, outputVars[out_index])
+                    eq.setScalar(rhss[i])
+                    network.addEquation(eq)
+            elif len(output_specs) > 1:
+                disjuncts = []
+                for output_props, rhss in output_specs:
+                    conjuncts = []
+                    for i in range(len(rhss)):
+                        eq = Equation(MarabouCore.Equation.LE)
+                        for out_index, c in output_props[i].items():
+                            eq.addAddend(c, outputVars[out_index])
+                        eq.setScalar(rhss[i])
+                        conjuncts.append(toMarabouEquation(eq))
+                    disjuncts.append(conjuncts)
+                network.addDisjunctionConstraint(disjuncts)
+
+        print("Number of disunctions:", len(network.disjunctionList))
+
+        queryName = f"{ipq_output}_{query_id}"
+        network.saveQuery(queryName)
+        inputVarsMap[query_id] = network.inputVars
+        outputVarsMap[query_id] = network.outputVars
+        queriesMap[query_id] = queryName
+
+        with open(f"{ipq_output}.pickle", 'wb') as handle:
+            print("Saving query info to", f"{ipq_output}.pickle")
+            pickle.dump((query_id, queriesMap, inputVarsMap, outputVarsMap), handle, protocol=pickle.HIGHEST_PROTOCOL)
     return
 
 

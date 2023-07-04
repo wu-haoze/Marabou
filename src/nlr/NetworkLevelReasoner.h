@@ -192,6 +192,7 @@ private:
     // Tightenings discovered by the various layers
     List<Tightening> _boundTightenings;
 
+    unsigned _maxLayerSize = 0;
 
     std::unique_ptr<DeepPolyAnalysis> _deepPolyAnalysis;
 
