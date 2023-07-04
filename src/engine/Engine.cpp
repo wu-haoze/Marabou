@@ -130,6 +130,7 @@ void Engine::adjustWorkMemorySize()
 
 void Engine::applySnCSplit( PiecewiseLinearCaseSplit sncSplit, String queryId )
 {
+    _context.push();
     _sncMode = true;
     _sncSplit = sncSplit;
     _queryId = queryId;
