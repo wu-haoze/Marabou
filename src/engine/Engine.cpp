@@ -2869,6 +2869,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     double timeoutForGurobi = ( timeoutInSeconds == 0 ? FloatUtils::infinity()
                                 : timeoutInSeconds );
     ENGINE_LOG( Stringf( "Gurobi timeout set to %f\n", timeoutForGurobi ).ascii() )
+      std::cout << "Timeout " << timeoutForGurobi << std::endl;
     _gurobi->setTimeLimit( timeoutForGurobi );
 
     unsigned threads = 1;

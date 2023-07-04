@@ -366,9 +366,10 @@ std::string exitCodeToString( IEngine::ExitCode code )
 /* The default parameters here are just for readability, you should specify
  * them in the to make them work*/
 std::tuple<std::string, std::map<int, double>, Statistics>
-    solve(InputQuery &inputQuery, MarabouOptions &options,
+    solve(InputQuery &inputQuery, int mode=-1,
           std::string redirect="")
 {
+
     // Arguments: InputQuery object, filename to redirect output
     // Returns: map from variable number to value
     std::string resultString = "";
@@ -378,54 +379,99 @@ std::tuple<std::string, std::map<int, double>, Statistics>
     if(redirect.length()>0)
         output=redirectOutputToFile(redirect);
     try{
-        options.setOptions();
 
-        bool dnc = Options::get()->getBool( Options::DNC_MODE );
-
-        Engine engine;
-
-        if(!engine.processInputQuery(inputQuery))
-            return std::make_tuple(exitCodeToString(engine.getExitCode()),
-                                   ret, *(engine.getStatistics()));
-        if ( dnc )
+      if ( mode == 1 )
         {
-            auto dncManager = std::unique_ptr<DnCManager>( new DnCManager( &inputQuery ) );
-
-            dncManager->solve();
-            resultString = dncManager->getResultString().ascii();
-            switch ( dncManager->getExitCode() )
-            {
-            case DnCManager::SAT:
-            {
-                retStats = Statistics();
-                dncManager->getSolution( ret, inputQuery );
-                break;
-            }
-            case DnCManager::TIMEOUT:
-            {
-                retStats = Statistics();
-                retStats.timeout();
-                return std::make_tuple( resultString, ret, retStats );
-            }
-            default:
-                return std::make_tuple( resultString, ret, Statistics() ); // TODO: meaningful DnCStatistics
-            }
-        } else
-        {
-            unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
-            engine.solve(timeoutInSeconds);
-
-            resultString = exitCodeToString(engine.getExitCode());
-
-            if (engine.getExitCode() == Engine::SAT)
-            {
-                engine.extractSolution(inputQuery);
-                for(unsigned int i=0; i<inputQuery.getNumberOfVariables(); ++i)
-                    ret[i] = inputQuery.getSolutionValue(i);
-            }
-
-            retStats = *(engine.getStatistics());
+          // MILP
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
         }
+      else if ( mode == 2)
+        {
+          // SNC
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+          Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
+          Options::get()->setBool( Options::DNC_MODE, true );
+          Options::get()->setInt( Options::NUM_WORKERS, 48 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 48 );
+          Options::get()->setInt( Options::INITIAL_TIMEOUT, 1 );
+          Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 7 );
+        }
+      else if (mode == 3)
+        {
+          // MILP small
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+          Options::get()->setInt( Options::NUM_WORKERS, 16 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 16 );
+        }
+      else if (mode == 4)
+        {
+          // MILP small
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+          Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "lse2" );
+        }
+      else if (mode == 5)
+        {
+          // MILP small
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+          Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "er" );
+        }
+
+      else {
+        std::cout << "UNKNOWN option!!!" << std::endl;
+      }
+
+      bool dnc = Options::get()->getBool( Options::DNC_MODE );
+
+      Engine engine;
+
+      if(!engine.processInputQuery(inputQuery))
+        return std::make_tuple(exitCodeToString(engine.getExitCode()),
+                               ret, *(engine.getStatistics()));
+      if ( dnc )
+      {
+        auto dncManager = std::unique_ptr<DnCManager>( new DnCManager( &inputQuery ) );
+
+        dncManager->solve();
+        resultString = dncManager->getResultString().ascii();
+        switch ( dncManager->getExitCode() )
+        {
+        case DnCManager::SAT:
+        {
+          retStats = Statistics();
+          dncManager->getSolution( ret, inputQuery );
+          break;
+        }
+        case DnCManager::TIMEOUT:
+        {
+          retStats = Statistics();
+          retStats.timeout();
+          return std::make_tuple( resultString, ret, retStats );
+        }
+        default:
+          return std::make_tuple( resultString, ret, Statistics() ); // TODO: meaningful DnCStatistics
+        }
+      } else
+      {
+        unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
+        engine.solve(timeoutInSeconds);
+
+        resultString = exitCodeToString(engine.getExitCode());
+
+        if (engine.getExitCode() == Engine::SAT)
+        {
+          engine.extractSolution(inputQuery);
+          for(unsigned int i=0; i<inputQuery.getNumberOfVariables(); ++i)
+            ret[i] = inputQuery.getSolutionValue(i);
+        }
+
+        retStats = *(engine.getStatistics());
+      }
     }
     catch(const MarabouError &e){
         printf( "Caught a MarabouError. Code: %u. Message: %s\n", e.getCode(), e.getUserMessage() );
@@ -439,8 +485,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 }
 
 std::tuple<std::string, std::map<int, std::tuple<double, double>>, Statistics>
-    calculateBounds(InputQuery &inputQuery, MarabouOptions &options,
-          std::string redirect="")
+    calculateBounds(InputQuery &inputQuery, std::string redirect="")
 {
     // Arguments: InputQuery object, filename to redirect output
     // Returns: map from variable number to value
@@ -451,9 +496,8 @@ std::tuple<std::string, std::map<int, std::tuple<double, double>>, Statistics>
     if(redirect.length()>0)
         output=redirectOutputToFile(redirect);
     try{
-        options.setOptions();
-
-        bool dnc = Options::get()->getBool( Options::DNC_MODE );
+      Options::get()->setInt( Options::NUM_WORKERS, 64 );
+      Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
 
         Engine *engine = new Engine();
 
@@ -550,7 +594,7 @@ PYBIND11_MODULE(MarabouCore, m) {
                 - vals (Dict[int, float]): Empty dictionary if UNSAT, otherwise a dictionary of SATisfying values for variables
                 - stats (:class:`~maraboupy.MarabouCore.Statistics`): A Statistics object to how Marabou performed
         )pbdoc",
-        py::arg("inputQuery"), py::arg("options"), py::arg("redirect") = "");
+        py::arg("inputQuery"), py::arg("mode"), py::arg("redirect") = "");
     m.def("calculateBounds", &calculateBounds, R"pbdoc(
         Takes in a description of the InputQuery and returns the bounds
 
@@ -565,7 +609,7 @@ PYBIND11_MODULE(MarabouCore, m) {
                 - vals (Dict[int, tuple]): Empty dictionary if UNSAT, otherwise a dictionary of bounds for variables
                 - stats (:class:`~maraboupy.MarabouCore.Statistics`): A Statistics object to how Marabou performed
         )pbdoc",
-        py::arg("inputQuery"), py::arg("options"), py::arg("redirect") = "");
+        py::arg("inputQuery"), py::arg("redirect") = "");
     m.def("saveQuery", &saveQuery, R"pbdoc(
         Serializes the inputQuery in the given filename
 
