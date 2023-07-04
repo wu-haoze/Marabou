@@ -59,7 +59,52 @@ MODE_PORTFOLIO = 3
 MODE_MILP2 = 4
 MODE_MILP3 = 5
 
-if max_query_id == 1:
+if max_query_id > 1 and len(outputVarsMap) == 0:
+    print("Input disjunction detected!")
+    for query_id in range(max_query_id + 1)[1:]:
+        inputVars = inputVarsMap[query_id]
+        queryName = queriesMap[query_id]
+        ipq = Marabou.loadQuery(queryName)
+
+        if ipq.getNumberOfVariables() < 5000 and ipq.getNumInputVariables() < 10:
+            if mode == "default":
+                mode = MODE_SNC
+            else:
+                mode = MODE_PORTFOLIO
+        elif mode == "default":
+            mode = MODE_MILP
+        else:
+            exit(0)
+
+        result, vals, stats = MarabouCore.solve(ipq, mode=mode)
+        if result == "sat":
+            # Load the onnx model
+            sess_opt = ort.SessionOptions()
+            sess_opt.intra_op_num_threads = 2
+            sess_opt.inter_op_num_threads = 2
+            ort_model = ort.InferenceSession(onnx_network, sess_opt)
+            name, shape, dtype = [(i.name, i.shape, i.type) for i in ort_model.get_inputs()][0]
+            if shape[0] in ["batch_size", "unk__195"]:
+                shape[0] = 1
+            assert dtype in ['tensor(float)', 'tensor(double)']
+            dtype = "float32" if dtype == 'tensor(float)' else "float64"
+
+            assignments = [vals[i] for i in inputVars[0].flatten()]
+            ort_outputs = ort_model.run(None, {name: np.array([assignments]).astype(dtype).reshape(shape)})[0]
+            input_spec, output_specs = specs[0]
+            if output_property_hold(ort_outputs, output_specs):
+                print("ONNX test passed!")
+            else:
+                print("ONNX test failed!")
+                result = "unknown"
+                break
+        elif result == "unsat":
+            continue
+        else:
+            result = "unknown"
+            break
+
+elif max_query_id == 1:
     inputVars = inputVarsMap[1]
     queryName = queriesMap[1]
     ipq = Marabou.loadQuery(queryName)
@@ -95,6 +140,30 @@ if max_query_id == 1:
         else:
             print("ONNX test failed!")
             result = "unknown"
+
+    if result not in ["sat", "unsat"]:
+        mode = MODE_MILP2
+        result, vals, stats = MarabouCore.solve(ipq, mode=mode)
+        if result == "sat":
+            # Load the onnx model
+            sess_opt = ort.SessionOptions()
+            sess_opt.intra_op_num_threads = 2
+            sess_opt.inter_op_num_threads = 2
+            ort_model = ort.InferenceSession(onnx_network, sess_opt)
+            name, shape, dtype = [(i.name, i.shape, i.type) for i in ort_model.get_inputs()][0]
+            if shape[0] in ["batch_size", "unk__195"]:
+                shape[0] = 1
+            assert dtype in ['tensor(float)', 'tensor(double)']
+            dtype = "float32" if dtype == 'tensor(float)' else "float64"
+
+            assignments = [vals[i] for i in inputVars[0].flatten()]
+            ort_outputs = ort_model.run(None, {name: np.array([assignments]).astype(dtype).reshape(shape)})[0]
+            input_spec, output_specs = specs[0]
+            if output_property_hold(ort_outputs, output_specs):
+                print("ONNX test passed!")
+            else:
+                print("ONNX test failed!")
+                result = "unknown"
 
     if result not in ["sat", "unsat"]:
         mode = MODE_MILP3

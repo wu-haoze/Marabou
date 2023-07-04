@@ -119,7 +119,6 @@ void DeepPolyAnalysis::run()
     const Map<unsigned, Layer *> &layers = _layerOwner->getLayerIndexToLayer();
     for ( const auto &pair : layers )
     {
-      std::cout << "Layer: " << pair.first << std::endl;
         /*
           Go over the layers, one by one. Each time construct and execute
           the abstract element.

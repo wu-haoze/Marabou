@@ -83,6 +83,7 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
         for box_spec in box_spec_list:
             network = MarabouNetworkONNX(onnx_file, reindexOutputVars=False)
             inputVars = network.inputVars[0].flatten()
+            outputVars = network.outputVars[0].flatten()
             pert_dim = 0
             input_spec, output_specs = box_spec
             for i, (lb, ub) in enumerate(input_spec):
@@ -107,13 +108,14 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
             print("Number of disunctions:", len(network.disjunctionList))
             queryName = f"{ipq_output}_{query_id}"
             network.saveQuery(queryName)
+            inputVarsMap[query_id] = network.inputVars
             queriesMap[query_id] = queryName
             del network
             query_id += 1
 
         print("Saving query info to", f"{ipq_output}.pickle")
         with open(f"{ipq_output}.pickle", 'wb') as handle:
-            pickle.dump((query_id, queriesMap, inputVarsMap, outputVarsMap), handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump((query_id - 1, queriesMap, inputVarsMap, outputVarsMap), handle, protocol=pickle.HIGHEST_PROTOCOL)
     else:
         candidateSubONNXFileName=onnx_file[:-4] + f"part{query_id + 1}.onnx"
         network = MarabouNetworkONNXThresh(onnx_file,
