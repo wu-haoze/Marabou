@@ -124,12 +124,14 @@ echo
 echo "TODO: running warmup..."
 echo
 
-home="/opt"
-export INSTALL_DIR="$home"
-export GUROBI_HOME="$home/gurobi951/linux64"
-export PATH="${PATH}:${GUROBI_HOME}/bin"
-export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${GUROBI_HOME}/lib"
+
+script_name=$(realpath $0)
+script_path=$(dirname "$script_name")
+project_path=$(dirname "$script_path")
+
+home=$project_path"/opt"
 export GRB_LICENSE_FILE="$home/gurobi.lic"
+
 
 # kill any remaining python processes.
 pkill -9 Marabou

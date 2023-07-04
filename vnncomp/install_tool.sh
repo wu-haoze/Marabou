@@ -6,30 +6,31 @@ script_name=$(realpath $0)
 script_path=$(dirname "$script_name")
 project_path=$(dirname "$script_path")
 
+echo Project path $project_path
+
 pip3 install -r "$script_path"/requirements.txt
 pip3 install "$script_path"/onnx2pytorch 
 
 home=$project_path"/opt"
 mkdir $home
 export INSTALL_DIR="$home"
-export GUROBI_HOME="$home/gurobi1002/linux64"
+export GUROBI_HOME="$home/gurobi951/linux64"
 export PATH="${PATH}:${GUROBI_HOME}/bin"
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${GUROBI_HOME}/lib"
 export GRB_LICENSE_FILE="$home/gurobi.lic"
 
-if [[ ! -d $home/gurobi1002/ ]]
+if [[ ! -d $home/gurobi951/ ]]
 then
-    wget https://packages.gurobi.com/10.0/gurobi10.0.2_linux64.tar.gz
-    tar xvfz gurobi10.0.2_linux64.tar.gz -C $INSTALL_DIR
+    wget https://packages.gurobi.com/9.5/gurobi9.5.1_linux64.tar.gz
+    tar xvfz gurobi9.5.1_linux64.tar.gz -C $INSTALL_DIR
 fi
 
-cd $INSTALL_DIR/gurobi1002/linux64/src/build
+cd $INSTALL_DIR/gurobi951/linux64/src/build
 make
 cp libgurobi_c++.a ../../lib/
 
 echo "Project dir:" $project_path
 cd $project_path
-cd ../
 
 # install marabou
 

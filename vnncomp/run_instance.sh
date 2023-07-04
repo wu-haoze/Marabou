@@ -28,6 +28,13 @@ ONNX_FILE_POSTDNNV=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp_presoftmax_postdnnv.o
 VNNLIB_FILE_PICKLED=$WORKING_DIR_INSTANCE/vnnlib.pkl
 IPQ_FILE=$WORKING_DIR_INSTANCE/query.ipq.pickle
 
+script_name=$(realpath $0)
+script_path=$(dirname "$script_name")
+project_path=$(dirname "$script_path")
+
+home=$project_path"/opt"
+export GRB_LICENSE_FILE="$home/gurobi.lic"
+
 for i in {1..100}
 do
     if [[ -f "$RESULTS_FILE"_"$i" ]]
@@ -53,16 +60,12 @@ python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $
 pids+=($!)
 python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_6 nodefault &
 pids+=($!)
-#python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
-#pids+=($!)
 
 
 for pid in "${pids[@]}"; do
     echo "Process id $pid"
 done
 
-
-#TIMEOUT=$((TIMEOUT + 1))
 
 # loop until one of the subprocesses exits with code 10 or 20, or all of them exit
 while true; do
