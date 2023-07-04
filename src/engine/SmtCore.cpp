@@ -60,6 +60,8 @@ void SmtCore::freeMemory()
 
 void SmtCore::reset()
 {
+    _context.popto( 0 );
+    _engine->postContextPopHook();
     freeMemory();
     _impliedValidSplitsAtRoot.clear();
     _needToSplit = false;
