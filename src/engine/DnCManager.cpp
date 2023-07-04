@@ -60,10 +60,7 @@ void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy, verbosity, parallelDeepSoI );
-    while ( !shouldQuitSolving.load() )
-    {
-        worker.popOneSubQueryAndSolve( restoreTreeStates );
-    }
+    worker.popOneSubQueryAndSolve( restoreTreeStates );
 }
 
 DnCManager::DnCManager( InputQuery *inputQuery )

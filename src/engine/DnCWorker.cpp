@@ -87,11 +87,6 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
             smtState = std::move( subQuery->_smtState );
         unsigned timeoutInSeconds = subQuery->_timeoutInSeconds;
 
-        // Reset the engine state
-        if ( !_parallelDeepSoI )
-            _engine->restoreState( *_initialState );
-        _engine->reset();
-
         // TODO: each worker is going to keep a map from *CaseSplit to an
         // object of class DnCStatistics, which contains some basic
         // statistics. The maps are owned by the DnCManager.
@@ -207,7 +202,7 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
     else
     {
         // If the queue is empty but the pop fails, wait and retry
-        std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
     }
 }
 

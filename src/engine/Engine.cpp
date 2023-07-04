@@ -130,11 +130,21 @@ void Engine::adjustWorkMemorySize()
 
 void Engine::applySnCSplit( PiecewiseLinearCaseSplit sncSplit, String queryId )
 {
-    _context.push();
-    _sncMode = true;
-    _sncSplit = sncSplit;
-    _queryId = queryId;
-    applySplit( sncSplit );
+    List<Tightening> bounds = sncSplit.getBoundTightenings();
+    for ( auto &bound : bounds )
+    {
+        unsigned variable = _tableau->getVariableAfterMerging( bound._variable );
+
+        if ( bound._type == Tightening::LB )
+        {
+            ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", variable, bound._value ).ascii() );
+	    _boundManager.tightenLowerBound( variable, bound._value );
+        }
+        else
+        {
+	  _boundManager.tightenUpperBound( variable, bound._value );
+        }
+    }
 }
 
 void Engine::setRandomSeed( unsigned seed )
