@@ -32,7 +32,15 @@ mkdir $WORKING_DIR_INSTANCE
 
 echo "Working directory: $WORKING_DIR_INSTANCE"
 
-
+# kill any remaining python processes.
+pkill -9 python
+pkill -9 python3
+pkill -9 run_instance.sh
+sleep 1
+pkill -9 python
+pkill -9 python3
+pkill -9 run_instance.sh
+sleep 1
 
 ############################### NETWORK PROCESSING #################################
 
