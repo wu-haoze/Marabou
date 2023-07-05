@@ -400,6 +400,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
 	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
 	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
+	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
       }
       else if (mode == 3)
         {
@@ -412,6 +413,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
 	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
 	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
+	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
         }
       else if (mode == 4)
         {
