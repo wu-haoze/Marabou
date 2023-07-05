@@ -450,7 +450,7 @@ void Engine::mainLoopStatistics()
 void Engine::performBoundTighteningAfterCaseSplit()
 {
     // Tighten bounds of a first hidden layer with MILP solver
-    performMILPSolverBoundedTighteningForSingleLayer( 1 );
+    //performMILPSolverBoundedTighteningForSingleLayer( 1 );
     do
     {
         performSymbolicBoundTightening();
@@ -458,9 +458,9 @@ void Engine::performBoundTighteningAfterCaseSplit()
     while ( applyAllValidConstraintCaseSplits() );
 
     // Tighten bounds of an output layer with MILP solver
-    if ( _networkLevelReasoner )    // to avoid failing of system test.
-        performMILPSolverBoundedTighteningForSingleLayer
-            ( _networkLevelReasoner->getLayerIndexToLayer().size() - 1 );
+    //if ( _networkLevelReasoner )    // to avoid failing of system test.
+    //    performMILPSolverBoundedTighteningForSingleLayer
+    //        ( _networkLevelReasoner->getLayerIndexToLayer().size() - 1 );
 }
 
 bool Engine::adjustAssignmentToSatisfyNonLinearConstraints()
