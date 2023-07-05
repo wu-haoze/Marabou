@@ -16,6 +16,16 @@ echo "Property name: $PROP_NAME"
 
 ####### Creating working directories #######
 
+list="acasxu cgan collins_rul_cnn dist_shift ml4acopf nn4sys tllverifybench traffic_signs_recognition vggnet16 vit"
+
+if [[ $list =~ (^|[[:space:]])$BENCHMARK($|[[:space:]]) ]]; then
+    echo "Supported benchmark"
+else
+    echo "Unsupported benchmark" $BENCHMARK
+    exit 1
+fi
+
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 WORKING_DIR_BENCHMARK=$SCRIPT_DIR/data/$BENCHMARK/
 WORKING_DIR_INSTANCE=$WORKING_DIR_BENCHMARK/"$NET_NAME"_"$PROP_NAME"/
