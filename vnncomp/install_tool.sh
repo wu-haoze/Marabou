@@ -41,5 +41,5 @@ cmake ../ -DENABLE_GUROBI=ON
 make -j48
 cd ../
 
+echo "lic:" $GRB_LICENSE_FILE
 grbprobe
-
