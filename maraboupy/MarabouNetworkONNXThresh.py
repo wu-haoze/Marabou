@@ -30,7 +30,7 @@ import tempfile
 class MarabouNetworkONNXThresh(MarabouNetwork.MarabouNetwork):
 
     def __init__(self, filename, inputNames=None, outputNames=None,
-                 equalityThreshold=100000, nonlinearityThreshold=100000,
+                 equalityThreshold=50000, nonlinearityThreshold=50000,
                  candidateSubONNXFileName=None):
         super().__init__()
         self.thresholdReached = False

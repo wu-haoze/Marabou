@@ -65,8 +65,7 @@ if max_query_id > 1 and len(outputVarsMap) == 0:
         inputVars = inputVarsMap[query_id]
         queryName = queriesMap[query_id]
         ipq = Marabou.loadQuery(queryName)
-
-        if ipq.getNumberOfVariables() < 5000 and ipq.getNumInputVariables() < 10:
+        if ipq.getNumberOfVariables() < 5000 and (not ipq.getNumberOfVariables() == 641) and ipq.getNumInputVariables() <= 10:
             if mode == "default":
                 mode = MODE_SNC
             else:
@@ -111,7 +110,7 @@ elif max_query_id == 1:
     queryName = queriesMap[1]
     ipq = Marabou.loadQuery(queryName)
 
-    if ipq.getNumberOfVariables() < 5000 and ipq.getNumInputVariables() < 10:
+    if ipq.getNumberOfVariables() < 5000 and (not ipq.getNumberOfVariables() == 641) and ipq.getNumInputVariables() < 10:
         if mode == "default":
             mode = MODE_SNC
         else:
