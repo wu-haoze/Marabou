@@ -32,9 +32,6 @@ script_name=$(realpath $0)
 script_path=$(dirname "$script_name")
 project_path=$(dirname "$script_path")
 
-home=$project_path"/opt"
-export GRB_LICENSE_FILE="$home/gurobi.lic"
-
 if [[ -f "$RESULTS_FILE" ]]
 then
     rm "$RESULTS_FILE"

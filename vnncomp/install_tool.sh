@@ -17,7 +17,6 @@ export INSTALL_DIR="$home"
 export GUROBI_HOME="$home/gurobi951/linux64"
 export PATH="${PATH}:${GUROBI_HOME}/bin"
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${GUROBI_HOME}/lib"
-export GRB_LICENSE_FILE="$home/gurobi.lic"
 
 if [[ ! -d $home/gurobi951/ ]]
 then
@@ -41,5 +40,5 @@ cmake ../ -DENABLE_GUROBI=ON -DCMAKE_BUILD_TYPE=DEBUG
 make -j48
 cd ../
 
-echo "lic:" $GRB_LICENSE_FILE
+echo $HOME
 grbprobe
