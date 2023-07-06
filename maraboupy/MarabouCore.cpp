@@ -404,26 +404,18 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
 	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 7 );
 	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
-	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
       }
       else if (mode == 3)
-        {
-	  assert(false);
-	  Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+      {	  
+          // MILP 2
+	Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-	  Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
-	Options::get()->setBool( Options::DNC_MODE, true );
-	Options::get()->setInt( Options::NUM_WORKERS, 128 );
-	Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
-	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
-	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 7  );
-	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
-	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
+	  Options::get()->setInt( Options::NUM_WORKERS, 4 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
         }
       else if (mode == 4)
         {
-          // MILP 2
-          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+	  Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
 	  Options::get()->setInt( Options::NUM_WORKERS, 48 );
           Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
@@ -444,12 +436,6 @@ std::tuple<std::string, std::map<int, double>, Statistics>
       }
 
       bool dnc = Options::get()->getBool( Options::DNC_MODE );
-
-      Engine engine;
-      
-      if(!engine.processInputQuery(inputQuery))
-        return std::make_tuple(exitCodeToString(engine.getExitCode()),
-                               ret, *(engine.getStatistics()));
 
       if ( dnc )
       {
@@ -477,6 +463,13 @@ std::tuple<std::string, std::map<int, double>, Statistics>
         }
       } else
       {
+	Engine engine;
+      
+      if(!engine.processInputQuery(inputQuery))
+        return std::make_tuple(exitCodeToString(engine.getExitCode()),
+                               ret, *(engine.getStatistics()));
+
+
         unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
 	std::cout << "Start solving..." << std::endl;
 #ifdef ENABLE_OPENBLAS

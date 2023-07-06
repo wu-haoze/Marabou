@@ -37,7 +37,7 @@ then
     rm "$RESULTS_FILE"
 fi
 
-for i in {1..5}
+for i in {1..6}
 do
     if [[ -f "$RESULTS_FILE"_"$i" ]]
     then
@@ -58,8 +58,11 @@ pids+=($!)
 # small step
 python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
 pids+=($!)
-python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 default &
+python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 nodefault &
 pids+=($!)
+python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_6 default &
+pids+=($!)
+
 
 # Define a list of files
 FILES=("$RESULTS_FILE"_1 "$RESULTS_FILE"_2 "$RESULTS_FILE"_3 "$RESULTS_FILE"_4 "$RESULTS_FILE"_5)
@@ -122,7 +125,7 @@ echo "Cleanup done"
 
 exit_code=0
 
-for i in {1..5}
+for i in {1..6}
 do
     filename="$RESULTS_FILE"_"$i"
     # Check if the file exists
