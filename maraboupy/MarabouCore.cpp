@@ -390,7 +390,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_WORKERS, 48 );
           Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
         }
       else if ( mode == 2)
@@ -425,7 +425,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP 2
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-	  Options::get()->setInt( Options::NUM_WORKERS, 64 );
+	  Options::get()->setInt( Options::NUM_WORKERS, 48 );
           Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "lse2" );
         }
@@ -434,7 +434,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP 3
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_WORKERS, 48 );
           Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "er" );
         }
@@ -482,7 +482,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
         unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
 	std::cout << "Start solving..." << std::endl;
 #ifdef ENABLE_OPENBLAS
-      openblas_set_num_threads( 64 );
+      openblas_set_num_threads( 48 );
 #endif
 
         engine.solve(timeoutInSeconds);
@@ -523,7 +523,7 @@ std::tuple<std::string, std::map<int, std::tuple<double, double>>, Statistics>
         output=redirectOutputToFile(redirect);
     try{
 #ifdef ENABLE_OPENBLAS
-      openblas_set_num_threads( 64 );
+      openblas_set_num_threads( 48 );
 #endif
 
         Engine *engine = new Engine();

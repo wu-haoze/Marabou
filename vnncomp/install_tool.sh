@@ -36,7 +36,7 @@ cd $project_path
 rm -rf build
 mkdir build
 cd build
-cmake ../ -DENABLE_GUROBI=ON -DCMAKE_BUILD_TYPE=DEBUG
+cmake ../ -DENABLE_GUROBI=ON
 make -j48
 cd ../
 

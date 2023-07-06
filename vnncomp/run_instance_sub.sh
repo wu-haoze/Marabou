@@ -46,100 +46,6 @@ do
 done
 
 
-python3 -u $SCRIPT_DIR/../resources/enumeratePoints.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 1 1000
-if [ -f $RESULTS_FILE ]; then
-    echo Found $(realpath "$RESULTS_FILE")
-    # Get the first line of the file
-    first_line=$(head -n 1 "$RESULTS_FILE")
-    # Check if the first line is "sat" or "unsat"
-    if [ "$first_line" == "sat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	echo "sat"
-	exit 0
-    elif [ "$first_line" == "unsat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	exit 0
-    fi
-fi
-
-list="acasxu cgan collins_rul_cnn dist_shift ml4acopf nn4sys tllverifybench traffic_signs_recognition"
-
-if [[ $list =~ (^|[[:space:]])$BENCHMARK($|[[:space:]]) ]]; then
-    python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 1 10000
-else
-    python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 1 1000
-fi
-
-if [ -f $RESULTS_FILE ]; then
-    echo Found $(realpath "$RESULTS_FILE")
-    # Get the first line of the file
-    first_line=$(head -n 1 "$RESULTS_FILE")
-    # Check if the first line is "sat" or "unsat"
-    if [ "$first_line" == "sat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	echo "sat"
-	exit 0
-    elif [ "$first_line" == "unsat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	exit 0
-    fi
-fi
-
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 3 0.1 10
-if [ -f $RESULTS_FILE ]; then
-    echo Found $(realpath "$RESULTS_FILE")
-    # Get the first line of the file
-    first_line=$(head -n 1 "$RESULTS_FILE")
-    # Check if the first line is "sat" or "unsat"
-    if [ "$first_line" == "sat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	echo "sat"
-	exit 0
-    elif [ "$first_line" == "unsat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	exit 0
-    fi
-fi
-
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 4 0.05 10
-if [ -f $RESULTS_FILE ]; then
-    echo Found $(realpath "$RESULTS_FILE")
-    # Get the first line of the file
-    first_line=$(head -n 1 "$RESULTS_FILE")
-    # Check if the first line is "sat" or "unsat"
-    if [ "$first_line" == "sat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	echo "sat"
-	exit 0
-    elif [ "$first_line" == "unsat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	exit 0
-    fi
-fi
-
-python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" default
-
-if [ -f $RESULTS_FILE ]; then
-    echo Found $(realpath "$RESULTS_FILE")
-    # Get the first line of the file
-    first_line=$(head -n 1 "$RESULTS_FILE")
-    # Check if the first line is "sat" or "unsat"
-    if [ "$first_line" == "sat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	echo "sat"
-	exit 0
-    elif [ "$first_line" == "unsat" ]; then
-	cp "$RESULTS_FILE" "$RESULTS_FILE"
-	exit 0
-    fi
-fi
-
-python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 2 10000000
-
-
-exit 0
-
-
 # Run the processes in the background and store their PIDs in an array
 pids=()
 python3 -u $SCRIPT_DIR/../resources/enumeratePoints.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_1 1 10000000000 &
@@ -227,17 +133,17 @@ for i in {1..6}
 do
     filename="$RESULTS_FILE"_"$i"
     # Check if the file exists
-    if [ -f $RESULTS_FILE ]; then
-        echo Found $(realpath "$RESULTS_FILE")
+    if [ -f $filename ]; then
+        echo Found $(realpath "$filename")
         # Get the first line of the file
-        first_line=$(head -n 1 "$RESULTS_FILE")
+        first_line=$(head -n 1 "$filename")
         # Check if the first line is "sat" or "unsat"
         if [ "$first_line" == "sat" ]; then
-            cp "$RESULTS_FILE" "$RESULTS_FILE"
+            cp "$filename" "$RESULTS_FILE"
             echo "sat"
 	    break
         elif [ "$first_line" == "unsat" ]; then
-            cp "$RESULTS_FILE" "$RESULTS_FILE"
+            cp "$filename" "$RESULTS_FILE"
             echo "unsat"
         fi
     fi
