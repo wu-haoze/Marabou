@@ -5,7 +5,7 @@ import random
 import pickle
 import sys
 import os
-os.environ["OMP_NUM_THREADS"] = "1"
+#os.environ["OMP_NUM_THREADS"] = "1"
 
 assert(len(sys.argv) == 6)
 
@@ -50,8 +50,8 @@ def output_property_hold(outputs, output_specs):
 
 # Load the onnx model
 sess_opt = ort.SessionOptions()
-sess_opt.intra_op_num_threads = 2
-sess_opt.inter_op_num_threads = 2
+#sess_opt.intra_op_num_threads = 2
+#sess_opt.inter_op_num_threads = 2
 model = ort.InferenceSession(onnx_network, sess_opt)
 name, shape, dtype = [(i.name, i.shape, i.type) for i in model.get_inputs()][0]
 if isinstance(shape[0], str):

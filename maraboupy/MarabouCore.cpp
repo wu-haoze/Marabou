@@ -379,14 +379,14 @@ std::tuple<std::string, std::map<int, double>, Statistics>
     if(redirect.length()>0)
         output=redirectOutputToFile(redirect);
     try{
-
+      std::cout << "Setting options" << std::endl;
       if ( mode == 1 )
         {
           // MILP
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 50 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 50 );
+          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
         }
       else if ( mode == 2)
       {
@@ -420,8 +420,8 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP 2
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-	  Options::get()->setInt( Options::NUM_WORKERS, 32 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+	  Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "lse2" );
         }
       else if (mode == 5)
@@ -429,8 +429,8 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP 3
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 32 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "er" );
         }
 
@@ -441,15 +441,18 @@ std::tuple<std::string, std::map<int, double>, Statistics>
       bool dnc = Options::get()->getBool( Options::DNC_MODE );
 
       Engine engine;
-
+      std::cout << "Preprocessing..." << std::endl;
       if(!engine.processInputQuery(inputQuery))
         return std::make_tuple(exitCodeToString(engine.getExitCode()),
                                ret, *(engine.getStatistics()));
+      std::cout << "Preprocessing - done" << std::endl;
+
       if ( dnc )
       {
         auto dncManager = std::unique_ptr<DnCManager>( new DnCManager( &inputQuery ) );
-
+	std::cout << "Start solving..." << std::endl;
         dncManager->solve();
+	std::cout << "Solving - done" << std::endl;
         resultString = dncManager->getResultString().ascii();
         switch ( dncManager->getExitCode() )
         {
@@ -471,8 +474,9 @@ std::tuple<std::string, std::map<int, double>, Statistics>
       } else
       {
         unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
+	std::cout << "Start solving..." << std::endl;
         engine.solve(timeoutInSeconds);
-
+	std::cout << "Solving - done" << std::endl;
         resultString = exitCodeToString(engine.getExitCode());
 
         if (engine.getExitCode() == Engine::SAT)

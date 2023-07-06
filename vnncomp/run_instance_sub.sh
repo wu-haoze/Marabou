@@ -48,28 +48,73 @@ do
     fi
 done
 
-python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 default
 
-
-for i in {1..6}
-do
-    filename="$RESULTS_FILE"_"$i"
-    # Check if the file exists
-    if [ -f $filename ]; then
-        echo Found $(realpath "$filename")
-        # Get the first line of the file
-        first_line=$(head -n 1 "$filename")
-        # Check if the first line is "sat" or "unsat"
-        if [ "$first_line" == "sat" ]; then
-            cp "$filename" "$RESULTS_FILE"
-            echo "sat"
-	    break
-        elif [ "$first_line" == "unsat" ]; then
-            cp "$filename" "$RESULTS_FILE"
-            echo "unsat"
-        fi
+python3 -u $SCRIPT_DIR/../resources/enumeratePoints.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 1 1000
+if [ -f $RESULTS_FILE ]; then
+    echo Found $(realpath "$RESULTS_FILE")
+    # Get the first line of the file
+    first_line=$(head -n 1 "$RESULTS_FILE")
+    # Check if the first line is "sat" or "unsat"
+    if [ "$first_line" == "sat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	echo "sat"
+	exit 0
+    elif [ "$first_line" == "unsat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	exit 0
     fi
-done
+fi
+
+python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 2 100000
+if [ -f $RESULTS_FILE ]; then
+    echo Found $(realpath "$RESULTS_FILE")
+    # Get the first line of the file
+    first_line=$(head -n 1 "$RESULTS_FILE")
+    # Check if the first line is "sat" or "unsat"
+    if [ "$first_line" == "sat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	echo "sat"
+	exit 0
+    elif [ "$first_line" == "unsat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	exit 0
+    fi
+fi
+
+python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 3 0.1 10
+if [ -f $RESULTS_FILE ]; then
+    echo Found $(realpath "$RESULTS_FILE")
+    # Get the first line of the file
+    first_line=$(head -n 1 "$RESULTS_FILE")
+    # Check if the first line is "sat" or "unsat"
+    if [ "$first_line" == "sat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	echo "sat"
+	exit 0
+    elif [ "$first_line" == "unsat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	exit 0
+    fi
+fi
+
+python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 4 0.05 10
+if [ -f $RESULTS_FILE ]; then
+    echo Found $(realpath "$RESULTS_FILE")
+    # Get the first line of the file
+    first_line=$(head -n 1 "$RESULTS_FILE")
+    # Check if the first line is "sat" or "unsat"
+    if [ "$first_line" == "sat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	echo "sat"
+	exit 0
+    elif [ "$first_line" == "unsat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	exit 0
+    fi
+fi
+
+python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" default
+
 
 exit 0
 
@@ -161,17 +206,17 @@ for i in {1..6}
 do
     filename="$RESULTS_FILE"_"$i"
     # Check if the file exists
-    if [ -f $filename ]; then
-        echo Found $(realpath "$filename")
+    if [ -f $RESULTS_FILE ]; then
+        echo Found $(realpath "$RESULTS_FILE")
         # Get the first line of the file
-        first_line=$(head -n 1 "$filename")
+        first_line=$(head -n 1 "$RESULTS_FILE")
         # Check if the first line is "sat" or "unsat"
         if [ "$first_line" == "sat" ]; then
-            cp "$filename" "$RESULTS_FILE"
+            cp "$RESULTS_FILE" "$RESULTS_FILE"
             echo "sat"
 	    break
         elif [ "$first_line" == "unsat" ]; then
-            cp "$filename" "$RESULTS_FILE"
+            cp "$RESULTS_FILE" "$RESULTS_FILE"
             echo "unsat"
         fi
     fi
