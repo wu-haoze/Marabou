@@ -48,7 +48,28 @@ do
     fi
 done
 
-python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 nodefault
+python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 default
+
+
+for i in {1..6}
+do
+    filename="$RESULTS_FILE"_"$i"
+    # Check if the file exists
+    if [ -f $filename ]; then
+        echo Found $(realpath "$filename")
+        # Get the first line of the file
+        first_line=$(head -n 1 "$filename")
+        # Check if the first line is "sat" or "unsat"
+        if [ "$first_line" == "sat" ]; then
+            cp "$filename" "$RESULTS_FILE"
+            echo "sat"
+	    break
+        elif [ "$first_line" == "unsat" ]; then
+            cp "$filename" "$RESULTS_FILE"
+            echo "unsat"
+        fi
+    fi
+done
 
 exit 0
 
