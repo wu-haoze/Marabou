@@ -19,11 +19,6 @@ onnx_network = sys.argv[1]
 
 output_file = sys.argv[3]
 
-if "vgg16-7" in os.path.basename(onnx_network):
-    with open(output_file, 'w') as out_file:
-        out_file.write("unknown")
-    exit(0)
-
 onnx_model = onnx.load(onnx_network)
 pytorch_model = ConvertModel(onnx_model)
 pytorch_model.eval()

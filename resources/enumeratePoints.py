@@ -116,7 +116,6 @@ if "vgg16-7" in os.path.basename(onnx_network):
             else:
                 random_point.append([low])
         print("Number of points:", allPoints)
-        points = list(itertools.product(*random_point))
         if allPoints > 100000:
             print(f"Too many points. Do randomly sampling")
             for _ in range(num_samples):
@@ -151,7 +150,7 @@ if "vgg16-7" in os.path.basename(onnx_network):
                         exit(10)
                     break
             
-            
+        points = list(itertools.product(*random_point))            
         for point in points:
             point = np.array(list(point), dtype=dtype).reshape(shape) # check if reshape order is correct
             # Run the model on the point
