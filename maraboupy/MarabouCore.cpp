@@ -385,8 +385,8 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           // MILP
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
-          Options::get()->setInt( Options::NUM_WORKERS, 32 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+          Options::get()->setInt( Options::NUM_WORKERS, 50 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 50 );
         }
       else if ( mode == 2)
       {
@@ -395,10 +395,10 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 	Options::get()->setInt( Options::VERBOSITY, 0 );
 	Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
 	Options::get()->setBool( Options::DNC_MODE, true );
-	Options::get()->setInt( Options::NUM_WORKERS, 32 );
-	Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+	Options::get()->setInt( Options::NUM_WORKERS, 64 );
+	Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
 	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
-	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 5 );
+	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
 	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
 	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
       }
@@ -408,10 +408,10 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
 	  Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
 	Options::get()->setBool( Options::DNC_MODE, true );
-	Options::get()->setInt( Options::NUM_WORKERS, 32 );
-	Options::get()->setInt( Options::NUM_BLAS_THREADS, 32 );
+	Options::get()->setInt( Options::NUM_WORKERS, 64 );
+	Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
 	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
-	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 5  );
+	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6  );
 	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
 	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
         }
