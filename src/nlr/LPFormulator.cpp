@@ -245,7 +245,7 @@ void LPFormulator::optimizeBoundsWithIncrementalLpRelaxation( const Map<unsigned
 
 void LPFormulator::optimizeBoundsWithLpRelaxation( const Map<unsigned, Layer *> &layers )
 {
-    unsigned numberOfWorkers = Options::get()->getInt( Options::NUM_WORKERS );
+  unsigned numberOfWorkers = 64;
 
     Map<GurobiWrapper *, unsigned> solverToIndex;
     // Create a queue of free workers
@@ -312,7 +312,7 @@ void LPFormulator::optimizeBoundsWithLpRelaxation( const Map<unsigned, Layer *> 
 
 void LPFormulator::optimizeBoundsOfOneLayerWithLpRelaxation( const Map<unsigned, Layer *> &layers, unsigned targetIndex )
 {
-    unsigned numberOfWorkers = Options::get()->getInt( Options::NUM_WORKERS );
+  unsigned numberOfWorkers = 64;
 
     Map<GurobiWrapper *, unsigned> solverToIndex;
     // Create a queue of free workers
@@ -376,7 +376,7 @@ void LPFormulator::optimizeBoundsOfOneLayerWithLpRelaxation( const Map<unsigned,
 
 void LPFormulator::optimizeBoundsOfNeuronsWithLpRlaxation( ThreadArgument &args )
 {
-    unsigned numberOfWorkers = Options::get()->getInt( Options::NUM_WORKERS );
+  unsigned numberOfWorkers = 64;
 
     // Time to wait if no idle worker is availble
     boost::chrono::milliseconds waitTime( numberOfWorkers - 1 );

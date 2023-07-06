@@ -109,8 +109,8 @@ if "vgg16-7" in os.path.basename(onnx_network):
 
         allPoints = 1
         for i, (low, high) in enumerate(input_spec):
-            if (counter > 1 and high - low > 0.00001) or (high - low > 0.0000001):
-                numPoints = int((high - low) / (0.0000001 if counter == 1 else 0.00001)) 
+            if high > low:
+                numPoints = int(high - low) / 0.0000001
                 random_point.append(list(np.linspace(low, high, numPoints)))
                 print(len(random_point[-1]))
                 allPoints *= len(random_point[-1])

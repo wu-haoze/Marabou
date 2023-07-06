@@ -163,7 +163,6 @@ void DeepPolyAnalysis::run()
 
 void DeepPolyAnalysis::allocateMemory( const Map<unsigned, Layer *> &layers )
 {
-  std::cout << "Allocating memory" << std::endl;
     freeMemoryIfNeeded();
 
     // Get the maximal layer size

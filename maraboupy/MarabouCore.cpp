@@ -384,7 +384,6 @@ std::tuple<std::string, std::map<int, double>, Statistics>
     if(redirect.length()>0)
         output=redirectOutputToFile(redirect);
     try{
-      std::cout << "Setting options" << std::endl;
       if ( mode == 1 )
         {
           // MILP
@@ -400,23 +399,24 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 	Options::get()->setInt( Options::VERBOSITY, 0 );
 	Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
 	Options::get()->setBool( Options::DNC_MODE, true );
-	Options::get()->setInt( Options::NUM_WORKERS, 64 );
+	Options::get()->setInt( Options::NUM_WORKERS, 128 );
 	Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
 	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
-	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
+	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 7 );
 	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
 	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
       }
       else if (mode == 3)
         {
+	  assert(false);
 	  Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
 	  Options::get()->setBool( Options::NO_PARALLEL_DEEPSOI, true );
 	Options::get()->setBool( Options::DNC_MODE, true );
-	Options::get()->setInt( Options::NUM_WORKERS, 64 );
+	Options::get()->setInt( Options::NUM_WORKERS, 128 );
 	Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
 	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 ); 
-	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6  );
+	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 7  );
 	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
 	Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
         }
@@ -446,12 +446,10 @@ std::tuple<std::string, std::map<int, double>, Statistics>
       bool dnc = Options::get()->getBool( Options::DNC_MODE );
 
       Engine engine;
-      std::cout << "Preprocessing..." << std::endl;
       
       if(!engine.processInputQuery(inputQuery))
         return std::make_tuple(exitCodeToString(engine.getExitCode()),
                                ret, *(engine.getStatistics()));
-      std::cout << "Preprocessing - done" << std::endl;
 
       if ( dnc )
       {

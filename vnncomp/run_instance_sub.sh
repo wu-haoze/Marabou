@@ -37,7 +37,7 @@ then
     rm "$RESULTS_FILE"
 fi
 
-for i in {1..6}
+for i in {1..5}
 do
     if [[ -f "$RESULTS_FILE"_"$i" ]]
     then
@@ -60,11 +60,9 @@ python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_
 pids+=($!)
 python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 default &
 pids+=($!)
-python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_6 nodefault &
-pids+=($!)
 
 # Define a list of files
-FILES=("$RESULTS_FILE"_1 "$RESULTS_FILE"_2 "$RESULTS_FILE"_3 "$RESULTS_FILE"_4 "$RESULTS_FILE"_5 "$RESULTS_FILE"_6)
+FILES=("$RESULTS_FILE"_1 "$RESULTS_FILE"_2 "$RESULTS_FILE"_3 "$RESULTS_FILE"_4 "$RESULTS_FILE"_5)
 
 
 for pid in "${pids[@]}"; do
@@ -87,7 +85,7 @@ while true; do
 
     if [[ " ${exit_codes[@]} " =~ " 20 " ]]; then
         echo "Problem solved!"
-	sleep 10
+	sleep 5
         break
     fi
 
@@ -107,11 +105,6 @@ while true; do
 	break;
     fi
 
-    elapsed=$(ps -o etimes= -p $$) # Get the elapsed time of this script
-    if [ $elapsed -ge $TIMEOUT ]; then
-        echo "Timeout reached"
-        break # Exit the loop
-    fi
     sleep 1 # Wait for a second before checking again
 done
 
@@ -129,7 +122,7 @@ echo "Cleanup done"
 
 exit_code=0
 
-for i in {1..6}
+for i in {1..5}
 do
     filename="$RESULTS_FILE"_"$i"
     # Check if the file exists

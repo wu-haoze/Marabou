@@ -69,7 +69,9 @@ if max_query_id > 1 and len(outputVarsMap) == 0:
             if mode == "default":
                 mode = MODE_SNC
             else:
-                mode = MODE_PORTFOLIO
+                with open(sys.argv[4], 'w') as out_file:
+                    out_file.write("unknown")
+                exit(0)
         elif mode == "default":
             mode = MODE_MILP
         else:
