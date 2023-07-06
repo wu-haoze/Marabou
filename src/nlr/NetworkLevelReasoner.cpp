@@ -209,8 +209,9 @@ void NetworkLevelReasoner::deepPolyPropagation()
   if ( _deepPolyAnalysis == nullptr )
     _deepPolyAnalysis = std::unique_ptr<DeepPolyAnalysis>
       ( new DeepPolyAnalysis( this ) );
-
+  std::cout << "Running deeppoly..." << std::endl;
   _deepPolyAnalysis->run();
+  std::cout << "Running deeppoly Done" << std::endl;
 }
 
 void NetworkLevelReasoner::lpRelaxationPropagation()

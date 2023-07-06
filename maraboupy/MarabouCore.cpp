@@ -55,6 +55,11 @@
 #include <unistd.h>
 #endif
 
+#ifdef ENABLE_OPENBLAS
+#include "cblas.h"
+#endif
+
+
 namespace py = pybind11;
 
 int redirectOutputToFile(std::string outputFilePath){
@@ -386,7 +391,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
           Options::get()->setInt( Options::NUM_WORKERS, 64 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
         }
       else if ( mode == 2)
       {
@@ -421,7 +426,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
 	  Options::get()->setInt( Options::NUM_WORKERS, 64 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "lse2" );
         }
       else if (mode == 5)
@@ -430,7 +435,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
 	  Options::get()->setInt( Options::VERBOSITY, 0 );
           Options::get()->setInt( Options::NUM_WORKERS, 64 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
           Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "er" );
         }
 
@@ -442,6 +447,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 
       Engine engine;
       std::cout << "Preprocessing..." << std::endl;
+      
       if(!engine.processInputQuery(inputQuery))
         return std::make_tuple(exitCodeToString(engine.getExitCode()),
                                ret, *(engine.getStatistics()));
@@ -475,6 +481,10 @@ std::tuple<std::string, std::map<int, double>, Statistics>
       {
         unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
 	std::cout << "Start solving..." << std::endl;
+#ifdef ENABLE_OPENBLAS
+      openblas_set_num_threads( 64 );
+#endif
+
         engine.solve(timeoutInSeconds);
 	std::cout << "Solving - done" << std::endl;
         resultString = exitCodeToString(engine.getExitCode());
@@ -512,8 +522,9 @@ std::tuple<std::string, std::map<int, std::tuple<double, double>>, Statistics>
     if(redirect.length()>0)
         output=redirectOutputToFile(redirect);
     try{
-      Options::get()->setInt( Options::NUM_WORKERS, 64 );
-      Options::get()->setInt( Options::NUM_BLAS_THREADS, 64 );
+#ifdef ENABLE_OPENBLAS
+      openblas_set_num_threads( 64 );
+#endif
 
         Engine *engine = new Engine();
 
