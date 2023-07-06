@@ -40,13 +40,17 @@ then
     rm "$RESULTS_FILE"
 fi
 
-for i in {1..100}
+for i in {1..6}
 do
     if [[ -f "$RESULTS_FILE"_"$i" ]]
     then
         rm "$RESULTS_FILE"_"$i"
     fi
 done
+
+python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 default &
+
+exit 0
 
 
 # Run the processes in the background and store their PIDs in an array
@@ -132,7 +136,7 @@ echo "Cleanup done"
 
 exit_code=0
 
-for i in {1..100}
+for i in {1..6}
 do
     filename="$RESULTS_FILE"_"$i"
     # Check if the file exists
