@@ -65,7 +65,14 @@ if [ -f $RESULTS_FILE ]; then
     fi
 fi
 
-python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 2 100000
+list="acasxu cgan collins_rul_cnn dist_shift ml4acopf nn4sys tllverifybench traffic_signs_recognition"
+
+if [[ $list =~ (^|[[:space:]])$BENCHMARK($|[[:space:]]) ]]; then
+    python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 1 10000
+else
+    python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 1 1000
+fi
+
 if [ -f $RESULTS_FILE ]; then
     echo Found $(realpath "$RESULTS_FILE")
     # Get the first line of the file
@@ -81,7 +88,7 @@ if [ -f $RESULTS_FILE ]; then
     fi
 fi
 
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 3 0.1 10
+python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 3 0.1 20
 if [ -f $RESULTS_FILE ]; then
     echo Found $(realpath "$RESULTS_FILE")
     # Get the first line of the file
@@ -97,7 +104,7 @@ if [ -f $RESULTS_FILE ]; then
     fi
 fi
 
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 4 0.05 10
+python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 4 0.05 20
 if [ -f $RESULTS_FILE ]; then
     echo Found $(realpath "$RESULTS_FILE")
     # Get the first line of the file
@@ -114,6 +121,23 @@ if [ -f $RESULTS_FILE ]; then
 fi
 
 python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" default
+
+if [ -f $RESULTS_FILE ]; then
+    echo Found $(realpath "$RESULTS_FILE")
+    # Get the first line of the file
+    first_line=$(head -n 1 "$RESULTS_FILE")
+    # Check if the first line is "sat" or "unsat"
+    if [ "$first_line" == "sat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	echo "sat"
+	exit 0
+    elif [ "$first_line" == "unsat" ]; then
+	cp "$RESULTS_FILE" "$RESULTS_FILE"
+	exit 0
+    fi
+fi
+
+python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 2 10000000
 
 
 exit 0
