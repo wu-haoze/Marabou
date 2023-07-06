@@ -1573,6 +1573,7 @@ void Engine::performMILPSolverBoundedTightening( InputQuery *inputQuery )
             throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
                 "Marabou doesn't support sigmoid with MILP Bound Tightening" );
 
+	std::cout << "LP based bound tightening..." << std::endl;
         switch ( Options::get()->getMILPSolverBoundTighteningType() )
         {
         case MILPSolverBoundTighteningType::LP_RELAXATION:
@@ -1590,6 +1591,8 @@ void Engine::performMILPSolverBoundedTightening( InputQuery *inputQuery )
         case MILPSolverBoundTighteningType::NONE:
             return;
         }
+
+	std::cout << "LP based bound tightening - done" << std::endl;
         List<Tightening> tightenings;
         _networkLevelReasoner->getConstraintTightenings( tightenings );
 

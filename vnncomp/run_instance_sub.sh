@@ -88,7 +88,7 @@ if [ -f $RESULTS_FILE ]; then
     fi
 fi
 
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 3 0.1 20
+python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 3 0.1 10
 if [ -f $RESULTS_FILE ]; then
     echo Found $(realpath "$RESULTS_FILE")
     # Get the first line of the file
@@ -104,7 +104,7 @@ if [ -f $RESULTS_FILE ]; then
     fi
 fi
 
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 4 0.05 20
+python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE" 4 0.05 10
 if [ -f $RESULTS_FILE ]; then
     echo Found $(realpath "$RESULTS_FILE")
     # Get the first line of the file
