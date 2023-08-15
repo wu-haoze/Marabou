@@ -45,6 +45,12 @@ unsigned DeepPolyElement::getLayerIndex() const
     return _layerIndex;
 }
 
+  Layer::Type DeepPolyElement::getLayerType() const
+  {
+    return _layer->getLayerType();
+  }
+
+
 bool DeepPolyElement::hasPredecessor()
 {
     return !_layer->getSourceLayers().empty();

@@ -34,6 +34,8 @@
 
 #include <random>
 
+#include "cblas.h"
+
 Engine::Engine()
     : _context()
     , _boundManager( _context )
@@ -158,6 +160,7 @@ void Engine::exportInputQueryWithError( String errorMessage )
 
 bool Engine::solve( unsigned timeoutInSeconds )
 {
+  return false;
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
@@ -881,7 +884,7 @@ void Engine::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
     }
 }
 
-void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
+void Engine::invokePreprocessor( InputQuery &inputQuery, bool /*preprocess*/ )
 {
     if ( _verbosity > 0 )
         printf( "Engine::processInputQuery: Input query (before preprocessing): "
@@ -890,13 +893,7 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
                 inputQuery.getNumberOfVariables() );
 
     // If processing is enabled, invoke the preprocessor
-    _preprocessingEnabled = preprocess;
-    if ( _preprocessingEnabled )
-        _preprocessedQuery = _preprocessor.preprocess
-            ( inputQuery, GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES );
-    else
-        _preprocessedQuery = std::unique_ptr<InputQuery>
-            ( new InputQuery( inputQuery ) );
+    _preprocessedQuery = &inputQuery;
 
     if ( _verbosity > 0 )
         printf( "Engine::processInputQuery: Input query (after preprocessing): "
@@ -904,13 +901,13 @@ void Engine::invokePreprocessor( const InputQuery &inputQuery, bool preprocess )
                 _preprocessedQuery->getEquations().size(),
                 _preprocessedQuery->getNumberOfVariables() );
 
-    unsigned infiniteBounds = _preprocessedQuery->countInfiniteBounds();
-    if ( infiniteBounds != 0 )
-    {
-        _exitCode = Engine::ERROR;
-        throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
-                             Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
-    }
+    //unsigned infiniteBounds = _preprocessedQuery->countInfiniteBounds();
+    //if ( infiniteBounds != 0 )
+    //{
+    //    _exitCode = Engine::ERROR;
+    //    throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
+    //                         Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
+    //}
 }
 
 void Engine::printInputBounds( const InputQuery &inputQuery ) const
@@ -1258,6 +1255,7 @@ void Engine::initializeTableau( const double *constraintMatrix, const List<unsig
 void Engine::initializeBoundsAndConstraintWatchersInTableau( unsigned
                                                              numberOfVariables )
 {
+  /*
     _plConstraints = _preprocessedQuery->getPiecewiseLinearConstraints();
     for ( const auto &constraint : _plConstraints )
     {
@@ -1271,7 +1269,7 @@ void Engine::initializeBoundsAndConstraintWatchersInTableau( unsigned
         constraint->registerAsWatcher( _tableau );
         constraint->setStatistics( &_statistics );
     }
-
+  */
     for ( unsigned i = 0; i < numberOfVariables; ++i )
     {
         _tableau->setLowerBound( i, _preprocessedQuery->getLowerBound( i ) );
@@ -1290,14 +1288,39 @@ void Engine::initializeNetworkLevelReasoning()
         _networkLevelReasoner->setTableau( _tableau );
 }
 
-bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
+bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess, unsigned /*label*/ )
 {
+  openblas_set_num_threads( 16 );
+
+  if ( inputQuery._networkLevelReasoner == NULL ){
+  for ( auto &equation : inputQuery.getEquations() )
+    {
+      if ( equation._type == Equation::EQ )
+        continue;
+
+      unsigned auxVariable = inputQuery.getNumberOfVariables();
+      inputQuery.setNumberOfVariables( auxVariable + 1 );
+
+      // Auxiliary variables are always added with coefficient 1
+      if ( equation._type == Equation::GE )
+        inputQuery.setUpperBound( auxVariable, 0 );
+      else
+        inputQuery.setLowerBound( auxVariable, 0 );
+
+      equation._type = Equation::EQ;
+
+      equation.addAddend( 1, auxVariable );
+    }
+  inputQuery.constructNetworkLevelReasoner();
+  }
+
     ENGINE_LOG( "processInputQuery starting\n" );
     struct timespec start = TimeUtils::sampleMicro();
 
     try
     {
-        informConstraintsOfInitialBounds( inputQuery );
+      //informConstraintsOfInitialBounds( inputQuery );
+
         invokePreprocessor( inputQuery, preprocess );
         if ( _verbosity > 0 )
             printInputBounds( inputQuery );
@@ -1305,10 +1328,19 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         initializeNetworkLevelReasoning();
         if ( preprocess )
         {
+          std::cout << "perform deeppoly" << std::endl;
             performSymbolicBoundTightening( &(*_preprocessedQuery) );
-            performSimulation();
-            performMILPSolverBoundedTightening( &(*_preprocessedQuery) );
+            //performSimulation();
+            //performMILPSolverBoundedTightening( &(*_preprocessedQuery) );
         }
+
+        for ( const auto &variable : _preprocessedQuery->getOutputVariables() ){
+          if (FloatUtils::gte( _preprocessedQuery->getUpperBound(variable), 0 ) ) {
+            return true;
+          }
+        }
+        throw InfeasibleQueryException();
+
 
         if ( GlobalConfiguration::PL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING )
             for ( auto &plConstraint : _preprocessedQuery->getPiecewiseLinearConstraints() )
@@ -1346,7 +1378,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         else
         {
             ASSERT( _lpSolverType == LPSolverType::GUROBI );
-
+            /*
             ASSERT( GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH == true );
 
             if ( _verbosity > 0 )
@@ -1357,28 +1389,29 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
                 ( new MILPEncoder( *_tableau ) );
             _milpEncoder->setStatistics( &_statistics );
             _tableau->setGurobi( &( *_gurobi ) );
-
+            */
             unsigned n = _preprocessedQuery->getNumberOfVariables();
             unsigned m = _preprocessedQuery->getEquations().size();
             // Only use BoundManager to store the bounds.
             _boundManager.initialize( n );
             _tableau->setDimensions( m, n );
             initializeBoundsAndConstraintWatchersInTableau( n );
-
+            /*
             for ( const auto &constraint : _plConstraints )
             {
                 constraint->registerGurobi( &( *_gurobi ) );
             }
+            */
         }
-
+        /*
         for ( const auto &constraint : _plConstraints )
         {
             constraint->registerTableau( _tableau );
         }
-
+        */
         if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
             _networkLevelReasoner->dumpBounds();
-
+        /*
         if ( GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH )
         {
             _soiManager = std::unique_ptr<SumOfInfeasibilitiesManager>
@@ -1391,7 +1424,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             warmStart();
 
         decideBranchingHeuristics();
-
+        */
         struct timespec end = TimeUtils::sampleMicro();
         _statistics.setLongAttribute( Statistics::PREPROCESSING_TIME_MICRO,
                                       TimeUtils::timePassed( start, end ) );
@@ -2263,6 +2296,9 @@ void Engine::performSymbolicBoundTightening( InputQuery *inputQuery )
                                            tightening._value );
                 ++numTightenedBounds;
             }
+            if ( FloatUtils::gt( inputQuery->getLowerBound(tightening._variable),
+                                 inputQuery->getUpperBound(tightening._variable ) ) )
+              throw InfeasibleQueryException();
         }
     }
     else
@@ -2304,22 +2340,13 @@ bool Engine::shouldExitDueToTimeout( unsigned timeout ) const
 
 void Engine::preContextPushHook()
 {
-    struct timespec start = TimeUtils::sampleMicro();
     _boundManager.storeLocalBounds();
-    struct timespec end = TimeUtils::sampleMicro();
-
-    _statistics.incLongAttribute( Statistics::TIME_CONTEXT_PUSH_HOOK, TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::postContextPopHook()
 {
-    struct timespec start = TimeUtils::sampleMicro();
-
     _boundManager.restoreLocalBounds();
     _tableau->postContextPopHook();
-
-    struct timespec end = TimeUtils::sampleMicro();
-    _statistics.incLongAttribute( Statistics::TIME_CONTEXT_POP_HOOK, TimeUtils::timePassed( start, end ) );
 }
 
 void Engine::reset()
@@ -3097,13 +3124,4 @@ void Engine::checkGurobiBoundConsistency() const
 bool Engine::consistentBounds() const
 {
     return _boundManager.consistentBounds();
-}
-
-InputQuery Engine::buildQueryFromCurrentState() const {
-    InputQuery query = *_preprocessedQuery;
-    for ( unsigned i = 0; i < query.getNumberOfVariables(); ++i ) {
-        query.setLowerBound( i, _tableau->getLowerBound( i ) );
-        query.setUpperBound( i, _tableau->getUpperBound( i ) );
-    }
-    return query;
 }

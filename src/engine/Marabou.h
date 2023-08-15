@@ -17,7 +17,6 @@
 #define __Marabou_h__
 
 #include "AcasParser.h"
-#include "OnnxParser.h"
 #include "Engine.h"
 #include "InputQuery.h"
 
@@ -53,24 +52,9 @@ private:
     void displayResults( unsigned long long microSecondsElapsed ) const;
 
     /*
-      Export assignment as per Options
-     */
-    void exportAssignment() const;
-
-    /*
-      Import assignment for debugging as per Options
-     */
-    void importDebuggingSolution();
-
-    /*
       ACAS network parser
     */
     AcasParser *_acasParser;
-
-    /*
-      ONNX network parser
-    */
-    OnnxParser *_onnxParser;
 
     /*
       The solver

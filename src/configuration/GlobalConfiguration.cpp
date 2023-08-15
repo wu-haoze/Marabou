@@ -119,7 +119,6 @@ const bool GlobalConfiguration::QUERY_LOADER_LOGGING = false;
 const bool GlobalConfiguration::SYMBOLIC_BOUND_TIGHTENER_LOGGING = false;
 const bool GlobalConfiguration::NETWORK_LEVEL_REASONER_LOGGING = false;
 const bool GlobalConfiguration::MPS_PARSER_LOGGING= false;
-const bool GlobalConfiguration::ONNX_PARSER_LOGGING= false;
 const bool GlobalConfiguration::SOI_LOGGING = false;
 const bool GlobalConfiguration::SCORE_TRACKER_LOGGING = false;
 

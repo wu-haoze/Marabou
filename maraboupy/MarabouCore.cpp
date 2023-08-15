@@ -281,12 +281,9 @@ struct MarabouOptions {
 
 /* The default parameters here are just for readability, you should specify
  * them to make them work*/
-InputQuery preprocess(
-    InputQuery &inputQuery, MarabouOptions &options, std::string redirect="", bool returnFullyProcessedQuery = false
-){
+InputQuery preprocess(InputQuery &inputQuery, MarabouOptions &options, std::string redirect=""){
     // Preprocess the input inquery (e.g., one can use it to just compute the gurobi bounds)
     // Arguments: InputQuery object, filename to redirect output
-    //            whether to return the fully processed query (symbolic and more), or just the initially processed query
     // Returns: Preprocessed input query
 
     options.setOptions();
@@ -304,10 +301,7 @@ InputQuery preprocess(
     if(output != -1)
         restoreOutputStream(output);
 
-    if (returnFullyProcessedQuery)
-        return engine.buildQueryFromCurrentState();
-    else
-        return *engine.getInputQuery();
+    return *(engine.getInputQuery());
 }
 
 std::string exitCodeToString( IEngine::ExitCode code )
@@ -335,8 +329,9 @@ std::string exitCodeToString( IEngine::ExitCode code )
  * them in the to make them work*/
 std::tuple<std::string, std::map<int, double>, Statistics>
     solve(InputQuery &inputQuery, MarabouOptions &options,
-          std::string redirect="")
+          std::string redirect="", unsigned label=0)
 {
+  std::cout << "Start solving" << std::endl;
     // Arguments: InputQuery object, filename to redirect output
     // Returns: map from variable number to value
     std::string resultString = "";
@@ -352,7 +347,7 @@ std::tuple<std::string, std::map<int, double>, Statistics>
 
         Engine engine;
 
-        if(!engine.processInputQuery(inputQuery))
+        if(!engine.processInputQuery(inputQuery, true, label))
             return std::make_tuple(exitCodeToString(engine.getExitCode()),
                                    ret, *(engine.getStatistics()));
         if ( dnc )
@@ -411,7 +406,9 @@ void saveQuery(InputQuery& inputQuery, std::string filename){
 }
 
 InputQuery loadQuery(std::string filename){
-    return QueryLoader::loadQuery(String(filename));
+  InputQuery ipq;
+   QueryLoader::loadQuery(ipq, String(filename));
+    return ipq;
 }
 
 // Code necessary to generate Python library
@@ -451,12 +448,11 @@ PYBIND11_MODULE(MarabouCore, m) {
              inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be preproccessed
              options (class:`~maraboupy.MarabouCore.Options`): Object defining the options used for Marabou
              redirect (str, optional): Filepath to direct standard output, defaults to ""
-             returnFullyProcessedQuery (bool, optional): whether to return the fully processed query (symbolic and more), or just the initially processed query, default to False.
 
          Returns:
                  InputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): the preprocessed input query
          )pbdoc",
-         py::arg("inputQuery"), py::arg("options"), py::arg("redirect") = "", py::arg("returnFullyProcessedQuery") = false);
+         py::arg("inputQuery"), py::arg("options"), py::arg("redirect") = "");
     m.def("solve", &solve, R"pbdoc(
         Takes in a description of the InputQuery and returns the solution
 
@@ -471,7 +467,7 @@ PYBIND11_MODULE(MarabouCore, m) {
                 - vals (Dict[int, float]): Empty dictionary if UNSAT, otherwise a dictionary of SATisfying values for variables
                 - stats (:class:`~maraboupy.MarabouCore.Statistics`): A Statistics object to how Marabou performed
         )pbdoc",
-        py::arg("inputQuery"), py::arg("options"), py::arg("redirect") = "");
+          py::arg("inputQuery"), py::arg("options"), py::arg("redirect") = "", py::arg("label") = 0);
     m.def("saveQuery", &saveQuery, R"pbdoc(
         Serializes the inputQuery in the given filename
 

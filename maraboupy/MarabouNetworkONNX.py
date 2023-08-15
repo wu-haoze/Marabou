@@ -35,9 +35,9 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
     Returns:
         :class:`~maraboupy.Marabou.marabouNetworkONNX.marabouNetworkONNX`
     """
-    def __init__(self, filename, inputNames=None, outputNames=None, reindexOutputVars=True):
+    def __init__(self, filename, inputNames=None, outputNames=None):
         super().__init__()
-        self.readONNX(filename, inputNames, outputNames, reindexOutputVars=reindexOutputVars)
+        self.readONNX(filename, inputNames, outputNames)
 
     def clear(self):
         """Reset values to represent empty network
@@ -50,21 +50,7 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
         self.inputNames = None
         self.outputNames = None
         self.graph = None
-
-    def shallowClear(self):
-        """Reset values to represent new copy
-        of network while maintaining
-        previous constraints. Used for
-        unrolling system dynamics.
-        """
-        self.madeGraphEquations = []
-        self.varMap = dict()
-        self.constantMap = dict()
-        self.shapeMap = dict()
-        self.inputNames = None
-        self.outputNames = None
-        self.graph = None
-
+        
     def readONNX(self, filename, inputNames, outputNames, reindexOutputVars=True):
         """Read an ONNX file and create a MarabouNetworkONNX object
 
@@ -110,6 +96,7 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
         # shape information saved not relevant to the portion of the network. Remove extra shapes.
         self.cleanShapes()
 
+        reindexOutputVars = False
         if reindexOutputVars:
             # Other Marabou input parsers assign output variables immediately after input variables and before any
             # intermediate variables. This function reassigns variable numbering to match other parsers.
@@ -265,6 +252,7 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
 
         Args:
             nodeName (str): Name of node
+            saveConstant (bool): If true, save constant variables to self.constantMap
 
         Returns:
             (list of str): Names of nodes that are inputs to the given node

@@ -31,7 +31,7 @@ public:
     /*
       Parse a serialized query and return it in InputQuery form
     */
-    static InputQuery loadQuery( const String &fileName );
+    static void loadQuery( InputQuery &ipq, const String &fileName );
 };
 
 #endif // __QueryLoader_h__

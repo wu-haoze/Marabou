@@ -21,7 +21,6 @@
 #include "Options.h"
 #include "PropertyParser.h"
 #include "MarabouError.h"
-#include "OnnxParser.h"
 #include "QueryLoader.h"
 #include "AcasParser.h"
 
@@ -46,7 +45,7 @@ void DnCMarabou::run()
         }
 
         printf( "InputQuery: %s\n", inputQueryFilePath.ascii() );
-        _inputQuery = QueryLoader::loadQuery( inputQueryFilePath );
+        QueryLoader::loadQuery( _inputQuery, inputQueryFilePath );
         _inputQuery.constructNetworkLevelReasoner();
     }
     else
@@ -64,17 +63,8 @@ void DnCMarabou::run()
         }
         printf( "Network: %s\n", networkFilePath.ascii() );
 
-        if ( ((String) networkFilePath).endsWith( ".onnx" ) )
-        {
-            OnnxParser* _onnxParser = new OnnxParser( networkFilePath );
-            _onnxParser->generateQuery( _inputQuery );
-        }
-        else
-        {
-            AcasParser* _acasParser = new AcasParser( networkFilePath );
-            _acasParser->generateQuery( _inputQuery );
-        }
-
+        AcasParser acasParser( networkFilePath );
+        acasParser.generateQuery( _inputQuery );
         _inputQuery.constructNetworkLevelReasoner();
 
         /*

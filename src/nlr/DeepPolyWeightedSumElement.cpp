@@ -104,8 +104,13 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
                              _workSymbolicLowerBias,
                              _workSymbolicUpperBias,
                              currentElement, deepPolyElementsBefore );
+
+
     log( Stringf( "Computing symbolic bounds with respect to layer %u - done",
                   predecessorIndex ) );
+
+    if ( _size > 200 )
+      return;
 
     while ( currentElement->hasPredecessor() )
     {
@@ -140,6 +145,9 @@ void DeepPolyWeightedSumElement::computeBoundWithBackSubstitution
                 log( Stringf( "Adding residual from layer %u - done", pair.first ) );
             }
         }
+
+        if ( precedingElement->getLayerType()  == Layer::MAX )
+          return;
 
         std::fill_n( _work2SymbolicLb, _size * precedingElement->getSize(), 0 );
         std::fill_n( _work2SymbolicUb, _size * precedingElement->getSize(), 0 );

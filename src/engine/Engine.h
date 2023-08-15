@@ -93,7 +93,7 @@ public:
       true otherwise.
      */
     bool processInputQuery( InputQuery &inputQuery );
-    bool processInputQuery( InputQuery &inputQuery, bool preprocess );
+  bool processInputQuery( InputQuery &inputQuery, bool preprocess, unsigned label = 0 );
 
     InputQuery prepareSnCInputQuery( );
     void exportInputQueryWithError( String errorMessage );
@@ -125,8 +125,6 @@ public:
     const Statistics *getStatistics() const;
 
     InputQuery *getInputQuery();
-
-    InputQuery buildQueryFromCurrentState() const;
 
     /*
       Get the exit code
@@ -296,7 +294,7 @@ private:
     /*
       Preprocessed InputQuery
     */
-    std::unique_ptr<InputQuery> _preprocessedQuery;
+    InputQuery *_preprocessedQuery;
 
     /*
       Pivot selection strategies.
@@ -633,7 +631,7 @@ private:
       Helper functions for input query preprocessing
     */
     void informConstraintsOfInitialBounds( InputQuery &inputQuery ) const;
-    void invokePreprocessor( const InputQuery &inputQuery, bool preprocess );
+    void invokePreprocessor( InputQuery &inputQuery, bool preprocess );
     void printInputBounds( const InputQuery &inputQuery ) const;
     void storeEquationsInDegradationChecker();
     void removeRedundantEquations( const double *constraintMatrix );

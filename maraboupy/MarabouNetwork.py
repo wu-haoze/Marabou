@@ -59,6 +59,8 @@ class MarabouNetwork:
         self.inputVars = []
         self.outputVars = []
 
+        self.ipq = None
+
     def clearProperty(self):
         """Clear the lower bounds and upper bounds map, and the self.additionEquList
         """
@@ -220,71 +222,74 @@ class MarabouNetwork:
         Returns:
             :class:`~maraboupy.MarabouCore.InputQuery`
         """
-        ipq = MarabouCore.InputQuery()
-        ipq.setNumberOfVariables(self.numVars)
+        if self.ipq == None:
+            self.ipq = MarabouCore.InputQuery()
+            self.ipq.setNumberOfVariables(self.numVars)
 
-        i = 0
-        for inputVarArray in self.inputVars:
-            for inputVar in inputVarArray.flatten():
-                ipq.markInputVariable(inputVar, i)
-                i+=1
+            i = 0
+            for inputVarArray in self.inputVars:
+                for inputVar in inputVarArray.flatten():
+                    self.ipq.markInputVariable(inputVar, i)
+                    i+=1
 
-        i = 0
-        for outputVarArray in self.outputVars:
-            for outputVar in outputVarArray.flatten():
-                ipq.markOutputVariable(outputVar, i)
-                i+=1
+            i = 0
+            for outputVarArray in self.outputVars:
+                for outputVar in outputVarArray.flatten():
+                    self.ipq.markOutputVariable(outputVar, i)
+                    i+=1
 
-        for e in self.equList:
-            eq = MarabouCore.Equation(e.EquationType)
-            for (c, v) in e.addendList:
-                assert v < self.numVars
-                eq.addAddend(c, v)
-            eq.setScalar(e.scalar)
-            ipq.addEquation(eq)
+            for e in self.equList:
+                eq = MarabouCore.Equation(e.EquationType)
+                for (c, v) in e.addendList:
+                    assert v < self.numVars
+                    eq.addAddend(c, v)
+                eq.setScalar(e.scalar)
+                self.ipq.addEquation(eq)
 
-        for e in self.additionalEquList:
-            eq = MarabouCore.Equation(e.EquationType)
-            for (c, v) in e.addendList:
-                assert v < self.numVars
-                eq.addAddend(c, v)
-            eq.setScalar(e.scalar)
-            ipq.addEquation(eq)
+            for e in self.additionalEquList:
+                eq = MarabouCore.Equation(e.EquationType)
+                for (c, v) in e.addendList:
+                    assert v < self.numVars
+                    eq.addAddend(c, v)
+                eq.setScalar(e.scalar)
+                self.ipq.addEquation(eq)
 
-        for r in self.reluList:
-            assert r[1] < self.numVars and r[0] < self.numVars
-            MarabouCore.addReluConstraint(ipq, r[0], r[1])
+            for r in self.reluList:
+                assert r[1] < self.numVars and r[0] < self.numVars
+                MarabouCore.addReluConstraint(self.ipq, r[0], r[1])
 
-        for r in self.sigmoidList:
-            assert r[1] < self.numVars and r[0] < self.numVars
-            MarabouCore.addSigmoidConstraint(ipq, r[0], r[1])
+            for r in self.sigmoidList:
+                assert r[1] < self.numVars and r[0] < self.numVars
+                MarabouCore.addSigmoidConstraint(self.ipq, r[0], r[1])
 
-        for m in self.maxList:
-            assert m[1] < self.numVars
-            for e in m[0]:
-                assert e < self.numVars
-            MarabouCore.addMaxConstraint(ipq, m[0], m[1])
+            for m in self.maxList:
+                assert m[1] < self.numVars
+                for e in m[0]:
+                    assert e < self.numVars
+                MarabouCore.addMaxConstraint(self.ipq, m[0], m[1])
 
-        for b, f in self.absList:
-            MarabouCore.addAbsConstraint(ipq, b, f)
+            for b, f in self.absList:
+                MarabouCore.addAbsConstraint(self.ipq, b, f)
 
-        for b, f in self.signList:
-            MarabouCore.addSignConstraint(ipq, b, f)
+            for b, f in self.signList:
+                MarabouCore.addSignConstraint(self.ipq, b, f)
 
-        for disjunction in self.disjunctionList:
-            MarabouCore.addDisjunctionConstraint(ipq, disjunction)
+            for disjunction in self.disjunctionList:
+                MarabouCore.addDisjunctionConstraint(self.ipq, disjunction)
 
-        for l in self.lowerBounds:
-            assert l < self.numVars
-            ipq.setLowerBound(l, self.lowerBounds[l])
+        for i in range(self.numVars):
+            if i in self.lowerBounds:
+                self.ipq.setLowerBound(i, self.lowerBounds[i])
+            else:
+                self.ipq.setLowerBound(i, -10000)
 
-        for u in self.upperBounds:
-            assert u < self.numVars
-            ipq.setUpperBound(u, self.upperBounds[u])
-            
-        return ipq
+            if i in self.upperBounds:
+                self.ipq.setUpperBound(i, self.upperBounds[i])
+            else:
+                self.ipq.setUpperBound(i, 10000)
+            #return ipq
 
-    def solve(self, filename="", verbose=True, options=None):
+    def solve(self, filename="", verbose=True, options=None, label=0):
         """Function to solve query represented by this network
 
         Args:
@@ -298,16 +303,20 @@ class MarabouNetwork:
                 - vals (Dict[int, float]): Empty dictionary if UNSAT, otherwise a dictionary of SATisfying values for variables
                 - stats (:class:`~maraboupy.MarabouCore.Statistics`): A Statistics object to how Marabou performed
         """
-        ipq = self.getMarabouQuery()
+        print("getting query...")
+        self.getMarabouQuery()
+        print("getting query - done")
+
+        print("start solving...")
         if options == None:
             options = MarabouCore.Options()
-        exitCode, vals, stats = MarabouCore.solve(ipq, options, str(filename))
+        exitCode, vals, stats = MarabouCore.solve(self.ipq, options, str(filename), label=label)
         if verbose:
             print(exitCode)
             if exitCode == "sat":
-                for j in range(len(self.inputVars)):
-                    for i in range(self.inputVars[j].size):
-                        print("input {} = {}".format(i, vals[self.inputVars[j].item(i)]))
+                #for j in range(len(self.inputVars)):
+                #    for i in range(self.inputVars[j].size):
+                #        print("input {} = {}".format(i, vals[self.inputVars[j].item(i)]))
 
                 for j in range(len(self.outputVars)):
                     for i in range(self.outputVars[j].size):

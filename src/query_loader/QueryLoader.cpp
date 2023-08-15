@@ -27,14 +27,14 @@
 #include "ReluConstraint.h"
 #include "SignConstraint.h"
 
-InputQuery QueryLoader::loadQuery( const String &fileName )
+void QueryLoader::loadQuery( InputQuery &inputQuery, const String &fileName )
 {
     if ( !IFile::exists( fileName ) )
     {
         throw MarabouError( MarabouError::FILE_DOES_NOT_EXIST, Stringf( "File %s not found.\n", fileName.ascii() ).ascii() );
     }
 
-    InputQuery inputQuery;
+    //InputQuery inputQuery;
     AutoFile input( fileName );
     input->open( IFile::MODE_READ );
 
@@ -233,7 +233,7 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
     }
 
     inputQuery.constructNetworkLevelReasoner();
-    return inputQuery;
+    return;
 }
 
 

@@ -15,12 +15,10 @@
  **/
 
 #include "AcasParser.h"
-#include "AutoFile.h"
 #include "GlobalConfiguration.h"
 #include "File.h"
 #include "MStringf.h"
 #include "Marabou.h"
-#include "OnnxParser.h"
 #include "Options.h"
 #include "PropertyParser.h"
 #include "MarabouError.h"
@@ -32,7 +30,6 @@
 
 Marabou::Marabou()
     : _acasParser( NULL )
-    , _onnxParser( NULL )
     , _engine()
 {
 }
@@ -44,28 +41,21 @@ Marabou::~Marabou()
         delete _acasParser;
         _acasParser = NULL;
     }
-
-    if ( _onnxParser )
-    {
-        delete _onnxParser;
-        _onnxParser = NULL;
-    }
 }
 
 void Marabou::run()
 {
     struct timespec start = TimeUtils::sampleMicro();
 
+    std::cout << "preparing" << std::endl;
     prepareInputQuery();
+    std::cout << "prepared" << std::endl;
     solveQuery();
 
     struct timespec end = TimeUtils::sampleMicro();
 
     unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
     displayResults( totalElapsed );
-
-    if( Options::get()->getBool( Options::EXPORT_ASSIGNMENT ) )
-        exportAssignment();
 }
 
 void Marabou::prepareInputQuery()
@@ -83,7 +73,7 @@ void Marabou::prepareInputQuery()
         }
 
         printf( "InputQuery: %s\n", inputQueryFilePath.ascii() );
-        _inputQuery = QueryLoader::loadQuery( inputQueryFilePath );
+        QueryLoader::loadQuery( _inputQuery, inputQueryFilePath );
         _inputQuery.constructNetworkLevelReasoner();
     }
     else
@@ -92,7 +82,6 @@ void Marabou::prepareInputQuery()
           Step 1: extract the network
         */
         String networkFilePath = Options::get()->getString( Options::INPUT_FILE_PATH );
-
         if ( !File::exists( networkFilePath ) )
         {
             printf( "Error: the specified network file (%s) doesn't exist!\n", networkFilePath.ascii() );
@@ -100,18 +89,10 @@ void Marabou::prepareInputQuery()
         }
         printf( "Network: %s\n", networkFilePath.ascii() );
 
-        if ( ((String) networkFilePath).endsWith( ".onnx" ) )
-        {
-            _onnxParser = new OnnxParser( networkFilePath );
-            _onnxParser->generateQuery( _inputQuery );
-        }
-        else
-        {
-            _acasParser = new AcasParser( networkFilePath );
-            _acasParser->generateQuery( _inputQuery );
-        }
-
-        _inputQuery.constructNetworkLevelReasoner();
+        // For now, assume the network is given in ACAS format
+        _acasParser = new AcasParser( networkFilePath );
+        _acasParser->generateQuery( _inputQuery );
+        //_inputQuery.constructNetworkLevelReasoner();
 
         /*
           Step 2: extract the property in question
@@ -128,9 +109,6 @@ void Marabou::prepareInputQuery()
         printf( "\n" );
     }
 
-    if ( Options::get()->getBool( Options::DEBUG_ASSIGNMENT ) )
-        importDebuggingSolution();
-
     String queryDumpFilePath = Options::get()->getString( Options::QUERY_DUMP_FILE );
     if ( queryDumpFilePath.length() > 0 )
     {
@@ -138,60 +116,6 @@ void Marabou::prepareInputQuery()
         printf( "\nInput query successfully dumped to file\n" );
         exit( 0 );
     }
-}
-
-void Marabou::importDebuggingSolution()
-{
-    String fileName=  Options::get()->getString( Options::IMPORT_ASSIGNMENT_FILE_PATH );
-    AutoFile input( fileName );
-
-    if ( !IFile::exists( fileName ) )
-    {
-        throw MarabouError( MarabouError::FILE_DOES_NOT_EXIST, Stringf( "File %s not found.\n", fileName.ascii() ).ascii() );
-    }
-
-    input->open( IFile::MODE_READ );
-
-    unsigned numVars = atoi( input->readLine().trim().ascii() );
-    ASSERT( numVars == _inputQuery.getNumberOfVariables() );
-
-    unsigned var;
-    double value;
-    String line;
-
-    // Import each assignment
-    for ( unsigned i = 0;  i < numVars; ++i )
-    {
-        line = input->readLine();
-        List<String> tokens = line.tokenize( "," );
-        auto it = tokens.begin();
-        var = atoi( it->ascii() );
-        ASSERT( var == i );
-        it++;
-        value = atof( it->ascii() );
-        it++;
-        ASSERT( it == tokens.end() );
-        _inputQuery.storeDebuggingSolution( var, value);
-    }
-
-    input->close();
-}
-
-void Marabou::exportAssignment() const
-{
-    String assignmentFileName = "assignment.txt";
-    AutoFile exportFile( assignmentFileName );
-    exportFile->open( IFile::MODE_WRITE_TRUNCATE );
-
-    unsigned numberOfVariables = _inputQuery.getNumberOfVariables();
-    // Number of Variables
-    exportFile->write( Stringf( "%u\n", numberOfVariables ) );
-
-    // Export each assignment
-    for ( unsigned var = 0;  var < numberOfVariables; ++var )
-        exportFile->write( Stringf( "%u, %f\n", var, _inputQuery.getSolutionValue( var ) ) );
-
-    exportFile->close();
 }
 
 void Marabou::solveQuery()
