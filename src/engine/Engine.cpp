@@ -160,6 +160,7 @@ void Engine::exportInputQueryWithError( String errorMessage )
 
 bool Engine::solve( unsigned timeoutInSeconds )
 {
+  return false;
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
 
