@@ -23,6 +23,7 @@ DeepPolyClipElement::DeepPolyClipElement( Layer *layer )
     _layer = layer;
     _size = layer->getSize();
     _layerIndex = layer->getLayerIndex();
+    _parameterToValue = layer->_parameterToValue;
 }
 
 DeepPolyClipElement::~DeepPolyClipElement()
@@ -49,11 +50,41 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *>
         double sourceUb = predecessor->getUpperBound
             ( sourceIndex._neuron );
 
-        if ( !FloatUtils::isNegative( sourceLb ) )
+        double floor = getParameter( "floor", sourceIndex._neuron );
+        double ceiling = getParameter( "ceiling", sourceIndex._neuron );
+
+        if ( FloatUtils::lte(sourceUb, floor) )
         {
-            // Phase active
-            // Symbolic bound: x_b <= x_f <= x_b
-            // Concrete bound: lb_b <= x_f <= ub_b
+            // Phase floor
+            // Symbolic bound: floor <= x_f <= floor
+            // Concrete bound: floor <= x_f <= floor
+            _symbolicUb[i] = 0;
+            _symbolicUpperBias[i] = floor;
+            _ub[i] = floor;
+
+            _symbolicLb[i] = 0;
+            _symbolicLowerBias[i] = floor;
+            _lb[i] = floor;
+        }
+        else if ( FloatUtils::gte(sourceLb, ceiling) )
+          {
+            // Phase ceil
+            // Symbolic bound: ceiling <= x_f <= ceiling
+            // Concrete bound: ceiling <= x_f <= ceiling
+            _symbolicUb[i] = 0;
+            _symbolicUpperBias[i] = ceiling;
+            _ub[i] = ceiling;
+
+            _symbolicLb[i] = 0;
+            _symbolicLowerBias[i] = ceiling;
+            _lb[i] = ceiling;
+          }
+
+        else if (FloatUtils::gte(sourceLb, floor) && FloatUtils::lte(sourceUb, ceiling) )
+        {
+            // Phase ceil
+            // Symbolic bound: ceiling <= x_f <= ceiling
+            // Concrete bound: ceiling <= x_f <= ceiling
             _symbolicUb[i] = 1;
             _symbolicUpperBias[i] = 0;
             _ub[i] = sourceUb;
@@ -62,53 +93,72 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *>
             _symbolicLowerBias[i] = 0;
             _lb[i] = sourceLb;
         }
-        else if ( !FloatUtils::isPositive( sourceUb ) )
+        else if ( FloatUtils::lte( sourceUb, ceiling ) && FloatUtils::lt( sourceLb, floor ) )
         {
-            // Phase inactive
-            // Symbolic bound: 0 <= x_f <= 0
-            // Concrete bound: 0 <= x_f <= 0
-            _symbolicUb[i] = 0;
-            _symbolicUpperBias[i] = 0;
-            _ub[i] = 0;
-
-            _symbolicLb[i] = 0;
-            _symbolicLowerBias[i] = 0;
-            _lb[i] = 0;
-        }
-        else
-        {
-            // Clip not fixed
-            // Symbolic upper bound: x_f <= (x_b - l) * u / ( u - l)
-            // Concrete upper bound: x_f <= ub_b
-            double coeff = sourceUb / ( sourceUb - sourceLb );
-            _symbolicUb[i] = coeff;
-            _symbolicUpperBias[i] = -sourceLb * coeff;
+          double slope = (sourceUb - floor) / (ceiling - floor);
+            _symbolicUb[i] = slope;
+            _symbolicUpperBias[i] = (1 - slope) * sourceUb;
             _ub[i] = sourceUb;
 
-            // For the lower bound, in general, x_f >= lambda * x_b, where
-            // 0 <= lambda <= 1, would be a sound lower bound. We
-            // use the heuristic described in section 4.1 of
-            // https://files.sri.inf.ethz.ch/website/papers/DeepPoly.pdf
-            // to set the value of lambda (either 0 or 1 is considered).
-            if ( sourceUb > -sourceLb )
-            {
-                // lambda = 1
-                // Symbolic lower bound: x_f >= x_b
-                // Concrete lower bound: x_f >= sourceLb
-                _symbolicLb[i] = 1;
-                _symbolicLowerBias[i] = 0;
-                _lb[i] = sourceLb;
-            }
-            else
-            {
-                // lambda = 1
-                // Symbolic lower bound: x_f >= 0
-                // Concrete lower bound: x_f >= 0
-                _symbolicLb[i] = 0;
-                _symbolicLowerBias[i] = 0;
-                _lb[i] = 0;
+            if (floor - sourceLb < sourceUb - floor) {
+            _symbolicLb[i] = 1;
+            _symbolicLowerBias[i] = 0;
+            _lb[i] = sourceLb;
+            } else {
+              _symbolicLb[i] = 0;
+              _symbolicLowerBias[i] = floor;
+              _lb[i] = floor;
             }
         }
+        else if (  FloatUtils::gt( sourceUb, ceiling ) && FloatUtils::gte( sourceLb, floor ) ) {
+          if (sourceUb - ceiling < ceiling - sourceLb ) {
+            _symbolicUb[i] = 1;
+            _symbolicUpperBias[i] = 0;
+            _ub[i] = sourceUb;
+          } else {
+            _symbolicUb[i] = 0;
+            _symbolicUpperBias[i] = ceiling;
+            _ub[i] = ceiling;
+          }
+
+          double slope = (ceiling - sourceLb) / (sourceUb - sourceLb);
+          _symbolicLb[i] = slope;
+          _symbolicLowerBias[i] = (1 - slope) * sourceLb;
+          _lb[i] = sourceLb;
+        }
+        else if (  FloatUtils::gt( sourceUb, ceiling ) && FloatUtils::lt( sourceLb, floor ) ) {
+          if ( sourceUb - ceiling > ceiling - sourceLb )
+          {
+            _symbolicUb[i] = 0;
+            _symbolicUpperBias[i] = ceiling;
+            _ub[i] = ceiling;
+          }
+          else {
+            double slope = (ceiling - floor) / (ceiling - sourceLb);
+            _symbolicUb[i] = slope;
+            double bias = (1 - slope) * ceiling;
+            _symbolicUpperBias[i] = bias;
+            _ub[i] = slope * sourceUb  + bias;
+          }
+
+          if ( sourceUb - floor > floor - sourceLb )
+           {
+             double slope = (ceiling - floor) / (sourceUb - floor);
+             _symbolicLb[i] = slope;
+             double bias = (1 - slope) * floor;
+             _symbolicLowerBias[i] = bias;
+             _lb[i] = slope * sourceLb + bias;
+           }
+          else {
+            _symbolicLb[i] = 0;
+            _symbolicLowerBias[i] = floor;
+            _lb[i] = floor;
+          }
+        }
+        else {
+          throw NLRError(NLRError::UNHANDLED_CLIP_CASE);
+        }
+
         log( Stringf( "Neuron%u LB: %f b + %f, UB: %f b + %f",
                       i, _symbolicLb[i], _symbolicLowerBias[i],
                       _symbolicUb[i], _symbolicUpperBias[i] ) );

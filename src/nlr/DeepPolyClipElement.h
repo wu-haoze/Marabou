@@ -21,6 +21,7 @@
 #include "MStringf.h"
 #include "NLRError.h"
 #include <climits>
+#include "Map.h"
 
 namespace NLR {
 
@@ -40,6 +41,8 @@ public:
       unsigned targetLayerSize, DeepPolyElement *predecessor );
 
 private:
+
+  Map<String, double *> _parameterToValue;
 
     void allocateMemory();
     void freeMemoryIfNeeded();

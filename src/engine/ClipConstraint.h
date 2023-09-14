@@ -23,7 +23,7 @@ public:
     /*
       The f variable is the clip value of the b variable
     */
-  ClipConstraint( unsigned b, unsigned f, double lb, double ub );
+  ClipConstraint( unsigned b, unsigned f, double floor, double ceiling );
     ClipConstraint( const String &serializedAbs );
 
     /*
@@ -134,6 +134,12 @@ public:
     */
     void getEntailedTightenings( List<Tightening> &tightenings ) const override;
 
+
+  virtual bool supportVariableElimination() const override
+  {
+    return false;
+  }
+
     /*
       Dump the current state of the constraint.
     */
@@ -155,22 +161,6 @@ public:
     }
 
     /*
-      Ask the piecewise linear constraint to add its cost term corresponding to
-      the given phase to the cost function. The cost term for Abs is:
-      _f - _b for the active phase
-      _f + _b for the inactive phase
-    */
-    virtual void getCostFunctionComponent( LinearExpression &cost,
-                                           PhaseStatus phase ) const override;
-
-    /*
-      Return the phase status corresponding to the values of the *input*
-      variables in the given assignment.
-    */
-    virtual PhaseStatus getPhaseStatusInAssignment( const Map<unsigned, double>
-                                                    &assignment ) const override;
-
-    /*
       Returns string with shape: absoluteValue,_f,_b
      */
     String serializeToString() const override;
@@ -179,12 +169,13 @@ public:
 
     inline unsigned getF() const { return _f; };
 
+  inline unsigned getFloor() const { return _floor; };
+
+  inline unsigned getCeiling() const { return _ceiling; };
+
 private:
-    /*
-      The variables that make up this constraint; _f = | _b |.
-    */
     unsigned _b, _f;
-  double _lb, _ub;
+  double _floor, _ceiling;
 
     static String phaseToString( PhaseStatus phase );
 

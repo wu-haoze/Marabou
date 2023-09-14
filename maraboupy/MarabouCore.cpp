@@ -102,8 +102,8 @@ void restoreOutputStream(int outputStream)
     close(outputStream);
 }
 
-void addClipConstraint(InputQuery& ipq, unsigned var1, unsigned var2, double lb, double ub){
-  PiecewiseLinearConstraint* r = new ClipConstraint(var1, var2, lb, ub);
+void addClipConstraint(InputQuery& ipq, unsigned var1, unsigned var2, double floor, double ceiling){
+  PiecewiseLinearConstraint* r = new ClipConstraint(var1, var2, floor, ceiling);
   ipq.addPiecewiseLinearConstraint(r);
 }
 
@@ -570,8 +570,8 @@ PYBIND11_MODULE(MarabouCore, m) {
             :class:`~maraboupy.MarabouCore.InputQuery`
         )pbdoc",
         py::arg("filename"));
-    m.def("addReluConstraint", &addClipConstraint, R"pbdoc(
-        Add a Relu constraint to the InputQuery
+    m.def("addClipConstraint", &addClipConstraint, R"pbdoc(
+        Add a Clip constraint to the InputQuery
 
         Args:
             inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
@@ -580,7 +580,7 @@ PYBIND11_MODULE(MarabouCore, m) {
             lb (double): Lb
             ub (double): Ub
         )pbdoc",
-          py::arg("inputQuery"), py::arg("var1"), py::arg("var2"), py::arg("var3"), py::arg("var4"));
+          py::arg("inputQuery"), py::arg("var1"), py::arg("var2"), py::arg("floor"), py::arg("ceiling"));
     m.def("addReluConstraint", &addReluConstraint, R"pbdoc(
         Add a Relu constraint to the InputQuery
 
@@ -653,6 +653,7 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def("outputVariableByIndex", &InputQuery::outputVariableByIndex);
     py::enum_<PiecewiseLinearFunctionType>(m, "PiecewiseLinearFunctionType")
         .value("ReLU", PiecewiseLinearFunctionType::RELU)
+      .value("Clip", PiecewiseLinearFunctionType::CLIP)
         .value("AbsoluteValue", PiecewiseLinearFunctionType::ABSOLUTE_VALUE)
         .value("Max", PiecewiseLinearFunctionType::MAX)
         .value("Disjunction", PiecewiseLinearFunctionType::DISJUNCTION)

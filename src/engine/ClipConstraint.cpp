@@ -23,12 +23,12 @@
 #include "PiecewiseLinearCaseSplit.h"
 #include "Statistics.h"
 
-ClipConstraint::ClipConstraint( unsigned b, unsigned f, double lb, double ub )
+ClipConstraint::ClipConstraint( unsigned b, unsigned f, double floor, double ceiling )
     : PiecewiseLinearConstraint( TWO_PHASE_PIECEWISE_LINEAR_CONSTRAINT )
     , _b( b )
     , _f( f )
-    , _lb( lb )
-    , _ub( ub )
+    , _floor( floor )
+    , _ceiling( ceiling )
 {
 }
 
@@ -44,7 +44,7 @@ PiecewiseLinearFunctionType ClipConstraint::getType() const
 
 PiecewiseLinearConstraint *ClipConstraint::duplicateConstraint() const
 {
-  ClipConstraint *clone = new ClipConstraint( _b, _f, _lb, _ub );
+  ClipConstraint *clone = new ClipConstraint( _b, _f, _floor, _ceiling );
     *clone = *this;
     this->initializeDuplicateCDOs( clone );
     return clone;
@@ -133,7 +133,7 @@ List<PiecewiseLinearCaseSplit> ClipConstraint::getCaseSplits() const
 
 List<PhaseStatus> ClipConstraint::getAllCases() const
 {
-  return { CLIP_PHASE_LB, CLIP_PHASE_UB, PHASE_NOT_FIXED };
+  return { CLIP_PHASE_FLOOR, CLIP_PHASE_CEILING, PHASE_NOT_FIXED };
 }
 
 PiecewiseLinearCaseSplit ClipConstraint::getCaseSplit( PhaseStatus phase ) const
@@ -171,12 +171,12 @@ PiecewiseLinearCaseSplit ClipConstraint::getValidCaseSplit() const
     return getImpliedCaseSplit();
 }
 
-void ClipConstraint::eliminateVariable( unsigned variable, double /* fixedValue */ )
+void ClipConstraint::eliminateVariable( unsigned /*variable*/, double /* fixedValue */ )
 {
   throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
-void ClipConstraint::dump( String &output ) const
+void ClipConstraint::dump( String &/*output*/ ) const
 {
   throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
@@ -216,11 +216,23 @@ bool ClipConstraint::constraintObsolete() const
     return false;
 }
 
-void ClipConstraint::getEntailedTightenings( List<Tightening> &/*tightenings*/ ) const
+void ClipConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
 {
+  if ( _lowerBounds.exists(_b) )
+    tightenings.append(Tightening( _b, getLowerBound(_b), Tightening::LB) );
+  if ( _upperBounds.exists(_b) )
+    tightenings.append(Tightening( _b, getUpperBound(_b), Tightening::UB) );
+
+  if ( _lowerBounds.exists(_f) )
+    tightenings.append(Tightening( _f, getLowerBound(_f), Tightening::LB) );
+  if ( _upperBounds.exists(_f) )
+    tightenings.append(Tightening( _f, getUpperBound(_f), Tightening::UB) );
+
+  tightenings.append(Tightening( _f, _floor, Tightening::LB) );
+  tightenings.append(Tightening( _f, _ceiling, Tightening::UB) );
 }
 
-void ClipConstraint::transformToUseAuxVariables( InputQuery &inputQuery )
+void ClipConstraint::transformToUseAuxVariables( InputQuery &/*inputQuery*/ )
 {
 
 }
@@ -233,7 +245,7 @@ bool ClipConstraint::haveOutOfBoundVariables() const
 String ClipConstraint::serializeToString() const
 {
   // Output format is: Abs,f,b,posAux,NegAux
-  return Stringf( "clip,%u,%u,%.8f,%.8f", _f, _b, _lb, _ub );
+  return Stringf( "clip,%u,%u,%.8f,%.8f", _f, _b, _floor, _ceiling );
 }
 
 void ClipConstraint::fixPhaseIfNeeded()
@@ -248,11 +260,11 @@ String ClipConstraint::phaseToString( PhaseStatus phase )
     case PHASE_NOT_FIXED:
         return "PHASE_NOT_FIXED";
 
-    case CLIP_PHASE_LB:
-        return "CLIP_PHASE_LB";
+    case CLIP_PHASE_FLOOR:
+      return "CLIP_PHASE_FLOOR";
 
-    case CLIP_PHASE_UB:
-        return "CLIP_PHASE_UB";
+    case CLIP_PHASE_CEILING:
+        return "CLIP_PHASE_CEILING";
 
     default:
         return "UNKNOWN";

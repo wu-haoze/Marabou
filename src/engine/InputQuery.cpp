@@ -935,16 +935,20 @@ bool InputQuery::constructClipLayer( NLR::NetworkLevelReasoner *nlr,
     {
     public:
 
-        NeuronInformation( unsigned variable, unsigned neuron, unsigned sourceVariable )
+      NeuronInformation( unsigned variable, unsigned neuron, unsigned sourceVariable, double floor, double ceiling )
             : _variable( variable )
             , _neuron( neuron )
             , _sourceVariable( sourceVariable )
+            , _floor(floor)
+            , _ceiling(ceiling)
         {
         }
 
         unsigned _variable;
         unsigned _neuron;
         unsigned _sourceVariable;
+      double _floor;
+      double _ceiling;
     };
 
     List<NeuronInformation> newNeurons;
@@ -972,7 +976,7 @@ bool InputQuery::constructClipLayer( NLR::NetworkLevelReasoner *nlr,
             continue;
 
         // B has been handled, f hasn't. Add f
-        newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
+        newNeurons.append( NeuronInformation( f, newNeurons.size(), b, clip->getFloor(), clip->getCeiling() ) );
         nlr->addConstraintInTopologicalOrder( plc );
     }
 
@@ -994,6 +998,9 @@ bool InputQuery::constructClipLayer( NLR::NetworkLevelReasoner *nlr,
                       _lowerBounds[newNeuron._variable] : FloatUtils::negativeInfinity() );
         layer->setUb( newNeuron._neuron, _upperBounds.exists( newNeuron._variable ) ?
                       _upperBounds[newNeuron._variable] : FloatUtils::infinity() );
+
+        layer->setParameter( "floor", newNeuron._neuron, newNeuron._floor );
+        layer->setParameter( "ceiling", newNeuron._neuron, newNeuron._ceiling );
 
         unsigned sourceLayer = handledVariableToLayer[newNeuron._sourceVariable];
         unsigned sourceNeuron = nlr->getLayer( sourceLayer )->variableToNeuron( newNeuron._sourceVariable );

@@ -206,8 +206,9 @@ DeepPolyElement *DeepPolyAnalysis::createDeepPolyElement( Layer *layer )
     }
     else if ( type ==  Layer::RELU )
         deepPolyElement = new DeepPolyReLUElement( layer );
-    else if ( type ==  Layer::CLIP )
+    else if ( type ==  Layer::CLIP ) {
       deepPolyElement = new DeepPolyClipElement( layer );
+    }
     else if ( type ==  Layer::SIGN )
         deepPolyElement = new DeepPolySignElement( layer );
     else if ( type ==  Layer::ABSOLUTE_VALUE )
