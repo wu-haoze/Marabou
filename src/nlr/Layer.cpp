@@ -424,7 +424,7 @@ double *Layer::getBiases() const
 
 void Layer::addActivationSource( unsigned sourceLayer, unsigned sourceNeuron, unsigned targetNeuron )
 {
-    ASSERT( _type == RELU || _type == ABSOLUTE_VALUE || _type == MAX || _type == SIGN || _type == SIGMOID );
+  ASSERT( _type == RELU || _type == ABSOLUTE_VALUE || _type == MAX || _type == SIGN || _type == SIGMOID || _type == CLIP );
 
     if ( !_neuronToActivationSources.exists( targetNeuron ) )
         _neuronToActivationSources[targetNeuron] = List<NeuronIndex>();
@@ -432,7 +432,7 @@ void Layer::addActivationSource( unsigned sourceLayer, unsigned sourceNeuron, un
     _neuronToActivationSources[targetNeuron].append( NeuronIndex( sourceLayer, sourceNeuron ) );
 
     DEBUG({
-            if ( _type == RELU || _type == ABSOLUTE_VALUE || _type == SIGN )
+        if ( _type == RELU || _type == ABSOLUTE_VALUE || _type == SIGN || _type == SIGMOID || _type == CLIP )
                 ASSERT( _neuronToActivationSources[targetNeuron].size() == 1 );
         });
 }
@@ -1813,6 +1813,7 @@ void Layer::dump() const
     case MAX:
     case SIGN:
     case SIGMOID:
+    case CLIP:
 
         for ( unsigned i = 0; i < _size; ++i )
         {

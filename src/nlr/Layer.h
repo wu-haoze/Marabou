@@ -40,6 +40,7 @@ public:
         WEIGHTED_SUM,
 
         // Activation functions
+        CLIP,
         RELU,
         ABSOLUTE_VALUE,
         MAX,

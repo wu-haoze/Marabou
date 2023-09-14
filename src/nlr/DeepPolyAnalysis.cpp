@@ -16,6 +16,7 @@
 #include "Debug.h"
 #include "DeepPolyAnalysis.h"
 #include "DeepPolyAbsoluteValueElement.h"
+#include "DeepPolyClipElement.h"
 #include "DeepPolyInputElement.h"
 #include "DeepPolyMaxPoolElement.h"
 #include "DeepPolyWeightedSumElement.h"
@@ -205,6 +206,8 @@ DeepPolyElement *DeepPolyAnalysis::createDeepPolyElement( Layer *layer )
     }
     else if ( type ==  Layer::RELU )
         deepPolyElement = new DeepPolyReLUElement( layer );
+    else if ( type ==  Layer::CLIP )
+      deepPolyElement = new DeepPolyClipElement( layer );
     else if ( type ==  Layer::SIGN )
         deepPolyElement = new DeepPolySignElement( layer );
     else if ( type ==  Layer::ABSOLUTE_VALUE )

@@ -14,6 +14,7 @@
  **/
 
 #include "AutoFile.h"
+#include "ClipConstraint.h"
 #include "Debug.h"
 #include "FloatUtils.h"
 #include "InputQuery.h"
@@ -691,7 +692,8 @@ bool InputQuery::constructNetworkLevelReasoner()
             constructAbsoluteValueLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSignLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSigmoidLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
-            constructMaxLayer( nlr, handledVariableToLayer, newLayerIndex )
+            constructMaxLayer( nlr, handledVariableToLayer, newLayerIndex )  ||
+            constructClipLayer( nlr, handledVariableToLayer, newLayerIndex )
             )
     {
         ++newLayerIndex;
@@ -893,6 +895,95 @@ bool InputQuery::constructReluLayer( NLR::NetworkLevelReasoner *nlr,
     }
 
     nlr->addLayer( newLayerIndex, NLR::Layer::RELU, newNeurons.size() );
+
+    NLR::Layer *layer = nlr->getLayer( newLayerIndex );
+    for ( const auto &newNeuron : newNeurons )
+    {
+        handledVariableToLayer[newNeuron._variable] = newLayerIndex;
+
+        layer->setLb( newNeuron._neuron, _lowerBounds.exists( newNeuron._variable ) ?
+                      _lowerBounds[newNeuron._variable] : FloatUtils::negativeInfinity() );
+        layer->setUb( newNeuron._neuron, _upperBounds.exists( newNeuron._variable ) ?
+                      _upperBounds[newNeuron._variable] : FloatUtils::infinity() );
+
+        unsigned sourceLayer = handledVariableToLayer[newNeuron._sourceVariable];
+        unsigned sourceNeuron = nlr->getLayer( sourceLayer )->variableToNeuron( newNeuron._sourceVariable );
+
+        // Mark the layer dependency
+        nlr->addLayerDependency( sourceLayer, newLayerIndex );
+
+        // Add the new neuron
+        nlr->setNeuronVariable( NLR::NeuronIndex( newLayerIndex, newNeuron._neuron ), newNeuron._variable );
+
+        // Mark the activation connection
+        nlr->addActivationSource( sourceLayer,
+                                  sourceNeuron,
+                                  newLayerIndex,
+                                  newNeuron._neuron );
+    }
+
+    INPUT_QUERY_LOG( "\tSuccessful!" );
+    return true;
+}
+
+bool InputQuery::constructClipLayer( NLR::NetworkLevelReasoner *nlr,
+                                     Map<unsigned, unsigned> &handledVariableToLayer,
+                                     unsigned newLayerIndex )
+{
+    INPUT_QUERY_LOG( "Attempting to construct ReluLayer..." );
+    struct NeuronInformation
+    {
+    public:
+
+        NeuronInformation( unsigned variable, unsigned neuron, unsigned sourceVariable )
+            : _variable( variable )
+            , _neuron( neuron )
+            , _sourceVariable( sourceVariable )
+        {
+        }
+
+        unsigned _variable;
+        unsigned _neuron;
+        unsigned _sourceVariable;
+    };
+
+    List<NeuronInformation> newNeurons;
+
+    // Look for ReLUs where all b variables have already been handled
+    const List<PiecewiseLinearConstraint *> &plConstraints =
+        getPiecewiseLinearConstraints();
+
+    for ( const auto &plc : plConstraints )
+    {
+        // Only consider ReLUs
+        if ( plc->getType() != CLIP )
+            continue;
+
+        const ClipConstraint *clip = (const ClipConstraint *)plc;
+
+        // Has the b variable been handled?
+        unsigned b = clip->getB();
+        if ( !handledVariableToLayer.exists( b ) )
+            continue;
+
+        // If the f variable has also been handled, ignore this constraint
+        unsigned f = clip->getF();
+        if ( handledVariableToLayer.exists( f ) )
+            continue;
+
+        // B has been handled, f hasn't. Add f
+        newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
+        nlr->addConstraintInTopologicalOrder( plc );
+    }
+
+    // No neurons found for the new layer
+    if ( newNeurons.empty() )
+    {
+        INPUT_QUERY_LOG( "\tFailed!" );
+        return false;
+    }
+
+    nlr->addLayer( newLayerIndex, NLR::Layer::CLIP, newNeurons.size() );
 
     NLR::Layer *layer = nlr->getLayer( newLayerIndex );
     for ( const auto &newNeuron : newNeurons )

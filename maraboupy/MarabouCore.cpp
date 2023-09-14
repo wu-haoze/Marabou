@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include "MarabouMain.h"
 #include "AcasParser.h"
+#include "ClipConstraint.h"
 #include "CommonError.h"
 #include "DnCManager.h"
 #include "DisjunctionConstraint.h"
@@ -99,6 +100,11 @@ void restoreOutputStream(int outputStream)
         exit( 1 );
     }
     close(outputStream);
+}
+
+void addClipConstraint(InputQuery& ipq, unsigned var1, unsigned var2, double lb, double ub){
+  PiecewiseLinearConstraint* r = new ClipConstraint(var1, var2, lb, ub);
+  ipq.addPiecewiseLinearConstraint(r);
 }
 
 void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
@@ -564,6 +570,17 @@ PYBIND11_MODULE(MarabouCore, m) {
             :class:`~maraboupy.MarabouCore.InputQuery`
         )pbdoc",
         py::arg("filename"));
+    m.def("addReluConstraint", &addClipConstraint, R"pbdoc(
+        Add a Relu constraint to the InputQuery
+
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            var1 (int): Input variable to Clip constraint
+            var2 (int): Output variable to Clip constraint
+            lb (double): Lb
+            ub (double): Ub
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("var1"), py::arg("var2"), py::arg("var3"), py::arg("var4"));
     m.def("addReluConstraint", &addReluConstraint, R"pbdoc(
         Add a Relu constraint to the InputQuery
 
