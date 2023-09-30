@@ -164,6 +164,11 @@ public:
         return true;
     }
 
+    virtual bool supportVariableElimination() const override
+    {
+      return false;
+    }
+
     /*
       Ask the piecewise linear constraint to add its cost term corresponding to
       the given phase to the cost function. The cost term for ReLU is:
