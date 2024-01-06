@@ -15,6 +15,7 @@
 #include "DisjunctionConstraint.h"
 
 #include "Debug.h"
+#include "InfeasibleQueryException.h"
 #include "InputQuery.h"
 #include "MStringf.h"
 #include "MarabouError.h"
@@ -378,7 +379,7 @@ void DisjunctionConstraint::eliminateVariable( unsigned /* variable */, double /
 
 bool DisjunctionConstraint::constraintObsolete() const
 {
-    return _feasibleDisjuncts.empty();
+    return false;
 }
 
 void DisjunctionConstraint::getEntailedTightenings( List<Tightening> &/* tightenings */ ) const
@@ -480,6 +481,8 @@ void DisjunctionConstraint::updateFeasibleDisjuncts()
         else if ( _cdInfeasibleCases && !isCaseInfeasible( indToPhaseStatus( ind ) ) )
             markInfeasible( indToPhaseStatus( ind ) );
     }
+
+    if ( _feasibleDisjuncts.size() == 0 ) throw InfeasibleQueryException();
 }
 
 bool DisjunctionConstraint::disjunctIsFeasible( unsigned ind ) const
@@ -509,4 +512,43 @@ bool DisjunctionConstraint::caseSplitIsFeasible( const PiecewiseLinearCaseSplit 
     }
 
     return true;
+}
+
+List<PiecewiseLinearCaseSplit> DisjunctionConstraint::getFeasibleDisjuncts() const
+{
+    List<PiecewiseLinearCaseSplit> validDisjuncts = List<PiecewiseLinearCaseSplit>();
+
+    for ( const auto &feasibleDisjunct : _feasibleDisjuncts )
+        validDisjuncts.append( _disjuncts.get( feasibleDisjunct ) );
+
+    return validDisjuncts;
+}
+
+bool DisjunctionConstraint::removeFeasibleDisjunct(const PiecewiseLinearCaseSplit &disjunct )
+{
+    for ( unsigned i = 0; i < _disjuncts.size(); ++i )
+        if ( _disjuncts[i] == disjunct )
+        {
+            _feasibleDisjuncts.erase( i );
+            return true;
+        }
+
+    return false;
+}
+
+bool DisjunctionConstraint::addFeasibleDisjunct( const PiecewiseLinearCaseSplit &disjunct )
+{
+    for ( unsigned i = 0; i < _disjuncts.size(); ++i )
+        if ( _disjuncts[i] == disjunct )
+        {
+            _feasibleDisjuncts.append( i );
+            return true;
+        }
+
+    return false;
+}
+
+// No aux vars in disjunction constraint, so the function is suppressed
+void DisjunctionConstraint::addTableauAuxVar( unsigned /* tableauAuxVar */, unsigned /* constraintAuxVar */ )
+{
 }

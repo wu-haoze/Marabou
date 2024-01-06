@@ -2,7 +2,7 @@
 /*! \file SoftmaxConstraint.cpp
 ** \verbatim
 ** Top contributors (to current version):
-**   Haoze (Andrew) Wu
+**   Andrew Wu
 ** This file is part of the Marabou project.
 ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
 ** in the top-level source directory) and their institutional affiliations.
@@ -23,7 +23,7 @@
 #include "MarabouError.h"
 #include "Statistics.h"
 #include "TableauRow.h"
-#include "TranscendentalConstraint.h"
+#include "NonlinearConstraint.h"
 
 #ifdef _WIN32
 #define __attribute__(x)
@@ -31,7 +31,7 @@
 
 SoftmaxConstraint::SoftmaxConstraint( const Vector<unsigned> &inputs,
                                       const Vector<unsigned> &outputs )
-  : TranscendentalConstraint()
+  : NonlinearConstraint()
   , _inputs( inputs )
   , _outputs( outputs )
 {
@@ -68,14 +68,14 @@ TranscendentalFunctionType SoftmaxConstraint::getType() const
   return TranscendentalFunctionType::SOFTMAX;
 }
 
-TranscendentalConstraint *SoftmaxConstraint::duplicateConstraint() const
+NonlinearConstraint *SoftmaxConstraint::duplicateConstraint() const
 {
   SoftmaxConstraint *clone = new SoftmaxConstraint( _inputs, _outputs );
   *clone = *this;
   return clone;
 }
 
-void SoftmaxConstraint::restoreState( const TranscendentalConstraint *state )
+void SoftmaxConstraint::restoreState( const NonlinearConstraint *state )
 {
       const SoftmaxConstraint *softmax =
         dynamic_cast<const SoftmaxConstraint *>( state );

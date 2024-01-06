@@ -29,7 +29,7 @@ public:
 
     // Whether to use SoI instead of Reluplex for local search for satisfying assignments
     //to non-linear constraint.
-    static const bool USE_DEEPSOI_LOCAL_SEARCH;
+    static bool USE_DEEPSOI_LOCAL_SEARCH;
 
     // The quantity by which the score is bumped up for PLContraints not
     // participating in the SoI. This promotes those constraints in the branching
@@ -100,6 +100,9 @@ public:
     // logically-consecutive weighted sum layers into a single
     // weighted sum layer, to reduce the number of variables
     static const bool PREPROCESSOR_MERGE_CONSECUTIVE_WEIGHTED_SUMS;
+
+    // Maximal rounds of tightening to perform in the preprocessor to avoid non-termination.
+    static const unsigned PREPROCESSSING_MAX_TIGHTEING_ROUND;
 
     // Try to set the initial tableau assignment to an assignment that is legal with
     // respect to the input network.
@@ -182,6 +185,7 @@ public:
 
     // When doing bound tightening using the explicit basis matrix, should the basis matrix be inverted?
     static const ExplicitBasisBoundTighteningType EXPLICIT_BASIS_BOUND_TIGHTENING_TYPE;
+    static const double EXPLICIT_BASIS_BOUND_TIGHTENING_ROUNDING_CONSTANT;
 
     // When doing explicit bound tightening, should we repeat until saturation?
     static const bool EXPLICIT_BOUND_TIGHTENING_UNTIL_SATURATION;
@@ -231,6 +235,18 @@ public:
     /* The max number of DnC splits
     */
     static const unsigned DNC_DEPTH_THRESHOLD;
+
+    /* Minimal coefficient of a variable in a Tableau row, that is used for bound tightening
+    */
+    static const double MINIMAL_COEFFICIENT_FOR_TIGHTENING;
+
+    /* The tolerance of errors when checking lemmas in the proof-checking process
+    */
+    static const double LEMMA_CERTIFICATION_TOLERANCE;
+
+    /* Denote whether proofs should be written as a JSON file
+    */
+    static const bool WRITE_JSON_PROOF;
 
 #ifdef ENABLE_GUROBI
     /*

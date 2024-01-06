@@ -197,18 +197,85 @@ public:
             return NULL;
     }
 
+    bool _snc;
+    CVC4::context::Context _context;
+
     void applySnCSplit( PiecewiseLinearCaseSplit /*split*/, String /*queryId*/)
     {
+        _snc = true;
+        _context.push();
+    }
+
+    bool inSnCMode() const {
+        return _snc;
     }
 
     void applyAllBoundTightenings() {};
 
     bool applyAllValidConstraintCaseSplits() { return false; };
 
-    CVC4::context::Context _dontCare;
-    CVC4::context::Context &getContext() { return _dontCare; }
+    CVC4::context::Context &getContext() { return _context; }
 
     bool consistentBounds() const { return true; }
+
+    double explainBound( unsigned /* var */,  bool /* isUpper */ ) const
+    {
+        return 0.0;
+    }
+
+    void updateGroundUpperBound(unsigned /* var */, double /* value */ )
+    {
+    }
+
+    void updateGroundLowerBound(unsigned /*var*/, double /*value*/ )
+    {
+    }
+
+    double getGroundBound( unsigned /*var*/, bool /*isUpper*/ ) const
+    {
+        return 0;
+    }
+
+    UnsatCertificateNode *getUNSATCertificateCurrentPointer() const
+    {
+        return NULL;
+    }
+
+    void setUNSATCertificateCurrentPointer( UnsatCertificateNode */* node*/ )
+    {
+    }
+
+    const UnsatCertificateNode *getUNSATCertificateRoot() const
+    {
+        return NULL;
+    }
+
+    bool certifyUNSATCertificate()
+    {
+        return true;
+    }
+
+    void explainSimplexFailure()
+    {
+    }
+
+    const BoundExplainer *getBoundExplainer() const
+    {
+        return NULL;
+    }
+
+    void setBoundExplainerContent( BoundExplainer * /*boundExplainer */ )
+    {
+    }
+
+    void propagateBoundManagerTightenings()
+    {
+    }
+
+    bool shouldProduceProofs() const
+    {
+        return true;
+    }
 };
 
 #endif // __MockEngine_h__

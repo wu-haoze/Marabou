@@ -86,7 +86,7 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
     }
 
     // Add Transcendental Constraints
-    for ( const auto &tsConstraint : inputQuery.getTranscendentalConstraints() )
+    for ( const auto &tsConstraint : inputQuery.getNonlinearConstraints() )
     {
         switch ( tsConstraint->getType() )
         {
@@ -371,8 +371,8 @@ void MILPEncoder::encodeSignConstraint( GurobiWrapper &gurobi,
         ASSERT( ( FloatUtils::gte( _tableau.getLowerBound( sign->getB() ),  0 ) &&
                   FloatUtils::areEqual( _tableau.getLowerBound( sign->getF() ), 1 ) )
                 ||
-                ( FloatUtils::lt( _tableau.getUpperBound( sign->getB() ), 0 ) &&
-                  FloatUtils::areEqual( _tableau.getLowerBound( sign->getF() ), -1 ) ) );
+                ( FloatUtils::lte( _tableau.getUpperBound( sign->getB() ), 0 ) &&
+                  FloatUtils::areEqual( _tableau.getUpperBound( sign->getF() ), -1 ) ) );
         return;
     }
 

@@ -22,7 +22,7 @@
 #include "Map.h"
 #include "NetworkLevelReasoner.h"
 #include "PiecewiseLinearConstraint.h"
-#include "TranscendentalConstraint.h"
+#include "NonlinearConstraint.h"
 
 class InputQuery
 {
@@ -54,9 +54,9 @@ public:
     const List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints() const;
     List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints();
   
-    void addTranscendentalConstraint( TranscendentalConstraint *constraint );
-    const List<TranscendentalConstraint *> &getTranscendentalConstraints() const;
-    List<TranscendentalConstraint *> &getTranscendentalConstraints();
+    void addNonlinearConstraint( NonlinearConstraint *constraint );
+    const List<NonlinearConstraint *> &getNonlinearConstraints() const;
+    List<NonlinearConstraint *> &getNonlinearConstraints();
 
     /*
       Methods for handling input and output variables
@@ -140,13 +140,16 @@ public:
     void setNetworkLevelReasoner( NLR::NetworkLevelReasoner *nlr );
     NLR::NetworkLevelReasoner *getNetworkLevelReasoner() const;
 
+    // A map for storing the tableau aux variable assigned to each PLC
+    Map<unsigned, unsigned> _lastAddendToAux;
+
 private:
     unsigned _numberOfVariables;
     List<Equation> _equations;
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
     List<PiecewiseLinearConstraint *> _plConstraints;
-    List<TranscendentalConstraint *> _tsConstraints;
+    List<NonlinearConstraint *> _tsConstraints;
 
     Map<unsigned, double> _solution;
 

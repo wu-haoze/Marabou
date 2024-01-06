@@ -2,7 +2,7 @@
 /*! \file Engine.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Guy Katz, Duligur Ibeling, Andrew Wu
+ **   Guy Katz, Duligur Ibeling, Andrew Wu, Omri Isac
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -67,6 +67,9 @@ Engine::Engine()
     , _milpSolverBoundTighteningType( Options::get()->getMILPSolverBoundTighteningType() )
     , _sncMode( false )
     , _queryId( "" )
+    , _produceUNSATProofs( Options::get()->getBool( Options::PRODUCE_PROOFS ) )
+    , _groundBoundManager( _context )
+    , _UNSATCertificate( NULL )
 {
     _smtCore.setStatistics( &_statistics );
     _tableau->setStatistics( &_statistics );
@@ -78,10 +81,14 @@ Engine::Engine()
     _statistics.stampStartingTime();
     setRandomSeed( Options::get()->getInt( Options::SEED ) );
 
+    _boundManager.registerEngine( this );
+    _groundBoundManager.registerEngine( this );
     _statisticsPrintingFrequency =
         ( _lpSolverType == LPSolverType::NATIVE ) ?
         GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY :
-        GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY_GUROBI ;
+        GlobalConfiguration::STATISTICS_PRINTING_FREQUENCY_GUROBI;
+
+    _UNSATCertificateCurrentPointer = _produceUNSATProofs ? new ( true ) CVC4::context::CDO<UnsatCertificateNode*>( &_context, NULL ) : NULL;
 }
 
 Engine::~Engine()
@@ -91,6 +98,15 @@ Engine::~Engine()
         delete[] _work;
         _work = NULL;
     }
+
+    if ( _UNSATCertificate )
+    {
+        delete _UNSATCertificate;
+        _UNSATCertificate = NULL;
+    }
+
+    if ( _produceUNSATProofs && _UNSATCertificateCurrentPointer )
+        _UNSATCertificateCurrentPointer->deleteSelf();
 }
 
 void Engine::setVerbosity( unsigned verbosity )
@@ -111,13 +127,20 @@ void Engine::adjustWorkMemorySize()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "Engine::work" );
 }
 
-
 void Engine::applySnCSplit( PiecewiseLinearCaseSplit sncSplit, String queryId )
 {
-  _sncMode = true;
-  _sncSplit = sncSplit;
-  _queryId = queryId;
-  applySplit( sncSplit );
+    _sncMode = true;
+    _sncSplit = sncSplit;
+    _queryId = queryId;
+    preContextPushHook();
+    _smtCore.pushContext();
+    applySplit( sncSplit );
+    _boundManager.propagateTightenings();
+}
+
+bool Engine::inSnCMode() const
+{
+    return _sncMode;
 }
 
 void Engine::setRandomSeed( unsigned seed )
@@ -174,6 +197,11 @@ bool Engine::solve( unsigned timeoutInSeconds )
     else if ( _lpSolverType == LPSolverType::GUROBI )
     {
         ENGINE_LOG( "Encoding convex relaxation into Gurobi...");
+        _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
+        _tableau->setGurobi( &( *_gurobi ) );
+        _milpEncoder = std::unique_ptr<MILPEncoder>
+            ( new MILPEncoder( *_tableau ) );
+        _milpEncoder->setStatistics( &_statistics );
         _milpEncoder->encodeInputQuery( *_gurobi, *_preprocessedQuery, true );
         ENGINE_LOG( "Encoding convex relaxation into Gurobi - done");
     }
@@ -247,7 +275,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 if ( _tableau->basisMatrixAvailable() )
                 {
                     explicitBasisBoundTightening();
-                    applyAllBoundTightenings();
+                    _boundManager.propagateTightenings();
                     applyAllValidConstraintCaseSplits();
                 }
             }
@@ -276,24 +304,42 @@ bool Engine::solve( unsigned timeoutInSeconds )
 
             if ( allVarsWithinBounds() )
             {
+                // It's possible that a disjunction constraint is fixed and additional constraints
+                // are introduced, making the linear portion unsatisfied. So we need to make sure
+                // there are no valid case splits that we do not know of.
+                applyAllBoundTightenings();
+                if ( applyAllValidConstraintCaseSplits() )
+                    continue;
+
                 // The linear portion of the problem has been solved.
                 // Check the status of the PL constraints
                 bool solutionFound =
                     adjustAssignmentToSatisfyNonLinearConstraints();
                 if ( solutionFound )
                 {
-                    struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+                    mainLoopEnd = TimeUtils::sampleMicro();
                     _statistics.incLongAttribute
                         ( Statistics::TIME_MAIN_LOOP_MICRO,
                           TimeUtils::timePassed( mainLoopStart,
                                                  mainLoopEnd ) );
+                    if ( _preprocessedQuery->getNonlinearConstraints().size() > 0 )
+                    {
+                        _exitCode = IEngine::UNKNOWN;
+                        return false;
+                    }
                     if ( _verbosity > 0 )
                     {
                         printf( "\nEngine::solve: sat assignment found\n" );
                         _statistics.print();
                     }
-                    _exitCode = Engine::SAT;
 
+                    // Allows checking proofs produced for UNSAT leaves of satisfiable query search tree
+                    if ( _produceUNSATProofs )
+                    {
+                        ASSERT( _UNSATCertificateCurrentPointer );
+                        ( **_UNSATCertificateCurrentPointer ).setSATSolutionFlag();
+                    }
+					_exitCode = Engine::SAT;
                     return true;
                 }
                 else
@@ -321,7 +367,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                 ASSERT( _lpSolverType == LPSolverType::NATIVE );
                 _exitCode = Engine::ERROR;
                 exportInputQueryWithError( "Cannot restore tableau" );
-                struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+                mainLoopEnd = TimeUtils::sampleMicro();
                 _statistics.incLongAttribute
                     ( Statistics::TIME_MAIN_LOOP_MICRO,
                       TimeUtils::timePassed( mainLoopStart,
@@ -334,9 +380,12 @@ bool Engine::solve( unsigned timeoutInSeconds )
             _tableau->toggleOptimization( false );
             // The current query is unsat, and we need to pop.
             // If we're at level 0, the whole query is unsat.
+            if ( _produceUNSATProofs )
+                explainSimplexFailure();
+
             if ( !_smtCore.popSplit() )
             {
-                struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+                mainLoopEnd = TimeUtils::sampleMicro();
                 _statistics.incLongAttribute
                     ( Statistics::TIME_MAIN_LOOP_MICRO,
                       TimeUtils::timePassed( mainLoopStart,
@@ -366,7 +415,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                          e.getCode(), e.getUserMessage() );
             _exitCode = Engine::ERROR;
             exportInputQueryWithError( message );
-            struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+            mainLoopEnd = TimeUtils::sampleMicro();
             _statistics.incLongAttribute
                 ( Statistics::TIME_MAIN_LOOP_MICRO,
                   TimeUtils::timePassed( mainLoopStart,
@@ -377,7 +426,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
         {
             _exitCode = Engine::ERROR;
             exportInputQueryWithError( "Unknown error" );
-            struct timespec mainLoopEnd = TimeUtils::sampleMicro();
+            mainLoopEnd = TimeUtils::sampleMicro();
             _statistics.incLongAttribute
                 ( Statistics::TIME_MAIN_LOOP_MICRO,
                   TimeUtils::timePassed( mainLoopStart,
@@ -460,7 +509,7 @@ bool Engine::adjustAssignmentToSatisfyNonLinearConstraints()
         // Finally, take this opporunity to tighten any bounds
         // and perform any valid case splits.
         tightenBoundsOnConstraintMatrix();
-        applyAllBoundTightenings();
+        _boundManager.propagateTightenings();
         // For debugging purposes
         checkBoundCompliancyWithDebugSolution();
 
@@ -613,7 +662,7 @@ bool Engine::performSimplexStep()
             }
         });
 
-    // Obtain all eligible entering varaibles
+    // Obtain all eligible entering variables
     List<unsigned> enteringVariableCandidates;
     _tableau->getEntryCandidates( enteringVariableCandidates );
 
@@ -754,6 +803,8 @@ bool Engine::performSimplexStep()
     _activeEntryStrategy->prePivotHook( _tableau, fakePivot );
     _tableau->performPivot();
     _activeEntryStrategy->postPivotHook( _tableau, fakePivot );
+    _boundManager.propagateTightenings();
+    _costFunctionManager->invalidateCostFunction();
 
     struct timespec end = TimeUtils::sampleMicro();
     _statistics.incLongAttribute( Statistics::TIME_SIMPLEX_STEPS_MICRO, TimeUtils::timePassed( start, end ) );
@@ -858,6 +909,56 @@ bool Engine::processInputQuery( InputQuery &inputQuery )
     return processInputQuery( inputQuery, GlobalConfiguration::PREPROCESS_INPUT_QUERY );
 }
 
+bool Engine::calculateBounds( InputQuery &inputQuery )
+{
+    ENGINE_LOG( "calculateBounds starting\n" );
+    struct timespec start = TimeUtils::sampleMicro();
+
+    try
+    {
+        informConstraintsOfInitialBounds( inputQuery );
+        invokePreprocessor( inputQuery, true );
+        if ( _verbosity > 0 )
+            printInputBounds( inputQuery );
+
+        initializeNetworkLevelReasoning();
+
+        performSymbolicBoundTightening( &(*_preprocessedQuery) );
+        performSimulation();
+        performMILPSolverBoundedTightening( &(*_preprocessedQuery) );
+
+        if ( Options::get()->getBool( Options::DUMP_BOUNDS ) )
+            _networkLevelReasoner->dumpBounds();
+
+
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics.setLongAttribute( Statistics::CALCULATE_BOUNDS_TIME_MICRO,
+                                      TimeUtils::timePassed( start, end ) );
+        if ( !_tableau->allBoundsValid() )
+        {
+            // Some variable bounds are invalid, so the query is unsat
+            throw InfeasibleQueryException();
+        }
+    }
+    catch ( const InfeasibleQueryException & )
+    {
+        ENGINE_LOG( "calculateBounds done\n" );
+
+        struct timespec end = TimeUtils::sampleMicro();
+        _statistics.setLongAttribute( Statistics::CALCULATE_BOUNDS_TIME_MICRO,
+                                      TimeUtils::timePassed( start, end ) );
+
+        _exitCode = Engine::UNSAT;
+        printf( "unsat\n" );
+
+        return false;
+    }
+
+    ENGINE_LOG( "calculateBounds done\n" );
+
+    return true;
+}
+
 void Engine::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
 {
     for ( const auto &plConstraint : inputQuery.getPiecewiseLinearConstraints() )
@@ -870,7 +971,7 @@ void Engine::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
         }
     }
 
-    for ( const auto &tsConstraint : inputQuery.getTranscendentalConstraints() )
+    for ( const auto &tsConstraint : inputQuery.getNonlinearConstraints() )
     {
         List<unsigned> variables = tsConstraint->getParticipatingVariables();
         for ( unsigned variable : variables )
@@ -1199,6 +1300,8 @@ void Engine::addAuxiliaryVariables()
     for ( auto &eq : equations )
     {
         unsigned auxVar = originalN + count;
+        if ( _produceUNSATProofs )
+            _preprocessedQuery->_lastAddendToAux.insert( eq._addends.back()._variable, auxVar );
         eq.addAddend( -1, auxVar );
         _preprocessedQuery->setLowerBound( auxVar, eq._scalar );
         _preprocessedQuery->setUpperBound( auxVar, eq._scalar );
@@ -1263,9 +1366,15 @@ void Engine::initializeBoundsAndConstraintWatchersInTableau( unsigned
     {
         constraint->registerAsWatcher( _tableau );
         constraint->setStatistics( &_statistics );
+
+        // Assuming aux var is use, add the constraint's auxiliary variable assigned to it in the tableau, to the constraint
+        if ( _produceUNSATProofs  )
+            for ( unsigned var : constraint->getNativeAuxVars() )
+                if ( _preprocessedQuery->_lastAddendToAux.exists( var ) )
+                    constraint->addTableauAuxVar( _preprocessedQuery->_lastAddendToAux.at( var ), var );
     }
 
-    _tsConstraints = _preprocessedQuery->getTranscendentalConstraints();
+    _tsConstraints = _preprocessedQuery->getNonlinearConstraints();
     for ( const auto &constraint : _tsConstraints )
     {
         constraint->registerAsWatcher( _tableau );
@@ -1277,6 +1386,7 @@ void Engine::initializeBoundsAndConstraintWatchersInTableau( unsigned
         _tableau->setLowerBound( i, _preprocessedQuery->getLowerBound( i ) );
         _tableau->setUpperBound( i, _preprocessedQuery->getUpperBound( i ) );
     }
+    _boundManager.storeLocalBounds();
 
     _statistics.setUnsignedAttribute( Statistics::NUM_PL_CONSTRAINTS,
                                       _plConstraints.size() );
@@ -1315,6 +1425,23 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
                 plConstraint->addAuxiliaryEquationsAfterPreprocessing
                     ( *_preprocessedQuery );
 
+        if ( _produceUNSATProofs )
+        {
+            for ( auto &plConstraint : _preprocessedQuery->getPiecewiseLinearConstraints() )
+            {
+                if ( !UNSATCertificateUtils::getSupportedActivations().exists( plConstraint->getType() ) )
+                {
+                    _produceUNSATProofs = false;
+                    Options::get()->setBool( Options::PRODUCE_PROOFS, false );
+                    String activationType = plConstraint->serializeToString().tokenize(",").back();
+                    printf( "Turning off proof production since activation %s is not yet supported\n", activationType.ascii() );
+                    break;
+                }
+            }
+
+
+        }
+
         if ( _lpSolverType == LPSolverType::NATIVE )
         {
             double *constraintMatrix = createConstraintMatrix();
@@ -1340,8 +1467,22 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
             _boundManager.initialize( n );
 
             initializeTableau( constraintMatrix, initialBasis );
-
+            _boundManager.initializeBoundExplainer( n, _tableau->getM() );
             delete[] constraintMatrix;
+
+            if ( _produceUNSATProofs )
+            {
+                _UNSATCertificate = new UnsatCertificateNode( NULL, PiecewiseLinearCaseSplit() );
+                _UNSATCertificateCurrentPointer->set( _UNSATCertificate );
+                _UNSATCertificate->setVisited();
+                _groundBoundManager.initialize( n );
+
+                for ( unsigned i = 0; i < n; ++i )
+                {
+                    _groundBoundManager.setUpperBound( i, _preprocessedQuery->getUpperBound( i ) );
+                    _groundBoundManager.setLowerBound( i, _preprocessedQuery->getLowerBound( i ) );
+                }
+            }
         }
         else
         {
@@ -1351,12 +1492,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
             if ( _verbosity > 0 )
                 printf("Using Gurobi to solve LP...\n");
-
-            _gurobi = std::unique_ptr<GurobiWrapper>( new GurobiWrapper() );
-            _milpEncoder = std::unique_ptr<MILPEncoder>
-                ( new MILPEncoder( *_tableau ) );
-            _milpEncoder->setStatistics( &_statistics );
-            _tableau->setGurobi( &( *_gurobi ) );
 
             unsigned n = _preprocessedQuery->getNumberOfVariables();
             unsigned m = _preprocessedQuery->getEquations().size();
@@ -1430,6 +1565,9 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
 
 void Engine::performMILPSolverBoundedTightening( InputQuery *inputQuery )
 {
+    if ( _produceUNSATProofs )
+        return;
+
     if ( _networkLevelReasoner && Options::get()->gurobiEnabled() )
     {
 	// Obtain from and store bounds into inputquery if it is not null.
@@ -1440,7 +1578,7 @@ void Engine::performMILPSolverBoundedTightening( InputQuery *inputQuery )
 
         // TODO: Remove this block after getting ready to support sigmoid with MILP Bound Tightening.
         if ( Options::get()->getMILPSolverBoundTighteningType() != MILPSolverBoundTighteningType::NONE
-            && _preprocessedQuery->getTranscendentalConstraints().size() > 0 )
+            && _preprocessedQuery->getNonlinearConstraints().size() > 0 )
             throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
                 "Marabou doesn't support sigmoid with MILP Bound Tightening" );
 
@@ -1500,6 +1638,9 @@ void Engine::performMILPSolverBoundedTightening( InputQuery *inputQuery )
 
 void Engine::performMILPSolverBoundedTighteningForSingleLayer( unsigned targetIndex )
 {
+    if ( _produceUNSATProofs )
+        return;
+
     if ( _networkLevelReasoner && _isGurobyEnabled && !_performLpTighteningAfterSplit
             && _milpSolverBoundTighteningType != MILPSolverBoundTighteningType::NONE )
     {
@@ -1884,14 +2025,31 @@ void Engine::applySplit( const PiecewiseLinearCaseSplit &split )
         if ( bound._type == Tightening::LB )
         {
             ENGINE_LOG( Stringf( "x%u: lower bound set to %.3lf", variable, bound._value ).ascii() );
-            _tableau->tightenLowerBound( variable, bound._value );
+            if ( _produceUNSATProofs && FloatUtils::gt( bound._value, _boundManager.getLowerBound( bound._variable ) ) )
+            {
+                _boundManager.resetExplanation( variable, BoundType::LOWER );
+                updateGroundLowerBound( variable, bound._value );
+                _boundManager.tightenLowerBound( variable, bound._value );
+            }
+            else if ( !_produceUNSATProofs )
+                _boundManager.tightenLowerBound( variable, bound._value );
         }
         else
         {
             ENGINE_LOG( Stringf( "x%u: upper bound set to %.3lf", variable, bound._value ).ascii() );
-            _tableau->tightenUpperBound( variable, bound._value );
+            if ( _produceUNSATProofs && FloatUtils::lt( bound._value, _boundManager.getUpperBound( bound._variable ) ) )
+            {
+                _boundManager.resetExplanation( variable, BoundType::UPPER );
+                updateGroundUpperBound( variable, bound._value );
+                _boundManager.tightenUpperBound( variable, bound._value );
+            }
+            else if ( !_produceUNSATProofs )
+                _boundManager.tightenUpperBound( variable, bound._value );
         }
     }
+
+    if ( _produceUNSATProofs && _UNSATCertificateCurrentPointer )
+        ( **_UNSATCertificateCurrentPointer ).setVisited();
 
     DEBUG( _tableau->verifyInvariants() );
     ENGINE_LOG( "Done with split\n" );
@@ -1910,6 +2068,7 @@ void Engine::applyBoundTightenings()
             _tableau->tightenUpperBound( tightening._variable, tightening._value );
     }
 }
+
 void Engine::applyAllRowTightenings()
 {
     applyBoundTightenings();
@@ -2180,7 +2339,7 @@ List<unsigned> Engine::getInputVariables() const
 void Engine::performSimulation()
 {
     if ( _simulationSize == 0 || !_networkLevelReasoner ||
-         _milpSolverBoundTighteningType == MILPSolverBoundTighteningType::NONE )
+         _milpSolverBoundTighteningType == MILPSolverBoundTighteningType::NONE || _produceUNSATProofs )
     {
         ENGINE_LOG( Stringf( "Skip simulation...").ascii() );
         return;
@@ -2208,7 +2367,7 @@ void Engine::performSimulation()
 void Engine::performSymbolicBoundTightening( InputQuery *inputQuery )
 {
     if ( _symbolicBoundTighteningType == SymbolicBoundTighteningType::NONE ||
-         ( !_networkLevelReasoner ) )
+         ( !_networkLevelReasoner ) || _produceUNSATProofs )
         return;
 
     struct timespec start = TimeUtils::sampleMicro();
@@ -2306,6 +2465,8 @@ void Engine::preContextPushHook()
 {
     struct timespec start = TimeUtils::sampleMicro();
     _boundManager.storeLocalBounds();
+    if ( _produceUNSATProofs )
+        _groundBoundManager.storeLocalBounds();
     struct timespec end = TimeUtils::sampleMicro();
 
     _statistics.incLongAttribute( Statistics::TIME_CONTEXT_PUSH_HOOK, TimeUtils::timePassed( start, end ) );
@@ -2316,6 +2477,8 @@ void Engine::postContextPopHook()
     struct timespec start = TimeUtils::sampleMicro();
 
     _boundManager.restoreLocalBounds();
+    if ( _produceUNSATProofs )
+        _groundBoundManager.restoreLocalBounds();
     _tableau->postContextPopHook();
 
     struct timespec end = TimeUtils::sampleMicro();
@@ -2325,6 +2488,7 @@ void Engine::postContextPopHook()
 void Engine::reset()
 {
     resetStatistics();
+    _sncMode = false;
     clearViolatedPLConstraints();
     resetSmtCore();
     resetBoundTighteners();
@@ -2645,7 +2809,7 @@ bool Engine::restoreSmtState( SmtState & smtState )
         }
 
         tightenBoundsOnConstraintMatrix();
-        applyAllBoundTightenings();
+        _boundManager.propagateTightenings();
         // For debugging purposes
         checkBoundCompliancyWithDebugSolution();
         do
@@ -2659,7 +2823,7 @@ bool Engine::restoreSmtState( SmtState & smtState )
             // Do all the bound propagation, and set ReLU constraints to inactive (at
             // least the one corresponding to the _activeSplit applied above.
             tightenBoundsOnConstraintMatrix();
-            applyAllBoundTightenings();
+
             // For debugging purposes
             checkBoundCompliancyWithDebugSolution();
             do
@@ -2667,11 +2831,15 @@ bool Engine::restoreSmtState( SmtState & smtState )
             while ( applyAllValidConstraintCaseSplits() );
 
         }
+        _boundManager.propagateTightenings();
     }
     catch ( const InfeasibleQueryException & )
     {
         // The current query is unsat, and we need to pop.
         // If we're at level 0, the whole query is unsat.
+        if ( _produceUNSATProofs )
+            explainSimplexFailure();
+
         if ( !_smtCore.popSplit() )
         {
             if ( _verbosity > 0 )
@@ -2733,15 +2901,16 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
     if ( _gurobi->haveFeasibleSolution() )
     {
         // Return UNKNOWN if input query has transcendental constratints.
-        if ( _preprocessedQuery->getTranscendentalConstraints().size() > 0 )
+        if ( _preprocessedQuery->getNonlinearConstraints().size() > 0 )
         {
-            // TODO: Return UNKNOW exitCode insted of throwing Error after implementing python interface to support UNKNOWN.
-            throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED, "UNKNOWN (Marabou doesn't support UNKNOWN cases with exitCode yet.)" );
-            // _exitCode = IEngine::UNKNOWN;
-            // return false;
+            _exitCode = IEngine::UNKNOWN;
+            return false;
         }
-        _exitCode = IEngine::SAT;
-        return true;
+        else
+        {
+            _exitCode = IEngine::SAT;
+            return true;
+        }
     }
     else if ( _gurobi->infeasible() )
         _exitCode = IEngine::UNSAT;
@@ -3106,4 +3275,446 @@ InputQuery Engine::buildQueryFromCurrentState() const {
         query.setUpperBound( i, _tableau->getUpperBound( i ) );
     }
     return query;
+}
+
+void Engine::updateGroundUpperBound( const unsigned var, const double value )
+{
+    ASSERT( var < _tableau->getN() && _produceUNSATProofs );
+    if ( FloatUtils::lt( value, _groundBoundManager.getUpperBound( var ) ) )
+       _groundBoundManager.setUpperBound( var, value );
+}
+
+void Engine::updateGroundLowerBound( const unsigned var, const double value )
+{
+    ASSERT( var < _tableau->getN() && _produceUNSATProofs );
+    if ( FloatUtils::gt( value, _groundBoundManager.getLowerBound( var ) ) )
+      _groundBoundManager.setLowerBound( var, value );
+}
+
+double Engine::getGroundBound( unsigned var, bool isUpper ) const
+{
+    ASSERT( var < _tableau->getN() && _produceUNSATProofs );
+    return isUpper ? _groundBoundManager.getUpperBound( var ) : _groundBoundManager.getLowerBound( var );
+}
+
+bool Engine::shouldProduceProofs() const
+{
+    return _produceUNSATProofs;
+}
+
+void Engine::explainSimplexFailure()
+{
+    ASSERT( _produceUNSATProofs );
+
+    DEBUG( checkGroundBounds() );
+
+    unsigned infeasibleVar = _boundManager.getInconsistentVariable();
+
+    if ( infeasibleVar == IBoundManager::NO_VARIABLE_FOUND || !certifyInfeasibility( infeasibleVar ) )
+        infeasibleVar = explainFailureWithTableau();
+
+    if ( infeasibleVar == IBoundManager::NO_VARIABLE_FOUND )
+        infeasibleVar = explainFailureWithCostFunction();
+
+    if ( infeasibleVar == IBoundManager::NO_VARIABLE_FOUND )
+    {
+        _costFunctionManager->computeCoreCostFunction();
+        infeasibleVar = explainFailureWithCostFunction();
+    }
+
+    if ( infeasibleVar == IBoundManager::NO_VARIABLE_FOUND )
+    {
+        markLeafToDelegate();
+        return;
+    }
+
+    ASSERT( infeasibleVar < _tableau->getN() );
+    ASSERT( _UNSATCertificateCurrentPointer && !( **_UNSATCertificateCurrentPointer ).getContradiction() );
+    _statistics.incUnsignedAttribute( Statistics::NUM_CERTIFIED_LEAVES );
+
+    writeContradictionToCertificate( infeasibleVar );
+
+    ( **_UNSATCertificateCurrentPointer ).makeLeaf();
+}
+
+bool Engine::certifyInfeasibility( unsigned var ) const
+{
+    ASSERT( _produceUNSATProofs );
+
+    Vector<double> contradiction = computeContradiction( var );
+
+    if ( contradiction.empty() )
+        return FloatUtils::isNegative( _groundBoundManager.getUpperBound( var ) - _groundBoundManager.getLowerBound( var ) );
+
+    SparseUnsortedList sparseContradiction = SparseUnsortedList();
+
+    contradiction.empty() ? sparseContradiction.initializeToEmpty() : sparseContradiction.initialize( contradiction.data(), contradiction.size() );
+
+    // In case contradiction is a vector of zeros
+    if ( sparseContradiction.empty() )
+        return FloatUtils::isNegative( _groundBoundManager.getUpperBound( var ) - _groundBoundManager.getLowerBound( var ) );
+
+    double derivedBound = UNSATCertificateUtils::computeCombinationUpperBound( sparseContradiction, _tableau->getSparseA(),
+                                                                               _groundBoundManager.getUpperBounds(), _groundBoundManager.getLowerBounds(), _tableau->getN() );
+    return FloatUtils::isNegative( derivedBound );
+}
+
+double Engine::explainBound( unsigned var, bool isUpper ) const
+{
+    ASSERT( _produceUNSATProofs );
+
+    SparseUnsortedList explanation( 0 );
+
+    if ( !_boundManager.isExplanationTrivial( var, isUpper ) )
+        explanation = _boundManager.getExplanation( var, isUpper );
+
+    if ( explanation.empty() )
+        return isUpper ? _groundBoundManager.getUpperBound( var ) : _groundBoundManager.getLowerBound( var );
+
+    return UNSATCertificateUtils::computeBound( var, isUpper, explanation, _tableau->getSparseA(),
+                                                _groundBoundManager.getUpperBounds(), _groundBoundManager.getLowerBounds(),
+                                                _tableau->getN() );
+}
+
+bool Engine::validateBounds( unsigned var, double epsilon, bool isUpper ) const
+{
+    ASSERT( _produceUNSATProofs );
+
+    double explained, real;
+    explained = explainBound( var, isUpper );
+    if ( isUpper )
+    {
+        real = _boundManager.getUpperBound( var );
+        if ( explained - real > epsilon )
+        {
+            ENGINE_LOG( "Var %d. Computed Upper %.5lf, real %.5lf. Difference is %.10lf\n", var, explained, real, abs( explained - real ) );
+            return false;
+        }
+    }
+    else
+    {
+        real = _boundManager.getLowerBound( var );
+        if ( explained - real  < -epsilon )
+        {
+            ENGINE_LOG( "Var %d. Computed Lower  %.5lf, real %.5lf. Difference is %.10lf\n", var, explained, real, abs( explained - real ) );
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Engine::validateAllBounds( double epsilon ) const
+{
+    ASSERT( _produceUNSATProofs );
+
+    bool res = true;
+
+    for ( unsigned var = 0; var < _tableau->getN(); ++var )
+        if ( !validateBounds( var, epsilon, BoundType::UPPER ) || !validateBounds( var, epsilon, BoundType::LOWER ) )
+            res = false;
+
+    return res;
+}
+
+bool Engine::checkGroundBounds() const
+{
+    ASSERT( _produceUNSATProofs );
+
+    for ( unsigned i = 0; i < _tableau->getN(); ++i )
+    {
+        if ( FloatUtils::gt( _groundBoundManager.getLowerBound( i ), _boundManager.getLowerBound( i ) ) ||
+             FloatUtils::lt( _groundBoundManager.getUpperBound( i ), _boundManager.getUpperBound( i ) ) )
+            return false;
+    }
+    return true;
+}
+
+unsigned Engine::explainFailureWithTableau()
+{
+    ASSERT( _produceUNSATProofs );
+
+    // Failure of a simplex step implies infeasible bounds imposed by the row
+    TableauRow boundUpdateRow = TableauRow( _tableau->getN() );
+
+    //  For every basic, check that is has no slack and its explanations indeed prove a contradiction
+    unsigned basicVar;
+
+    for ( unsigned i = 0; i < _tableau->getM(); ++i )
+    {
+        if ( _tableau->basicOutOfBounds( i ) )
+        {
+            _tableau->getTableauRow( i, &boundUpdateRow );
+            basicVar = boundUpdateRow._lhs;
+
+            if ( FloatUtils::gt( _boundManager.computeRowBound( boundUpdateRow, BoundType::LOWER ), _boundManager.getUpperBound( basicVar ) )
+                 && explainAndCheckContradiction( basicVar, BoundType::LOWER, &boundUpdateRow ) )
+                return basicVar;
+
+            if ( FloatUtils::lt( _boundManager.computeRowBound( boundUpdateRow, BoundType::UPPER ), _boundManager.getLowerBound( basicVar ) )
+                 && explainAndCheckContradiction( basicVar, BoundType::UPPER, &boundUpdateRow ) )
+                return basicVar;
+        }
+    }
+
+    return IBoundManager::NO_VARIABLE_FOUND;
+}
+
+unsigned Engine::explainFailureWithCostFunction()
+{
+    ASSERT( _produceUNSATProofs );
+
+    // Failure of a simplex step might imply infeasible bounds imposed by the cost function
+    unsigned curBasicVar;
+    unsigned infVar = IBoundManager::NO_VARIABLE_FOUND;
+    double curCost;
+    bool curUpper;
+    const SparseUnsortedList *costRow = _costFunctionManager->createRowOfCostFunction();
+
+    for ( unsigned i = 0; i < _tableau->getM(); ++i )
+    {
+        curBasicVar = _tableau->basicIndexToVariable( i );
+        curCost = _costFunctionManager->getBasicCost( i );
+
+        if ( FloatUtils::isZero( curCost ) )
+            continue;
+
+        curUpper = ( curCost < 0 );
+
+        // Check the basic variable has no slack
+        if ( !( !curUpper && FloatUtils::gt( _boundManager.computeSparseRowBound( *costRow, BoundType::LOWER, curBasicVar ),
+                                         _boundManager.getUpperBound( curBasicVar ) ) ) &&
+             !( curUpper && FloatUtils::lt( _boundManager.computeSparseRowBound( *costRow, BoundType::UPPER, curBasicVar ),
+                                         _boundManager.getLowerBound( curBasicVar ) ) ) )
+
+            continue;
+
+        // Check the explanation indeed proves a contradiction
+        if ( explainAndCheckContradiction( curBasicVar, curUpper, costRow ) )
+        {
+            infVar = curBasicVar;
+            break;
+        }
+    }
+
+    delete costRow;
+    return infVar;
+}
+
+bool Engine::explainAndCheckContradiction( unsigned var, bool isUpper, const TableauRow *row )
+{
+    ASSERT( _produceUNSATProofs );
+
+    SparseUnsortedList backup( 0 );
+    backup = _boundManager.getExplanation( var, isUpper );
+
+    _boundManager.updateBoundExplanation( *row, isUpper, var );
+
+    // Ensure the proof is correct
+    if ( certifyInfeasibility( var ) )
+        return true;
+
+    // If not, restores previous certificate if the proof is wrong
+    _boundManager.setExplanation( backup, var, isUpper );
+
+    return false;
+}
+
+bool Engine::explainAndCheckContradiction( unsigned var, bool isUpper, const SparseUnsortedList *row )
+{
+    ASSERT( _produceUNSATProofs );
+
+    SparseUnsortedList backup( 0 );
+    backup = _boundManager.getExplanation( var, isUpper );
+
+    _boundManager.updateBoundExplanationSparse( *row, isUpper, var );
+
+    // Ensure the proof is correct
+    if ( certifyInfeasibility( var ) )
+        return true;
+
+    // If not, restores previous certificate if the proof is wrong
+    _boundManager.setExplanation( backup, var, isUpper );
+
+    return false;
+}
+
+UnsatCertificateNode *Engine::getUNSATCertificateCurrentPointer() const
+{
+    return _UNSATCertificateCurrentPointer->get();
+}
+
+void Engine::setUNSATCertificateCurrentPointer( UnsatCertificateNode *node )
+{
+    _UNSATCertificateCurrentPointer->set( node );
+}
+
+const UnsatCertificateNode *Engine::getUNSATCertificateRoot() const
+{
+    return _UNSATCertificate;
+}
+
+bool Engine::certifyUNSATCertificate()
+{
+    ASSERT( _produceUNSATProofs && _UNSATCertificate && !_smtCore.getStackDepth() );
+
+    for ( auto &constraint : _plConstraints )
+    {
+        if ( !UNSATCertificateUtils::getSupportedActivations().exists( constraint->getType() ) )
+        {
+            String activationType = constraint->serializeToString().tokenize(",").back();
+            printf( "Certification Error! Network contains activation function %s, that is not yet supported by Marabou certification.\n", activationType.ascii() );
+            return false;
+        }
+    }
+
+    struct timespec certificationStart = TimeUtils::sampleMicro();
+    _precisionRestorer.restoreInitialEngineState( *this );
+
+    Vector<double> groundUpperBounds( _tableau->getN(), 0 );
+    Vector<double> groundLowerBounds( _tableau->getN(), 0 );
+
+    for ( unsigned i = 0; i < _tableau->getN(); ++i )
+    {
+        groundUpperBounds[i] = _groundBoundManager.getUpperBound( i );
+        groundLowerBounds[i] = _groundBoundManager.getLowerBound( i );
+    }
+
+    if ( GlobalConfiguration::WRITE_JSON_PROOF )
+    {
+        File file( JsonWriter::PROOF_FILENAME );
+        JsonWriter::writeProofToJson( _UNSATCertificate, _tableau->getM(), _tableau->getSparseA(),
+                                      groundUpperBounds, groundLowerBounds, _plConstraints, file );
+    }
+
+    Checker unsatCertificateChecker( _UNSATCertificate, _tableau->getM(), _tableau->getSparseA(),
+                                     groundUpperBounds, groundLowerBounds, _plConstraints );
+    bool certificationSucceeded = unsatCertificateChecker.check();
+
+    _statistics.setLongAttribute( Statistics::TOTAL_CERTIFICATION_TIME, TimeUtils::timePassed( certificationStart, TimeUtils::sampleMicro() ) );
+    printf( "Certification time: " );
+    _statistics.printLongAttributeAsTime( _statistics.getLongAttribute( Statistics::TOTAL_CERTIFICATION_TIME ) );
+
+    if ( certificationSucceeded )
+    {
+        printf("Certified\n");
+        if ( _statistics.getUnsignedAttribute( Statistics::NUM_DELEGATED_LEAVES ) )
+            printf( "Some leaves were delegated and need to be certified separately by an SMT solver\n" );
+    }
+    else
+        printf( "Error certifying UNSAT certificate\n" );
+
+    DEBUG({
+        ASSERT( certificationSucceeded );
+        if ( _statistics.getUnsignedAttribute( Statistics::NUM_POPS ) )
+        {
+            double delegationRatio = _statistics.getUnsignedAttribute( Statistics::NUM_DELEGATED_LEAVES ) / _statistics.getUnsignedAttribute( Statistics::NUM_CERTIFIED_LEAVES );
+            ASSERT( FloatUtils::lt( delegationRatio, 0.01 ) );
+        }
+    });
+
+    return certificationSucceeded;
+}
+
+void Engine::markLeafToDelegate()
+{
+    ASSERT( _produceUNSATProofs );
+
+    // Mark leaf with toDelegate Flag
+    UnsatCertificateNode *currentUnsatCertificateNode = _UNSATCertificateCurrentPointer->get();
+    ASSERT( _UNSATCertificateCurrentPointer && ! currentUnsatCertificateNode->getContradiction() );
+    currentUnsatCertificateNode->setDelegationStatus( DelegationStatus::DELEGATE_SAVE );
+    currentUnsatCertificateNode->deletePLCExplanations();
+    _statistics.incUnsignedAttribute( Statistics::NUM_DELEGATED_LEAVES );
+
+    if ( !currentUnsatCertificateNode->getChildren().empty() )
+        currentUnsatCertificateNode->makeLeaf();
+}
+
+const Vector<double> Engine::computeContradiction( unsigned infeasibleVar ) const
+{
+    ASSERT( _produceUNSATProofs );
+
+    unsigned m = _tableau->getM();
+    SparseUnsortedList upperBoundExplanation( 0 );
+    SparseUnsortedList lowerBoundExplanation( 0 );
+
+    if ( !_boundManager.isExplanationTrivial( infeasibleVar, BoundType::UPPER ) )
+        upperBoundExplanation = _boundManager.getExplanation( infeasibleVar, BoundType::UPPER );
+
+    if ( !_boundManager.isExplanationTrivial( infeasibleVar, BoundType::LOWER ) )
+        lowerBoundExplanation = _boundManager.getExplanation( infeasibleVar, BoundType::LOWER );
+
+    if ( upperBoundExplanation.empty() && lowerBoundExplanation.empty() )
+        return Vector<double>( 0 );
+
+    Vector<double> contradiction = Vector<double>( m, 0 );
+
+    if ( !upperBoundExplanation.empty() )
+        for ( const auto &entry : upperBoundExplanation )
+            contradiction[entry._index] = entry._value;
+
+    if ( !lowerBoundExplanation.empty() )
+        for ( const auto &entry : lowerBoundExplanation )
+            contradiction[entry._index] -= entry._value;
+
+    return contradiction;
+}
+
+void Engine::writeContradictionToCertificate( unsigned infeasibleVar ) const
+{
+    ASSERT( _produceUNSATProofs );
+
+    Vector<double> leafContradictionVec = computeContradiction( infeasibleVar );
+
+    Contradiction *leafContradiction = leafContradictionVec.empty() ? new Contradiction( infeasibleVar ) : new Contradiction( leafContradictionVec );
+    ( **_UNSATCertificateCurrentPointer ).setContradiction( leafContradiction );
+}
+
+const BoundExplainer *Engine::getBoundExplainer() const
+{
+    return _boundManager.getBoundExplainer();
+}
+
+void Engine::setBoundExplainerContent( BoundExplainer *boundExplainer )
+{
+    _boundManager.copyBoundExplainerContent( boundExplainer );
+}
+
+void Engine::propagateBoundManagerTightenings()
+{
+    _boundManager.propagateTightenings();
+}
+
+void Engine::extractBounds( InputQuery &inputQuery )
+{
+    for ( unsigned i = 0; i < inputQuery.getNumberOfVariables(); ++i )
+    {
+        if ( _preprocessingEnabled )
+        {
+            // Has the variable been merged into another?
+            unsigned variable = i;
+            while ( _preprocessor.variableIsMerged( variable ) )
+                variable = _preprocessor.getMergedIndex( variable );
+
+            // Fixed variables are easy: return the value they've been fixed to.
+            if ( _preprocessor.variableIsFixed( variable ) )
+            {
+                inputQuery.setLowerBound( i, _preprocessor.getFixedValue( variable ) );
+                inputQuery.setUpperBound( i, _preprocessor.getFixedValue( variable ) );
+                continue;
+            }
+
+            // We know which variable to look for, but it may have been assigned
+            // a new index, due to variable elimination
+            variable = _preprocessor.getNewIndex( variable );
+
+            inputQuery.setLowerBound( i, _preprocessedQuery->getLowerBound( variable ) );
+            inputQuery.setUpperBound( i, _preprocessedQuery->getUpperBound( variable ) );
+        }
+        else
+        {
+            inputQuery.setLowerBound( i, _preprocessedQuery->getLowerBound( i ) );
+            inputQuery.setUpperBound( i, _preprocessedQuery->getUpperBound( i ) );
+        }
+    }
 }

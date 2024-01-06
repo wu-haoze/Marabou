@@ -48,7 +48,6 @@ void DeepPolySoftmaxElement::execute
 
     // Update the symbolic and concrete upper- and lower- bounds
     // of each neuron
-    Set<unsigned> coveredSources;
     for ( unsigned i = 0; i < _size; ++i )
     {
         log( Stringf( "Handling Neuron %u_%u...", _layerIndex, i ) );
@@ -63,21 +62,20 @@ void DeepPolySoftmaxElement::execute
         Vector<double> sourceMids;
         unsigned outputIndex = 0;
         unsigned index = 0;
-	bool found = false;
         for ( const auto &sourceIndex : sources )
         {
           if (!found && !coveredSources.exists(sourceIndex._neuron)){
             outputIndex = index;
-	    coveredSources.insert(sourceIndex._neuron);
-	    found = true;
-	  }
+            coveredSources.insert(sourceIndex._neuron);
+            found = true;
+          }
           DeepPolyElement *predecessor =
-            deepPolyElementsBefore[sourceIndex._layer];
+              deepPolyElementsBefore[sourceIndex._layer];
           double sourceLb = predecessor->getLowerBound
-            ( sourceIndex._neuron );
+              ( sourceIndex._neuron );
           sourceLbs.append(sourceLb);
           double sourceUb = predecessor->getUpperBound
-            ( sourceIndex._neuron );
+              ( sourceIndex._neuron );
           sourceUbs.append(sourceUb);
           sourceMids.append((sourceLb + sourceUb) / 2);
 

@@ -30,11 +30,10 @@
 #include "PiecewiseLinearConstraint.h"
 #include "SigmoidConstraint.h"
 #include "SignConstraint.h"
-#include "TranscendentalConstraint.h"
+#include "NonlinearConstraint.h"
 #include <utility>
 
 typedef unsigned int Variable;
-typedef Vector<int> TensorShape;
 
 class NetworkParser {
 private:

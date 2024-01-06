@@ -106,9 +106,9 @@ void OptionParser::initialize()
         ( "debug-assignment-file",
           boost::program_options::value<std::string>( &(*_stringOptions)[Options::EXPORT_ASSIGNMENT_FILE_PATH] )->default_value( (*_stringOptions)[Options::EXPORT_ASSIGNMENT_FILE_PATH] ),
           "Specifies a file to import the assignment for debugging." )
-        ( "softmax-bound",
-          boost::program_options::value<std::string>( &(*_stringOptions)[Options::SOFTMAX_BOUND_TYPE] )->default_value( (*_stringOptions)[Options::SOFTMAX_BOUND_TYPE] ),
-          "Softmax bound type." )
+        ( "prove-unsat",
+        boost::program_options::bool_switch( &((*_boolOptions)[Options::PRODUCE_PROOFS]) )->default_value( (*_boolOptions)[Options::PRODUCE_PROOFS] ),
+        "Produce proofs of UNSAT and check them" )
 #ifdef ENABLE_GUROBI
 #endif // ENABLE_GUROBI
         ;
@@ -160,9 +160,12 @@ void OptionParser::initialize()
         ( "preprocessor-bound-tolerance",
           boost::program_options::value<float>( &((*_floatOptions)[Options::PREPROCESSOR_BOUND_TOLERANCE]) )->default_value( (*_floatOptions)[Options::PREPROCESSOR_BOUND_TOLERANCE] ),
           "epsilon for preprocessor bound tightening comparisons." )
-        ( "no-parallel-deepsoi",
-          boost::program_options::bool_switch( &(*_boolOptions)[Options::NO_PARALLEL_DEEPSOI] )->default_value( (*_boolOptions)[Options::NO_PARALLEL_DEEPSOI] ),
-          "Do not use the parallel deep-soi solving mode when multiple threads are allowed." )
+        ( "softmax-bound-type",
+          boost::program_options::value<std::string>( &(*_stringOptions)[Options::SOFTMAX_BOUND_TYPE] )->default_value( (*_stringOptions)[Options::SOFTMAX_BOUND_TYPE] ),
+          "Type of softmax symbolic bound to use: er/lse1/lse2, detailed in paper 'Convex Bounds on the Softmax Function with Applications to Robustness Verification'" )
+        ( "poi",
+          boost::program_options::bool_switch( &(*_boolOptions)[Options::PARALLEL_DEEPSOI] )->default_value( (*_boolOptions)[Options::PARALLEL_DEEPSOI] ),
+          "Use the parallel deep-soi solving mode." )
 #ifdef ENABLE_GUROBI
         ( "lp-solver",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::LP_SOLVER]) )->default_value( (*_stringOptions)[Options::LP_SOLVER] ),
@@ -223,11 +226,3 @@ void OptionParser::printHelpMessage() const
     std::cerr << "\n" << _other << std::endl;
     std::cerr << "\n" << _expert << std::endl;
 };
-
-//
-// Local Variables:
-// compile-command: "make -C ../.. "
-// tags-file-name: "../../TAGS"
-// c-basic-offset: 4
-// End:
-//

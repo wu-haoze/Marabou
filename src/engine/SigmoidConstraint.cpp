@@ -14,7 +14,7 @@
 
 #include "SigmoidConstraint.h"
 
-#include "TranscendentalConstraint.h"
+#include "NonlinearConstraint.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
 #include "FloatUtils.h"
@@ -31,7 +31,7 @@
 #endif
 
 SigmoidConstraint::SigmoidConstraint( unsigned b, unsigned f )
-    : TranscendentalConstraint()
+    : NonlinearConstraint()
     , _b( b )
     , _f( f )
     , _haveEliminatedVariables( false )
@@ -61,14 +61,14 @@ TranscendentalFunctionType SigmoidConstraint::getType() const
     return TranscendentalFunctionType::SIGMOID;
 }
 
-TranscendentalConstraint *SigmoidConstraint::duplicateConstraint() const
+NonlinearConstraint *SigmoidConstraint::duplicateConstraint() const
 {
     SigmoidConstraint *clone = new SigmoidConstraint( _b, _f );
     *clone = *this;
     return clone;
 }
 
-void SigmoidConstraint::restoreState( const TranscendentalConstraint *state )
+void SigmoidConstraint::restoreState( const NonlinearConstraint *state )
 {
     const SigmoidConstraint *sigmoid = dynamic_cast<const SigmoidConstraint *>( state );
     *this = *sigmoid;

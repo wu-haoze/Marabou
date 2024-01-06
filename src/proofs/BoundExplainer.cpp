@@ -14,12 +14,57 @@
 
 #include "BoundExplainer.h"
 
-BoundExplainer::BoundExplainer( unsigned numberOfVariables, unsigned numberOfRows )
-    : _numberOfVariables( numberOfVariables )
+using namespace CVC4::context;
+
+BoundExplainer::BoundExplainer( unsigned numberOfVariables, unsigned numberOfRows, Context &ctx )
+    : _context( ctx ),
+      _numberOfVariables( numberOfVariables )
     , _numberOfRows( numberOfRows )
-    , _upperBoundExplanations( _numberOfVariables, Vector<double>( 0 ) )
-    , _lowerBoundExplanations( _numberOfVariables, Vector<double>( 0 ) )
+    , _upperBoundExplanations( 0 )
+    , _lowerBoundExplanations( 0 )
+    , _trivialUpperBoundExplanation( 0 )
+    , _trivialLowerBoundExplanation( 0 )
 {
+    for ( unsigned i = 0; i < _numberOfVariables; ++i )
+    {
+        _upperBoundExplanations.append( new ( true ) CDO<SparseUnsortedList>( &ctx ) );
+        _lowerBoundExplanations.append( new ( true ) CDO<SparseUnsortedList>( &ctx ) );
+
+        _trivialUpperBoundExplanation.append( new ( true ) CDO<bool>( &ctx, true ) ) ;
+        _trivialLowerBoundExplanation.append( new ( true ) CDO<bool>( &ctx, true ) );
+    }
+}
+
+BoundExplainer::~BoundExplainer()
+{
+    for ( unsigned i = 0; i < _numberOfVariables; ++i )
+    {
+        _upperBoundExplanations[i]->deleteSelf();
+        _lowerBoundExplanations[i]->deleteSelf();
+
+        _trivialUpperBoundExplanation[i]->deleteSelf();
+        _trivialLowerBoundExplanation[i]->deleteSelf();
+    }
+}
+
+BoundExplainer &BoundExplainer::operator=( const BoundExplainer &other )
+{
+    if ( this == &other )
+        return *this;
+
+    _numberOfRows = other._numberOfRows;
+    _numberOfVariables = other._numberOfVariables;
+
+    for ( unsigned i = 0; i < _numberOfVariables; ++i )
+    {
+        _upperBoundExplanations[i]->set( *other._upperBoundExplanations[i] );
+        _lowerBoundExplanations[i]->set( *other._lowerBoundExplanations[i]);
+
+        _trivialUpperBoundExplanation[i]->set( other._trivialUpperBoundExplanation[i]->get() );
+        _trivialLowerBoundExplanation[i]->set( other._trivialLowerBoundExplanation[i]->get() );
+    }
+
+    return *this;
 }
 
 unsigned BoundExplainer::getNumberOfRows() const
@@ -32,10 +77,10 @@ unsigned BoundExplainer::getNumberOfVariables() const
     return _numberOfVariables;
 }
 
-const Vector<double> &BoundExplainer::getExplanation( unsigned var, bool isUpper )
+const SparseUnsortedList &BoundExplainer::getExplanation( unsigned var, bool isUpper )
 {
     ASSERT ( var < _numberOfVariables );
-    return isUpper ? _upperBoundExplanations[var] : _lowerBoundExplanations[var];
+    return isUpper ? _upperBoundExplanations[var]->get() : _lowerBoundExplanations[var]->get();
 }
 
 void BoundExplainer::updateBoundExplanation( const TableauRow &row, bool isUpper )
@@ -75,7 +120,7 @@ void BoundExplainer::updateBoundExplanation( const TableauRow &row, bool isUpper
     ASSERT( !FloatUtils::isZero( ci ) );
     Vector<double> rowCoefficients = Vector<double>( _numberOfRows, 0 );
     Vector<double> sum = Vector<double>( _numberOfRows, 0 );
-    Vector<double> tempBound;
+    SparseUnsortedList tempBound;
 
     for ( unsigned i = 0; i < row._size; ++i )
     {
@@ -93,7 +138,11 @@ void BoundExplainer::updateBoundExplanation( const TableauRow &row, bool isUpper
         // If we're currently explaining an upper bound, we use upper bound explanation iff variable's coefficient is positive
         // If we're currently explaining a lower bound, we use upper bound explanation iff variable's coefficient is negative
         tempUpper = ( isUpper && realCoefficient > 0 ) || ( !isUpper && realCoefficient < 0 );
-        tempBound = tempUpper ? _upperBoundExplanations[curVar] : _lowerBoundExplanations[curVar];
+
+        if ( ( tempUpper && *_trivialUpperBoundExplanation[curVar] ) || ( !tempUpper && *_trivialLowerBoundExplanation[curVar] ) )
+            continue;
+
+        tempBound = tempUpper ? *_upperBoundExplanations[curVar] : *_lowerBoundExplanations[curVar];
         addVecTimesScalar( sum, tempBound, realCoefficient );
     }
 
@@ -104,8 +153,11 @@ void BoundExplainer::updateBoundExplanation( const TableauRow &row, bool isUpper
         if ( !FloatUtils::isZero( realCoefficient ) )
         {
             tempUpper = ( isUpper && realCoefficient > 0 ) || ( !isUpper && realCoefficient < 0 );
-            tempBound = tempUpper ? _upperBoundExplanations[row._lhs] : _lowerBoundExplanations[row._lhs];
-            addVecTimesScalar( sum, tempBound, realCoefficient );
+            if ( !( tempUpper && *_trivialUpperBoundExplanation[row._lhs] ) && !( !tempUpper && *_trivialLowerBoundExplanation[row._lhs] ) )
+            {
+                tempBound = tempUpper ? *_upperBoundExplanations[row._lhs] : *_lowerBoundExplanations[row._lhs];
+                addVecTimesScalar( sum, tempBound, realCoefficient );
+            }
         }
     }
 
@@ -139,7 +191,7 @@ void BoundExplainer::updateBoundExplanationSparse( const SparseUnsortedList &row
     ASSERT( !FloatUtils::isZero( ci ) );
     Vector<double> rowCoefficients = Vector<double>( _numberOfRows, 0 );
     Vector<double> sum = Vector<double>( _numberOfRows, 0 );
-    Vector<double> tempBound;
+    SparseUnsortedList tempBound;
 
     for ( const auto &entry : row )
     {
@@ -155,7 +207,11 @@ void BoundExplainer::updateBoundExplanationSparse( const SparseUnsortedList &row
         // If we're currently explaining an upper bound, we use upper bound explanation iff variable's coefficient is positive
         // If we're currently explaining a lower bound, we use upper bound explanation iff variable's coefficient is negative
         tempUpper = ( isUpper && realCoefficient > 0 ) || ( !isUpper && realCoefficient < 0 );
-        tempBound = tempUpper ? _upperBoundExplanations[entry._index] : _lowerBoundExplanations[entry._index];
+
+        if ( ( tempUpper && *_trivialUpperBoundExplanation[entry._index] ) || ( !tempUpper && *_trivialLowerBoundExplanation[entry._index] ) )
+            continue;
+
+        tempBound = tempUpper ? *_upperBoundExplanations[entry._index] : *_lowerBoundExplanations[entry._index];
         addVecTimesScalar( sum, tempBound, realCoefficient );
     }
 
@@ -164,6 +220,17 @@ void BoundExplainer::updateBoundExplanationSparse( const SparseUnsortedList &row
     addVecTimesScalar( sum, rowCoefficients, 1 );
 
     setExplanation( sum, var, isUpper );
+}
+
+void BoundExplainer::addVecTimesScalar( Vector<double> &sum, const SparseUnsortedList &input,  double scalar ) const
+{
+    if ( input.empty() || FloatUtils::isZero( scalar ) )
+        return;
+
+    ASSERT( sum.size() == _numberOfRows );
+
+    for ( const auto &entry : input )
+        sum[entry._index] += scalar * entry._value;
 }
 
 void BoundExplainer::addVecTimesScalar( Vector<double> &sum, const Vector<double> &input,  double scalar ) const
@@ -211,28 +278,49 @@ void BoundExplainer::addVariable()
 {
     ++_numberOfRows;
     ++_numberOfVariables;
-    _upperBoundExplanations.append( Vector<double>( 0 ) );
-    _lowerBoundExplanations.append( Vector<double>( 0 ) );
 
-    for ( unsigned i = 0; i < _numberOfVariables; ++i )
-    {
-        if ( !_upperBoundExplanations[i].empty() )
-            _upperBoundExplanations[i].append( 0 );
+    // Add a new explanation for the new variable
+    _trivialUpperBoundExplanation.append( new ( true ) CDO<bool>( &_context, true ) );
+    _trivialLowerBoundExplanation.append( new ( true ) CDO<bool>( &_context, true ) );
 
-        if ( !_lowerBoundExplanations[i].empty() )
-            _lowerBoundExplanations[i].append( 0 );
-    }
+    _upperBoundExplanations.append( new ( true ) CDO<SparseUnsortedList>( &_context ) );
+    _lowerBoundExplanations.append( new ( true ) CDO<SparseUnsortedList>( &_context ) );
+
+
+    ASSERT( _upperBoundExplanations.size() == _numberOfVariables );
+    ASSERT( _trivialUpperBoundExplanation.size() == _numberOfVariables );
 }
 
 void BoundExplainer::resetExplanation( unsigned var, bool isUpper )
 {
     ASSERT( var < _numberOfVariables );
-    isUpper ? _upperBoundExplanations[var].clear() : _lowerBoundExplanations[var].clear();
+    isUpper ? _upperBoundExplanations[var]->set( SparseUnsortedList() ) : _lowerBoundExplanations[var]->set( SparseUnsortedList() );
+
+    isUpper ? _trivialUpperBoundExplanation[var]->set( true ) : _trivialLowerBoundExplanation[var]->set( true );
 }
 
 void BoundExplainer::setExplanation( const Vector<double> &explanation, unsigned var, bool isUpper )
 {
-    ASSERT( var < _numberOfVariables && (explanation.empty() || explanation.size() == _numberOfRows ) );
-    Vector<double> *temp = isUpper ? &_upperBoundExplanations[var] : &_lowerBoundExplanations[var];
-    *temp = explanation;
+    ASSERT( var < _numberOfVariables && ( explanation.empty() || explanation.size() == _numberOfRows ) );
+    CDO<SparseUnsortedList> *temp = isUpper ? _upperBoundExplanations[var] : _lowerBoundExplanations[var];
+
+    if ( explanation.empty() )
+        temp->set( SparseUnsortedList() );
+    else
+        temp->set( SparseUnsortedList( explanation.data(), explanation.size() ) );
+
+    isUpper ? _trivialUpperBoundExplanation[var]->set( false ) : _trivialLowerBoundExplanation[var]->set( false );
+}
+
+void BoundExplainer::setExplanation( const SparseUnsortedList &explanation, unsigned var, bool isUpper )
+{
+    ASSERT( var < _numberOfVariables );
+    isUpper ? _upperBoundExplanations[var]->set( explanation ) : _lowerBoundExplanations[var]->set( explanation );
+
+    isUpper ? _trivialUpperBoundExplanation[var]->set( false ) : _trivialLowerBoundExplanation[var]->set( false );
+}
+
+bool BoundExplainer::isExplanationTrivial( unsigned var, bool isUpper ) const
+{
+    return isUpper ? *_trivialUpperBoundExplanation[var] : *_trivialLowerBoundExplanation[var];
 }

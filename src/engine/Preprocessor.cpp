@@ -104,7 +104,7 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
         if ( !constraint->supportVariableElimination() )
             for ( const auto &var : constraint->getParticipatingVariables() )
                 _uneliminableVariables.insert( var );
-    for ( const auto &constraint : _preprocessed->getTranscendentalConstraints() ) {
+    for ( const auto &constraint : _preprocessed->getNonlinearConstraints() ) {
         if ( !constraint->supportVariableElimination() )
             for ( const auto &var : constraint->getParticipatingVariables() )
                 _uneliminableVariables.insert( var );
@@ -136,10 +136,9 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
 
       Then, eliminate fixed variables.
     */
-
+    unsigned tighteningRound = 0;
     bool continueTightening = true;
-    unsigned round = 1000;
-    while ( continueTightening && round > 0 )
+    while ( continueTightening && tighteningRound++ < GlobalConfiguration::PREPROCESSSING_MAX_TIGHTEING_ROUND )
     {
         continueTightening = processEquations();
         continueTightening = processConstraints() || continueTightening;
@@ -149,7 +148,6 @@ std::unique_ptr<InputQuery> Preprocessor::preprocess( const InputQuery &query, b
         if ( _statistics )
             _statistics->
                 incUnsignedAttribute( Statistics::PP_NUM_TIGHTENING_ITERATIONS );
-        --round;
     }
 
     collectFixedValues();
@@ -547,7 +545,7 @@ bool Preprocessor::processConstraints()
         }
     }
 
-    for ( auto &constraint : _preprocessed->getTranscendentalConstraints() )
+    for ( auto &constraint : _preprocessed->getNonlinearConstraints() )
     {
         for ( unsigned variable : constraint->getParticipatingVariables() )
         {
@@ -672,7 +670,7 @@ void Preprocessor::collectFixedValues()
         for ( const auto &var : constraint->getParticipatingVariables() )
             usedVariables.insert( var );
     }
-    for ( const auto &constraint : _preprocessed->getTranscendentalConstraints() )
+    for ( const auto &constraint : _preprocessed->getNonlinearConstraints() )
     {
         for ( const auto &var : constraint->getParticipatingVariables() )
             usedVariables.insert( var );
@@ -742,8 +740,8 @@ void Preprocessor::eliminateVariables()
                 ++constraint;
         }
 
-        List<TranscendentalConstraint *> &tsConstraints( _preprocessed->getTranscendentalConstraints() );
-        List<TranscendentalConstraint *>::iterator tsConstraint = tsConstraints.begin();
+        List<NonlinearConstraint *> &tsConstraints( _preprocessed->getNonlinearConstraints() );
+        List<NonlinearConstraint *>::iterator tsConstraint = tsConstraints.begin();
         while ( tsConstraint != tsConstraints.end() )
         {
             if ( (*tsConstraint)->constraintObsolete() )
@@ -898,6 +896,9 @@ void Preprocessor::eliminateVariables()
         List<unsigned> participatingVariables = (*constraint)->getParticipatingVariables();
         for ( unsigned variable : participatingVariables )
         {
+            if ( _uneliminableVariables.exists( variable ) )
+                continue;
+
             if ( (*constraint)->supportVariableElimination() && _fixedVariables.exists( variable ) )
                 (*constraint)->eliminateVariable( variable, _fixedVariables.at( variable ) );
         }
@@ -932,13 +933,16 @@ void Preprocessor::eliminateVariables()
 
     // Let the transcendental constraints know of any eliminated variables, and remove
     // the constraints themselves if they become obsolete.
-    List<TranscendentalConstraint *> &tsConstraints( _preprocessed->getTranscendentalConstraints() );
-    List<TranscendentalConstraint *>::iterator tsConstraint = tsConstraints.begin();
+    List<NonlinearConstraint *> &tsConstraints( _preprocessed->getNonlinearConstraints() );
+    List<NonlinearConstraint *>::iterator tsConstraint = tsConstraints.begin();
     while ( tsConstraint != tsConstraints.end() )
     {
         List<unsigned> participatingVariables = (*tsConstraint)->getParticipatingVariables();
         for ( unsigned variable : participatingVariables )
         {
+            if ( _uneliminableVariables.exists( variable ) )
+                continue;
+
             if ( (*tsConstraint)->supportVariableElimination() && _fixedVariables.exists( variable ) )
             {
                 (*tsConstraint)->eliminateVariable( variable, _fixedVariables.at( variable ) );

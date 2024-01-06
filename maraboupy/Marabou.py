@@ -61,18 +61,20 @@ def read_tf(filename, inputNames=None, outputNames=None, modelType="frozen", sav
     """
     return MarabouNetworkTF(filename, inputNames, outputNames, modelType, savedModelTags)
 
-def read_onnx(filename, inputNames=None, outputNames=None, reindexOutputVars=True):
+def read_onnx(filename, inputNames=None, outputNames=None, reindexOutputVars=True, vnnlibFilename=None):
     """Constructs a MarabouNetworkONNX object from an ONNX file
 
     Args:
         filename (str): Path to the ONNX file
         inputNames (list of str, optional): List of node names corresponding to inputs
         outputNames (list of str, optional): List of node names corresponding to outputs
+        reindexOutputVars (bool): Reindex the variables so that the output variables are immediate after input variables
+        vnnlibFilename (str): Optional argument of filename to vnnlib file containing a property
 
     Returns:
         :class:`~maraboupy.MarabouNetworkONNX.MarabouNetworkONNX`
     """
-    return MarabouNetworkONNX(filename, inputNames, outputNames, reindexOutputVars=reindexOutputVars)
+    return MarabouNetworkONNX(filename, inputNames, outputNames, reindexOutputVars=reindexOutputVars, vnnlibFilename=vnnlibFilename)
 
 def load_query(filename):
     """Load the serialized inputQuery from the given filename
@@ -125,7 +127,7 @@ def createOptions(numWorkers=1, initialTimeout=5, initialSplits=0, onlineSplits=
                   preprocessorBoundTolerance=0.0000000001, dumpBounds=False,
                   tighteningStrategy="deeppoly", milpTightening="none", milpSolverTimeout=0,
                   numSimulations=10, numBlasThreads=1, performLpTighteningAfterSplit=False,
-                  lpSolver=""):
+                  lpSolver="", produceProofs=False):
     """Create an options object for how Marabou should solve the query
 
     Args:
@@ -178,4 +180,5 @@ def createOptions(numWorkers=1, initialTimeout=5, initialSplits=0, onlineSplits=
     options._numBlasThreads = numBlasThreads
     options._performLpTighteningAfterSplit = performLpTighteningAfterSplit
     options._lpSolver = lpSolver
+    options._produceProofs = produceProofs
     return options

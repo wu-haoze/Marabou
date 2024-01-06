@@ -30,10 +30,12 @@ BoundManager::BoundManager( Context &context )
     , _allocated( 0 )
     , _tableau( nullptr )
     , _rowBoundTightener( nullptr )
+    , _engine( nullptr )
     , _consistentBounds( &_context )
     , _firstInconsistentTightening( 0, 0.0, Tightening::LB )
     , _lowerBounds( nullptr )
     , _upperBounds( nullptr )
+    , _boundExplainer( nullptr )
 {
     _consistentBounds = true;
 };
@@ -58,6 +60,12 @@ BoundManager::~BoundManager()
         _storedUpperBounds[i]->deleteSelf();
         _tightenedLower[i]->deleteSelf();
         _tightenedUpper[i]->deleteSelf();
+    }
+
+    if ( _boundExplainer )
+    {
+        delete _boundExplainer;
+        _boundExplainer = NULL;
     }
 };
 
@@ -295,4 +303,245 @@ void BoundManager::registerRowBoundTightener( IRowBoundTightener *ptrRowBoundTig
 {
     ASSERT( _rowBoundTightener == nullptr );
     _rowBoundTightener = ptrRowBoundTightener;
+}
+
+const SparseUnsortedList &BoundManager::getExplanation( unsigned variable, bool isUpper ) const
+{
+    ASSERT( _engine->shouldProduceProofs() && variable < _size );
+    return _boundExplainer->getExplanation( variable, isUpper );
+}
+
+bool BoundManager::tightenLowerBound( unsigned variable, double value, const TableauRow &row )
+{
+    bool tightened = setLowerBound( variable, value );
+
+    if ( tightened )
+    {
+        if ( _engine->shouldProduceProofs() )
+            _boundExplainer->updateBoundExplanation( row, BoundType::LOWER, variable );
+
+        if ( _tableau != nullptr )
+            _tableau->updateVariableToComplyWithLowerBoundUpdate( variable, value );
+    }
+    return tightened;
+}
+
+bool BoundManager::tightenUpperBound( unsigned variable, double value, const TableauRow &row )
+{
+    bool tightened = setUpperBound( variable, value );
+
+    if ( tightened )
+    {
+        if ( _engine->shouldProduceProofs() )
+            _boundExplainer->updateBoundExplanation( row, BoundType::UPPER, variable );
+
+        if ( _tableau != nullptr )
+            _tableau->updateVariableToComplyWithUpperBoundUpdate( variable, value );
+    }
+    return tightened;
+}
+
+bool BoundManager::tightenLowerBound( unsigned variable, double value, const SparseUnsortedList &row )
+{
+    bool tightened = setLowerBound( variable, value );
+
+    if ( tightened )
+    {
+        if ( _engine->shouldProduceProofs() )
+            _boundExplainer->updateBoundExplanationSparse( row, BoundType::LOWER, variable );
+
+        if ( _tableau != nullptr )
+            _tableau->updateVariableToComplyWithLowerBoundUpdate( variable, value );
+    }
+    return tightened;
+}
+
+bool BoundManager::tightenUpperBound( unsigned variable, double value, const SparseUnsortedList &row )
+{
+    bool tightened = setUpperBound( variable, value );
+
+    if ( tightened )
+    {
+        if ( _engine->shouldProduceProofs() )
+            _boundExplainer->updateBoundExplanationSparse( row, BoundType::UPPER, variable );
+
+        if ( _tableau != nullptr )
+            _tableau->updateVariableToComplyWithUpperBoundUpdate( variable, value );
+    }
+
+    return tightened;
+}
+
+void BoundManager::resetExplanation( const unsigned var, const bool isUpper ) const
+{
+    _boundExplainer->resetExplanation( var, isUpper );
+}
+
+void BoundManager::setExplanation( const SparseUnsortedList &explanation, unsigned var, bool isUpper ) const
+{
+    _boundExplainer->setExplanation( explanation, var, isUpper );
+}
+
+const BoundExplainer *BoundManager::getBoundExplainer() const
+{
+    return _boundExplainer;
+}
+
+void BoundManager::copyBoundExplainerContent( const BoundExplainer *boundsExplainer )
+{
+    *_boundExplainer = *boundsExplainer;
+}
+
+void BoundManager::updateBoundExplanation( const TableauRow &row, bool isUpper, unsigned var )
+{
+    _boundExplainer->updateBoundExplanation( row, isUpper, var );
+}
+
+void BoundManager::updateBoundExplanationSparse( const SparseUnsortedList &row, bool isUpper, unsigned var )
+{
+    _boundExplainer->updateBoundExplanationSparse( row, isUpper, var );
+}
+
+bool BoundManager::addLemmaExplanationAndTightenBound( unsigned var, double value, BoundType affectedVarBound,
+                                                      const List<unsigned> &causingVars, BoundType causingVarBound,
+                                                      PiecewiseLinearFunctionType constraintType )
+{
+    if ( !shouldProduceProofs() )
+        return false;
+
+    ASSERT( var < _tableau->getN() );
+
+    // Register new ground bound, update certificate, and reset explanation
+    Vector<SparseUnsortedList> allExplanations( 0 );
+
+    bool tightened = affectedVarBound == BoundType::UPPER ? tightenUpperBound( var, value ) : tightenLowerBound( var, value );
+
+    if ( tightened )
+    {
+        if ( constraintType == RELU || constraintType == SIGN )
+        {
+            ASSERT( causingVars.size() == 1 );
+            allExplanations.append( getExplanation( causingVars.front(), causingVarBound ) );
+        }
+        else if ( constraintType == ABSOLUTE_VALUE )
+        {
+            if ( causingVars.size() == 1 )
+                allExplanations.append( getExplanation( causingVars.front(), causingVarBound ) );
+            else
+            {
+                // Used for two cases:
+                // 1. Lemma of the type _f = max(upperBound(b), -lowerBound(b)).
+                //    Two explanations are stored so the checker could check that f has the maximal value of the two.
+                // 2. Lemmas of the type lowerBound(f) > -lowerBound(b) or upperBound(b).
+                //    Again, two explanations are involved in the proof.
+                // Add zero vectors to maintain consistency of explanations size
+                allExplanations.append( getExplanation( causingVars.front(), causingVarBound == BoundType::UPPER ) );
+
+                allExplanations.append( getExplanation( causingVars.back(), BoundType::LOWER ) );
+            }
+        }
+        else if ( constraintType == MAX )
+            for ( const auto &element : causingVars )
+                allExplanations.append( getExplanation( element, BoundType::UPPER ) );
+        else
+            throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
+
+        std::shared_ptr<PLCLemma> PLCExpl = std::make_shared<PLCLemma>( causingVars, var, value, causingVarBound, affectedVarBound, allExplanations, constraintType );
+        _engine->getUNSATCertificateCurrentPointer()->addPLCLemma(PLCExpl );
+        affectedVarBound == BoundType::UPPER ? _engine->updateGroundUpperBound( var, value ) : _engine->updateGroundLowerBound( var, value );
+        resetExplanation( var, affectedVarBound );
+    }
+    return true;
+}
+
+void BoundManager::registerEngine( IEngine *engine)
+{
+    _engine = engine;
+}
+
+void BoundManager::initializeBoundExplainer( unsigned numberOfVariables, unsigned numberOfRows )
+{
+    if ( _engine->shouldProduceProofs() )
+        _boundExplainer = new BoundExplainer( numberOfVariables, numberOfRows, _context );
+}
+
+unsigned BoundManager::getInconsistentVariable() const
+{
+    if ( _consistentBounds )
+        return NO_VARIABLE_FOUND;
+    return _firstInconsistentTightening._variable;
+}
+
+double BoundManager::computeRowBound( const TableauRow &row, const bool isUpper ) const
+{
+    double bound = 0;
+    double multiplier;
+    unsigned var;
+
+    for ( unsigned i = 0; i < row._size; ++i )
+    {
+        var = row._row[i]._var;
+        if ( FloatUtils::isZero( row[i] ) )
+            continue;
+
+        multiplier = ( isUpper && FloatUtils::isPositive( row[i] ) ) || ( !isUpper && FloatUtils::isNegative( row[i] ) ) ? _upperBounds[var] : _lowerBounds[var];
+        multiplier = FloatUtils::isZero( multiplier ) ? 0 : multiplier * row[i];
+        bound += FloatUtils::isZero( multiplier ) ? 0 : multiplier;
+    }
+
+    bound += FloatUtils::isZero( row._scalar ) ? 0 : row._scalar;
+    return bound;
+}
+
+double BoundManager::computeSparseRowBound( const SparseUnsortedList &row, const bool isUpper, const unsigned var ) const
+{
+    ASSERT( !row.empty() && var < _size );
+
+    unsigned curVar;
+    double ci = 0;
+    double bound = 0;
+    double realCoefficient;
+    double curVal;
+    double multiplier;
+
+    for ( const auto &entry : row )
+    {
+        if ( entry._index == var )
+        {
+            ci = entry._value;
+            break;
+        }
+    }
+
+    ASSERT( !FloatUtils::isZero( ci ) );
+
+    for ( const auto &entry : row )
+    {
+        curVar = entry._index;
+        curVal = entry._value;
+
+        if ( FloatUtils::isZero( curVal ) || curVar == var )
+            continue;
+
+        realCoefficient = curVal / -ci;
+
+        if ( FloatUtils::isZero( realCoefficient ) )
+            continue;
+
+        multiplier = ( isUpper && realCoefficient  > 0 ) || ( !isUpper &&  realCoefficient < 0 ) ? _upperBounds[curVar] : _lowerBounds[curVar];
+        multiplier = FloatUtils::isZero( multiplier ) ? 0 : multiplier * realCoefficient;
+        bound += FloatUtils::isZero( multiplier ) ? 0 : multiplier;
+    }
+
+    return bound;
+}
+
+bool BoundManager::isExplanationTrivial( unsigned var, bool isUpper ) const
+{
+    return _boundExplainer->isExplanationTrivial( var, isUpper );
+}
+
+bool BoundManager::shouldProduceProofs() const
+{
+    return _boundExplainer != nullptr;
 }

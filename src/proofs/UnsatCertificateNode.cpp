@@ -75,21 +75,16 @@ const List<UnsatCertificateNode*> &UnsatCertificateNode::getChildren() const
     return _children;
 }
 
-const List<std::shared_ptr<PLCExplanation>> &UnsatCertificateNode::getPLCExplanations() const
+const List<std::shared_ptr<PLCLemma>> &UnsatCertificateNode::getPLCLemmas() const
 {
     return _PLCExplanations;
 }
 
-void UnsatCertificateNode::addPLCExplanation( std::shared_ptr<PLCExplanation> &explanation )
+void UnsatCertificateNode::addPLCLemma( std::shared_ptr<PLCLemma> &explanation )
 {
     _PLCExplanations.append( explanation );
 }
 
-void UnsatCertificateNode::setPLCExplanations( const List<std::shared_ptr<PLCExplanation>> &explanations )
-{
-    _PLCExplanations.clear();
-    _PLCExplanations = explanations;
-}
 
 UnsatCertificateNode *UnsatCertificateNode::getChildBySplit( const PiecewiseLinearCaseSplit &split ) const
 {
@@ -149,11 +144,6 @@ void UnsatCertificateNode::makeLeaf()
     }
 
     _children.clear();
-}
-
-void UnsatCertificateNode::removePLCExplanationsBelowDecisionLevel( unsigned decisionLevel )
-{
-    _PLCExplanations.removeIf( [decisionLevel] ( std::shared_ptr<PLCExplanation> &explanation ){ return explanation->getDecisionLevel() <= decisionLevel; } );
 }
 
 bool UnsatCertificateNode::isValidLeaf() const

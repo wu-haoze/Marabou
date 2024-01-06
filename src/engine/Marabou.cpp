@@ -105,6 +105,12 @@ void Marabou::prepareInputQuery()
         */
         String networkFilePath = Options::get()->getString( Options::INPUT_FILE_PATH );
 
+        if ( networkFilePath.length() == 0 )
+        {
+            printf( "Error: no network file provided!\n" );
+            throw MarabouError( MarabouError::FILE_DOESNT_EXIST, networkFilePath.ascii() );
+        }
+
         if ( !File::exists( networkFilePath ) )
         {
             printf( "Error: the specified network file (%s) doesn't exist!\n", networkFilePath.ascii() );
@@ -209,8 +215,11 @@ void Marabou::exportAssignment() const
 void Marabou::solveQuery()
 {
     if ( _engine.processInputQuery( _inputQuery ) )
-        return;
-    //_engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+    {
+        _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+        if ( _engine.shouldProduceProofs() && _engine.getExitCode() == Engine::UNSAT )
+            _engine.certifyUNSATCertificate();
+    }
 
     if ( _engine.getExitCode() == Engine::SAT )
         _engine.extractSolution( _inputQuery );

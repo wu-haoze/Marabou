@@ -14,7 +14,7 @@
 
 #include "QuadraticConstraint.h"
 
-#include "TranscendentalConstraint.h"
+#include "NonlinearConstraint.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
 #include "FloatUtils.h"
@@ -31,7 +31,7 @@
 #endif
 
 QuadraticConstraint::QuadraticConstraint( unsigned b1, unsigned b2, unsigned f )
-    : TranscendentalConstraint()
+    : NonlinearConstraint()
     , _b1( b1 )
     , _b2( b2 )
     , _f( f )
@@ -60,14 +60,14 @@ TranscendentalFunctionType QuadraticConstraint::getType() const
     return TranscendentalFunctionType::QUADRATIC;
 }
 
-TranscendentalConstraint *QuadraticConstraint::duplicateConstraint() const
+NonlinearConstraint *QuadraticConstraint::duplicateConstraint() const
 {
     QuadraticConstraint *clone = new QuadraticConstraint( _b1, _b2, _f );
     *clone = *this;
     return clone;
 }
 
-void QuadraticConstraint::restoreState( const TranscendentalConstraint *state )
+void QuadraticConstraint::restoreState( const NonlinearConstraint *state )
 {
     const QuadraticConstraint *quad = dynamic_cast<const QuadraticConstraint *>( state );
     *this = *quad;
