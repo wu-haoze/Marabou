@@ -116,7 +116,7 @@ public:
     static double sigmoidDerivative( double x );
 
 private:
-    unsigned _b, _f; 
+    unsigned _b, _f;
     bool _haveEliminatedVariables;
 };
 

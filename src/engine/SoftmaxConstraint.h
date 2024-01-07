@@ -2,7 +2,7 @@
 /*! \file SoftmaxConstraint.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Haoze Wu
+ **   Andrew Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -87,14 +87,14 @@ public:
     const Vector<unsigned> &getInputs() const;
     const Vector<unsigned> &getOutputs() const;
 
-  static void softmax( const Vector<double> &input, Vector<double> &output );
+    static void softmax( const Vector<double> &input, Vector<double> &output );
 
-  static void xTilda( const Vector<double> &input, double value,
+    static void xTilda( const Vector<double> &input, double value,
                       Vector<double> &output );
 
-  static double SE( const Vector<double> &input );
+    static double SE( const Vector<double> &input );
 
-  static double LSE( const Vector<double> &input );
+    static double LSE( const Vector<double> &input );
 
 private:
     Vector<unsigned> _inputs;
