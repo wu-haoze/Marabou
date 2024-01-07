@@ -23,7 +23,7 @@
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "MaxConstraint.h"
-#include "QuadraticConstraint.h"
+#include "BilinearConstraint.h"
 #include "QueryLoader.h"
 #include "ReluConstraint.h"
 #include "SignConstraint.h"
@@ -238,10 +238,10 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
             eq.setScalar(1);
             inputQuery.addEquation(eq);
         }
-        else if ( coType == "quad")
+        else if ( coType == "bilinear")
         {
-            QuadraticConstraint *quad = new QuadraticConstraint( serializeConstraint );
-            inputQuery.addNonlinearConstraint(quad);
+            BilinearConstraint *bilinear = new BilinearConstraint( serializeConstraint );
+            inputQuery.addNonlinearConstraint(bilinear);
         }
         else
         {

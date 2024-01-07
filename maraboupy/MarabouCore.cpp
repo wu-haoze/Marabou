@@ -39,7 +39,7 @@
 #include "Options.h"
 #include "PiecewiseLinearConstraint.h"
 #include "PropertyParser.h"
-#include "QuadraticConstraint.h"
+#include "BilinearConstraint.h"
 #include "QueryLoader.h"
 #include "ReluConstraint.h"
 #include "Set.h"
@@ -110,7 +110,7 @@ void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
 
 void addQuadConstraint(InputQuery& ipq, unsigned var1, unsigned var2,
                        unsigned var3){
-  NonlinearConstraint* r = new QuadraticConstraint(var1, var2, var3);
+  NonlinearConstraint* r = new BilinearConstraint(var1, var2, var3);
   ipq.addNonlinearConstraint(r);
 }
 

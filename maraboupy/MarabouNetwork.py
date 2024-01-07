@@ -52,7 +52,7 @@ class MarabouNetwork:
         self.sigmoidList = []
         self.maxList = []
         self.softmaxList = []
-        self.quadList = []
+        self.bilinearList = []
         self.absList = []
         self.signList = []
         self.disjunctionList = []
@@ -123,7 +123,7 @@ class MarabouNetwork:
         Args:
             x (:class:`~maraboupy.MarabouUtils.Equation`): New equation to add
         """
-        self.quadList += [(v1, v2, v3)]
+        self.bilinearList += [(v1, v2, v3)]
 
     def addSigmoid(self, v1, v2):
         """Function to add a new Sigmoid constraint
@@ -273,7 +273,7 @@ class MarabouNetwork:
             assert r[1] < self.numVars and r[0] < self.numVars
             MarabouCore.addReluConstraint(ipq, r[0], r[1])
 
-        for r in self.quadList:
+        for r in self.bilinearList:
             assert r[2] < self.numVars and r[1] < self.numVars and r[0] < self.numVars
             MarabouCore.addQuadConstraint(ipq, r[0], r[1], r[2])
 

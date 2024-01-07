@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file QuadraticConstraint.h
+/*! \file BilinearConstraint.h
 ** \verbatim
 ** Top contributors (to current version):
 **   Andrew Wu
@@ -12,8 +12,8 @@
 ** [[ Add lengthier description here ]]
 **/
 
-#ifndef __QuadraticConstraint_h__
-#define __QuadraticConstraint_h__
+#ifndef __BilinearConstraint_h__
+#define __BilinearConstraint_h__
 
 #include "List.h"
 #include "Map.h"
@@ -21,11 +21,11 @@
 
 #include <cmath>
 
-class QuadraticConstraint : public NonlinearConstraint
+class BilinearConstraint : public NonlinearConstraint
 {
 public:
-    QuadraticConstraint( unsigned b1, unsigned b2, unsigned f );
-    QuadraticConstraint( const String &serializedQuadratic );
+    BilinearConstraint( unsigned b1, unsigned b2, unsigned f );
+    BilinearConstraint( const String &serializedBilinear );
 
     /*
       Get the type of this constraint.
@@ -94,7 +94,6 @@ public:
 
 private:
     unsigned _b1, _b2, _f;
-    bool _haveEliminatedVariables;
 };
 
-#endif // __QuadraticConstraint_h__
+#endif // __BilinearConstraint_h__

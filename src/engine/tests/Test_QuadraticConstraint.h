@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file Test_QuadraticConstraint.h
+/*! \file Test_BilinearConstraint.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Haoze Wu
@@ -19,11 +19,11 @@
 #include "InputQuery.h"
 #include "MarabouError.h"
 #include "MockTableau.h"
-#include "QuadraticConstraint.h"
+#include "BilinearConstraint.h"
 #include "Tightening.h"
 #include <string.h>
 
-class QuadraticConstraintTestSuite : public CxxTest::TestSuite
+class BilinearConstraintTestSuite : public CxxTest::TestSuite
 {
 public:
 
@@ -37,7 +37,7 @@ public:
 
   void test_tighten_bounds1()
   {
-    QuadraticConstraint softmax (0, 1, 2);
+    BilinearConstraint softmax (0, 1, 2);
 
     softmax.notifyLowerBound(0, -2);
     softmax.notifyUpperBound(0, 1);
@@ -54,7 +54,7 @@ public:
 
   void test_tighten_bounds2()
   {
-    QuadraticConstraint softmax (0, 1, 2);
+    BilinearConstraint softmax (0, 1, 2);
 
     softmax.notifyLowerBound(0, 1);
     softmax.notifyUpperBound(0, 2);
@@ -71,7 +71,7 @@ public:
 
   void test_tighten_bounds3()
   {
-    QuadraticConstraint softmax (0, 1, 2);
+    BilinearConstraint softmax (0, 1, 2);
 
     softmax.notifyLowerBound(0, -2);
     softmax.notifyUpperBound(0, -1);
@@ -88,7 +88,7 @@ public:
 
   void test_tighten_bounds4()
   {
-    QuadraticConstraint softmax (0, 1, 2);
+    BilinearConstraint softmax (0, 1, 2);
 
     softmax.notifyLowerBound(0, -2);
     softmax.notifyUpperBound(0, -1);
@@ -105,7 +105,7 @@ public:
 
   void test_tighten_bounds5()
   {
-    QuadraticConstraint softmax (0, 1, 2);
+    BilinearConstraint softmax (0, 1, 2);
 
     softmax.notifyLowerBound(0, 1);
     softmax.notifyUpperBound(0, 2);

@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file DeepPolyQuadraticElement.h
+/*! \file DeepPolyBilinearElement.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Haoze Andrew Wu
@@ -12,8 +12,8 @@
  ** [[ Add lengthier description here ]]
 **/
 
-#ifndef __DeepPolyQuadraticElement_h__
-#define __DeepPolyQuadraticElement_h__
+#ifndef __DeepPolyBilinearElement_h__
+#define __DeepPolyBilinearElement_h__
 
 #include "DeepPolyElement.h"
 #include "Layer.h"
@@ -25,11 +25,11 @@
 
 namespace NLR {
 
-class DeepPolyQuadraticElement : public DeepPolyElement
+class DeepPolyBilinearElement : public DeepPolyElement
 {
 public:
-    DeepPolyQuadraticElement( Layer *layer );
-    ~DeepPolyQuadraticElement();
+    DeepPolyBilinearElement( Layer *layer );
+    ~DeepPolyBilinearElement();
 
     void execute( const Map<unsigned, DeepPolyElement *>
                   &deepPolyElementsBefore );

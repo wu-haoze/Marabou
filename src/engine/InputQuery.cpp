@@ -20,7 +20,7 @@
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "MaxConstraint.h"
-#include "QuadraticConstraint.h"
+#include "BilinearConstraint.h"
 #include "SoftmaxConstraint.h"
 
 #define INPUT_QUERY_LOG( x, ... ) LOG( GlobalConfiguration::INPUT_QUERY_LOGGING, "Input Query: %s\n", x )
@@ -694,7 +694,7 @@ bool InputQuery::constructNetworkLevelReasoner()
             constructSignLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSigmoidLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructMaxLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
-            constructQuadraticLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
+            constructBilinearLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSoftmaxLayer( nlr, handledVariableToLayer, newLayerIndex )
             )
     {
@@ -1298,11 +1298,11 @@ bool InputQuery::constructMaxLayer( NLR::NetworkLevelReasoner *nlr,
     return true;
 }
 
-bool InputQuery::constructQuadraticLayer( NLR::NetworkLevelReasoner *nlr,
+bool InputQuery::constructBilinearLayer( NLR::NetworkLevelReasoner *nlr,
                                           Map<unsigned, unsigned> &handledVariableToLayer,
                                           unsigned newLayerIndex )
 {
-  INPUT_QUERY_LOG( "Attempting to construct QuadraticLayer..." );
+  INPUT_QUERY_LOG( "Attempting to construct BilinearLayer..." );
   struct NeuronInformation
   {
     public:
@@ -1321,7 +1321,7 @@ bool InputQuery::constructQuadraticLayer( NLR::NetworkLevelReasoner *nlr,
 
   List<NeuronInformation> newNeurons;
 
-  // Look for Quadratic constaints where all the element variables have already been handled
+  // Look for Bilinear constaints where all the element variables have already been handled
   const List<NonlinearConstraint *> &nlConstraints =
     getNonlinearConstraints();
 
@@ -1331,11 +1331,11 @@ bool InputQuery::constructQuadraticLayer( NLR::NetworkLevelReasoner *nlr,
     if ( nlc->getType() != QUADRATIC )
       continue;
 
-    const QuadraticConstraint *quad = (const QuadraticConstraint *)nlc;
+    const BilinearConstraint *bilinear = (const BilinearConstraint *)nlc;
 
     // Have all elements been handled?
     bool missingElement = false;
-    for ( const auto &element : quad->getBs() )
+    for ( const auto &element : bilinear->getBs() )
     {
       if ( !handledVariableToLayer.exists( element ) )
       {
@@ -1348,14 +1348,14 @@ bool InputQuery::constructQuadraticLayer( NLR::NetworkLevelReasoner *nlr,
       continue;
 
     // If the f variable has also been handled, ignore this constraint
-    unsigned f = quad->getF();
+    unsigned f = bilinear->getF();
     if ( handledVariableToLayer.exists( f ) )
       continue;
 
     // Elements have been handled, f hasn't. Add f
     newNeurons.append( NeuronInformation( f,
                                           newNeurons.size(),
-                                          quad->getBs() ) );
+                                          bilinear->getBs() ) );
   }
 
   // No neurons found for the new layer

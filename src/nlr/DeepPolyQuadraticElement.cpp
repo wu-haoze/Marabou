@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file DeepPolyQuadraticElement.cpp
+/*! \file DeepPolyBilinearElement.cpp
  ** \verbatim
  ** Top contributors (to current version):
  **   Haoze Andrew Wu
@@ -12,12 +12,12 @@
  ** [[ Add lengthier description here ]]
 **/
 
-#include "DeepPolyQuadraticElement.h"
+#include "DeepPolyBilinearElement.h"
 #include "FloatUtils.h"
 
 namespace NLR {
 
-DeepPolyQuadraticElement::DeepPolyQuadraticElement( Layer *layer )
+DeepPolyBilinearElement::DeepPolyBilinearElement( Layer *layer )
   : _symbolicLbA( NULL )
   , _symbolicUbA( NULL )
   , _symbolicLbB( NULL )
@@ -28,12 +28,12 @@ DeepPolyQuadraticElement::DeepPolyQuadraticElement( Layer *layer )
     _layerIndex = layer->getLayerIndex();
 }
 
-DeepPolyQuadraticElement::~DeepPolyQuadraticElement()
+DeepPolyBilinearElement::~DeepPolyBilinearElement()
 {
     freeMemoryIfNeeded();
 }
 
-void DeepPolyQuadraticElement::execute( const Map<unsigned, DeepPolyElement *>
+void DeepPolyBilinearElement::execute( const Map<unsigned, DeepPolyElement *>
                                &deepPolyElementsBefore )
 {
     log( "Executing..." );
@@ -119,7 +119,7 @@ void DeepPolyQuadraticElement::execute( const Map<unsigned, DeepPolyElement *>
     log( "Executing - done" );
 }
 
-void DeepPolyQuadraticElement::symbolicBoundInTermsOfPredecessor
+void DeepPolyBilinearElement::symbolicBoundInTermsOfPredecessor
 ( const double *symbolicLb, const double*symbolicUb, double
   *symbolicLowerBias, double *symbolicUpperBias, double
   *symbolicLbInTermsOfPredecessor, double *symbolicUbInTermsOfPredecessor,
@@ -135,8 +135,8 @@ void DeepPolyQuadraticElement::symbolicBoundInTermsOfPredecessor
 
     /*
       We have the symbolic bound of the target layer in terms of the
-      Quadratic outputs, the goal is to compute the symbolic bound of the target
-      layer in terms of the Quadratic inputs.
+      Bilinear outputs, the goal is to compute the symbolic bound of the target
+      layer in terms of the Bilinear inputs.
     */
     for ( unsigned i = 0; i < _size; ++i )
     {
@@ -222,7 +222,7 @@ void DeepPolyQuadraticElement::symbolicBoundInTermsOfPredecessor
     }
 }
 
-void DeepPolyQuadraticElement::allocateMemory()
+void DeepPolyBilinearElement::allocateMemory()
 {
     freeMemoryIfNeeded();
     DeepPolyElement::allocateMemory();
@@ -246,7 +246,7 @@ void DeepPolyQuadraticElement::allocateMemory()
     std::fill_n( _symbolicUpperBias, _size, 0 );
 }
 
-void DeepPolyQuadraticElement::freeMemoryIfNeeded()
+void DeepPolyBilinearElement::freeMemoryIfNeeded()
 {
     DeepPolyElement::freeMemoryIfNeeded();
     if ( _symbolicLbA )
@@ -281,10 +281,10 @@ void DeepPolyQuadraticElement::freeMemoryIfNeeded()
     }
 }
 
-void DeepPolyQuadraticElement::log( const String &message )
+void DeepPolyBilinearElement::log( const String &message )
 {
     if ( GlobalConfiguration::NETWORK_LEVEL_REASONER_LOGGING )
-        printf( "DeepPolyQuadraticElement: %s\n", message.ascii() );
+        printf( "DeepPolyBilinearElement: %s\n", message.ascii() );
 }
 
 } // namespace NLR

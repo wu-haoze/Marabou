@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file QuadraticConstraint.cpp
+/*! \file BilinearConstraint.cpp
  ** \verbatim
  ** Top contributors (to current version):
  **   Andrew Wu
@@ -9,10 +9,10 @@
  ** All rights reserved. See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
  **
- ** See the description of the class in QuadraticConstraint.h.
+ ** See the description of the class in BilinearConstraint.h.
  **/
 
-#include "QuadraticConstraint.h"
+#include "BilinearConstraint.h"
 
 #include "NonlinearConstraint.h"
 #include "Debug.h"
@@ -30,7 +30,7 @@
 #define __attribute__(x)
 #endif
 
-QuadraticConstraint::QuadraticConstraint( unsigned b1, unsigned b2, unsigned f )
+BilinearConstraint::BilinearConstraint( unsigned b1, unsigned b2, unsigned f )
     : NonlinearConstraint()
     , _b1( b1 )
     , _b2( b2 )
@@ -38,80 +38,80 @@ QuadraticConstraint::QuadraticConstraint( unsigned b1, unsigned b2, unsigned f )
 {
 }
 
-QuadraticConstraint::QuadraticConstraint( const String &serializedQuadratic )
+BilinearConstraint::BilinearConstraint( const String &serializedBilinear )
 {
-  String constraintType = serializedQuadratic.substring( 0, 4 );
-  ASSERT( constraintType == String( "quad" ) );
+    String constraintType = serializedBilinear.substring( 0, 4 );
+    ASSERT( constraintType == String( "bilinear" ) );
 
-  // Remove the constraint type in serialized form
-  String serializedValues = serializedQuadratic.substring( 5, serializedQuadratic.length() - 5 );
-  List<String> tokens = serializedValues.tokenize(",");
-  Vector<String> tokensVec;
-  for (const auto &token : tokens)
-    tokensVec.append(token);
+    // Remove the constraint type in serialized form
+    String serializedValues = serializedBilinear.substring( 5, serializedBilinear.length() - 5 );
+    List<String> tokens = serializedValues.tokenize(",");
+    Vector<String> tokensVec;
+    for (const auto &token : tokens)
+        tokensVec.append(token);
 
-  _b1 = atoi(tokensVec[0].ascii());
-  _b2 = atoi(tokensVec[1].ascii());
-  _f = atoi(tokensVec[2].ascii());
+    _b1 = atoi(tokensVec[0].ascii());
+    _b2 = atoi(tokensVec[1].ascii());
+    _f = atoi(tokensVec[2].ascii());
 }
 
-NonlinearFunctionType QuadraticConstraint::getType() const
+NonlinearFunctionType BilinearConstraint::getType() const
 {
     return NonlinearFunctionType::QUADRATIC;
 }
 
-NonlinearConstraint *QuadraticConstraint::duplicateConstraint() const
+NonlinearConstraint *BilinearConstraint::duplicateConstraint() const
 {
-    QuadraticConstraint *clone = new QuadraticConstraint( _b1, _b2, _f );
+    BilinearConstraint *clone = new BilinearConstraint( _b1, _b2, _f );
     *clone = *this;
     return clone;
 }
 
-void QuadraticConstraint::restoreState( const NonlinearConstraint *state )
+void BilinearConstraint::restoreState( const NonlinearConstraint *state )
 {
-    const QuadraticConstraint *quad = dynamic_cast<const QuadraticConstraint *>( state );
-    *this = *quad;
+    const BilinearConstraint *bilinear = dynamic_cast<const BilinearConstraint *>( state );
+    *this = *bilinear;
 }
 
-void QuadraticConstraint::registerAsWatcher( ITableau *tableau )
+void BilinearConstraint::registerAsWatcher( ITableau *tableau )
 {
     tableau->registerToWatchVariable( this, _b1 );
     tableau->registerToWatchVariable( this, _b2 );
     tableau->registerToWatchVariable( this, _f );
 }
 
-void QuadraticConstraint::unregisterAsWatcher( ITableau *tableau )
+void BilinearConstraint::unregisterAsWatcher( ITableau *tableau )
 {
     tableau->unregisterToWatchVariable( this, _b1 );
     tableau->unregisterToWatchVariable( this, _b2 );
     tableau->unregisterToWatchVariable( this, _f );
 }
 
-void QuadraticConstraint::notifyLowerBound( unsigned variable, double bound )
+void BilinearConstraint::notifyLowerBound( unsigned variable, double bound )
 {
     ASSERT( variable == _b1 || variable == _b2 || variable == _f );
 
     tightenLowerBound(variable, bound);
 }
 
-void QuadraticConstraint::notifyUpperBound( unsigned variable, double bound )
+void BilinearConstraint::notifyUpperBound( unsigned variable, double bound )
 {
     ASSERT( variable == _b1 || variable == _b2 || variable == _f );
 
     tightenUpperBound(variable, bound);
 }
 
-bool QuadraticConstraint::participatingVariable( unsigned variable ) const
+bool BilinearConstraint::participatingVariable( unsigned variable ) const
 {
   return variable == _b1 || variable == _b2 || variable == _f;
 }
 
-List<unsigned> QuadraticConstraint::getParticipatingVariables() const
+List<unsigned> BilinearConstraint::getParticipatingVariables() const
 {
   return List<unsigned>( { _b1, _b2, _f } );
 }
 
-void QuadraticConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
+void BilinearConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
     ASSERT( oldIndex == _b1 || oldIndex == _b2 || oldIndex == _f );
 
@@ -139,68 +139,68 @@ void QuadraticConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIn
         _f = newIndex;
 }
 
-void QuadraticConstraint::eliminateVariable( __attribute__((unused)) unsigned variable,
+void BilinearConstraint::eliminateVariable( __attribute__((unused)) unsigned variable,
                                         __attribute__((unused)) double fixedValue )
 {
-  throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
-                      "Eliminate variable from a Quadratic constraint" );
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
+                        "Eliminate variable from a Bilinear constraint" );
 }
 
-bool QuadraticConstraint::constraintObsolete() const
+bool BilinearConstraint::constraintObsolete() const
 {
     return false;
 }
 
-void QuadraticConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
+void BilinearConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
 {
-  if ( existsLowerBound( _b1 ) && FloatUtils::isFinite( getLowerBound( _b1 ) ) &&
-       existsLowerBound( _b2 ) && FloatUtils::isFinite( getLowerBound( _b2 ) ) &&
-       existsUpperBound( _b1 ) && FloatUtils::isFinite( getUpperBound( _b1 ) ) &&
-       existsUpperBound( _b2 ) && FloatUtils::isFinite( getUpperBound( _b2 ) ) )
-  {
-    double min = FloatUtils::infinity();
-    double max = FloatUtils::negativeInfinity();
+    if ( existsLowerBound( _b1 ) && FloatUtils::isFinite( getLowerBound( _b1 ) ) &&
+         existsLowerBound( _b2 ) && FloatUtils::isFinite( getLowerBound( _b2 ) ) &&
+         existsUpperBound( _b1 ) && FloatUtils::isFinite( getUpperBound( _b1 ) ) &&
+         existsUpperBound( _b2 ) && FloatUtils::isFinite( getUpperBound( _b2 ) ) )
+    {
+        double min = FloatUtils::infinity();
+        double max = FloatUtils::negativeInfinity();
 
-    double value = getLowerBound( _b1 ) * getLowerBound( _b2 );
-    if ( value < min )
-      min = value;
-    if ( value > max )
-      max = value;
+        double value = getLowerBound( _b1 ) * getLowerBound( _b2 );
+        if ( value < min )
+            min = value;
+        if ( value > max )
+            max = value;
 
-    value = getLowerBound( _b1 ) * getUpperBound( _b2 );
-    if ( value < min )
-      min = value;
-    if ( value > max )
-      max = value;
+        value = getLowerBound( _b1 ) * getUpperBound( _b2 );
+        if ( value < min )
+            min = value;
+        if ( value > max )
+            max = value;
 
-    value = getUpperBound( _b1 ) * getLowerBound( _b2 );
-    if ( value < min )
-      min = value;
-    if ( value > max )
-      max = value;
+        value = getUpperBound( _b1 ) * getLowerBound( _b2 );
+        if ( value < min )
+            min = value;
+        if ( value > max )
+            max = value;
 
-    value = getUpperBound( _b1 ) * getUpperBound( _b2 );
-    if ( value < min )
-      min = value;
-    if ( value > max )
-      max = value;
+        value = getUpperBound( _b1 ) * getUpperBound( _b2 );
+        if ( value < min )
+            min = value;
+        if ( value > max )
+            max = value;
 
-    tightenings.append( Tightening( _f, min, Tightening::LB ) );
-    tightenings.append( Tightening( _f, max, Tightening::UB ) );
-  }
+        tightenings.append( Tightening( _f, min, Tightening::LB ) );
+        tightenings.append( Tightening( _f, max, Tightening::UB ) );
+    }
 }
 
-String QuadraticConstraint::serializeToString() const
+String BilinearConstraint::serializeToString() const
 {
-  return Stringf( "quad,%u,%u,%u", _b1, _b2, _f );
+    return Stringf( "bilinear,%u,%u,%u", _b1, _b2, _f );
 }
 
-List<unsigned> QuadraticConstraint::getBs() const
+List<unsigned> BilinearConstraint::getBs() const
 {
-  return {_b1, _b2};
+    return {_b1, _b2};
 }
 
-unsigned QuadraticConstraint::getF() const
+unsigned BilinearConstraint::getF() const
 {
     return _f;
 }

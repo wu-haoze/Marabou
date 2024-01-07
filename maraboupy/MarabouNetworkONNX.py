@@ -1653,9 +1653,9 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
         for i, variables in enumerate(self.sigmoidList):
             self.sigmoidList[i] = tuple([self.reassignVariable(var, numInVars, outVars, newOutVars) for var in variables])
 
-        # Adjust quad list
-        for i, variables in enumerate(self.quadList):
-            self.quadList[i] = tuple([self.reassignVariable(var, numInVars, outVars, newOutVars) for var in variables])
+        # Adjust bilinear list
+        for i, variables in enumerate(self.bilinearList):
+            self.bilinearList[i] = tuple([self.reassignVariable(var, numInVars, outVars, newOutVars) for var in variables])
 
         # Adjust softmax list
         for i, (inputs, outputs) in enumerate(self.softmaxList):
