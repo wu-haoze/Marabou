@@ -971,13 +971,13 @@ void Engine::informConstraintsOfInitialBounds( InputQuery &inputQuery ) const
         }
     }
 
-    for ( const auto &tsConstraint : inputQuery.getNonlinearConstraints() )
+    for ( const auto &nlConstraint : inputQuery.getNonlinearConstraints() )
     {
-        List<unsigned> variables = tsConstraint->getParticipatingVariables();
+        List<unsigned> variables = nlConstraint->getParticipatingVariables();
         for ( unsigned variable : variables )
         {
-            tsConstraint->notifyLowerBound( variable, inputQuery.getLowerBound( variable ) );
-            tsConstraint->notifyUpperBound( variable, inputQuery.getUpperBound( variable ) );
+            nlConstraint->notifyLowerBound( variable, inputQuery.getLowerBound( variable ) );
+            nlConstraint->notifyUpperBound( variable, inputQuery.getUpperBound( variable ) );
         }
     }
 }
@@ -1374,8 +1374,8 @@ void Engine::initializeBoundsAndConstraintWatchersInTableau( unsigned
                     constraint->addTableauAuxVar( _preprocessedQuery->_lastAddendToAux.at( var ), var );
     }
 
-    _tsConstraints = _preprocessedQuery->getNonlinearConstraints();
-    for ( const auto &constraint : _tsConstraints )
+    _nlConstraints = _preprocessedQuery->getNonlinearConstraints();
+    for ( const auto &constraint : _nlConstraints )
     {
         constraint->registerAsWatcher( _tableau );
         constraint->setStatistics( &_statistics );
@@ -2900,7 +2900,7 @@ bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
 
     if ( _gurobi->haveFeasibleSolution() )
     {
-        // Return UNKNOWN if input query has transcendental constratints.
+        // Return UNKNOWN if input query has nonlinear constratints.
         if ( _preprocessedQuery->getNonlinearConstraints().size() > 0 )
         {
             _exitCode = IEngine::UNKNOWN;

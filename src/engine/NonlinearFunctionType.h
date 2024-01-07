@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file TranscendentalFunctionType.h
+/*! \file NonlinearFunctionType.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Teruhiro Tagomori
@@ -13,16 +13,16 @@
 
  **/
 
-#ifndef __TranscendentalFunctionType_h__
-#define __TranscendentalFunctionType_h__
+#ifndef __NonlinearFunctionType_h__
+#define __NonlinearFunctionType_h__
 
-enum TranscendentalFunctionType {
+enum NonlinearFunctionType {
     SIGMOID = 0,
     SOFTMAX = 1,
     QUADRATIC = 2,
 };
 
-#endif // __TranscendentalFunctionType_h__
+#endif // __NonlinearFunctionType_h__
 
 //
 // Local Variables:

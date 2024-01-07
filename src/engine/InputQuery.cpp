@@ -164,17 +164,17 @@ const List<PiecewiseLinearConstraint *> &InputQuery::getPiecewiseLinearConstrain
 
 void InputQuery::addNonlinearConstraint( NonlinearConstraint *constraint )
 {
-    _tsConstraints.append( constraint );
+    _nlConstraints.append( constraint );
 }
 
 List<NonlinearConstraint *> &InputQuery::getNonlinearConstraints()
 {
-    return _tsConstraints;
+    return _nlConstraints;
 }
 
 const List<NonlinearConstraint *> &InputQuery::getNonlinearConstraints() const
 {
-    return _tsConstraints;
+    return _nlConstraints;
 }
 
 unsigned InputQuery::countInfiniteBounds()
@@ -258,9 +258,9 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
         }
     }
 
-    // Setting tsConstraints
-    for ( const auto &constraint : other._tsConstraints )
-        _tsConstraints.append( constraint->duplicateConstraint() );
+    // Setting nlConstraints
+    for ( const auto &constraint : other._nlConstraints )
+        _nlConstraints.append( constraint->duplicateConstraint() );
 
     // Setting plConstraints and topological order
     if ( !other._networkLevelReasoner )
@@ -272,8 +272,8 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
     {
         INPUT_QUERY_LOG( Stringf( "Number of piecewise linear constraints in input query: %u",
                                   other._plConstraints.size() ).ascii() );
-        INPUT_QUERY_LOG( Stringf( "Number of transcendental constraints in input query: %u",
-                                  other._tsConstraints.size() ).ascii() );
+        INPUT_QUERY_LOG( Stringf( "Number of nonlinear constraints in input query: %u",
+                                  other._nlConstraints.size() ).ascii() );
         INPUT_QUERY_LOG( Stringf( "Number of piecewise linear constraints in topological order %u",
                                   other._networkLevelReasoner->getConstraintsInTopologicalOrder().size() ).ascii() );
 
@@ -328,10 +328,10 @@ void InputQuery::freeConstraintsIfNeeded()
 
     _plConstraints.clear();
 
-    for ( auto &it : _tsConstraints )
+    for ( auto &it : _nlConstraints )
         delete it;
 
-    _tsConstraints.clear();
+    _nlConstraints.clear();
 }
 
 const Map<unsigned, double> &InputQuery::getLowerBounds() const
@@ -371,13 +371,13 @@ void InputQuery::saveQuery( const String &fileName )
     queryFile->write( Stringf( "%u\n", _equations.size() ) );
 
     // Number of Non-linear Constraints
-    queryFile->write( Stringf( "%u", _plConstraints.size() + _tsConstraints.size() ) );
+    queryFile->write( Stringf( "%u", _plConstraints.size() + _nlConstraints.size() ) );
 
     printf( "Number of variables: %u\n", _numberOfVariables );
     printf( "Number of lower bounds: %u\n", _lowerBounds.size() );
     printf( "Number of upper bounds: %u\n", _upperBounds.size() );
     printf( "Number of equations: %u\n", _equations.size() );
-    printf( "Number of non-linear constraints: %u\n", _plConstraints.size() + _tsConstraints.size() );
+    printf( "Number of non-linear constraints: %u\n", _plConstraints.size() + _nlConstraints.size() );
 
     // Number of Input Variables
     queryFile->write( Stringf( "\n%u", getNumInputVariables() ) );
@@ -439,9 +439,9 @@ void InputQuery::saveQuery( const String &fileName )
         ++i;
     }
 
-    // Transcendental Constraints
+    // Nonlinear Constraints
     i = 0;
-    for ( const auto &constraint : _tsConstraints )
+    for ( const auto &constraint : _nlConstraints )
     {
         // Constraint number
         queryFile->write( Stringf( "\n%u,", i ) );
@@ -577,7 +577,7 @@ void InputQuery::dump() const
         printf( "\t%s\n", constraintString.ascii() );
     }
 
-    for ( const auto &ts : _tsConstraints )
+    for ( const auto &ts : _nlConstraints )
       {
         ts->dump( constraintString );
         printf( "\t%s\n", constraintString.ascii() );
@@ -952,10 +952,10 @@ bool InputQuery::constructSigmoidLayer( NLR::NetworkLevelReasoner *nlr,
     List<NeuronInformation> newNeurons;
 
     // Look for Sigmoids where all b variables have already been handled
-    const List<NonlinearConstraint *> &tsConstraints =
+    const List<NonlinearConstraint *> &nlConstraints =
         getNonlinearConstraints();
 
-    for ( const auto &tsc : tsConstraints )
+    for ( const auto &tsc : nlConstraints )
     {
         // Only consider Sigmoids
         if ( tsc->getType() != SIGMOID )
@@ -1426,10 +1426,10 @@ bool InputQuery::constructSoftmaxLayer( NLR::NetworkLevelReasoner *nlr,
     List<NeuronInformation> newNeurons;
 
     // Look for Maxes where all the element variables have already been handled
-    const List<NonlinearConstraint *> &tsConstraints =
+    const List<NonlinearConstraint *> &nlConstraints =
         getNonlinearConstraints();
 
-    for ( const auto &ts : tsConstraints )
+    for ( const auto &ts : nlConstraints )
     {
       // Only consider Signs
       if ( ts->getType() != SOFTMAX )

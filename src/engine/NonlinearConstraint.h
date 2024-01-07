@@ -21,7 +21,7 @@
 #include "ITableau.h"
 #include "List.h"
 #include "Map.h"
-#include "TranscendentalFunctionType.h"
+#include "NonlinearFunctionType.h"
 #include "Queue.h"
 #include "Tightening.h"
 
@@ -42,7 +42,7 @@ public:
     /*
       Get the type of this constraint.
     */
-    virtual TranscendentalFunctionType getType() const = 0;
+    virtual NonlinearFunctionType getType() const = 0;
 
     /*
       Return a clone of the constraint.
@@ -69,7 +69,7 @@ public:
     virtual void notifyUpperBound( unsigned /* variable */, double /* bound */ ) {}
 
     /*
-      Returns true iff the variable participates in this transcendental constraint.
+      Returns true iff the variable participates in this nonlinear constraint.
     */
     virtual bool participatingVariable( unsigned variable ) const = 0;
 
@@ -103,7 +103,7 @@ public:
     void setStatistics( Statistics *statistics );
 
     /*
-      Produce string representation of the transcendental constraint.
+      Produce string representation of the nonlinear constraint.
       This representation contains only the information necessary to reproduce it
       but does not account for state or change in state during execution. Additionally
       the first string before a comma has the contraint type identifier
@@ -113,7 +113,7 @@ public:
 
     /*
       Register a constraint bound tightener. If a tightener is registered,
-      this transcendental constraint will inform the tightener whenever
+      this nonlinear constraint will inform the tightener whenever
       it discovers a tighter (entailed) bound.
     */
     void registerConstraintBoundTightener( IConstraintBoundTightener *tightener );
@@ -125,7 +125,7 @@ public:
 
     /*
       Register a bound manager. If a bound manager is registered,
-      this transcendental constraint will inform the tightener whenever
+      this nonlinear constraint will inform the tightener whenever
       it discovers a tighter (entailed) bound.
     */
     void registerBoundManager( BoundManager *boundManager );

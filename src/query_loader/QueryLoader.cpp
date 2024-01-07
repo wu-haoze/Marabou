@@ -183,7 +183,7 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
         inputQuery.addEquation( equation );
     }
 
-    // Non-Linear(Piecewise and Transcendental) Constraints
+    // Non-Linear(Piecewise and Nonlinear) Constraints
     for ( unsigned i = 0; i < numConstraints; ++i )
     {
         String line = input->readLine();

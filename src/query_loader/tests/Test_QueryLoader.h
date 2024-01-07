@@ -164,19 +164,19 @@ public:
         constraint2 = (ReluConstraint *)*it2;
         TS_ASSERT( constraint->serializeToString() == constraint2->serializeToString() );
 
-        // Transcendental Constraints unchanged
+        // Nonlinear Constraints unchanged
         TS_ASSERT( inputQuery.getNonlinearConstraints().size() == 2U );
         TS_ASSERT( inputQuery2.getNonlinearConstraints().size() == 2U );
         auto tsIt = inputQuery.getNonlinearConstraints().begin();
-        SigmoidConstraint *tsConstraint = (SigmoidConstraint *)*tsIt;
+        SigmoidConstraint *nlConstraint = (SigmoidConstraint *)*tsIt;
         auto tsIt2 = inputQuery2.getNonlinearConstraints().begin();
-        SigmoidConstraint *tsConstraint2 = (SigmoidConstraint *)*tsIt2;
-        TS_ASSERT( tsConstraint->serializeToString() == tsConstraint2->serializeToString() );
+        SigmoidConstraint *nlConstraint2 = (SigmoidConstraint *)*tsIt2;
+        TS_ASSERT( nlConstraint->serializeToString() == nlConstraint2->serializeToString() );
         ++tsIt;
         ++tsIt2;
-        tsConstraint = (SigmoidConstraint *)*tsIt;
-        tsConstraint2 = (SigmoidConstraint *)*tsIt2;
-        TS_ASSERT( tsConstraint->serializeToString() == tsConstraint2->serializeToString() );
+        nlConstraint = (SigmoidConstraint *)*tsIt;
+        nlConstraint2 = (SigmoidConstraint *)*tsIt2;
+        TS_ASSERT( nlConstraint->serializeToString() == nlConstraint2->serializeToString() );
     }
 };
 

@@ -31,7 +31,7 @@ public:
     /*
       Get the type of this constraint.
     */
-    TranscendentalFunctionType getType() const override;
+    NonlinearFunctionType getType() const override;
 
     /*
       Return a clone of the constraint.
@@ -57,7 +57,7 @@ public:
     void notifyUpperBound( unsigned variable, double bound ) override;
 
     /*
-      Returns true iff the variable participates in this transcendental constraint
+      Returns true iff the variable participates in this nonlinear constraint
     */
     bool participatingVariable( unsigned variable ) const override;
 

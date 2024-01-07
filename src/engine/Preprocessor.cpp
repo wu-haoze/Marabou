@@ -659,7 +659,7 @@ void Preprocessor::collectFixedValues()
 {
     // Compute all used variables:
     //   1. Variables that appear in equations
-    //   2. Variables that participate in PL and transcendental constraints
+    //   2. Variables that participate in PL and nonlinear constraints
     //   3. Variables that have been merged (and hence, previously
     //      appeared in an equation)
     Set<unsigned> usedVariables;
@@ -740,22 +740,22 @@ void Preprocessor::eliminateVariables()
                 ++constraint;
         }
 
-        List<NonlinearConstraint *> &tsConstraints( _preprocessed->getNonlinearConstraints() );
-        List<NonlinearConstraint *>::iterator tsConstraint = tsConstraints.begin();
-        while ( tsConstraint != tsConstraints.end() )
+        List<NonlinearConstraint *> &nlConstraints( _preprocessed->getNonlinearConstraints() );
+        List<NonlinearConstraint *>::iterator nlConstraint = nlConstraints.begin();
+        while ( nlConstraint != nlConstraints.end() )
         {
-            if ( (*tsConstraint)->constraintObsolete() )
+            if ( (*nlConstraint)->constraintObsolete() )
             {
                 if ( _statistics )
                     _statistics->incUnsignedAttribute
                         ( Statistics::PP_NUM_CONSTRAINTS_REMOVED );
 
-                delete *tsConstraint;
-                *tsConstraint = NULL;
-                tsConstraint = tsConstraints.erase( tsConstraint );
+                delete *nlConstraint;
+                *nlConstraint = NULL;
+                nlConstraint = nlConstraints.erase( nlConstraint );
             }
             else
-                ++tsConstraint;
+                ++nlConstraint;
         }
         return;
     }
@@ -931,46 +931,46 @@ void Preprocessor::eliminateVariables()
         }
     }
 
-    // Let the transcendental constraints know of any eliminated variables, and remove
+    // Let the nonlinear constraints know of any eliminated variables, and remove
     // the constraints themselves if they become obsolete.
-    List<NonlinearConstraint *> &tsConstraints( _preprocessed->getNonlinearConstraints() );
-    List<NonlinearConstraint *>::iterator tsConstraint = tsConstraints.begin();
-    while ( tsConstraint != tsConstraints.end() )
+    List<NonlinearConstraint *> &nlConstraints( _preprocessed->getNonlinearConstraints() );
+    List<NonlinearConstraint *>::iterator nlConstraint = nlConstraints.begin();
+    while ( nlConstraint != nlConstraints.end() )
     {
-        List<unsigned> participatingVariables = (*tsConstraint)->getParticipatingVariables();
+        List<unsigned> participatingVariables = (*nlConstraint)->getParticipatingVariables();
         for ( unsigned variable : participatingVariables )
         {
             if ( _uneliminableVariables.exists( variable ) )
                 continue;
 
-            if ( (*tsConstraint)->supportVariableElimination() && _fixedVariables.exists( variable ) )
+            if ( (*nlConstraint)->supportVariableElimination() && _fixedVariables.exists( variable ) )
             {
-                (*tsConstraint)->eliminateVariable( variable, _fixedVariables.at( variable ) );
+                (*nlConstraint)->eliminateVariable( variable, _fixedVariables.at( variable ) );
             }
         }
 
-        if ( (*tsConstraint)->constraintObsolete() )
+        if ( (*nlConstraint)->constraintObsolete() )
         {
             if ( _statistics )
                 _statistics->incUnsignedAttribute
                     ( Statistics::PP_NUM_CONSTRAINTS_REMOVED );
 
-            delete *tsConstraint;
-            *tsConstraint = NULL;
-            tsConstraint = tsConstraints.erase( tsConstraint );
+            delete *nlConstraint;
+            *nlConstraint = NULL;
+            nlConstraint = nlConstraints.erase( nlConstraint );
         }
         else
-            ++tsConstraint;
+            ++nlConstraint;
     }
 
-    // Let the remaining transcendental constraints know of any changes in indices.
-    for ( const auto &tsConstraint : tsConstraints )
+    // Let the remaining nonlinear constraints know of any changes in indices.
+    for ( const auto &nlConstraint : nlConstraints )
 	{
-		List<unsigned> participatingVariables = tsConstraint->getParticipatingVariables();
+		List<unsigned> participatingVariables = nlConstraint->getParticipatingVariables();
         for ( unsigned variable : participatingVariables )
         {
             if ( _oldIndexToNewIndex.at( variable ) != variable )
-                tsConstraint->updateVariableIndex( variable, _oldIndexToNewIndex.at( variable ) );
+                nlConstraint->updateVariableIndex( variable, _oldIndexToNewIndex.at( variable ) );
         }
 	}
 

@@ -2,7 +2,7 @@
 /*! \file QuadraticConstraint.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Haoze Wu
+ **   Andrew Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -55,9 +55,9 @@ QuadraticConstraint::QuadraticConstraint( const String &serializedQuadratic )
   _f = atoi(tokensVec[2].ascii());
 }
 
-TranscendentalFunctionType QuadraticConstraint::getType() const
+NonlinearFunctionType QuadraticConstraint::getType() const
 {
-    return TranscendentalFunctionType::QUADRATIC;
+    return NonlinearFunctionType::QUADRATIC;
 }
 
 NonlinearConstraint *QuadraticConstraint::duplicateConstraint() const

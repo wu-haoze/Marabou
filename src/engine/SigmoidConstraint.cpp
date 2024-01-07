@@ -56,9 +56,9 @@ SigmoidConstraint::SigmoidConstraint( const String &serializedSigmoid )
     _b = atoi( var->ascii() );
 }
 
-TranscendentalFunctionType SigmoidConstraint::getType() const
+NonlinearFunctionType SigmoidConstraint::getType() const
 {
-    return TranscendentalFunctionType::SIGMOID;
+    return NonlinearFunctionType::SIGMOID;
 }
 
 NonlinearConstraint *SigmoidConstraint::duplicateConstraint() const

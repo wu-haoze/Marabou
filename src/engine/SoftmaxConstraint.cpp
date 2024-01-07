@@ -63,9 +63,9 @@ SoftmaxConstraint::SoftmaxConstraint( const String &serializedSoftmax )
   ASSERT( _inputs.size() == d );
 }
 
-TranscendentalFunctionType SoftmaxConstraint::getType() const
+NonlinearFunctionType SoftmaxConstraint::getType() const
 {
-  return TranscendentalFunctionType::SOFTMAX;
+  return NonlinearFunctionType::SOFTMAX;
 }
 
 NonlinearConstraint *SoftmaxConstraint::duplicateConstraint() const

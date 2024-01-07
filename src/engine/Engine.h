@@ -346,9 +346,9 @@ private:
     List<PiecewiseLinearConstraint *> _plConstraints;
 
     /*
-      The existing transcendental constraints.
+      The existing nonlinear constraints.
     */
-    List<NonlinearConstraint *> _tsConstraints;
+    List<NonlinearConstraint *> _nlConstraints;
 
     /*
       Piecewise linear constraints that are currently violated.

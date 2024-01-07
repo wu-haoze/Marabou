@@ -149,7 +149,7 @@ private:
     Map<unsigned, double> _lowerBounds;
     Map<unsigned, double> _upperBounds;
     List<PiecewiseLinearConstraint *> _plConstraints;
-    List<NonlinearConstraint *> _tsConstraints;
+    List<NonlinearConstraint *> _nlConstraints;
 
     Map<unsigned, double> _solution;
 

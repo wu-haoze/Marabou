@@ -85,13 +85,13 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
         }
     }
 
-    // Add Transcendental Constraints
-    for ( const auto &tsConstraint : inputQuery.getNonlinearConstraints() )
+    // Add Nonlinear Constraints
+    for ( const auto &nlConstraint : inputQuery.getNonlinearConstraints() )
     {
-        switch ( tsConstraint->getType() )
+        switch ( nlConstraint->getType() )
         {
-        case TranscendentalFunctionType::SIGMOID:
-            encodeSigmoidConstraint( gurobi, (SigmoidConstraint *)tsConstraint );
+        case NonlinearFunctionType::SIGMOID:
+            encodeSigmoidConstraint( gurobi, (SigmoidConstraint *)nlConstraint );
             break;
         default:
             throw MarabouError( MarabouError::UNSUPPORTED_TRANSCENDENTAL_CONSTRAINT,
