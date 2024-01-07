@@ -9,7 +9,9 @@
  ** All rights reserved. See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
  **
- ** [[ Add lengthier description here ]]
+ ** SoftmaxConstraint implements the following constraint:
+ ** f_i = e^b_i / (e^b_1 + ... + e^b_n) for each of the Softmax output
+ **
 **/
 
 #ifndef __SoftmaxConstraint_h__
@@ -87,18 +89,18 @@ public:
     const Vector<unsigned> &getInputs() const;
     const Vector<unsigned> &getOutputs() const;
 
-    static void softmax( const Vector<double> &input, Vector<double> &output );
-
-    static void xTilda( const Vector<double> &input, double value,
-                      Vector<double> &output );
-
-    static double SE( const Vector<double> &input );
-
-    static double LSE( const Vector<double> &input );
-
 private:
     Vector<unsigned> _inputs;
     Vector<unsigned> _outputs;
+
+    static void softmax( const Vector<double> &input, Vector<double> &output );
+
+    static void xTilda( const Vector<double> &input, double value,
+                        Vector<double> &output );
+
+    static double sumOfExponential( const Vector<double> &input );
+
+    static double logSumOfExponential( const Vector<double> &input );
 };
 
 #endif // __SoftmaxConstraint_h__
