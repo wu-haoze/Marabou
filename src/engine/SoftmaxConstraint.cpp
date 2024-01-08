@@ -35,13 +35,13 @@ SoftmaxConstraint::SoftmaxConstraint( const Vector<unsigned> &inputs,
   , _inputs( inputs )
   , _outputs( outputs )
 {
-  ASsumOfExponentialRT( _inputs.size() == _outputs.size() );
+  ASSERT( _inputs.size() == _outputs.size() );
 }
 
 SoftmaxConstraint::SoftmaxConstraint( const String &serializedSoftmax )
 {
   String constraintType = serializedSoftmax.substring( 0, 7 );
-  ASsumOfExponentialRT( constraintType == String( "softmax" ) );
+  ASSERT( constraintType == String( "softmax" ) );
 
   // Remove the constraint type in serialized form
   String serializedValues = serializedSoftmax.substring( 8, serializedSoftmax.length() - 8 );
@@ -59,8 +59,8 @@ SoftmaxConstraint::SoftmaxConstraint( const String &serializedSoftmax )
       _outputs.append(atoi(token.ascii()));
   }
 
-  ASsumOfExponentialRT( _inputs.size() == _outputs.size() );
-  ASsumOfExponentialRT( _inputs.size() == d );
+  ASSERT( _inputs.size() == _outputs.size() );
+  ASSERT( _inputs.size() == d );
 }
 
 NonlinearFunctionType SoftmaxConstraint::getType() const
@@ -100,14 +100,14 @@ void SoftmaxConstraint::unregisterAsWatcher( ITableau *tableau )
 
 void SoftmaxConstraint::notifyLowerBound( unsigned variable, double bound )
 {
-  ASsumOfExponentialRT( participatingVariable( variable ) );
+  ASSERT( participatingVariable( variable ) );
 
   tightenLowerBound(variable, bound);
 }
 
 void SoftmaxConstraint::notifyUpperBound( unsigned variable, double bound )
 {
-  ASsumOfExponentialRT( participatingVariable( variable ) );
+  ASSERT( participatingVariable( variable ) );
 
   tightenUpperBound(variable, bound);
 }
@@ -129,8 +129,8 @@ List<unsigned> SoftmaxConstraint::getParticipatingVariables() const
 
 void SoftmaxConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
-  ASsumOfExponentialRT( participatingVariable( oldIndex ) );
-  ASsumOfExponentialRT( !participatingVariable( newIndex ) );
+  ASSERT( participatingVariable( oldIndex ) );
+  ASSERT( !participatingVariable( newIndex ) );
 
   if ( _assignment.exists( oldIndex ) )
     {
@@ -236,7 +236,8 @@ const Vector<unsigned> &SoftmaxConstraint::getOutputs() const
 
 void SoftmaxConstraint::softmax( const Vector<double> &input, Vector<double> &output )
 {
-    // A stable softmax implementation: https://stackoverflow.com/questions/42599498/numercially-stable-softmax
+    // A stable softmax implementation:
+    // https://stackoverflow.com/questions/42599498/numercially-stable-softmax
     unsigned maxIndex = 0;
     for ( unsigned i = 0; i < input.size(); ++i )
         if (input[i] > input[maxIndex])
@@ -248,7 +249,7 @@ void SoftmaxConstraint::softmax( const Vector<double> &input, Vector<double> &ou
     output.clear();
 
     for ( const auto &value : inputTilda )
-        output.append(std::exp( value ));
+        output.append( std::exp( value ) );
 
     double se = sumOfExponential(inputTilda);
 

@@ -20,6 +20,7 @@
 #include "Layer.h"
 #include "MStringf.h"
 #include "NLRError.h"
+#include "SoftmaxBoundType.h"
 #include <climits>
 
 namespace NLR {
@@ -110,7 +111,7 @@ private:
     double *_workLb;
     double *_workUb;
 
-    String _boundType;
+    SoftmaxBoundType _boundType;
 
     Set<unsigned>  _residualLayerIndices;
     Map<unsigned, double *>  _residualLb;

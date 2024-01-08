@@ -89,18 +89,20 @@ public:
     const Vector<unsigned> &getInputs() const;
     const Vector<unsigned> &getOutputs() const;
 
-private:
-    Vector<unsigned> _inputs;
-    Vector<unsigned> _outputs;
-
     static void softmax( const Vector<double> &input, Vector<double> &output );
 
+    // Given a vector input, subtract value from each element in the vector and store
+    // the result in output.
     static void xTilda( const Vector<double> &input, double value,
                         Vector<double> &output );
 
     static double sumOfExponential( const Vector<double> &input );
 
     static double logSumOfExponential( const Vector<double> &input );
+
+private:
+    Vector<unsigned> _inputs;
+    Vector<unsigned> _outputs;
 };
 
 #endif // __SoftmaxConstraint_h__
