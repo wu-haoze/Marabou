@@ -25,10 +25,68 @@ DisjunctionConstraint::DisjunctionConstraint( const List<PiecewiseLinearCaseSpli
     extractParticipatingVariables();
 }
 
-DisjunctionConstraint::DisjunctionConstraint( const String &/* serializedDisjunction */ )
+DisjunctionConstraint::DisjunctionConstraint( const String &serializedDisjunction )
 {
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
-                        "Construct DisjunctionConstraint from String" );
+    List<PiecewiseLinearCaseSplit> disjuncts;
+    String serializedValues = serializedDisjunction.substring
+        ( 5, serializedDisjunction.length() - 5 );
+    List<String> values = serializedValues.tokenize( "," );
+    auto val = values.begin();
+    unsigned numDisjuncts = atoi(val->ascii());
+    ++val;
+    for ( unsigned i = 0; i < numDisjuncts; ++i )
+    {
+        PiecewiseLinearCaseSplit split;
+        unsigned numBounds = atoi(val->ascii());
+        ++val;
+        for ( unsigned bi = 0; bi < numBounds; ++bi )
+        {
+            Tightening::BoundType type = ( *val == "l") ? Tightening::LB : Tightening::UB;
+            ++val;
+            unsigned var = atoi(val->ascii());
+            ++val;
+            double bd = atof(val->ascii());
+            ++val;
+            split.storeBoundTightening( Tightening(var, bd, type) );
+        }
+        unsigned numEquations = atoi(val->ascii());
+
+        ++val;
+        for ( unsigned ei = 0; ei < numEquations; ++ei )
+        {
+            Equation::EquationType type = Equation::EQ;
+            if ( *val == "l" )
+                type = Equation::LE;
+            else if ( *val == "g" )
+                type = Equation::GE;
+            else
+            {
+                ASSERT( *val == "e");
+            }
+            Equation eq(type);
+            ++val;
+            unsigned numAddends = atoi(val->ascii());
+            ++val;
+            for ( unsigned ai = 0; ai < numAddends; ++ai )
+            {
+                double coef = atof(val->ascii());
+                ++val;
+                unsigned var = atoi(val->ascii());
+                ++val;
+                eq.addAddend( coef, var );
+            }
+            eq.setScalar(atof(val->ascii()));
+            ++val;
+            split.addEquation(eq);
+        }
+	split.dump();
+        disjuncts.append(split);
+    }
+
+    _disjuncts = disjuncts;
+    _feasibleDisjuncts = disjuncts;
+
+    extractParticipatingVariables();
 }
 
 PiecewiseLinearConstraint *DisjunctionConstraint::duplicateConstraint() const
@@ -202,8 +260,36 @@ void DisjunctionConstraint::getCostFunctionComponent( Map<unsigned, double> &/* 
 
 String DisjunctionConstraint::serializeToString() const
 {
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED,
-                        "Serialize DisjunctionConstraint to String" );
+        String s = "disj,";
+    s += Stringf("%u,", _disjuncts.size());
+    for ( const auto &disjunct : _disjuncts )
+    {
+        s += Stringf("%u,", disjunct.getBoundTightenings().size());
+        for ( const auto &bound : disjunct.getBoundTightenings() )
+        {
+            if ( bound._type == Tightening::LB )
+                s += Stringf("l,%u,%f,", bound._variable, bound._value);
+            else if ( bound._type == Tightening::UB )
+                s += Stringf("u,%u,%f,", bound._variable, bound._value);
+        }
+        s += Stringf("%u,", disjunct.getEquations().size());
+        for ( const auto &equation : disjunct.getEquations() )
+        {
+            if ( equation._type == Equation::LE )
+                s += Stringf("l,");
+            else if ( equation._type == Equation::GE )
+                s += Stringf("g,");
+            else
+                s += Stringf("e,");
+            s += Stringf("%u,", equation._addends.size());
+            for ( const auto &addend : equation._addends )
+            {
+                s += Stringf("%f,%u,", addend._coefficient, addend._variable);
+            }
+            s += Stringf("%f,", equation._scalar );
+        }
+    }
+    return s;
 }
 
 bool DisjunctionConstraint::supportsSymbolicBoundTightening() const

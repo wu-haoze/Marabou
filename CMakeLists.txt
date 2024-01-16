@@ -91,8 +91,8 @@ if(${BUILD_PYTHON})
 endif()
 
 if (NOT MSVC)
-    set(COMPILE_FLAGS  -Wall -Wextra  -Werror -MMD) #-Wno-deprecated
-    set(RELEASE_FLAGS -O3) #-Wno-deprecated
+    set(COMPILE_FLAGS  -Wall -Wextra -MMD) #-Wno-deprecated
+    set(RELEASE_FLAGS ${COMPILE_FLAGS} -O3) #-Wno-deprecated
 endif()
 
 if (RUN_MEMORY_TEST)

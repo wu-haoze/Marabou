@@ -16,6 +16,7 @@
 
 #include "AutoFile.h"
 #include "Debug.h"
+#include "DisjunctionConstraint.h"
 #include "Equation.h"
 #include "GlobalConfiguration.h"
 #include "InputQuery.h"
@@ -208,6 +209,11 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
         else if ( coType == "max" )
         {
             constraint = new MaxConstraint( serializeConstraint );
+        }
+        else if ( coType == "disj" )
+        {	    
+	    constraint = new DisjunctionConstraint( serializeConstraint );
+  
         }
         else
         {
