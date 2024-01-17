@@ -270,6 +270,7 @@ PYBIND11_MODULE(MarabouCore, m) {
         .value("LE", Equation::EquationType::LE)
         .export_values();
     py::class_<Statistics>(m, "Statistics")
+        .def("isUnsat", &Statistics::isUnsat)
         .def("getMaxStackDepth", &Statistics::getMaxStackDepth)
         .def("getNumPops", &Statistics::getNumPops)
         .def("getNumVisitedTreeStates", &Statistics::getNumVisitedTreeStates)

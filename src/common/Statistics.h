@@ -24,6 +24,9 @@ class Statistics
 public:
     Statistics();
 
+    void unsat() { _unsat = true; };
+    bool isUnsat() { return _unsat; };
+    
     /*
       Print the current statistics.
     */
@@ -150,6 +153,8 @@ public:
     void printStartingIteration( unsigned long long iteration, String message );
 
 private:
+    bool _unsat = false;
+    
     // Initial timestamp
     struct timespec _startTime;
 

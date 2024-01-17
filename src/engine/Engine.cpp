@@ -284,6 +284,7 @@ bool Engine::solve( unsigned timeoutInSeconds )
                     _statistics.print();
                 }
                 _exitCode = Engine::UNSAT;
+		_statistics.unsat();
                 return false;
             }
         }
@@ -1089,6 +1090,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         _statistics.setPreprocessingTime( TimeUtils::timePassed( start, end ) );
 
         _exitCode = Engine::UNSAT;
+	_statistics.unsat();
         return false;
     }
 
