@@ -39,110 +39,55 @@ public:
       *symbolicLbInTermsOfPredecessor, double *symbolicUbInTermsOfPredecessor,
       unsigned targetLayerSize, DeepPolyElement *predecessor );
 
-    static double L_LSE1( const Vector<double> &input,
-                          const Vector<double> &inputLb,
-                          const Vector<double> &inputUb,
-                          unsigned i );
-    static double dL_LSE1dx( const Vector<double> &c,
-                             const Vector<double> &inputLb,
-                             const Vector<double> &inputUb,
-                             unsigned i, unsigned di);
-    static double L_LSE2( const Vector<double> &input,
-                          const Vector<double> &inputLb,
-                          const Vector<double> &inputUb,
-                          unsigned i );
-    static double dL_LSE2dx( const Vector<double> &c,
-                             const Vector<double> &inputLb,
-                             const Vector<double> &inputUb,
-                             unsigned i, unsigned di);
-    static double U_LSE( const Vector<double> &input,
-                         const Vector<double> &outputLb,
-                         const Vector<double> &outputUb,
-                         unsigned i );
-    static double dU_LSEdx( const Vector<double> &c,
-                            const Vector<double> &outputLb,
-                            const Vector<double> &outputUb,
-                            unsigned i, unsigned di);
-    static double L_ER( const Vector<double> &input,
-                        const Vector<double> &inputLb,
-                        const Vector<double> &inputUb,
-                        unsigned i );
-    static double dL_ERdx( const Vector<double> &c,
-                           const Vector<double> &inputLb,
-                           const Vector<double> &inputUb,
-                           unsigned i, unsigned di);
-    static double U_ER( const Vector<double> &input,
-                        const Vector<double> &outputLb,
-                        const Vector<double> &outputUb,
-                        unsigned i );
-    static double dU_ERdx( const Vector<double> &c,
-                         const Vector<double> &outputLb,
-                         const Vector<double> &outputUb,
-                         unsigned i, unsigned di);
-    static double L_LS( const Vector<double> &input,
-                        const Vector<double> &inputLb,
-                        const Vector<double> &inputUb,
-                        unsigned i );
-    static double dL_LSdx( const Vector<double> &c,
-                           const Vector<double> &inputLb,
-                           const Vector<double> &inputUb,
-                           unsigned i, unsigned di);
-    static double U_LS( const Vector<double> &input,
-                        const Vector<double> &inputLb,
-                        const Vector<double> &inputUb,
-                        unsigned i );
-    static double dU_LSdx( const Vector<double> &c,
-                           const Vector<double> &inputLb,
-                           const Vector<double> &inputUb,
-                           unsigned i, unsigned di);
-    static double L_Linear( const Vector<double> &inputLb,
-                            const Vector<double> &inputUb,
-                            unsigned i );
-    static double U_Linear( const Vector<double> &inputLb,
-                            const Vector<double> &inputUb,
-                            unsigned i );
+    // The following methods compute concrete softmax output bounds
+    // using different linear approximation, as well as the coefficients
+    // of softmax inputs in the symbolic bounds
+    static double LSELowerBound( const Vector<double> &sourceMids,
+                                  const Vector<double> &inputLbs,
+                                  const Vector<double> &inputUbs,
+                                  unsigned outputIndex );
+    static double dLSELowerBound( const Vector<double> &sourceMids,
+                                   const Vector<double> &inputLbs,
+                                   const Vector<double> &inputUbs,
+                                   unsigned outputIndex,
+                                   unsigned inputIndex );
+    static double LSEUpperBound( const Vector<double> &sourceMids,
+                                 const Vector<double> &outputLb,
+                                 const Vector<double> &outputUb,
+                                 unsigned outputIndex );
+    static double dLSEUpperbound( const Vector<double> &sourceMids,
+                                  const Vector<double> &outputLb,
+                                  const Vector<double> &outputUb,
+                                  unsigned outputIndex,
+                                  unsigned inputIndex );
+    static double ERLowerBound( const Vector<double> &sourceMids,
+                                const Vector<double> &inputLbs,
+                                const Vector<double> &inputUbs,
+                                unsigned outputIndex );
+    static double dERLowerBound( const Vector<double> &sourceMids,
+                                 const Vector<double> &inputLbs,
+                                 const Vector<double> &inputUbs,
+                                 unsigned outputIndex,
+                                 unsigned inputIndex );
+    static double ERUpperBound( const Vector<double> &sourceMids,
+                                const Vector<double> &outputLbs,
+                                const Vector<double> &outputUbs,
+                                unsigned outputIndex );
+    static double dERUpperBound( const Vector<double> &sourceMids,
+                                 const Vector<double> &outputLbs,
+                                 const Vector<double> &outputUbs,
+                                 unsigned outputIndex,
+                                 unsigned inputIndex );
+    static double linearLowerBound( const Vector<double> &outputLbs,
+                                    const Vector<double> &outputUbs,
+                                    unsigned outputIndex );
+    static double linearUpperBound( const Vector<double> &outputLbs,
+                                    const Vector<double> &outputUbs,
+                                    unsigned outputIndex );
 
 private:
-
-    /*
-      Memory allocated to store concrete bounds computed at different stages
-      of back substitution.
-    */
-    double *_workLb;
-    double *_workUb;
-
     SoftmaxBoundType _boundType;
 
-    Set<unsigned>  _residualLayerIndices;
-    Map<unsigned, double *>  _residualLb;
-    Map<unsigned, double *>  _residualUb;
-
-    /*
-      Compute the concrete upper- and lower- bounds of this layer by concretizing
-      the symbolic bounds with respect to every preceding element.
-    */
-    void computeBoundWithBackSubstitution( const Map<unsigned, DeepPolyElement *>
-                                           &deepPolyElementsBefore );
-
-    /*
-      Compute concrete bounds using symbolic bounds with respect to a
-      sourceElement.
-    */
-    void concretizeSymbolicBound( const double *symbolicLb, const double
-                                  *symbolicUb, const double *symbolicLowerBias,
-                                  const double *symbolicUpperBias,
-                                  DeepPolyElement *sourceElement,
-                                  const Map<unsigned, DeepPolyElement *>
-                                  &deepPolyElementsBefore );
-
-    void concretizeSymbolicBoundForSourceLayer( const double *symbolicLb,
-                                                const double*symbolicUb,
-                                                const double *symbolicLowerBias,
-                                                const double *symbolicUpperBias,
-                                                DeepPolyElement *sourceElement );
-
-    void allocateMemoryForResidualsIfNeeded( unsigned residualLayerIndex,
-                                             unsigned residualLayerSize );
     void allocateMemory();
     void freeMemoryIfNeeded();
     void log( const String &message );

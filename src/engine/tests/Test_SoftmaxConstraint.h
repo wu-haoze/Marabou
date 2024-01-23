@@ -50,9 +50,8 @@ public:
         TS_ASSERT(FloatUtils::areEqual(output, 0.25));
 
 
-      TS_ASSERT(FloatUtils::areEqual(SoftmaxConstraint::SE(inputs), 10.8731273138));
-
-      TS_ASSERT(FloatUtils::areEqual(SoftmaxConstraint::LSE(inputs), 2.38629436111989061));
+      TS_ASSERT(FloatUtils::areEqual(SoftmaxConstraint::sumOfExponential(inputs),
+                                     10.8731273138));
     }
 
   void test_tighten_bounds()

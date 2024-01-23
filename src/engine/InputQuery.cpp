@@ -1425,37 +1425,37 @@ bool InputQuery::constructSoftmaxLayer( NLR::NetworkLevelReasoner *nlr,
 
     List<NeuronInformation> newNeurons;
 
-    // Look for Maxes where all the element variables have already been handled
+    // Look for Softmaxes where all the element variables have already been handled
     const List<NonlinearConstraint *> &nlConstraints =
         getNonlinearConstraints();
 
     for ( const auto &ts : nlConstraints )
     {
-      // Only consider Signs
+      // Only consider Softmax
       if ( ts->getType() != SOFTMAX )
         continue;
 
       const SoftmaxConstraint *softmax = (const SoftmaxConstraint *)ts;
 
-      // Have all elements been handled?
-      bool missingElement = false;
-      for ( const auto &element : softmax->getInputs() )
+      // Have all input variables been handled?
+      bool missingInput = false;
+      for ( const auto &input : softmax->getInputs() )
       {
-        if ( !handledVariableToLayer.exists( element ) )
+        if ( !handledVariableToLayer.exists( input ) )
           {
-            missingElement = true;
+            missingInput = true;
             break;
           }
       }
 
-      if ( missingElement )
+      if ( missingInput )
         continue;
 
-      // If the f variable has also been handled, ignore this constraint
+      // If any output has also been handled, ignore this constraint
       bool outputHandled = false;
-      for ( const auto &element : softmax->getOutputs() )
+      for ( const auto &output : softmax->getOutputs() )
       {
-        if ( handledVariableToLayer.exists( element ) )
+        if ( handledVariableToLayer.exists( output ) )
         {
           outputHandled = true;
           break;
@@ -1464,10 +1464,10 @@ bool InputQuery::constructSoftmaxLayer( NLR::NetworkLevelReasoner *nlr,
 
       if ( outputHandled ) continue;
 
-      for ( const auto &element : softmax->getOutputs() )
+      for ( const auto &output : softmax->getOutputs() )
       {
-        // Elements have been handled, f hasn't. Add f
-        newNeurons.append( NeuronInformation( element,
+        // inputs have been handled, outputs haven't. Add the output
+        newNeurons.append( NeuronInformation( output,
                                               newNeurons.size(),
                                               softmax->getInputs() ) );
       }

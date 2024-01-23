@@ -18,13 +18,14 @@
 
 /*
   The type of symbolic bounds to use for the Softmax function.
-  Details can be found in "Convex Bounds on the Softmax Function with Applications to Robustness Verification" by Wei et al.
+  Details can be found in "Convex Bounds on the Softmax Function
+  with Applications to Robustness Verification" by Wei et al. AISTATS'23
 */
 enum class SoftmaxBoundType
 {
      EXPONENTIAL_RECIPROCAL_DECOMPOSITION = 0,
-     LOG_SUM_EXP_DECOMPOSITION1 = 1,
-     LOG_SUM_EXP_DECOMPOSITION2 = 2,
+     LOG_SUM_EXP_DECOMPOSITION = 1 // We use equation (21) in the paper for the lower bound
+     // TODO: implement equation (22) for the LSE lower bound
 };
 
 #endif // __SoftmaxBoundType_h__

@@ -22,6 +22,7 @@
 #include "NetworkLevelReasoner.h"
 #include "Tightening.h"
 #include "DeepPolySoftmaxElement.h"
+#include "Options.h"
 
 class DeepPolyAnalysisTestSuite : public CxxTest::TestSuite
 {
@@ -1024,59 +1025,116 @@ public:
 
   void test_deeppoly_softmax2()
   {
-      NLR::NetworkLevelReasoner nlr;
-      MockTableau tableau;
-      nlr.setTableau( &tableau );
-      populateNetworkSoftmax( nlr, tableau );
+      {
+          Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "lse" );
+          NLR::NetworkLevelReasoner nlr;
+          MockTableau tableau;
+          nlr.setTableau( &tableau );
+          populateNetworkSoftmax( nlr, tableau );
 
-      tableau.setLowerBound( 0, 1 );
-      tableau.setUpperBound( 0, 1.00001 );
-      tableau.setLowerBound( 1, 1 );
-      tableau.setUpperBound( 1, 1.00001 );
-      tableau.setLowerBound( 2, 1 );
-      tableau.setUpperBound( 2, 1.00001 );
+          tableau.setLowerBound( 0, 1 );
+          tableau.setUpperBound( 0, 1.000001 );
+          tableau.setLowerBound( 1, 1 );
+          tableau.setUpperBound( 1, 1.000001 );
+          tableau.setLowerBound( 2, 1 );
+          tableau.setUpperBound( 2, 1.000001 );
 
-      // Invoke DeepPoly
-      TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
-      TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+          // Invoke DeepPoly
+          TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+          TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
 
-      /*
-        Input ranges:
+          /*
+            Input ranges:
 
-        x0: [1, 1.0001]
-        x1: [1, 1.0001]
-        x2: [1, 1.0001]
-      */
+            x0: [1, 1.0001]
+            x1: [1, 1.0001]
+            x2: [1, 1.0001]
+          */
+          List<Tightening> expectedBounds({
+                  Tightening( 3, 2, Tightening::LB ),
+                  Tightening( 3, 2, Tightening::UB ),
+                  Tightening( 4, 3, Tightening::LB ),
+                  Tightening( 4, 3, Tightening::UB ),
+                  Tightening( 5, 0, Tightening::LB ),
+                  Tightening( 5, 0, Tightening::UB ),
+                  Tightening( 6, 0.2595, Tightening::LB ),
+                  Tightening( 6, 0.2595, Tightening::UB ),
+                  Tightening( 7, 0.7054, Tightening::LB ),
+                  Tightening( 7, 0.7054, Tightening::UB ),
+                  Tightening( 8, 0.0351, Tightening::LB ),
+                  Tightening( 8, 0.0351, Tightening::UB ),
+                  Tightening( 9, 1, Tightening::LB ),
+                  Tightening( 9, 1, Tightening::UB ),
+                  Tightening( 10, -1, Tightening::LB ),
+                  Tightening( 10, -1, Tightening::UB )
 
-      List<Tightening> expectedBounds({
-              Tightening( 3, 2, Tightening::LB ),
-              Tightening( 3, 2, Tightening::UB ),
-              Tightening( 4, 3, Tightening::LB ),
-              Tightening( 4, 3, Tightening::UB ),
-              Tightening( 5, 0, Tightening::LB ),
-              Tightening( 5, 0, Tightening::UB ),
-              Tightening( 6, 0.2595, Tightening::LB ),
-              Tightening( 6, 0.2595, Tightening::UB ),
-              Tightening( 7, 0.7054, Tightening::LB ),
-              Tightening( 7, 0.7054, Tightening::UB ),
-              Tightening( 8, 0.0351, Tightening::LB ),
-              Tightening( 8, 0.0351, Tightening::UB ),
-              Tightening( 9, 1, Tightening::LB ),
-              Tightening( 9, 1, Tightening::UB ),
-              Tightening( 10, -1, Tightening::LB ),
-              Tightening( 10, -1, Tightening::UB )
+              });
 
-        });
+          List<Tightening> bounds;
+          TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
 
-      List<Tightening> bounds;
-      TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+          for ( const auto &b : bounds )
+              b.dump();
 
-      for ( const auto &b : bounds )
-        b.dump();
+          TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+          for ( const auto &bound : expectedBounds )
+              TS_ASSERT( existsBound( bounds, bound ) );
+      }
+      {
+          Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "er" );
+          NLR::NetworkLevelReasoner nlr;
+          MockTableau tableau;
+          nlr.setTableau( &tableau );
+          populateNetworkSoftmax( nlr, tableau );
 
-      TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
-      for ( const auto &bound : expectedBounds )
-        TS_ASSERT( existsBound( bounds, bound ) );
+          tableau.setLowerBound( 0, 1 );
+          tableau.setUpperBound( 0, 1.000001 );
+          tableau.setLowerBound( 1, 1 );
+          tableau.setUpperBound( 1, 1.000001 );
+          tableau.setLowerBound( 2, 1 );
+          tableau.setUpperBound( 2, 1.000001 );
+
+          // Invoke DeepPoly
+          TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+          TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+          /*
+            Input ranges:
+
+            x0: [1, 1.0001]
+            x1: [1, 1.0001]
+            x2: [1, 1.0001]
+          */
+          List<Tightening> expectedBounds({
+                  Tightening( 3, 2, Tightening::LB ),
+                  Tightening( 3, 2, Tightening::UB ),
+                  Tightening( 4, 3, Tightening::LB ),
+                  Tightening( 4, 3, Tightening::UB ),
+                  Tightening( 5, 0, Tightening::LB ),
+                  Tightening( 5, 0, Tightening::UB ),
+                  Tightening( 6, 0.2595, Tightening::LB ),
+                  Tightening( 6, 0.2595, Tightening::UB ),
+                  Tightening( 7, 0.7054, Tightening::LB ),
+                  Tightening( 7, 0.7054, Tightening::UB ),
+                  Tightening( 8, 0.0351, Tightening::LB ),
+                  Tightening( 8, 0.0351, Tightening::UB ),
+                  Tightening( 9, 1, Tightening::LB ),
+                  Tightening( 9, 1, Tightening::UB ),
+                  Tightening( 10, -1, Tightening::LB ),
+                  Tightening( 10, -1, Tightening::UB )
+
+              });
+
+          List<Tightening> bounds;
+          TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+          for ( const auto &b : bounds )
+              b.dump();
+
+          TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+          for ( const auto &bound : expectedBounds )
+              TS_ASSERT( existsBound( bounds, bound ) );
+      }
   }
 
   bool existsBound(const List<Tightening> &bounds, const Tightening &t)
@@ -1225,7 +1283,6 @@ public:
 
   void test_deeppoly_softmax3()
   {
-    std::cout << "test 3" << std::endl;
       NLR::NetworkLevelReasoner nlr;
       MockTableau tableau;
       nlr.setTableau( &tableau );
@@ -1272,38 +1329,28 @@ public:
         TS_ASSERT( existsBound( bounds, bound ) );
   }
 
-  void test_softmax_bounds()
+  void test_softmax_bounds_er()
   {
     Vector<double> inputLb = {-1, 0, 1};
     Vector<double> inputUb = {0, 2, 4};
     Vector<double> input = {-0.5, 1, 2.5};
 
-    double value = NLR::DeepPolySoftmaxElement::L_ER(input, inputLb, inputUb, 0);
-    std::cout << "L_ER: " << value << std::endl;
+    double value = NLR::DeepPolySoftmaxElement::ERLowerBound(input, inputLb, inputUb, 0);
     TS_ASSERT( FloatUtils::areEqual(value, 0.0114799, 0.00001) );
-
-    value = NLR::DeepPolySoftmaxElement::dL_ERdx(input, inputLb, inputUb, 0, 0);
-    std::cout << "dL_ERdx0: " << value << std::endl;
+    value = NLR::DeepPolySoftmaxElement::dERLowerBound(input, inputLb, inputUb, 0, 0);
     TS_ASSERT( FloatUtils::areEqual(value, 0.00563867, 0.00001) );
-
-    value = NLR::DeepPolySoftmaxElement::dL_ERdx(input, inputLb, inputUb, 0, 1);
-    std::cout << "dL_ERdx1: " << value << std::endl;
+    value = NLR::DeepPolySoftmaxElement::dERLowerBound(input, inputLb, inputUb, 0, 1);
     TS_ASSERT( FloatUtils::areEqual(value, -0.000838421, 0.00001) );
 
 
     Vector<double> outputLb = {0.2, 0, 0};
     Vector<double> outputUb = {0.4, 0.1, 0.1};
 
-    value = NLR::DeepPolySoftmaxElement::U_ER(input, outputLb, outputUb, 0);
-    std::cout << "U_ER: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, -1.44538, 0.001) );
-
-    value = NLR::DeepPolySoftmaxElement::dU_ERdx(input, outputLb, outputUb, 0, 0);
-    std::cout << "dU_ERdx0: " << value << std::endl;
+    value = NLR::DeepPolySoftmaxElement::ERUpperBound(input, outputLb, outputUb, 0);
+    TS_ASSERT( FloatUtils::areEqual(value, -1.44538, 0.00001) );
+    value = NLR::DeepPolySoftmaxElement::dERUpperBound(input, outputLb, outputUb, 0, 0);
     TS_ASSERT( FloatUtils::areEqual(value, 1.96538, 0.00001) );
-
-    value = NLR::DeepPolySoftmaxElement::dU_ERdx(input, outputLb, outputUb, 0, 1);
-    std::cout << "dU_ERdx1: " << value << std::endl;
+    value = NLR::DeepPolySoftmaxElement::dERUpperBound(input, outputLb, outputUb, 0, 1);
     TS_ASSERT( FloatUtils::areEqual(value, -0.358535, 0.00001) );
   }
 
@@ -1312,57 +1359,20 @@ public:
     Vector<double> inputLb = {-1, 0, 1};
     Vector<double> inputUb = {0, 2, 3};
     Vector<double> input = {-0.5, 1, 2};
-
-    double value = NLR::DeepPolySoftmaxElement::L_LSE1(input, inputLb, inputUb, 0);
-    std::cout << "L_LSE1: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, 0.0365458, 0.01) );
-
-    value = NLR::DeepPolySoftmaxElement::dL_LSE1dx(input, inputLb, inputUb, 0, 0);
-    std::cout << "dL_LSE1dx0: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, 0.0365458, 0.01) );
-
-    value = NLR::DeepPolySoftmaxElement::dL_LSE1dx(input, inputLb, inputUb, 0, 1);
-    std::cout << "dL_LSE1dx1: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, -0.00703444 , 0.01) );
-
+    double value = NLR::DeepPolySoftmaxElement::LSELowerBound(input, inputLb, inputUb, 0);
+    TS_ASSERT( FloatUtils::areEqual(value, 0.0365, 0.001) );
+    value = NLR::DeepPolySoftmaxElement::dLSELowerBound(input, inputLb, inputUb, 0, 0);
+    TS_ASSERT( FloatUtils::areEqual(value, 0.0365, 0.001) );
+    value = NLR::DeepPolySoftmaxElement::dLSELowerBound(input, inputLb, inputUb, 0, 1);
+    TS_ASSERT( FloatUtils::areEqual(value, -0.00703444 , 0.001) );
 
     Vector<double> outputLb = {0.2, 0, 0};
     Vector<double> outputUb = {0.4, 0.1, 0.1};
-
-    value = NLR::DeepPolySoftmaxElement::U_LSE(input, outputLb, outputUb, 0);
-    std::cout << "U_LSE: " << value << std::endl;
+    value = NLR::DeepPolySoftmaxElement::LSEUpperBound(input, outputLb, outputUb, 0);
     TS_ASSERT( FloatUtils::areEqual(value, -0.164165, 0.00001) );
-
-    value = NLR::DeepPolySoftmaxElement::dU_LSEdx(input, outputLb, outputUb, 0, 0);
-    std::cout << "dU_LSEdx0: " << value << std::endl;
+    value = NLR::DeepPolySoftmaxElement::dLSEUpperbound(input, outputLb, outputUb, 0, 0);
     TS_ASSERT( FloatUtils::areEqual(value, 0.272204, 0.00001) );
-
-    value = NLR::DeepPolySoftmaxElement::dU_LSEdx(input, outputLb, outputUb, 0, 1);
-    std::cout << "dU_LSEdx1: " << value << std::endl;
+    value = NLR::DeepPolySoftmaxElement::dLSEUpperbound(input, outputLb, outputUb, 0, 1);
     TS_ASSERT( FloatUtils::areEqual(value, -0.073207 , 0.00001) );
   }
-
-  void test_softmax_bounds_lse2()
-  {
-    Vector<double> inputLb = {-1, 0, 1, 2};
-    Vector<double> inputUb = {0, 2, 3, 4};
-    Vector<double> input = {-0.5, 1, 2, 3};
-
-    double value = NLR::DeepPolySoftmaxElement::L_LSE2(input, inputLb, inputUb, 0);
-    std::cout << "L_LSE2: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, 0.0101873, 0.000001) );
-
-    value = NLR::DeepPolySoftmaxElement::dL_LSE2dx(input, inputLb, inputUb, 0, 0);
-    std::cout << "dL_LSE2dx0: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, 0.0100399, 0.000001) );
-
-    value = NLR::DeepPolySoftmaxElement::dL_LSE2dx(input, inputLb, inputUb, 0, 1);
-    std::cout << "dL_LSE2dx1: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, -0.000843447, 0.000001) );
-
-    value = NLR::DeepPolySoftmaxElement::dL_LSE2dx(input, inputLb, inputUb, 0, 3);
-    std::cout << "dL_LSE2dx3: " << value << std::endl;
-    TS_ASSERT( FloatUtils::areEqual(value, -0.00690377, 0.000001) );
-  }
-
 };
