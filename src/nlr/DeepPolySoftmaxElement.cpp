@@ -260,51 +260,51 @@ namespace NLR {
         }
     }
 
-    double DeepPolySoftmaxElement::LSELowerBound( const Vector<double> &input,
-                                                   const Vector<double> &inputLb,
-                                                   const Vector<double> &inputUb,
+    double DeepPolySoftmaxElement::LSELowerBound( const Vector<double> &inputs,
+                                                   const Vector<double> &inputLbs,
+                                                   const Vector<double> &inputUbs,
                                                    unsigned i )
     {
         double sum = 0;
-        for (unsigned j = 0; j < input.size(); ++j) {
-            double lj = inputLb[j];
-            double uj = inputUb[j];
-            double xj = input[j];
+        for (unsigned j = 0; j < inputs.size(); ++j) {
+            double lj = inputLbs[j];
+            double uj = inputUbs[j];
+            double xj = inputs[j];
 
             sum += (uj - xj) / (uj - lj) * std::exp(lj) + (xj - lj)/(uj - lj) * std::exp(uj);
         }
 
-        return std::exp(input[i]) / sum;
+        return std::exp(inputs[i]) / sum;
     }
 
-    double DeepPolySoftmaxElement::dLSELowerBound( const Vector<double> &c,
-                                                    const Vector<double> &inputLb,
-                                                    const Vector<double> &inputUb,
+    double DeepPolySoftmaxElement::dLSELowerBound( const Vector<double> &inputMids,
+                                                    const Vector<double> &inputLbs,
+                                                    const Vector<double> &inputUbs,
                                                     unsigned i, unsigned di )
     {
         double val = 0;
         if (i == di)
-            val += LSELowerBound(c, inputLb, inputUb, i);
+            val += LSELowerBound(inputMids, inputLbs, inputUbs, i);
 
-        double ldi = inputLb[di];
-        double udi = inputUb[di];
+        double ldi = inputLbs[di];
+        double udi = inputUbs[di];
 
         double sum = 0;
-        for (unsigned j = 0; j < c.size(); ++j) {
-            double lj = inputLb[j];
-            double uj = inputUb[j];
-            double xj = c[j];
+        for (unsigned j = 0; j < inputMids.size(); ++j) {
+            double lj = inputLbs[j];
+            double uj = inputUbs[j];
+            double xj = inputMids[j];
 
             sum += (uj - xj) / (uj - lj) * std::exp(lj) + (xj - lj)/(uj - lj) * std::exp(uj);
         }
 
-        val -= std::exp(c[i]) / (sum * sum) * (std::exp(udi) - std::exp(ldi)) / (udi - ldi);
+        val -= std::exp(inputMids[i]) / (sum * sum) * (std::exp(udi) - std::exp(ldi)) / (udi - ldi);
 
         return val;
     }
 
 
-    double DeepPolySoftmaxElement::LSEUpperBound( const Vector<double> &input,
+    double DeepPolySoftmaxElement::LSEUpperBound( const Vector<double> &inputs,
                                                   const Vector<double> &outputLb,
                                                   const Vector<double> &outputUb,
                                                   unsigned i )
@@ -313,7 +313,7 @@ namespace NLR {
         double ui = outputUb[i];
 
         Vector<double> inputTilda;
-        SoftmaxConstraint::xTilda( input, input[i], inputTilda );
+        SoftmaxConstraint::xTilda( inputs, inputs[i], inputTilda );
 
         return ((li * std::log( ui ) - ui * std::log( li ) ) /
                 ( std::log( ui ) - std::log( li ) ) -
@@ -321,7 +321,7 @@ namespace NLR {
                 * SoftmaxConstraint::logSumOfExponential( inputTilda ) );
     }
 
-    double DeepPolySoftmaxElement::dLSEUpperbound( const Vector<double> &c,
+    double DeepPolySoftmaxElement::dLSEUpperbound( const Vector<double> &inputMids,
                                                    const Vector<double> &outputLb,
                                                    const Vector<double> &outputUb,
                                                    unsigned i, unsigned di )
@@ -331,29 +331,29 @@ namespace NLR {
 
         double val = -(ui - li) / (std::log(ui) - std::log(li));
 
-        double val2 = std::exp(c[di]) / SoftmaxConstraint::sumOfExponential(c);
+        double val2 = std::exp(inputMids[di]) / SoftmaxConstraint::sumOfExponential(inputMids);
         if (i == di)
             val2 -= 1;
 
         return val * val2;
     }
 
-    double DeepPolySoftmaxElement::ERLowerBound( const Vector<double> &input,
-                                                 const Vector<double> &inputLb,
-                                                 const Vector<double> &inputUb,
+    double DeepPolySoftmaxElement::ERLowerBound( const Vector<double> &inputs,
+                                                 const Vector<double> &inputLbs,
+                                                 const Vector<double> &inputUbs,
                                                  unsigned i )
     {
         Vector<double> inputTilda;
-        SoftmaxConstraint::xTilda(input, input[i], inputTilda);
+        SoftmaxConstraint::xTilda(inputs, inputs[i], inputTilda);
 
         double sum = 0;
-        for (unsigned j = 0; j < input.size(); ++j) {
+        for (unsigned j = 0; j < inputs.size(); ++j) {
             if ( i == j )
                 sum += 1;
             else
             {
-                double ljTilda = inputLb[j] - inputUb[i];
-                double ujTilda = inputUb[j] - inputLb[i];
+                double ljTilda = inputLbs[j] - inputUbs[i];
+                double ujTilda = inputUbs[j] - inputLbs[i];
                 double xjTilda = inputTilda[j];
 
                 sum += (ujTilda - xjTilda) / (ujTilda - ljTilda) * std::exp(ljTilda) +
@@ -364,26 +364,26 @@ namespace NLR {
         return 1 / sum;
     }
 
-    double DeepPolySoftmaxElement::dERLowerBound( const Vector<double> &c,
-                                                  const Vector<double> &inputLb,
-                                                  const Vector<double> &inputUb,
-                                                  unsigned i, unsigned di)
+    double DeepPolySoftmaxElement::dERLowerBound( const Vector<double> &inputMids,
+                                                  const Vector<double> &inputLbs,
+                                                  const Vector<double> &inputUbs,
+                                                  unsigned i, unsigned di )
     {
-        double val = ERLowerBound(c, inputLb, inputUb, i);
+        double val = ERLowerBound(inputMids, inputLbs, inputUbs, i);
 
         if ( i != di )
         {
-            double ldiTilda = inputLb[di] - inputUb[i];
-            double udiTilda = inputUb[di] - inputLb[i];
+            double ldiTilda = inputLbs[di] - inputUbs[i];
+            double udiTilda = inputUbs[di] - inputLbs[i];
             return -val * val * (std::exp(udiTilda) - std::exp(ldiTilda)) / (udiTilda - ldiTilda);
         }
         else {
             double val2 = 0;
-            for ( unsigned j = 0; j < c.size(); ++j ) {
+            for ( unsigned j = 0; j < inputMids.size(); ++j ) {
                 if ( j != i )
                 {
-                    double ljTilda = inputLb[j] - inputUb[i];
-                    double ujTilda = inputUb[j] - inputLb[i];
+                    double ljTilda = inputLbs[j] - inputUbs[i];
+                    double ujTilda = inputUbs[j] - inputLbs[i];
                     val2 += (std::exp(ujTilda) - std::exp(ljTilda)) / (ujTilda - ljTilda);
                 }
             }
@@ -391,7 +391,7 @@ namespace NLR {
         }
     }
 
-    double DeepPolySoftmaxElement::ERUpperBound( const Vector<double> &input,
+    double DeepPolySoftmaxElement::ERUpperBound( const Vector<double> &inputs,
                                                  const Vector<double> &outputLb,
                                                  const Vector<double> &outputUb,
                                                  unsigned i )
@@ -400,15 +400,15 @@ namespace NLR {
         double ui = outputUb[i];
 
         Vector<double> inputTilda;
-        SoftmaxConstraint::xTilda(input, input[i], inputTilda);
+        SoftmaxConstraint::xTilda(inputs, inputs[i], inputTilda);
 
         return ui + li - ui * li * SoftmaxConstraint::sumOfExponential(inputTilda);
     }
 
-    double DeepPolySoftmaxElement::dERUpperBound( const Vector<double> &c,
+    double DeepPolySoftmaxElement::dERUpperBound( const Vector<double> &inputMids,
                                                   const Vector<double> &outputLb,
                                                   const Vector<double> &outputUb,
-                                                  unsigned i, unsigned  di)
+                                                  unsigned i, unsigned di )
     {
         double li = outputLb[i];
         double ui = outputUb[i];
@@ -417,30 +417,30 @@ namespace NLR {
         if (i == di)
         {
             double val2 = -1;
-            for ( unsigned j = 0; j < c.size(); ++j )
-                val2 += std::exp(c[j] - c[i]);
+            for ( unsigned j = 0; j < inputMids.size(); ++j )
+                val2 += std::exp(inputMids[j] - inputMids[i]);
             return li * ui * val2;
         }
         else
-            return -li * ui * std::exp(c[di] - c[i]);
+            return -li * ui * std::exp(inputMids[di] - inputMids[i]);
     }
 
-    double DeepPolySoftmaxElement::linearLowerBound( const Vector<double> &inputLb,
-                                                     const Vector<double> &inputUb,
+    double DeepPolySoftmaxElement::linearLowerBound( const Vector<double> &inputLbs,
+                                                     const Vector<double> &inputUbs,
                                                      unsigned i )
     {
         Vector<double> uTilda;
-        SoftmaxConstraint::xTilda( inputUb, inputLb[i], uTilda );
+        SoftmaxConstraint::xTilda( inputUbs, inputLbs[i], uTilda );
         uTilda[i] = 0;
         return 1 / SoftmaxConstraint::sumOfExponential( uTilda );
     }
 
-    double DeepPolySoftmaxElement::linearUpperBound( const Vector<double> &inputLb,
-                                                     const Vector<double> &inputUb,
+    double DeepPolySoftmaxElement::linearUpperBound( const Vector<double> &inputLbs,
+                                                     const Vector<double> &inputUbs,
                                                      unsigned i )
     {
         Vector<double> lTilda;
-        SoftmaxConstraint::xTilda( inputLb, inputUb[i], lTilda );
+        SoftmaxConstraint::xTilda( inputLbs, inputUbs[i], lTilda );
         lTilda[i] = 0;
         return 1 / SoftmaxConstraint::sumOfExponential( lTilda );
     }
