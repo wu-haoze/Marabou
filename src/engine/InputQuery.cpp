@@ -1424,6 +1424,7 @@ bool InputQuery::constructSoftmaxLayer( NLR::NetworkLevelReasoner *nlr,
     };
 
     List<NeuronInformation> newNeurons;
+    unsigned currentSourceLayer = 0;
 
     // Look for Softmaxes where all the element variables have already been handled
     const List<NonlinearConstraint *> &nlConstraints =
@@ -1431,46 +1432,53 @@ bool InputQuery::constructSoftmaxLayer( NLR::NetworkLevelReasoner *nlr,
 
     for ( const auto &ts : nlConstraints )
     {
-      // Only consider Softmax
-      if ( ts->getType() != SOFTMAX )
-        continue;
+        // Only consider Softmax
+        if ( ts->getType() != SOFTMAX )
+          continue;
 
-      const SoftmaxConstraint *softmax = (const SoftmaxConstraint *)ts;
+        const SoftmaxConstraint *softmax = (const SoftmaxConstraint *)ts;
 
-      // Have all input variables been handled?
-      bool missingInput = false;
-      for ( const auto &input : softmax->getInputs() )
-      {
-        if ( !handledVariableToLayer.exists( input ) )
-          {
-            missingInput = true;
-            break;
-          }
-      }
-
-      if ( missingInput )
-        continue;
-
-      // If any output has also been handled, ignore this constraint
-      bool outputHandled = false;
-      for ( const auto &output : softmax->getOutputs() )
-      {
-        if ( handledVariableToLayer.exists( output ) )
+        // Have all input variables been handled?
+        bool missingInput = false;
+        bool sourceLayerDiffers = false;
+        for ( const auto &input : softmax->getInputs() )
         {
-          outputHandled = true;
-          break;
+            if ( !handledVariableToLayer.exists( input ) )
+            {
+                missingInput = true;
+                break;
+            }
+            else if ( newNeurons.size() && handledVariableToLayer[input] != currentSourceLayer )
+            {
+                sourceLayerDiffers = true;
+                break;
+            }
         }
-      }
 
-      if ( outputHandled ) continue;
+        if ( missingInput || sourceLayerDiffers )
+          continue;
 
-      for ( const auto &output : softmax->getOutputs() )
-      {
-        // inputs have been handled, outputs haven't. Add the output
-        newNeurons.append( NeuronInformation( output,
-                                              newNeurons.size(),
-                                              softmax->getInputs() ) );
-      }
+        // If any output has also been handled, ignore this constraint
+        bool outputHandled = false;
+        for ( const auto &output : softmax->getOutputs() )
+        {
+            if ( handledVariableToLayer.exists( output ) )
+            {
+                outputHandled = true;
+                break;
+            }
+        }
+
+        if ( outputHandled ) continue;
+
+        for ( const auto &output : softmax->getOutputs() )
+        {
+            // inputs have been handled, outputs haven't. Add the output
+            newNeurons.append( NeuronInformation( output,
+                                                  newNeurons.size(),
+                                                  softmax->getInputs() ) );
+        }
+        currentSourceLayer = handledVariableToLayer[*softmax->getInputs().begin()];
     }
 
     // No neurons found for the new layer
