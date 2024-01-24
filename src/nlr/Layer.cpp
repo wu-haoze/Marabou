@@ -232,7 +232,7 @@ void Layer::computeAssignment()
       }
     }
 
-    else if ( _type == QUADRATIC )
+    else if ( _type == BILINEAR )
     {
       for ( unsigned i = 0; i < _size; ++i )
       {
@@ -463,7 +463,7 @@ double *Layer::getBiases() const
 void Layer::addActivationSource( unsigned sourceLayer, unsigned sourceNeuron, unsigned targetNeuron )
 {
     ASSERT( _type == RELU || _type == ABSOLUTE_VALUE || _type == MAX || _type == SIGN
-            || _type == SIGMOID || _type == SOFTMAX || _type == QUADRATIC );
+            || _type == SIGMOID || _type == SOFTMAX || _type == BILINEAR );
 
     if ( !_neuronToActivationSources.exists( targetNeuron ) )
         _neuronToActivationSources[targetNeuron] = List<NeuronIndex>();
@@ -1798,8 +1798,8 @@ String Layer::typeToString( Type type )
       return "SOFTMAX";
       break;
 
-    case QUADRATIC:
-      return "QUADRATIC";
+    case BILINEAR:
+      return "BILINEAR";
       break;
 
 
@@ -1861,7 +1861,7 @@ void Layer::dump() const
     case MAX:
     case SIGN:
     case SIGMOID:
-    case QUADRATIC:
+    case BILINEAR:
     case SOFTMAX:
         for ( unsigned i = 0; i < _size; ++i )
         {

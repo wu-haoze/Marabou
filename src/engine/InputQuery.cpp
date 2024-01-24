@@ -1328,7 +1328,7 @@ bool InputQuery::constructBilinearLayer( NLR::NetworkLevelReasoner *nlr,
   for ( const auto &nlc : nlConstraints )
   {
     // Only consider Signs
-    if ( nlc->getType() != QUADRATIC )
+    if ( nlc->getType() != BILINEAR )
       continue;
 
     const BilinearConstraint *bilinear = (const BilinearConstraint *)nlc;
@@ -1365,7 +1365,7 @@ bool InputQuery::constructBilinearLayer( NLR::NetworkLevelReasoner *nlr,
     return false;
   }
 
-  nlr->addLayer( newLayerIndex, NLR::Layer::QUADRATIC, newNeurons.size() );
+  nlr->addLayer( newLayerIndex, NLR::Layer::BILINEAR, newNeurons.size() );
 
   NLR::Layer *layer = nlr->getLayer( newLayerIndex );
   for ( const auto &newNeuron : newNeurons )

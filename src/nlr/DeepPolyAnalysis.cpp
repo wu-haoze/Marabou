@@ -223,7 +223,7 @@ DeepPolyElement *DeepPolyAnalysis::createDeepPolyElement( Layer *layer )
                                          _workSymbolicLowerBias,
                                          _workSymbolicUpperBias );
     }
-    else if ( type == Layer::QUADRATIC )
+    else if ( type == Layer::BILINEAR )
     {
       deepPolyElement = new DeepPolyBilinearElement( layer );
       deepPolyElement->setWorkingMemory( _work1SymbolicLb, _work1SymbolicUb,

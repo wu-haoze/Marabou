@@ -57,7 +57,7 @@ BilinearConstraint::BilinearConstraint( const String &serializedBilinear )
 
 NonlinearFunctionType BilinearConstraint::getType() const
 {
-    return NonlinearFunctionType::QUADRATIC;
+    return NonlinearFunctionType::BILINEAR;
 }
 
 NonlinearConstraint *BilinearConstraint::duplicateConstraint() const
