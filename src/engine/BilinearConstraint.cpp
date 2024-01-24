@@ -197,7 +197,7 @@ String BilinearConstraint::serializeToString() const
 
 List<unsigned> BilinearConstraint::getBs() const
 {
-    return {_b1, _b2};
+    return { _b1, _b2 };
 }
 
 unsigned BilinearConstraint::getF() const
