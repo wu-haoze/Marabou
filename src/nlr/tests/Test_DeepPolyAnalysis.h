@@ -1004,23 +1004,23 @@ public:
     }
 
 
-  void test_deeppoly_softmax1()
-  {
-      NLR::NetworkLevelReasoner nlr;
-      MockTableau tableau;
-      nlr.setTableau( &tableau );
-      populateNetworkSoftmax( nlr, tableau );
+    void test_deeppoly_softmax1()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetworkSoftmax( nlr, tableau );
 
-      tableau.setLowerBound( 0, -1 );
-      tableau.setUpperBound( 0, 1 );
-      tableau.setLowerBound( 1, -1 );
-      tableau.setUpperBound( 1, 1 );
-      tableau.setLowerBound( 2, -1 );
-      tableau.setUpperBound( 2, 1 );
+        tableau.setLowerBound( 0, -1 );
+        tableau.setUpperBound( 0, 1 );
+        tableau.setLowerBound( 1, -1 );
+        tableau.setUpperBound( 1, 1 );
+        tableau.setLowerBound( 2, -1 );
+        tableau.setUpperBound( 2, 1 );
 
-      // Invoke DeepPoly
-      TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
-      TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+        // Invoke DeepPoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
   }
 
   void test_deeppoly_softmax2()
@@ -1329,50 +1329,153 @@ public:
         TS_ASSERT( existsBound( bounds, bound ) );
   }
 
-  void test_softmax_bounds_er()
-  {
-    Vector<double> inputLb = {-1, 0, 1};
-    Vector<double> inputUb = {0, 2, 4};
-    Vector<double> input = {-0.5, 1, 2.5};
+    void test_softmax_bounds_er()
+    {
+        Vector<double> inputLb = {-1, 0, 1};
+        Vector<double> inputUb = {0, 2, 4};
+        Vector<double> input = {-0.5, 1, 2.5};
 
-    double value = NLR::DeepPolySoftmaxElement::ERLowerBound(input, inputLb, inputUb, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, 0.0114799, 0.00001) );
-    value = NLR::DeepPolySoftmaxElement::dERLowerBound(input, inputLb, inputUb, 0, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, 0.00563867, 0.00001) );
-    value = NLR::DeepPolySoftmaxElement::dERLowerBound(input, inputLb, inputUb, 0, 1);
-    TS_ASSERT( FloatUtils::areEqual(value, -0.000838421, 0.00001) );
+        double value = NLR::DeepPolySoftmaxElement::ERLowerBound(input, inputLb, inputUb, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, 0.0114799, 0.00001) );
+        value = NLR::DeepPolySoftmaxElement::dERLowerBound(input, inputLb, inputUb, 0, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, 0.00563867, 0.00001) );
+        value = NLR::DeepPolySoftmaxElement::dERLowerBound(input, inputLb, inputUb, 0, 1);
+        TS_ASSERT( FloatUtils::areEqual(value, -0.000838421, 0.00001) );
 
 
-    Vector<double> outputLb = {0.2, 0, 0};
-    Vector<double> outputUb = {0.4, 0.1, 0.1};
+        Vector<double> outputLb = {0.2, 0, 0};
+        Vector<double> outputUb = {0.4, 0.1, 0.1};
 
-    value = NLR::DeepPolySoftmaxElement::ERUpperBound(input, outputLb, outputUb, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, -1.44538, 0.00001) );
-    value = NLR::DeepPolySoftmaxElement::dERUpperBound(input, outputLb, outputUb, 0, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, 1.96538, 0.00001) );
-    value = NLR::DeepPolySoftmaxElement::dERUpperBound(input, outputLb, outputUb, 0, 1);
-    TS_ASSERT( FloatUtils::areEqual(value, -0.358535, 0.00001) );
-  }
+        value = NLR::DeepPolySoftmaxElement::ERUpperBound(input, outputLb, outputUb, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, -1.44538, 0.00001) );
+        value = NLR::DeepPolySoftmaxElement::dERUpperBound(input, outputLb, outputUb, 0, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, 1.96538, 0.00001) );
+        value = NLR::DeepPolySoftmaxElement::dERUpperBound(input, outputLb, outputUb, 0, 1);
+        TS_ASSERT( FloatUtils::areEqual(value, -0.358535, 0.00001) );
+    }
 
-  void test_softmax_bounds_lse1()
-  {
-    Vector<double> inputLb = {-1, 0, 1};
-    Vector<double> inputUb = {0, 2, 3};
-    Vector<double> input = {-0.5, 1, 2};
-    double value = NLR::DeepPolySoftmaxElement::LSELowerBound(input, inputLb, inputUb, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, 0.0365, 0.001) );
-    value = NLR::DeepPolySoftmaxElement::dLSELowerBound(input, inputLb, inputUb, 0, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, 0.0365, 0.001) );
-    value = NLR::DeepPolySoftmaxElement::dLSELowerBound(input, inputLb, inputUb, 0, 1);
-    TS_ASSERT( FloatUtils::areEqual(value, -0.00703444 , 0.001) );
+    void test_softmax_bounds_lse1()
+    {
+        Vector<double> inputLb = {-1, 0, 1};
+        Vector<double> inputUb = {0, 2, 3};
+        Vector<double> input = {-0.5, 1, 2};
+        double value = NLR::DeepPolySoftmaxElement::LSELowerBound(input, inputLb, inputUb, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, 0.0365, 0.001) );
+        value = NLR::DeepPolySoftmaxElement::dLSELowerBound(input, inputLb, inputUb, 0, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, 0.0365, 0.001) );
+        value = NLR::DeepPolySoftmaxElement::dLSELowerBound(input, inputLb, inputUb, 0, 1);
+        TS_ASSERT( FloatUtils::areEqual(value, -0.00703444 , 0.001) );
 
-    Vector<double> outputLb = {0.2, 0, 0};
-    Vector<double> outputUb = {0.4, 0.1, 0.1};
-    value = NLR::DeepPolySoftmaxElement::LSEUpperBound(input, outputLb, outputUb, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, -0.164165, 0.00001) );
-    value = NLR::DeepPolySoftmaxElement::dLSEUpperbound(input, outputLb, outputUb, 0, 0);
-    TS_ASSERT( FloatUtils::areEqual(value, 0.272204, 0.00001) );
-    value = NLR::DeepPolySoftmaxElement::dLSEUpperbound(input, outputLb, outputUb, 0, 1);
-    TS_ASSERT( FloatUtils::areEqual(value, -0.073207 , 0.00001) );
-  }
+        Vector<double> outputLb = {0.2, 0, 0};
+        Vector<double> outputUb = {0.4, 0.1, 0.1};
+        value = NLR::DeepPolySoftmaxElement::LSEUpperBound(input, outputLb, outputUb, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, -0.164165, 0.00001) );
+        value = NLR::DeepPolySoftmaxElement::dLSEUpperbound(input, outputLb, outputUb, 0, 0);
+        TS_ASSERT( FloatUtils::areEqual(value, 0.272204, 0.00001) );
+        value = NLR::DeepPolySoftmaxElement::dLSEUpperbound(input, outputLb, outputUb, 0, 1);
+        TS_ASSERT( FloatUtils::areEqual(value, -0.073207 , 0.00001) );
+    }
+
+    void populateNetworkBilinear( NLR::NetworkLevelReasoner &nlr, MockTableau &tableau )
+    {
+        /*
+
+
+          x0    x2
+                    x  x4 -- x5
+          x1    x3
+
+          x2 = x0 - 2 * x1
+          x3 = x0 + x1
+          x4 = -x5
+
+          x4 = x2 * x3
+        */
+
+        // Create the layers
+        nlr.addLayer( 0, NLR::Layer::INPUT, 2 );
+        nlr.addLayer( 1, NLR::Layer::WEIGHTED_SUM, 2 );
+        nlr.addLayer( 2, NLR::Layer::BILINEAR, 1 );
+        nlr.addLayer( 3, NLR::Layer::WEIGHTED_SUM, 1 );
+
+        // Mark layer dependencies
+        for ( unsigned i = 1; i <= 3; ++i )
+            nlr.addLayerDependency( i - 1, i );
+
+        // Set the weights and biases for the weighted sum layers
+        nlr.setWeight( 0, 0, 1, 0, 1 );
+        nlr.setWeight( 0, 0, 1, 1, 1 );
+        nlr.setWeight( 0, 1, 1, 0, -2 );
+        nlr.setWeight( 0, 1, 1, 1, 1 );
+        nlr.setWeight( 2, 0, 3, 0, -1 );
+
+        nlr.addActivationSource( 1, 0, 2, 0 );
+        nlr.addActivationSource( 1, 1, 2, 0 );
+
+
+        // Variable indexing
+        nlr.setNeuronVariable( NLR::NeuronIndex( 0, 0 ), 0 );
+        nlr.setNeuronVariable( NLR::NeuronIndex( 0, 1 ), 1 );
+
+        nlr.setNeuronVariable( NLR::NeuronIndex( 1, 0 ), 2 );
+        nlr.setNeuronVariable( NLR::NeuronIndex( 1, 1 ), 3 );
+
+        nlr.setNeuronVariable( NLR::NeuronIndex( 2, 0 ), 4 );
+
+        nlr.setNeuronVariable( NLR::NeuronIndex( 3, 0 ), 5 );
+
+        // Very loose bounds for neurons except inputs
+        double large = 1000000;
+
+        tableau.getBoundManager().initialize( 6 );
+        tableau.setLowerBound( 2, -large ); tableau.setUpperBound( 2, large );
+        tableau.setLowerBound( 3, -large ); tableau.setUpperBound( 3, large );
+        tableau.setLowerBound( 4, -large ); tableau.setUpperBound( 4, large );
+        tableau.setLowerBound( 5, -large ); tableau.setUpperBound( 5, large );
+    }
+
+    void test_bilinear()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetworkBilinear( nlr, tableau );
+
+        tableau.setLowerBound( 0, 1 );
+        tableau.setUpperBound( 0, 1.000001 );
+        tableau.setLowerBound( 1, 1 );
+        tableau.setUpperBound( 1, 1.000001 );
+
+        // Invoke DeepPoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        /*
+          Input ranges:
+
+          x0: [1, 1.0001]
+          x1: [1, 1.0001]
+        */
+        List<Tightening> expectedBounds({
+                Tightening( 2, -1, Tightening::LB ),
+                Tightening( 2, -1, Tightening::UB ),
+                Tightening( 3, 2, Tightening::LB ),
+                Tightening( 3, 2, Tightening::UB ),
+                Tightening( 4, -2, Tightening::LB ),
+                Tightening( 4, -2, Tightening::UB ),
+                Tightening( 5, 2, Tightening::LB ),
+                Tightening( 5, 2, Tightening::UB )
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        for ( const auto &b : bounds )
+            b.dump();
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( existsBound( bounds, bound ) );
+    }
+
 };
