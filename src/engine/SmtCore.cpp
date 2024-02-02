@@ -60,6 +60,8 @@ void SmtCore::freeMemory()
 
 void SmtCore::reset()
 {
+    _context.popto( 0 );
+    _engine->postContextPopHook();
     freeMemory();
     _impliedValidSplitsAtRoot.clear();
     _needToSplit = false;
@@ -229,7 +231,7 @@ void SmtCore::performSplit()
 
 unsigned SmtCore::getStackDepth() const
 {
-    ASSERT( _stack.size() == static_cast<unsigned>( _context.getLevel() ) );
+    ASSERT( ( _engine->inSnCMode() || _stack.size() == static_cast<unsigned>( _context.getLevel() ) ) );
     return _stack.size();
 }
 
@@ -295,6 +297,11 @@ bool SmtCore::popSplit()
             _stack.popBack();
             popContext();
 
+            if ( _engine->shouldProduceProofs() && _engine->getUNSATCertificateCurrentPointer() )
+            {
+                UnsatCertificateNode *certificateNode = _engine->getUNSATCertificateCurrentPointer();
+                _engine->setUNSATCertificateCurrentPointer( certificateNode->getParent() );
+            }
 
             if ( _stack.empty() )
                 return false;
@@ -329,6 +336,12 @@ bool SmtCore::popSplit()
             UnsatCertificateNode *certificateNode = _engine->getUNSATCertificateCurrentPointer();
             ASSERT( certificateNode );
             UnsatCertificateNode *splitChild = certificateNode->getChildBySplit( *split );
+            while ( !splitChild )
+            {
+                certificateNode = certificateNode->getParent();
+                ASSERT( certificateNode );
+                splitChild = certificateNode->getChildBySplit( *split );
+            }
             ASSERT( splitChild );
             _engine->setUNSATCertificateCurrentPointer( splitChild );
             ASSERT( _engine->getUNSATCertificateCurrentPointer()->getSplit() == *split );

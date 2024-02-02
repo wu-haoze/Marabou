@@ -286,7 +286,18 @@ class MarabouNetwork:
             MarabouCore.addSignConstraint(ipq, b, f)
 
         for disjunction in self.disjunctionList:
-            MarabouCore.addDisjunctionConstraint(ipq, disjunction)
+            converted_disjunction = []
+            for disjunct in disjunction:
+                converted_disjunct = []
+                for e in disjunct:
+                    eq = MarabouCore.Equation(e.EquationType)
+                    for (c, v) in e.addendList:
+                        assert v < self.numVars
+                        eq.addAddend(c, v)
+                    eq.setScalar(e.scalar)
+                    converted_disjunct.append(eq)
+                converted_disjunction.append(converted_disjunct)
+            MarabouCore.addDisjunctionConstraint(ipq, converted_disjunction)
 
         for l in self.lowerBounds:
             assert l < self.numVars
@@ -298,13 +309,14 @@ class MarabouNetwork:
             
         return ipq
 
-    def solve(self, filename="", verbose=True, options=None):
+    def solve(self, filename="", verbose=True, options=None, propertyFilename=""):
         """Function to solve query represented by this network
 
         Args:
             filename (string): Path for redirecting output
             verbose (bool): If true, print out solution after solve finishes
             options (:class:`~maraboupy.MarabouCore.Options`): Object for specifying Marabou options, defaults to None
+            propertyFilename(string): Path for property file
 
         Returns:
             (tuple): tuple containing:
@@ -313,6 +325,8 @@ class MarabouNetwork:
                 - stats (:class:`~maraboupy.MarabouCore.Statistics`): A Statistics object to how Marabou performed
         """
         ipq = self.getMarabouQuery()
+        if propertyFilename:
+            MarabouCore.loadProperty(ipq, propertyFilename)
         if options == None:
             options = MarabouCore.Options()
         exitCode, vals, stats = MarabouCore.solve(ipq, options, str(filename))

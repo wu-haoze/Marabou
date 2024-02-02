@@ -23,6 +23,7 @@
 #include "OnnxParser.h"
 #include "Options.h"
 #include "PropertyParser.h"
+#include "VnnLibParser.h"
 #include "MarabouError.h"
 #include "QueryLoader.h"
 
@@ -126,7 +127,14 @@ void Marabou::prepareInputQuery()
         if ( propertyFilePath != "" )
         {
             printf( "Property: %s\n", propertyFilePath.ascii() );
-            PropertyParser().parse( propertyFilePath, _inputQuery );
+            if ( propertyFilePath.endsWith( ".vnnlib" ) )
+            {
+                VnnLibParser().parse( propertyFilePath, _inputQuery );
+            }
+            else
+            {
+                PropertyParser().parse( propertyFilePath, _inputQuery );
+            }
         }
         else
             printf( "Property: None\n" );
@@ -203,10 +211,11 @@ void Marabou::exportAssignment() const
 void Marabou::solveQuery()
 {
     if ( _engine.processInputQuery( _inputQuery ) )
+    {
         _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
-
-    if ( _engine.shouldProduceProofs() && _engine.getExitCode() == Engine::UNSAT )
-        _engine.certifyUNSATCertificate();
+        if ( _engine.shouldProduceProofs() && _engine.getExitCode() == Engine::UNSAT )
+            _engine.certifyUNSATCertificate();
+    }
 
     if ( _engine.getExitCode() == Engine::SAT )
         _engine.extractSolution( _inputQuery );

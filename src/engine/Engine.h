@@ -30,6 +30,7 @@
 #include "GurobiWrapper.h"
 #include "IEngine.h"
 #include "InputQuery.h"
+#include "JsonWriter.h"
 #include "LinearExpression.h"
 #include "LPSolverType.h"
 #include "Map.h"
@@ -40,6 +41,7 @@
 #include "SignalHandler.h"
 #include "SmtCore.h"
 #include "SnCDivideStrategy.h"
+#include "SparseUnsortedList.h"
 #include "Statistics.h"
 #include "SumOfInfeasibilitiesManager.h"
 #include "SymbolicBoundTighteningType.h"
@@ -222,6 +224,8 @@ public:
        Register initial split when in SnC mode
      */
     void applySnCSplit( PiecewiseLinearCaseSplit sncSplit, String queryId );
+
+    bool inSnCMode() const;
 
     /*
        Apply bound tightenings stored in the bound manager.

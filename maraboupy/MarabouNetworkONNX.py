@@ -4,6 +4,7 @@ Top contributors (to current version):
     - Haoze Wu
     - Teruhiro Tagomori
     - Tobey Shim
+    - Idan Refaeli
 
 This file is part of the Marabou project.
 Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
@@ -13,7 +14,6 @@ directory for licensing information.
 
 MarabouNetworkONNX represents neural networks with piecewise linear constraints derived from the ONNX format
 '''
-
 import numpy as np
 import onnx
 import onnxruntime
@@ -49,6 +49,7 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
         self.varMap = dict()
         self.constantMap = dict()
         self.shapeMap = dict()
+        self.vnnlibMap = dict()
         self.inputNames = None
         self.outputNames = None
         self.graph = None
@@ -272,6 +273,8 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
             self.resizeEquations(node, makeEquations)
         elif node.op_type == 'Tanh':
             self.tanhEquations(node, makeEquations)
+        elif node.op_type == 'Sub':
+            self.subEquations(node, makeEquations)
         else:
             raise NotImplementedError("Operation {} not implemented".format(node.op_type))
 
@@ -1113,6 +1116,40 @@ class MarabouNetworkONNX(MarabouNetwork.MarabouNetwork):
             self.addRelu(inputVars[i], outputVars[i])
         for f in outputVars:
             self.setLowerBound(f, 0.0)
+
+    def subEquations(self, node, makeEquations):
+        """Function to generate equations corresponding to subtraction
+
+        Args:
+            node (node): ONNX node representing the Sub operation
+            makeEquations (bool): True if we need to create new variables and add new Relus
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+        inputName1, inputName2 = node.input[0], node.input[1]
+        assert inputName1 in self.shapeMap and inputName2 in self.shapeMap
+        assert self.shapeMap[inputName1] == self.shapeMap[inputName2]
+        self.shapeMap[nodeName] = self.shapeMap[inputName1]
+
+        if not makeEquations:
+            return
+
+        assert inputName1 in self.varMap and inputName2 in self.constantMap
+
+        # Get variables
+        inputVars = self.varMap[inputName1].reshape(-1)
+        outputVars = self.makeNewVariables(nodeName).reshape(-1)
+        constants = self.constantMap[inputName2].reshape(-1)
+        assert len(inputVars) == len(outputVars) == len(constants)
+
+        # Generate equations
+        for i in range(len(inputVars)):
+            e = MarabouUtils.Equation()
+            e.addAddend(1, inputVars[i])
+            e.addAddend(-1, outputVars[i])
+            e.setScalar(-constants[i])
+            self.addEquation(e)
 
     def sigmoidEquations(self, node, makeEquations):
         """Function to generate equations corresponding to Sigmoid

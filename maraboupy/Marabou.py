@@ -68,6 +68,7 @@ def read_onnx(filename, inputNames=None, outputNames=None, reindexOutputVars=Tru
         filename (str): Path to the ONNX file
         inputNames (list of str, optional): List of node names corresponding to inputs
         outputNames (list of str, optional): List of node names corresponding to outputs
+        reindexOutputVars (bool): Reindex the variables so that the output variables are immediate after input variables
 
     Returns:
         :class:`~maraboupy.MarabouNetworkONNX.MarabouNetworkONNX`
@@ -85,7 +86,7 @@ def load_query(filename):
     """
     return MarabouCore.loadQuery(filename)
 
-def solve_query(ipq, filename="", verbose=True, options=None):
+def solve_query(ipq, filename="", verbose=True, options=None, propertyFilename=""):
     """Function to solve query represented by this network
 
     Args:
@@ -94,6 +95,7 @@ def solve_query(ipq, filename="", verbose=True, options=None):
         filename (str, optional): Path to redirect output to, defaults to ""
         verbose (bool, optional): Whether to print out solution after solve finishes, defaults to True
         options: (:class:`~maraboupy.MarabouCore.Options`): Object for specifying Marabou options
+        propertyFilename (str, optional): Path to property file
 
     Returns:
         (tuple): tuple containing:
@@ -101,6 +103,8 @@ def solve_query(ipq, filename="", verbose=True, options=None):
             - vals (Dict[int, float]): Empty dictionary if UNSAT, otherwise a dictionary of SATisfying values for variables
             - stats (:class:`~maraboupy.MarabouCore.Statistics`, optional): A Statistics object to how Marabou performed
     """
+    if propertyFilename:
+        MarabouCore.loadProperty(ipq, propertyFilename)
     if options is None:
         options = createOptions()
     exitCode, vals, stats = MarabouCore.solve(ipq, options, filename)
@@ -125,7 +129,7 @@ def createOptions(numWorkers=1, initialTimeout=5, initialSplits=0, onlineSplits=
                   preprocessorBoundTolerance=0.0000000001, dumpBounds=False,
                   tighteningStrategy="deeppoly", milpTightening="none", milpSolverTimeout=0,
                   numSimulations=10, numBlasThreads=1, performLpTighteningAfterSplit=False,
-                  lpSolver=""):
+                  lpSolver="", produceProofs=False):
     """Create an options object for how Marabou should solve the query
 
     Args:
@@ -178,4 +182,5 @@ def createOptions(numWorkers=1, initialTimeout=5, initialSplits=0, onlineSplits=
     options._numBlasThreads = numBlasThreads
     options._performLpTighteningAfterSplit = performLpTighteningAfterSplit
     options._lpSolver = lpSolver
+    options._produceProofs = produceProofs
     return options
