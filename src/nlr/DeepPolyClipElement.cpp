@@ -1,4 +1,4 @@
- /*********************                                                        */
+/*********************                                                        */
 /*! \file DeepPolyClipElement.cpp
  ** \verbatim
  ** Top contributors (to current version):
@@ -14,6 +14,7 @@
 **/
 
 #include "DeepPolyClipElement.h"
+
 #include "FloatUtils.h"
 
 namespace NLR {
@@ -31,8 +32,7 @@ DeepPolyClipElement::~DeepPolyClipElement()
     freeMemoryIfNeeded();
 }
 
-void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *>
-                               &deepPolyElementsBefore )
+void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *> &deepPolyElementsBefore )
 {
     log( "Executing..." );
     ASSERT( hasPredecessor() );
@@ -43,17 +43,14 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *>
     for ( unsigned i = 0; i < _size; ++i )
     {
         NeuronIndex sourceIndex = *( _layer->getActivationSources( i ).begin() );
-        DeepPolyElement *predecessor =
-            deepPolyElementsBefore[sourceIndex._layer];
-        double sourceLb = predecessor->getLowerBound
-            ( sourceIndex._neuron );
-        double sourceUb = predecessor->getUpperBound
-            ( sourceIndex._neuron );
+        DeepPolyElement *predecessor = deepPolyElementsBefore[sourceIndex._layer];
+        double sourceLb = predecessor->getLowerBound( sourceIndex._neuron );
+        double sourceUb = predecessor->getUpperBound( sourceIndex._neuron );
 
         double floor = getParameter( "floor", sourceIndex._neuron );
         double ceiling = getParameter( "ceiling", sourceIndex._neuron );
 
-        if ( FloatUtils::lte(sourceUb, floor) )
+        if ( FloatUtils::lte( sourceUb, floor ) )
         {
             // Phase floor
             // Symbolic bound: floor <= x_f <= floor
@@ -66,8 +63,8 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *>
             _symbolicLowerBias[i] = floor;
             _lb[i] = floor;
         }
-        else if ( FloatUtils::gte(sourceLb, ceiling) )
-          {
+        else if ( FloatUtils::gte( sourceLb, ceiling ) )
+        {
             // Phase ceil
             // Symbolic bound: ceiling <= x_f <= ceiling
             // Concrete bound: ceiling <= x_f <= ceiling
@@ -78,9 +75,9 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *>
             _symbolicLb[i] = 0;
             _symbolicLowerBias[i] = ceiling;
             _lb[i] = ceiling;
-          }
+        }
 
-        else if (FloatUtils::gte(sourceLb, floor) && FloatUtils::lte(sourceUb, ceiling) )
+        else if ( FloatUtils::gte( sourceLb, floor ) && FloatUtils::lte( sourceUb, ceiling ) )
         {
             // Phase ceil
             // Symbolic bound: ceiling <= x_f <= ceiling
@@ -95,83 +92,100 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *>
         }
         else if ( FloatUtils::lte( sourceUb, ceiling ) && FloatUtils::lt( sourceLb, floor ) )
         {
-          double slope = (sourceUb - floor) / (ceiling - floor);
+            double slope = ( sourceUb - floor ) / ( ceiling - floor );
             _symbolicUb[i] = slope;
-            _symbolicUpperBias[i] = (1 - slope) * sourceUb;
+            _symbolicUpperBias[i] = ( 1 - slope ) * sourceUb;
             _ub[i] = sourceUb;
 
-            if (floor - sourceLb < sourceUb - floor) {
-            _symbolicLb[i] = 1;
-            _symbolicLowerBias[i] = 0;
-            _lb[i] = sourceLb;
-            } else {
-              _symbolicLb[i] = 0;
-              _symbolicLowerBias[i] = floor;
-              _lb[i] = floor;
+            if ( floor - sourceLb < sourceUb - floor )
+            {
+                _symbolicLb[i] = 1;
+                _symbolicLowerBias[i] = 0;
+                _lb[i] = sourceLb;
+            }
+            else
+            {
+                _symbolicLb[i] = 0;
+                _symbolicLowerBias[i] = floor;
+                _lb[i] = floor;
             }
         }
-        else if (  FloatUtils::gt( sourceUb, ceiling ) && FloatUtils::gte( sourceLb, floor ) ) {
-          if (sourceUb - ceiling < ceiling - sourceLb ) {
-            _symbolicUb[i] = 1;
-            _symbolicUpperBias[i] = 0;
-            _ub[i] = sourceUb;
-          } else {
-            _symbolicUb[i] = 0;
-            _symbolicUpperBias[i] = ceiling;
-            _ub[i] = ceiling;
-          }
+        else if ( FloatUtils::gt( sourceUb, ceiling ) && FloatUtils::gte( sourceLb, floor ) )
+        {
+            if ( sourceUb - ceiling < ceiling - sourceLb )
+            {
+                _symbolicUb[i] = 1;
+                _symbolicUpperBias[i] = 0;
+                _ub[i] = sourceUb;
+            }
+            else
+            {
+                _symbolicUb[i] = 0;
+                _symbolicUpperBias[i] = ceiling;
+                _ub[i] = ceiling;
+            }
 
-          double slope = (ceiling - sourceLb) / (sourceUb - sourceLb);
-          _symbolicLb[i] = slope;
-          _symbolicLowerBias[i] = (1 - slope) * sourceLb;
-          _lb[i] = sourceLb;
+            double slope = ( ceiling - sourceLb ) / ( sourceUb - sourceLb );
+            _symbolicLb[i] = slope;
+            _symbolicLowerBias[i] = ( 1 - slope ) * sourceLb;
+            _lb[i] = sourceLb;
         }
-        else if (  FloatUtils::gt( sourceUb, ceiling ) && FloatUtils::lt( sourceLb, floor ) ) {
-          if ( sourceUb - ceiling > ceiling - sourceLb )
-          {
-            _symbolicUb[i] = 0;
-            _symbolicUpperBias[i] = ceiling;
-            _ub[i] = ceiling;
-          }
-          else {
-            double slope = (ceiling - floor) / (ceiling - sourceLb);
-            _symbolicUb[i] = slope;
-            double bias = (1 - slope) * ceiling;
-            _symbolicUpperBias[i] = bias;
-            _ub[i] = slope * sourceUb  + bias;
-          }
+        else if ( FloatUtils::gt( sourceUb, ceiling ) && FloatUtils::lt( sourceLb, floor ) )
+        {
+            if ( sourceUb - ceiling > ceiling - sourceLb )
+            {
+                _symbolicUb[i] = 0;
+                _symbolicUpperBias[i] = ceiling;
+                _ub[i] = ceiling;
+            }
+            else
+            {
+                double slope = ( ceiling - floor ) / ( ceiling - sourceLb );
+                _symbolicUb[i] = slope;
+                double bias = ( 1 - slope ) * ceiling;
+                _symbolicUpperBias[i] = bias;
+                _ub[i] = slope * sourceUb + bias;
+            }
 
-          if ( sourceUb - floor > floor - sourceLb )
-           {
-             double slope = (ceiling - floor) / (sourceUb - floor);
-             _symbolicLb[i] = slope;
-             double bias = (1 - slope) * floor;
-             _symbolicLowerBias[i] = bias;
-             _lb[i] = slope * sourceLb + bias;
-           }
-          else {
-            _symbolicLb[i] = 0;
-            _symbolicLowerBias[i] = floor;
-            _lb[i] = floor;
-          }
+            if ( sourceUb - floor > floor - sourceLb )
+            {
+                double slope = ( ceiling - floor ) / ( sourceUb - floor );
+                _symbolicLb[i] = slope;
+                double bias = ( 1 - slope ) * floor;
+                _symbolicLowerBias[i] = bias;
+                _lb[i] = slope * sourceLb + bias;
+            }
+            else
+            {
+                _symbolicLb[i] = 0;
+                _symbolicLowerBias[i] = floor;
+                _lb[i] = floor;
+            }
         }
-        else {
-          throw NLRError(NLRError::UNHANDLED_CLIP_CASE);
+        else
+        {
+            throw NLRError( NLRError::UNHANDLED_CLIP_CASE );
         }
 
         log( Stringf( "Neuron%u LB: %f b + %f, UB: %f b + %f",
-                      i, _symbolicLb[i], _symbolicLowerBias[i],
-                      _symbolicUb[i], _symbolicUpperBias[i] ) );
+                      i,
+                      _symbolicLb[i],
+                      _symbolicLowerBias[i],
+                      _symbolicUb[i],
+                      _symbolicUpperBias[i] ) );
         log( Stringf( "Neuron%u LB: %f, UB: %f", i, _lb[i], _ub[i] ) );
     }
     log( "Executing - done" );
 }
 
-void DeepPolyClipElement::symbolicBoundInTermsOfPredecessor
-( const double *symbolicLb, const double*symbolicUb, double
-  *symbolicLowerBias, double *symbolicUpperBias, double
-  *symbolicLbInTermsOfPredecessor, double *symbolicUbInTermsOfPredecessor,
-  unsigned targetLayerSize, DeepPolyElement *predecessor )
+void DeepPolyClipElement::symbolicBoundInTermsOfPredecessor( const double *symbolicLb,
+                                                             const double *symbolicUb,
+                                                             double *symbolicLowerBias,
+                                                             double *symbolicUpperBias,
+                                                             double *symbolicLbInTermsOfPredecessor,
+                                                             double *symbolicUbInTermsOfPredecessor,
+                                                             unsigned targetLayerSize,
+                                                             DeepPolyElement *predecessor )
 {
     log( Stringf( "Computing symbolic bounds with respect to layer %u...",
                   predecessor->getLayerIndex() ) );
@@ -183,12 +197,9 @@ void DeepPolyClipElement::symbolicBoundInTermsOfPredecessor
     */
     for ( unsigned i = 0; i < _size; ++i )
     {
-        NeuronIndex sourceIndex = *( _layer->
-                                     getActivationSources( i ).begin() );
+        NeuronIndex sourceIndex = *( _layer->getActivationSources( i ).begin() );
         unsigned sourceNeuronIndex = sourceIndex._neuron;
-        DEBUG({
-                ASSERT( predecessor->getLayerIndex() == sourceIndex._layer );
-            });
+        DEBUG( { ASSERT( predecessor->getLayerIndex() == sourceIndex._layer ); } );
 
         /*
           Take symbolic upper bound as an example.
@@ -222,7 +233,8 @@ void DeepPolyClipElement::symbolicBoundInTermsOfPredecessor
             {
                 symbolicLbInTermsOfPredecessor[newIndex] += weightLb * coeffLb;
                 symbolicLowerBias[j] += weightLb * lowerBias;
-            } else
+            }
+            else
             {
                 symbolicLbInTermsOfPredecessor[newIndex] += weightLb * coeffUb;
                 symbolicLowerBias[j] += weightLb * upperBias;
@@ -234,7 +246,8 @@ void DeepPolyClipElement::symbolicBoundInTermsOfPredecessor
             {
                 symbolicUbInTermsOfPredecessor[newIndex] += weightUb * coeffUb;
                 symbolicUpperBias[j] += weightUb * upperBias;
-            } else
+            }
+            else
             {
                 symbolicUbInTermsOfPredecessor[newIndex] += weightUb * coeffLb;
                 symbolicUpperBias[j] += weightUb * lowerBias;

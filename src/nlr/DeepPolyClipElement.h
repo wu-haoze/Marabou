@@ -19,9 +19,10 @@
 #include "DeepPolyElement.h"
 #include "Layer.h"
 #include "MStringf.h"
-#include "NLRError.h"
-#include <climits>
 #include "Map.h"
+#include "NLRError.h"
+
+#include <climits>
 
 namespace NLR {
 
@@ -31,18 +32,19 @@ public:
     DeepPolyClipElement( Layer *layer );
     ~DeepPolyClipElement();
 
-    void execute( const Map<unsigned, DeepPolyElement *>
-                  &deepPolyElementsBefore );
+    void execute( const Map<unsigned, DeepPolyElement *> &deepPolyElementsBefore );
 
-    void symbolicBoundInTermsOfPredecessor
-    ( const double *symbolicLb, const double*symbolicUb, double
-      *symbolicLowerBias, double *symbolicUpperBias, double
-      *symbolicLbInTermsOfPredecessor, double *symbolicUbInTermsOfPredecessor,
-      unsigned targetLayerSize, DeepPolyElement *predecessor );
+    void symbolicBoundInTermsOfPredecessor( const double *symbolicLb,
+                                            const double *symbolicUb,
+                                            double *symbolicLowerBias,
+                                            double *symbolicUpperBias,
+                                            double *symbolicLbInTermsOfPredecessor,
+                                            double *symbolicUbInTermsOfPredecessor,
+                                            unsigned targetLayerSize,
+                                            DeepPolyElement *predecessor );
 
 private:
-
-  Map<String, double *> _parameterToValue;
+    Map<String, double *> _parameterToValue;
 
     void allocateMemory();
     void freeMemoryIfNeeded();
