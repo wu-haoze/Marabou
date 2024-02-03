@@ -24,17 +24,49 @@
 #include "Statistics.h"
 
 ClipConstraint::ClipConstraint( unsigned b, unsigned f, double floor, double ceiling )
-    : PiecewiseLinearConstraint( TWO_PHASE_PIECEWISE_LINEAR_CONSTRAINT )
+    : PiecewiseLinearConstraint( 3 )
     , _b( b )
     , _f( f )
     , _floor( floor )
     , _ceiling( ceiling )
+    , _auxVarInUse( false )
+    , _haveEliminatedVariables( false )
+    , _feasiblePhases( { CLIP_PHASE_FLOOR, CLIP_PHASE_CEILING, CLIP_PHASE_BETWEEN } )
 {
+
 }
 
-ClipConstraint::ClipConstraint( const String &/*serializedAbs*/ )
+ClipConstraint::ClipConstraint( const String &serializedClip )
+    : _haveEliminatedVariables( false )
+    , _feasiblePhases( { CLIP_PHASE_FLOOR, CLIP_PHASE_CEILING, CLIP_PHASE_BETWEEN } )
 {
-  throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
+    String constraintType = serializedAbs.substring( 0, 4 );
+    ASSERT( constraintType == String( "clip" ) );
+
+    // Remove the constraint type in serialized form
+    String serializedValues = serializedClip.substring( 5, serializedClip.length() - 5 );
+    List<String> values = serializedValues.tokenize( "," );
+
+    ASSERT( values.size() == 4 || values.size() == 5 );
+
+    auto var = values.begin();
+    _f = atoi( var->ascii() );
+    ++var;
+    _b = atoi( var->ascii() );
+    ++var;
+    _floor = atof( var->ascii() );
+    ++var;
+    _ceiling = atof( var->ascii() );
+
+    if ( values.size() == 5 )
+    {
+        _aux = atoi( var->ascii() );
+        _auxVarInUse = true;
+    }
+    else
+    {
+        _auxVarInUse
+    }
 }
 
 PiecewiseLinearFunctionType ClipConstraint::getType() const
@@ -52,12 +84,12 @@ PiecewiseLinearConstraint *ClipConstraint::duplicateConstraint() const
 
 void ClipConstraint::restoreState( const PiecewiseLinearConstraint *state )
 {
-    const ClipConstraint *abs = dynamic_cast<const ClipConstraint *>( state );
+    const ClipConstraint *clip = dynamic_cast<const ClipConstraint *>( state );
 
     CVC4::context::CDO<bool> *activeStatus = _cdConstraintActive;
     CVC4::context::CDO<PhaseStatus> *phaseStatus = _cdPhaseStatus;
     CVC4::context::CDList<PhaseStatus> *infeasibleCases = _cdInfeasibleCases;
-    *this = *abs;
+    *this = *clip;
     _cdConstraintActive = activeStatus;
     _cdPhaseStatus = phaseStatus;
     _cdInfeasibleCases = infeasibleCases;
@@ -75,17 +107,88 @@ void ClipConstraint::unregisterAsWatcher( ITableau *tableau )
     tableau->unregisterToWatchVariable( this, _f );
 }
 
-void ClipConstraint::notifyLowerBound( unsigned variable, double bound )
+void ClipConstraint::checkIfLowerBoundUpdateFixesPhase( unsigned variable, double bound )
+{
+    if ( variable == _f )
+    {
+        if ( FloatUtils::gt( bound, _floor ) )
+            removeFeasiblePhase( CLIP_PHASE_FLOOR );
+    }
+    else if ( variable == _b )
+    {
+        if ( FloatUtils::gt( bound, _ceiling ) )
+        {
+            removeFeasiblePhase( CLIP_PHASE_FLOOR );
+            removeFeasiblePhase( CLIP_PHASE_BETWEEN );
+        }
+        else if ( FloatUtils::gt( bound, _floor ) )
+            removeFeasiblePhase( CLIP_PHASE_FLOOR );
+    }
+    else if ( _auxVarInUse && variable == _aux && FloatUtils::isPositive( bound ) )
+        removeFeasiblePhase( CLIP_PHASE_BETWEEN );
+
+    if ( _feasiblePhases.size() == 1 )
+        setPhaseStatus( *_feasiblePhases.begin() );
+}
+
+void ReluConstraint::checkIfUpperBoundUpdateFixesPhase( unsigned variable, double bound )
+{
+    if ( variable == _f )
+    {
+        if ( FloatUtils::lt( bound, _ceiling ) )
+            removeFeasiblePhase( CLIP_PHASE_CEILING );
+    }
+    else if ( variable == _b )
+    {
+        if ( FloatUtils::lt( bound, _floor ) )
+        {
+            removeFeasiblePhase( CLIP_PHASE_CEILING );
+            removeFeasiblePhase( CLIP_PHASE_BETWEEN );
+        }
+        else if ( FloatUtils::lt( bound, _ceiling ) )
+            removeFeasiblePhase( CLIP_PHASE_CEILING );
+    }
+    else if ( _auxVarInUse && variable == _aux )
+    {
+        if (  FloatUtils::isZero( bound ) )
+        {
+            removeFeasiblePhase( CLIP_PHASE_CEILING );
+            removeFeasiblePhase( CLIP_PHASE_FLOOR );
+        }
+        else if ( FloatUtils::isNegative( bound ) )
+            removeFeasiblePhase( CLIP_PHASE_
+    }
+    if ( _feasiblePhases.size() == 1 )
+        setPhaseStatus( *_feasiblePhases.begin() );
+}
+
+void ClipConstraint::notifyLowerBound( unsigned variable, double newBound )
 {
     if ( _statistics )
         _statistics->incLongAttribute(
             Statistics::NUM_BOUND_NOTIFICATIONS_TO_PL_CONSTRAINTS );
 
-    if ( _boundManager == nullptr && existsLowerBound( variable ) &&
-         !FloatUtils::gt( bound, getLowerBound( variable ) ) )
-      return;
+    if ( _boundManager == nullptr )
+    {
+        if ( existsLowerBound( variable ) && !FloatUtils::gt( newBound, getLowerBound( variable ) ) )
+            return;
+        setLowerBound( variable, newBound );
+        checkIfLowerBoundUpdateFixesPhase( variable, newBound );
+    }
+    else if ( !phaseFixed() )
+    {
+        double bound = getLowerBound( variable );
+        checkIfLowerBoundUpdateFixesPhase( variable, bound );
+        if ( ( variable == _f || variable == _b ) && bound > _ceiling && bound < _floor )
+        {
+            unsigned partner = ( variable == _f ) ? _b : _f;
+            _boundManager->tightenLowerBound( partner, bound );
+        }
+        else if ( _auxVarInUse && _variable == _aux &&
+    }
 
     setLowerBound( variable, bound );
+
 }
 
 void ClipConstraint::notifyUpperBound( unsigned variable, double bound )
@@ -102,12 +205,16 @@ void ClipConstraint::notifyUpperBound( unsigned variable, double bound )
 
 bool ClipConstraint::participatingVariable( unsigned variable ) const
 {
-    return ( variable == _b ) || ( variable == _f );
+    return ( ( variable == _b ) || ( variable == _f ) || ( _auxVarInUse && variable == _aux ) );
 }
 
 List<unsigned> ClipConstraint::getParticipatingVariables() const
 {
-  return List<unsigned>( { _b, _f } );
+    if ( _auxVarInUse )
+        return List<unsigned>( { _b, _f, _aux } );
+    else
+        return List<unsigned>( { _b, _f } );
+
 }
 
 bool ClipConstraint::satisfied() const
@@ -133,15 +240,24 @@ List<PiecewiseLinearCaseSplit> ClipConstraint::getCaseSplits() const
 
 List<PhaseStatus> ClipConstraint::getAllCases() const
 {
-  return { CLIP_PHASE_FLOOR, CLIP_PHASE_CEILING, PHASE_NOT_FIXED };
+    return { CLIP_PHASE_FLOOR, CLIP_PHASE_CEILING, CLIP_PHASE_BETWEEN, PHASE_NOT_FIXED };
 }
 
 PiecewiseLinearCaseSplit ClipConstraint::getCaseSplit( PhaseStatus phase ) const
 {
-    if ( phase == ABS_PHASE_NEGATIVE )
-        return getNegativeSplit();
-    else if ( phase == ABS_PHASE_POSITIVE )
-        return getPositiveSplit();
+    /*
+      We added f - b = aux
+      CLIP_PHASE_CEILING: aux <= 0, f = ceiling, b >= ceiling
+      CLIP_PHASE_BETWEEN: aux = 0, b >= floor, b <= ceiling
+      CLIP_PHASE_FLOOR: aux >= 0, f = floor, b <= floor
+    */
+
+    if ( phase == CLIP_PHASE_CEILING )
+        return getCeilingSplit();
+    else if ( phase == CLIP_PHASE_BETWEEN )
+        return getBetweenSplit();
+    else if ( phase == CLIP_PHASE_FLOOR )
+        return getFloorSplit();
     else
         throw MarabouError( MarabouError::REQUESTED_NONEXISTENT_CASE_SPLIT );
 }
@@ -232,9 +348,28 @@ void ClipConstraint::getEntailedTightenings( List<Tightening> &tightenings ) con
   tightenings.append(Tightening( _f, _ceiling, Tightening::UB) );
 }
 
-void ClipConstraint::transformToUseAuxVariables( InputQuery &/*inputQuery*/ )
+void ClipConstraint::transformToUseAuxVariables( InputQuery &inputQuery )
 {
+    /*
+      We add f - b - aux = 0
+    */
+    if ( _auxVarInUse )
+        return;
 
+    // Create the aux variable
+    _aux = inputQuery.getNumberOfVariables();
+    inputQuery.setNumberOfVariables( _aux + 1 );
+
+    // Create and add the equation
+    Equation equation( Equation::EQ );
+    equation.addAddend( 1.0, _f );
+    equation.addAddend( -1.0, _b );
+    equation.addAddend( -1.0, _aux );
+    equation.setScalar( 0 );
+    inputQuery.addEquation( equation );
+
+    // We now care about the auxiliary variable, as well
+    _auxVarInUse = true;
 }
 
 bool ClipConstraint::haveOutOfBoundVariables() const
@@ -244,7 +379,7 @@ bool ClipConstraint::haveOutOfBoundVariables() const
 
 String ClipConstraint::serializeToString() const
 {
-  // Output format is: Abs,f,b,posAux,NegAux
+  // Output format is: Clip,f,b,floor,ceiling
   return Stringf( "clip,%u,%u,%.8f,%.8f", _f, _b, _floor, _ceiling );
 }
 
@@ -269,4 +404,10 @@ String ClipConstraint::phaseToString( PhaseStatus phase )
     default:
         return "UNKNOWN";
     }
-};
+}
+
+String ClipConstraint::removeFeasiblePhase( PhaseStatus phase )
+{
+    if ( _feasiblePhases.exists( phase ) )
+        _feasiblePhases.erase( phase );
+}

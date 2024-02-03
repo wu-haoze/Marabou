@@ -169,15 +169,18 @@ public:
 
     inline unsigned getF() const { return _f; };
 
-  inline unsigned getFloor() const { return _floor; };
+    inline unsigned getFloor() const { return _floor; };
 
-  inline unsigned getCeiling() const { return _ceiling; };
+    inline unsigned getCeiling() const { return _ceiling; };
 
 private:
     unsigned _b, _f;
   double _floor, _ceiling;
 
     static String phaseToString( PhaseStatus phase );
+
+    inline void removeFeasiblePhase( PhaseStatus phase );
+
 
     /*
       The two case splits.
