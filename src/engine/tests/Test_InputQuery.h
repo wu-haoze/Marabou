@@ -175,7 +175,7 @@ public:
         inputQuery->setLowerBound( 5, 0.2 );
         inputQuery->setUpperBound( 3, 0.3 );
         inputQuery->setUpperBound( 5, 0.4 );
-        inputQuery->addTranscendentalConstraint( sigmoid1 );
+        inputQuery->addNonlinearConstraint( sigmoid1 );
 
         InputQuery inputQuery2 = *inputQuery;
 
@@ -185,7 +185,7 @@ public:
         TS_ASSERT_EQUALS( inputQuery2.getUpperBound( 3 ), 0.3 );
         TS_ASSERT_EQUALS( inputQuery2.getUpperBound( 5 ), 0.4 );
 
-        auto constraints = inputQuery2.getTranscendentalConstraints();
+        auto constraints = inputQuery2.getNonlinearConstraints();
 
         TS_ASSERT_EQUALS( constraints.size(), 1U );
         SigmoidConstraint *constraint = (SigmoidConstraint *)*constraints.begin();
@@ -205,7 +205,7 @@ public:
         TS_ASSERT_EQUALS( inputQuery2.getUpperBound( 3 ), 0.3 );
         TS_ASSERT_EQUALS( inputQuery2.getUpperBound( 5 ), 0.4 );
 
-        constraints = inputQuery2.getTranscendentalConstraints();
+        constraints = inputQuery2.getNonlinearConstraints();
 
         TS_ASSERT_EQUALS( constraints.size(), 1U );
         constraint = (SigmoidConstraint *)*constraints.begin();

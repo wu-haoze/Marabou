@@ -47,6 +47,8 @@ public:
         SIGN,
         SIGMOID,
         ROUND,
+        SOFTMAX,
+        BILINEAR,
     };
 
     /*

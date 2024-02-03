@@ -16,6 +16,7 @@
 #include "InputQuery.h"
 #include "Layer.h"
 #include "Options.h"
+#include "SoftmaxConstraint.h"
 #include "SymbolicBoundTighteningType.h"
 
 namespace NLR {
@@ -224,6 +225,43 @@ void Layer::computeAssignment()
         }
     }
 
+    else if ( _type == SOFTMAX )
+    {
+      for ( unsigned i = 0; i < _size; ++i )
+      {
+        _assignment[i] = FloatUtils::negativeInfinity();
+
+        Vector<double> inputs;
+        Vector<double> outputs;
+        unsigned outputIndex = 0;
+        unsigned index = 0;
+        for ( const auto &input : _neuronToActivationSources[i] )
+        {
+          if ( input._neuron == i )
+            outputIndex = index;
+          double value = _layerOwner->getLayer( input._layer )->getAssignment( input._neuron );
+          inputs.append(value);
+          ++index;
+        }
+
+        SoftmaxConstraint::softmax(inputs, outputs);
+        _assignment[i] = outputs[outputIndex];
+
+      }
+    }
+
+    else if ( _type == BILINEAR )
+    {
+      for ( unsigned i = 0; i < _size; ++i )
+      {
+        _assignment[i] = 1;
+        for ( const auto &input : _neuronToActivationSources[i] )
+        {
+          double value = _layerOwner->getLayer( input._layer )->getAssignment( input._neuron );
+          _assignment[i] *= value;
+        }
+      }
+    }
     else
     {
         printf( "Error! Neuron type %u unsupported\n", _type );
@@ -442,7 +480,8 @@ double *Layer::getBiases() const
 
 void Layer::addActivationSource( unsigned sourceLayer, unsigned sourceNeuron, unsigned targetNeuron )
 {
-    ASSERT( _type == RELU || _type == ABSOLUTE_VALUE || _type == MAX || _type == SIGN || _type == SIGMOID || _type == ROUND  || _type == CLIP );
+    ASSERT( _type == RELU || _type == ABSOLUTE_VALUE || _type == MAX || _type == SIGN || _type == ROUND ||
+            _type == CLIP || _type == SIGMOID || _type == SOFTMAX || _type == BILINEAR );
 
     if ( !_neuronToActivationSources.exists( targetNeuron ) )
         _neuronToActivationSources[targetNeuron] = List<NeuronIndex>();
@@ -1792,6 +1831,15 @@ String Layer::typeToString( Type type )
       return "ROUND";
       break;
 
+    case SOFTMAX:
+      return "SOFTMAX";
+      break;
+
+    case BILINEAR:
+      return "BILINEAR";
+      break;
+
+
     default:
         return "UNKNOWN TYPE";
         break;
@@ -1852,6 +1900,8 @@ void Layer::dump() const
     case SIGN:
     case SIGMOID:
     case CLIP:
+    case BILINEAR:
+    case SOFTMAX:
         for ( unsigned i = 0; i < _size; ++i )
         {
             if ( _eliminatedNeurons.exists( i ) )
