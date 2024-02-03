@@ -1641,7 +1641,7 @@ public:
 
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
-            TS_ASSERT( existsBound( bound ) );
+            TS_ASSERT( existsBound( bounds, bound ) );
     }
 
     void test_deeppoly_clip2()
@@ -1681,7 +1681,7 @@ public:
 
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
-            TS_ASSERT( existsBound( bound ) );
+            TS_ASSERT( existsBound( bounds, bound ) );
     }
 
     void test_deeppoly_clip3()
@@ -1721,7 +1721,7 @@ public:
 
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
-            TS_ASSERT( existsBound( bound ) );
+            TS_ASSERT( existsBound( bounds, bound ) );
     }
 
     void test_deeppoly_clip4()
@@ -1761,7 +1761,7 @@ public:
 
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
-            TS_ASSERT( existsBound( bound ) );
+            TS_ASSERT( existsBound( bounds, bound ) );
     }
 
     void test_deeppoly_clip5()
@@ -1801,7 +1801,7 @@ public:
 
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
-            TS_ASSERT( existsBound( bound ) );
+            TS_ASSERT( existsBound( bounds, bound ) );
     }
 
     void test_deeppoly_clip6()
@@ -1841,7 +1841,7 @@ public:
         TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
         for ( const auto &bound : expectedBounds )
         {
-            TS_ASSERT( existsBound( bound ) );
+            TS_ASSERT( existsBound( bounds, bound ) );
         }
     }
 

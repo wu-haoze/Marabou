@@ -696,7 +696,7 @@ bool InputQuery::constructNetworkLevelReasoner()
             constructAbsoluteValueLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSignLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSigmoidLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
-            constructClipLayer( nlr, handledVariableToLayer, newLayerIndex )
+            constructClipLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructMaxLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructBilinearLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSoftmaxLayer( nlr, handledVariableToLayer, newLayerIndex )
