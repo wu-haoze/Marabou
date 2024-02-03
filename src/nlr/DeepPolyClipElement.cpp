@@ -92,12 +92,12 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *> &deepP
         }
         else if ( FloatUtils::lte( sourceUb, ceiling ) && FloatUtils::lt( sourceLb, floor ) )
         {
-            double slope = ( sourceUb - floor ) / ( ceiling - floor );
+            double slope = ( sourceUb - floor ) / ( sourceUb - sourceLb );
             _symbolicUb[i] = slope;
             _symbolicUpperBias[i] = ( 1 - slope ) * sourceUb;
             _ub[i] = sourceUb;
 
-            if ( floor - sourceLb < sourceUb - floor )
+            if ( floor - sourceLb <= sourceUb - floor )
             {
                 _symbolicLb[i] = 1;
                 _symbolicLowerBias[i] = 0;
@@ -112,7 +112,7 @@ void DeepPolyClipElement::execute( const Map<unsigned, DeepPolyElement *> &deepP
         }
         else if ( FloatUtils::gt( sourceUb, ceiling ) && FloatUtils::gte( sourceLb, floor ) )
         {
-            if ( sourceUb - ceiling < ceiling - sourceLb )
+            if ( sourceUb - ceiling <= ceiling - sourceLb )
             {
                 _symbolicUb[i] = 1;
                 _symbolicUpperBias[i] = 0;

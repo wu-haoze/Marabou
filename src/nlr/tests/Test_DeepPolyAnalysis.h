@@ -1005,18 +1005,239 @@ public:
         nlr.setTableau( &tableau );
         populateNetworkWithClip( nlr, tableau );
 
-        tableau.setLowerBound( 0, 0 );
+        tableau.setLowerBound( 0, 1 );
         tableau.setUpperBound( 0, 1 );
-        tableau.setLowerBound( 1, 0 );
-        tableau.setUpperBound( 1, 1 );
-
-        tableau.setLowerBound( 4, 0 );
-        tableau.setUpperBound( 4, 3 );
-        tableau.setLowerBound( 5, -0.5 );
-        tableau.setUpperBound( 5, 1 );
+        tableau.setLowerBound( 1, 3 );
+        tableau.setUpperBound( 1, 3 );
 
         // Invoke Deeppoly
         TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
         TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        List<Tightening> expectedBounds({
+                Tightening( 2, 4, Tightening::LB ),
+                Tightening( 2, 4, Tightening::UB ),
+                Tightening( 3, -2, Tightening::LB ),
+                Tightening( 3, -2, Tightening::UB ),
+                Tightening( 4, 3, Tightening::LB ),
+                Tightening( 4, 3, Tightening::UB ),
+                Tightening( 5, -0.5, Tightening::LB ),
+                Tightening( 5, -0.5, Tightening::UB ),
+                Tightening( 6, 2.5, Tightening::LB ),
+                Tightening( 6, 2.5, Tightening::UB ),
+                Tightening( 7, 3.5, Tightening::LB ),
+                Tightening( 7, 3.5, Tightening::UB ),
+
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
+    void test_deeppoly_clip2()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetworkWithClip( nlr, tableau );
+
+        tableau.setLowerBound( 0, 10 );
+        tableau.setUpperBound( 0, 11 );
+        tableau.setLowerBound( 1, 4 );
+        tableau.setUpperBound( 1, 5 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        List<Tightening> expectedBounds({
+                Tightening( 2, 14, Tightening::LB ),
+                Tightening( 2, 16, Tightening::UB ),
+                Tightening( 3, 5, Tightening::LB ),
+                Tightening( 3, 7, Tightening::UB ),
+                Tightening( 4, 3, Tightening::LB ),
+                Tightening( 4, 3, Tightening::UB ),
+                Tightening( 5, 1, Tightening::LB ),
+                Tightening( 5, 1, Tightening::UB ),
+                Tightening( 6, 4, Tightening::LB ),
+                Tightening( 6, 4, Tightening::UB ),
+                Tightening( 7, 2, Tightening::LB ),
+                Tightening( 7, 2, Tightening::UB ),
+
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
+    void test_deeppoly_clip3()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetworkWithClip( nlr, tableau );
+
+        tableau.setLowerBound( 0, 1 );
+        tableau.setUpperBound( 0, 2 );
+        tableau.setLowerBound( 1, 1 );
+        tableau.setUpperBound( 1, 1 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        List<Tightening> expectedBounds({
+                Tightening( 2, 2, Tightening::LB ),
+                Tightening( 2, 3, Tightening::UB ),
+                Tightening( 3, 0, Tightening::LB ),
+                Tightening( 3, 1, Tightening::UB ),
+                Tightening( 4, 2, Tightening::LB ),
+                Tightening( 4, 3, Tightening::UB ),
+                Tightening( 5, 0, Tightening::LB ),
+                Tightening( 5, 1, Tightening::UB ),
+                Tightening( 6, 2, Tightening::LB ),
+                Tightening( 6, 4, Tightening::UB ),
+                Tightening( 7, 2, Tightening::LB ),
+                Tightening( 7, 2, Tightening::UB ),
+
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
+    void test_deeppoly_clip4()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetworkWithClip( nlr, tableau );
+
+        tableau.setLowerBound( 0, 1 );
+        tableau.setUpperBound( 0, 4 );
+        tableau.setLowerBound( 1, 1 );
+        tableau.setUpperBound( 1, 1 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        List<Tightening> expectedBounds({
+                Tightening( 2, 2, Tightening::LB ),
+                Tightening( 2, 5, Tightening::UB ),
+                Tightening( 3, 0, Tightening::LB ),
+                Tightening( 3, 3, Tightening::UB ),
+                Tightening( 4, 2, Tightening::LB ),
+                Tightening( 4, 3, Tightening::UB ),
+                Tightening( 5, 0, Tightening::LB ),
+                Tightening( 5, 1, Tightening::UB ),
+                Tightening( 6, 2, Tightening::LB ),
+                Tightening( 6, 4, Tightening::UB ),
+                Tightening( 7, 1, Tightening::LB ),
+                Tightening( 7, 3, Tightening::UB ),
+
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
+    void test_deeppoly_clip5()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetworkWithClip( nlr, tableau );
+
+        tableau.setLowerBound( 0, -3 );
+        tableau.setUpperBound( 0, -1.5 );
+        tableau.setLowerBound( 1, 2 );
+        tableau.setUpperBound( 1, 2 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        List<Tightening> expectedBounds({
+                Tightening( 2, -1, Tightening::LB ),
+                Tightening( 2, 0.5, Tightening::UB ),
+                Tightening( 3, -5, Tightening::LB ),
+                Tightening( 3, -3.5, Tightening::UB ),
+                Tightening( 4, 0, Tightening::LB ),
+                Tightening( 4, 0.5, Tightening::UB ),
+                Tightening( 5, -0.5, Tightening::LB ),
+                Tightening( 5, -0.5, Tightening::UB ),
+                Tightening( 6, -0.5, Tightening::LB ),
+                Tightening( 6, 0, Tightening::UB ),
+                Tightening( 7, 0.5, Tightening::LB ),
+                Tightening( 7, 1, Tightening::UB ),
+
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+            TS_ASSERT( bounds.exists( bound ) );
+    }
+
+    void test_deeppoly_clip6()
+    {
+        NLR::NetworkLevelReasoner nlr;
+        MockTableau tableau;
+        nlr.setTableau( &tableau );
+        populateNetworkWithClip( nlr, tableau );
+
+        tableau.setLowerBound( 0, 1.5 );
+        tableau.setUpperBound( 0, 3 );
+        tableau.setLowerBound( 1, 1 );
+        tableau.setUpperBound( 1, 1 );
+
+        // Invoke Deeppoly
+        TS_ASSERT_THROWS_NOTHING( nlr.obtainCurrentBounds() );
+        TS_ASSERT_THROWS_NOTHING( nlr.deepPolyPropagation() );
+
+        List<Tightening> expectedBounds({
+                Tightening( 2, 2.5, Tightening::LB ),
+                Tightening( 2, 4, Tightening::UB ),
+                Tightening( 3, 0.5, Tightening::LB ),
+                Tightening( 3, 2, Tightening::UB ),
+                Tightening( 4, 2.5, Tightening::LB ),
+                Tightening( 4, 3, Tightening::UB ),
+                Tightening( 5, 0.5, Tightening::LB ),
+                Tightening( 5, 1, Tightening::UB ),
+                Tightening( 6, 3, Tightening::LB ),
+                Tightening( 6, 4, Tightening::UB ),
+                Tightening( 7, 1.5, Tightening::LB ),
+                Tightening( 7, 2.5, Tightening::UB ),
+            });
+
+        List<Tightening> bounds;
+        TS_ASSERT_THROWS_NOTHING( nlr.getConstraintTightenings( bounds ) );
+
+        TS_ASSERT_EQUALS( expectedBounds.size(), bounds.size() );
+        for ( const auto &bound : expectedBounds )
+        {
+            if (!bounds.exists(bound))
+                bound.dump();
+            TS_ASSERT( bounds.exists( bound ) );
+        }
     }
 };
