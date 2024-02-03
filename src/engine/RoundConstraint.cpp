@@ -14,22 +14,22 @@
 
 #include "RoundConstraint.h"
 
-#include "PiecewiseLinearConstraint.h"
 #include "Debug.h"
 #include "DivideStrategy.h"
 #include "FloatUtils.h"
 #include "GlobalConfiguration.h"
+#include "ITableau.h"
 #include "InfeasibleQueryException.h"
 #include "InputQuery.h"
-#include "ITableau.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "PiecewiseLinearCaseSplit.h"
+#include "PiecewiseLinearConstraint.h"
 #include "Statistics.h"
 #include "TableauRow.h"
 
 #ifdef _WIN32
-#define __attribute__(x)
+#define __attribute__( x )
 #endif
 
 RoundConstraint::RoundConstraint( unsigned b, unsigned f )
@@ -130,37 +130,37 @@ bool RoundConstraint::satisfied() const
 
 List<PiecewiseLinearConstraint::Fix> RoundConstraint::getPossibleFixes() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
-List<PiecewiseLinearConstraint::Fix> RoundConstraint::getSmartFixes( ITableau */*tableau*/ ) const
+List<PiecewiseLinearConstraint::Fix> RoundConstraint::getSmartFixes( ITableau * /*tableau*/ ) const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 List<PiecewiseLinearCaseSplit> RoundConstraint::getCaseSplits() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 List<PhaseStatus> RoundConstraint::getAllCases() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 PiecewiseLinearCaseSplit RoundConstraint::getCaseSplit( PhaseStatus /*phase*/ ) const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 PiecewiseLinearCaseSplit RoundConstraint::getInactiveSplit() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 PiecewiseLinearCaseSplit RoundConstraint::getActiveSplit() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 bool RoundConstraint::phaseFixed() const
@@ -170,20 +170,20 @@ bool RoundConstraint::phaseFixed() const
 
 PiecewiseLinearCaseSplit RoundConstraint::getImpliedCaseSplit() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 PiecewiseLinearCaseSplit RoundConstraint::getValidCaseSplit() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 void RoundConstraint::dump( String &output ) const
 {
     output = Stringf( "RoundConstraint: x%u = Round( x%u ). Active? %s. \n",
-                      _f, _b,
-                      _constraintActive ? "Yes" : "No"
-                      );
+                      _f,
+                      _b,
+                      _constraintActive ? "Yes" : "No" );
 }
 
 void RoundConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
@@ -200,10 +200,10 @@ void RoundConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex 
         _f = newIndex;
 }
 
-void RoundConstraint::eliminateVariable( __attribute__((unused)) unsigned variable,
-                                        __attribute__((unused)) double fixedValue )
+void RoundConstraint::eliminateVariable( __attribute__( ( unused ) ) unsigned variable,
+                                         __attribute__( ( unused ) ) double fixedValue )
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 bool RoundConstraint::constraintObsolete() const
@@ -211,7 +211,7 @@ bool RoundConstraint::constraintObsolete() const
     return false;
 }
 
-void RoundConstraint::getEntailedTightenings( List<Tightening> &/*tightenings*/ ) const
+void RoundConstraint::getEntailedTightenings( List<Tightening> & /*tightenings*/ ) const
 {
 }
 
@@ -259,21 +259,21 @@ void RoundConstraint::transformToUseAuxVariables( InputQuery &inputQuery )
     inputQuery.setLowerBound( aux, 0 );
 }
 
-void RoundConstraint::getCostFunctionComponent( LinearExpression &/*cost*/,
+void RoundConstraint::getCostFunctionComponent( LinearExpression & /*cost*/,
                                                 PhaseStatus /*phase*/ ) const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
-PhaseStatus RoundConstraint::getPhaseStatusInAssignment( const Map<unsigned, double>
-                                                         &/*assignment*/ ) const
+PhaseStatus
+RoundConstraint::getPhaseStatusInAssignment( const Map<unsigned, double> & /*assignment*/ ) const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 bool RoundConstraint::haveOutOfBoundVariables() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 String RoundConstraint::serializeToString() const
@@ -299,25 +299,25 @@ bool RoundConstraint::supportPolarity() const
 
 double RoundConstraint::computePolarity() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 void RoundConstraint::updateDirection()
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 PhaseStatus RoundConstraint::getDirection() const
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 void RoundConstraint::updateScoreBasedOnPolarity()
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
 
 void RoundConstraint::createTighteningRow()
 {
-    throw MarabouError(MarabouError::FEATURE_NOT_YET_SUPPORTED);
+    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }

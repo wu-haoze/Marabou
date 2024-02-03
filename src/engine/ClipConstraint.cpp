@@ -83,7 +83,7 @@ PiecewiseLinearFunctionType ClipConstraint::getType() const
 
 PiecewiseLinearConstraint *ClipConstraint::duplicateConstraint() const
 {
-  ClipConstraint *clone = new ClipConstraint( _b, _f, _floor, _ceiling );
+    ClipConstraint *clone = new ClipConstraint( _b, _f, _floor, _ceiling );
     *clone = *this;
     this->initializeDuplicateCDOs( clone );
     return clone;
@@ -185,12 +185,12 @@ void ClipConstraint::updateFeasiblePhaseWithUpperBound( unsigned variable, doubl
 void ClipConstraint::notifyLowerBound( unsigned variable, double newBound )
 {
     if ( _statistics )
-        _statistics->incLongAttribute(
-            Statistics::NUM_BOUND_NOTIFICATIONS_TO_PL_CONSTRAINTS );
+        _statistics->incLongAttribute( Statistics::NUM_BOUND_NOTIFICATIONS_TO_PL_CONSTRAINTS );
 
     if ( _boundManager == nullptr )
     {
-        if ( existsLowerBound( variable ) && !FloatUtils::gt( newBound, getLowerBound( variable ) ) )
+        if ( existsLowerBound( variable ) &&
+             !FloatUtils::gt( newBound, getLowerBound( variable ) ) )
             return;
         setLowerBound( variable, newBound );
         updateFeasiblePhaseWithLowerBound( variable, newBound );
@@ -199,8 +199,7 @@ void ClipConstraint::notifyLowerBound( unsigned variable, double newBound )
     {
         double bound = getLowerBound( variable );
         updateFeasiblePhaseWithLowerBound( variable, bound );
-        if ( ( variable == _f || variable == _b ) &&
-             FloatUtils::gte( bound, _floor ) &&
+        if ( ( variable == _f || variable == _b ) && FloatUtils::gte( bound, _floor ) &&
              FloatUtils::lte( bound, _floor ) )
         {
             // A lower bound between floor and ceiling is propagated between f and b
@@ -229,7 +228,8 @@ void ClipConstraint::notifyUpperBound( unsigned variable, double newBound )
 
     if ( _boundManager == nullptr )
     {
-        if ( existsLowerBound( variable ) && !FloatUtils::lt( newBound, getUpperBound( variable ) ) )
+        if ( existsLowerBound( variable ) &&
+             !FloatUtils::lt( newBound, getUpperBound( variable ) ) )
             return;
         setUpperBound( variable, newBound );
         updateFeasiblePhaseWithUpperBound( variable, newBound );
@@ -238,8 +238,7 @@ void ClipConstraint::notifyUpperBound( unsigned variable, double newBound )
     {
         double bound = getUpperBound( variable );
         updateFeasiblePhaseWithUpperBound( variable, bound );
-        if ( ( variable == _f || variable == _b ) &&
-             FloatUtils::gte( bound, _floor ) &&
+        if ( ( variable == _f || variable == _b ) && FloatUtils::gte( bound, _floor ) &&
              FloatUtils::lte( bound, _floor ) )
         {
             // An upper bound between floor and ceiling is propagated between f and b
@@ -272,7 +271,6 @@ List<unsigned> ClipConstraint::getParticipatingVariables() const
         return List<unsigned>( { _b, _f, _aux } );
     else
         return List<unsigned>( { _b, _f } );
-
 }
 
 bool ClipConstraint::satisfied() const
@@ -284,19 +282,22 @@ bool ClipConstraint::satisfied() const
     double fValue = getAssignment( _f );
 
     if ( FloatUtils::lte( bValue, _floor ) )
-        return FloatUtils::areEqual( fValue, _floor, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
+        return FloatUtils::areEqual(
+            fValue, _floor, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
     else if ( FloatUtils::gte( bValue, _ceiling ) )
-        return FloatUtils::areEqual( fValue, _ceiling, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
+        return FloatUtils::areEqual(
+            fValue, _ceiling, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
     else
-        return FloatUtils::areEqual( bValue, fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
+        return FloatUtils::areEqual(
+            bValue, fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
 }
 
 List<PiecewiseLinearConstraint::Fix> ClipConstraint::getPossibleFixes() const
 {
-  return List<PiecewiseLinearConstraint::Fix>();
+    return List<PiecewiseLinearConstraint::Fix>();
 }
 
-List<PiecewiseLinearConstraint::Fix> ClipConstraint::getSmartFixes( ITableau */* tableau */ ) const
+List<PiecewiseLinearConstraint::Fix> ClipConstraint::getSmartFixes( ITableau * /* tableau */ ) const
 {
     return getPossibleFixes();
 }
@@ -414,15 +415,14 @@ PiecewiseLinearCaseSplit ClipConstraint::getMiddleSplit() const
 
 bool ClipConstraint::phaseFixed() const
 {
-  return _phaseStatus != PHASE_NOT_FIXED;
+    return _phaseStatus != PHASE_NOT_FIXED;
 }
 
 PiecewiseLinearCaseSplit ClipConstraint::getImpliedCaseSplit() const
 {
     ASSERT( phaseFixed() );
     PhaseStatus phase = getPhaseStatus();
-    ASSERT( phase == CLIP_PHASE_FLOOR ||
-            phase == CLIP_PHASE_MIDDLE ||
+    ASSERT( phase == CLIP_PHASE_FLOOR || phase == CLIP_PHASE_MIDDLE ||
             phase == CLIP_PHASE_CEILING );
     return getCaseSplit( phase );
 }
@@ -434,26 +434,33 @@ PiecewiseLinearCaseSplit ClipConstraint::getValidCaseSplit() const
 
 void ClipConstraint::dump( String &output ) const
 {
-    output = Stringf( "ClipConstraint: x%u = Clip( x%u, %.2f, %.2f ). Active? %s. PhaseStatus = %u (%s).\n",
-                      _f, _b, _floor, _ceiling,
-                      _constraintActive ? "Yes" : "No",
-                      _phaseStatus, phaseToString( _phaseStatus ).ascii()
-        );
+    output = Stringf(
+        "ClipConstraint: x%u = Clip( x%u, %.2f, %.2f ). Active? %s. PhaseStatus = %u (%s).\n",
+        _f,
+        _b,
+        _floor,
+        _ceiling,
+        _constraintActive ? "Yes" : "No",
+        _phaseStatus,
+        phaseToString( _phaseStatus ).ascii() );
 
-    output += Stringf( "b in [%s, %s], ",
-                       existsLowerBound( _b ) ? Stringf( "%lf", getLowerBound( _b ) ).ascii() : "-inf",
-                       existsUpperBound( _b ) ? Stringf( "%lf", getUpperBound( _b ) ).ascii() : "inf" );
+    output +=
+        Stringf( "b in [%s, %s], ",
+                 existsLowerBound( _b ) ? Stringf( "%lf", getLowerBound( _b ) ).ascii() : "-inf",
+                 existsUpperBound( _b ) ? Stringf( "%lf", getUpperBound( _b ) ).ascii() : "inf" );
 
-    output += Stringf( "f in [%s, %s]",
-                       existsLowerBound( _f ) ? Stringf( "%lf", getLowerBound( _f ) ).ascii() : "-inf",
-                       existsUpperBound( _f ) ? Stringf( "%lf", getUpperBound( _f ) ).ascii() : "inf" );
+    output +=
+        Stringf( "f in [%s, %s]",
+                 existsLowerBound( _f ) ? Stringf( "%lf", getLowerBound( _f ) ).ascii() : "-inf",
+                 existsUpperBound( _f ) ? Stringf( "%lf", getUpperBound( _f ) ).ascii() : "inf" );
 
     if ( _auxVarInUse )
     {
-        output += Stringf( ". Aux var: %u. Range: [%s, %s]\n",
-                           _aux,
-                           existsLowerBound( _aux ) ? Stringf( "%lf", getLowerBound( _aux ) ).ascii() : "-inf",
-                           existsUpperBound( _aux ) ? Stringf( "%lf", getUpperBound( _aux ) ).ascii() : "inf" );
+        output += Stringf(
+            ". Aux var: %u. Range: [%s, %s]\n",
+            _aux,
+            existsLowerBound( _aux ) ? Stringf( "%lf", getLowerBound( _aux ) ).ascii() : "-inf",
+            existsUpperBound( _aux ) ? Stringf( "%lf", getUpperBound( _aux ) ).ascii() : "inf" );
     }
 }
 
@@ -485,8 +492,7 @@ void ClipConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
     ASSERT( _gurobi == NULL );
 
     ASSERT( oldIndex == _b || oldIndex == _f || ( _auxVarInUse && oldIndex == _aux ) );
-    ASSERT( !_lowerBounds.exists( newIndex ) &&
-            !_upperBounds.exists( newIndex ) &&
+    ASSERT( !_lowerBounds.exists( newIndex ) && !_upperBounds.exists( newIndex ) &&
             newIndex != _b && newIndex != _f && ( !_auxVarInUse || newIndex != _aux ) );
 
     if ( _lowerBounds.exists( oldIndex ) )
@@ -509,45 +515,43 @@ void ClipConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
         _aux = newIndex;
 }
 
-void ClipConstraint::eliminateVariable( __attribute__((unused)) unsigned variable,
-                                        __attribute__((unused)) double fixedValue )
+void ClipConstraint::eliminateVariable( __attribute__( ( unused ) ) unsigned variable,
+                                        __attribute__( ( unused ) ) double fixedValue )
 {
     ASSERT( variable == _b || variable == _f || ( _auxVarInUse && variable == _aux ) );
 
-    DEBUG({
-            if ( variable == _f )
-            {
-                ASSERT( FloatUtils::gte( fixedValue, _floor ) );
-                ASSERT( FloatUtils::lte( fixedValue, _ceiling ) );
-            }
+    DEBUG( {
+        if ( variable == _f )
+        {
+            ASSERT( FloatUtils::gte( fixedValue, _floor ) );
+            ASSERT( FloatUtils::lte( fixedValue, _ceiling ) );
+        }
 
-            if ( variable == _b )
+        if ( variable == _b )
+        {
+            if ( FloatUtils::lt( fixedValue, _floor ) )
             {
-                if ( FloatUtils::lt( fixedValue, _floor ) )
-                {
-                    ASSERT( _phaseStatus != CLIP_PHASE_CEILING &&
-                            _phaseStatus != CLIP_PHASE_MIDDLE );
-                }
-                else if ( FloatUtils::gt( fixedValue, _ceiling ) )
-                {
-                    ASSERT( _phaseStatus != CLIP_PHASE_FLOOR &&
-                            _phaseStatus != CLIP_PHASE_MIDDLE );
-                }
+                ASSERT( _phaseStatus != CLIP_PHASE_CEILING && _phaseStatus != CLIP_PHASE_MIDDLE );
             }
-            else
+            else if ( FloatUtils::gt( fixedValue, _ceiling ) )
             {
-                // This is the aux variable
-                if ( FloatUtils::isPositive( fixedValue ) )
-                {
-                    // aux = f - b >= 0
-                    ASSERT( _phaseStatus != CLIP_PHASE_CEILING );
-                }
-                else if ( FloatUtils::isNegative( fixedValue ) )
-                {
-                    ASSERT( _phaseStatus != CLIP_PHASE_FLOOR );
-                }
+                ASSERT( _phaseStatus != CLIP_PHASE_FLOOR && _phaseStatus != CLIP_PHASE_MIDDLE );
             }
-        });
+        }
+        else
+        {
+            // This is the aux variable
+            if ( FloatUtils::isPositive( fixedValue ) )
+            {
+                // aux = f - b >= 0
+                ASSERT( _phaseStatus != CLIP_PHASE_CEILING );
+            }
+            else if ( FloatUtils::isNegative( fixedValue ) )
+            {
+                ASSERT( _phaseStatus != CLIP_PHASE_FLOOR );
+            }
+        }
+    } );
 
     // In a Clip constraint, if a variable is removed the entire constraint can be discarded.
     _haveEliminatedVariables = true;
@@ -560,8 +564,8 @@ bool ClipConstraint::constraintObsolete() const
 
 void ClipConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
 {
-    ASSERT( existsLowerBound( _b ) && existsLowerBound( _f ) &&
-            existsUpperBound( _b ) && existsUpperBound( _f ) );
+    ASSERT( existsLowerBound( _b ) && existsLowerBound( _f ) && existsUpperBound( _b ) &&
+            existsUpperBound( _f ) );
 
     ASSERT( !_auxVarInUse || ( existsLowerBound( _aux ) && existsUpperBound( _aux ) ) );
 
@@ -582,8 +586,7 @@ void ClipConstraint::getEntailedTightenings( List<Tightening> &tightenings ) con
 
     // It is important to ensure in this method that when the phase status is
     // fixed, bounds are added so that the Clip constriant can be soundly removed.
-    if ( FloatUtils::lte( bUpperBound, _floor ) ||
-         FloatUtils::areEqual( fUpperBound, _floor ) ||
+    if ( FloatUtils::lte( bUpperBound, _floor ) || FloatUtils::areEqual( fUpperBound, _floor ) ||
          ( _auxVarInUse && FloatUtils::isPositive( auxLowerBound ) ) )
     {
         // Floor case
@@ -606,8 +609,7 @@ void ClipConstraint::getEntailedTightenings( List<Tightening> &tightenings ) con
                 FloatUtils::lte( bUpperBound, _ceiling ) ) ||
               ( FloatUtils::gt( fLowerBound, _floor ) &&
                 FloatUtils::lt( fUpperBound, _ceiling ) ) ||
-              ( _auxVarInUse &&
-                FloatUtils::isZero( auxLowerBound ) &&
+              ( _auxVarInUse && FloatUtils::isZero( auxLowerBound ) &&
                 FloatUtils::isZero( auxUpperBound ) ) )
     {
         // Middle case
@@ -687,11 +689,10 @@ void ClipConstraint::transformToUseAuxVariables( InputQuery &inputQuery )
     _auxVarInUse = true;
 }
 
-void ClipConstraint::getCostFunctionComponent( LinearExpression &cost,
-                                               PhaseStatus phase ) const
+void ClipConstraint::getCostFunctionComponent( LinearExpression &cost, PhaseStatus phase ) const
 {
     // If the constraint is not active or is fixed, it contributes nothing
-    if( !isActive() || phaseFixed() )
+    if ( !isActive() || phaseFixed() )
         return;
 
     // This should not be called when the linear constraints have
@@ -713,7 +714,8 @@ void ClipConstraint::getCostFunctionComponent( LinearExpression &cost,
     else if ( phase == CLIP_PHASE_CEILING )
     {
         // The cost term corresponding to the floor phase is ceiling - f,
-        // since the Clip is in the ceiling phase and satisfied only if ceiling - f is 0 and minimal.
+        // since the Clip is in the ceiling phase and satisfied only if ceiling - f is 0 and
+        // minimal.
         if ( !cost._addends.exists( _f ) )
             cost._addends[_f] = 0;
         cost._addends[_f] = cost._addends[_f] - 1;
@@ -725,8 +727,8 @@ void ClipConstraint::getCostFunctionComponent( LinearExpression &cost,
     }
 }
 
-PhaseStatus ClipConstraint::getPhaseStatusInAssignment( const Map<unsigned, double>
-                                                        &assignment ) const
+PhaseStatus
+ClipConstraint::getPhaseStatusInAssignment( const Map<unsigned, double> &assignment ) const
 {
     ASSERT( assignment.exists( _b ) );
     double bAssignment = assignment[_b];
@@ -743,12 +745,16 @@ bool ClipConstraint::haveOutOfBoundVariables() const
     double bValue = getAssignment( _b );
     double fValue = getAssignment( _f );
 
-    if ( FloatUtils::gt( getLowerBound( _b ), bValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE )
-         || FloatUtils::lt( getUpperBound( _b ), bValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) )
+    if ( FloatUtils::gt(
+             getLowerBound( _b ), bValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) ||
+         FloatUtils::lt(
+             getUpperBound( _b ), bValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) )
         return true;
 
-    if ( FloatUtils::gt( getLowerBound( _f ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE )
-         || FloatUtils::lt( getUpperBound( _f ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) )
+    if ( FloatUtils::gt(
+             getLowerBound( _f ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) ||
+         FloatUtils::lt(
+             getUpperBound( _f ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) )
         return true;
 
     return false;
@@ -791,7 +797,7 @@ unsigned ClipConstraint::getAux() const
 
 String ClipConstraint::serializeToString() const
 {
-  // Output format is: Clip,f,b,floor,ceiling
+    // Output format is: Clip,f,b,floor,ceiling
     if ( _auxVarInUse )
         return Stringf( "clip,%u,%u,%.8f,%.8f,%u", _f, _b, _floor, _ceiling, _aux );
     else

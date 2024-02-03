@@ -166,8 +166,8 @@ public:
       Return the phase status corresponding to the values of the *input*
       variables in the given assignment.
     */
-    virtual PhaseStatus getPhaseStatusInAssignment( const Map<unsigned, double>
-                                                    &assignment ) const override;
+    virtual PhaseStatus
+    getPhaseStatusInAssignment( const Map<unsigned, double> &assignment ) const override;
 
     /*
       For serialization into the input query file
