@@ -36,6 +36,8 @@ ClipConstraint::ClipConstraint( unsigned b, unsigned f, double floor, double cei
     if ( floor > ceiling )
         throw MarabouError( MarabouError::INVALID_PIECEWISE_LINEAR_CONSTRAINT,
                             "Floor cannot be larger than ceiling in the ClipConstraint!" );
+    _lowerBounds[_f] = floor;
+    _upperBounds[_f] = ceiling;
 }
 
 ClipConstraint::ClipConstraint( const String &serializedClip )
@@ -74,6 +76,8 @@ ClipConstraint::ClipConstraint( const String &serializedClip )
     {
         _auxVarInUse = false;
     }
+    _lowerBounds[_f] = _floor;
+    _upperBounds[_f] = _ceiling;
 }
 
 PiecewiseLinearFunctionType ClipConstraint::getType() const
@@ -228,7 +232,7 @@ void ClipConstraint::notifyUpperBound( unsigned variable, double newBound )
 
     if ( _boundManager == nullptr )
     {
-        if ( existsLowerBound( variable ) &&
+        if ( existsUpperBound( variable ) &&
              !FloatUtils::lt( newBound, getUpperBound( variable ) ) )
             return;
         setUpperBound( variable, newBound );

@@ -1073,4 +1073,75 @@ public:
         TS_ASSERT( true );
 #endif // ENABLE_GUROBI
     }
+
+    void test_encode_clip_constraint1()
+    {
+#ifdef ENABLE_GUROBI
+
+        /*
+          1 <= x0 <= 4
+          3 <= x1 <= 4
+          x2 = x0 + x1
+          x3 = Clip( x2, 2.5, 3)
+        */
+        GurobiWrapper gurobi;
+
+        InputQuery inputQuery = InputQuery();
+        inputQuery.setNumberOfVariables( 4 );
+
+        double floor = 2.5;
+        double ceiling = 3;
+        ClipConstraint *clip = new ClipConstraint( 2, 3, floor, ceiling );
+
+        clip->notifyLowerBound( 2, 4 );
+        clip->notifyUpperBound( 2, 8 );
+        MockTableau tableau = MockTableau();
+        tableau.setDimensions( 2, 2 );
+        inputQuery.setLowerBound( 0, 1 );
+        tableau.setLowerBound( 0, 1 );
+        inputQuery.setUpperBound( 0, 4 );
+        tableau.setUpperBound( 0, 4 );
+        inputQuery.setLowerBound( 1, 3 );
+        tableau.setLowerBound( 1, 3 );
+        inputQuery.setUpperBound( 1, 4 );
+        tableau.setUpperBound( 1, 4 );
+        inputQuery.setLowerBound( 2, 4 );
+        tableau.setLowerBound( 2, 4 );
+        inputQuery.setUpperBound( 2, 8 );
+        tableau.setUpperBound( 2, 8 );
+
+        List<Tightening> tightenings;
+        clip->getEntailedTightenings( tightenings );
+
+        for ( const auto &t : tightenings )
+        {
+            if ( t._type == Tightening::LB )
+            {
+                inputQuery.setLowerBound( t._variable, t._value );
+                tableau.setLowerBound( t._variable, t._value );
+            }
+            if ( t._type == Tightening::UB )
+            {
+                inputQuery.setUpperBound( t._variable, t._value );
+                tableau.setUpperBound( t._variable, t._value );
+            }
+        }
+        clip->registerTableau( &tableau );
+        inputQuery.addPiecewiseLinearConstraint( clip );
+
+        MILPEncoder milp( tableau );
+        TS_ASSERT_THROWS_NOTHING( milp.encodeInputQuery( gurobi, inputQuery ) );
+
+        TS_ASSERT_THROWS_NOTHING( gurobi.solve() );
+
+        TS_ASSERT( gurobi.haveFeasibleSolution() );
+
+        Map<String, double> solution;
+        double costValue;
+        TS_ASSERT_THROWS_NOTHING( gurobi.extractSolution( solution, costValue ) );
+        TS_ASSERT( FloatUtils::areEqual( solution["x3"], 3 ) );
+#else
+        TS_ASSERT( true );
+#endif // ENABLE_GUROBI
+    }
 };
