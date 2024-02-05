@@ -563,7 +563,7 @@ void ClipConstraint::eliminateVariable( __attribute__( ( unused ) ) unsigned var
 
 bool ClipConstraint::constraintObsolete() const
 {
-    return false;
+    return _haveEliminatedVariables;
 }
 
 void ClipConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
