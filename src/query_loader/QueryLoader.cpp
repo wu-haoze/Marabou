@@ -15,6 +15,7 @@
  **/
 
 #include "AutoFile.h"
+#include "ClipConstraint.h"
 #include "Debug.h"
 #include "DisjunctionConstraint.h"
 #include "Equation.h"
@@ -212,6 +213,10 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
         else if ( coType == "max" )
         {
             inputQuery.addPiecewiseLinearConstraint( new MaxConstraint( serializeConstraint ) );
+        }
+        else if ( coType == "clip" )
+        {
+            inputQuery.addPiecewiseLinearConstraint( new ClipConstraint( serializeConstraint ) );
         }
         else if ( coType == "absoluteValue" )
         {
