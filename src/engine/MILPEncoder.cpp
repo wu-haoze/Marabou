@@ -105,6 +105,9 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
         case NonlinearFunctionType::BILINEAR:
             encodeBilinearConstraint( gurobi, (BilinearConstraint *)nlConstraint, relax );
             break;
+        case NonlinearFunctionType::ROUND:
+            encodeRoundConstraint( gurobi, (RoundConstraint *)nlConstraint, relax );
+            break;
         default:
             throw MarabouError( MarabouError::UNSUPPORTED_TRANSCENDENTAL_CONSTRAINT,
                                 "GurobiWrapper::encodeInputQuery: "
@@ -826,6 +829,34 @@ void MILPEncoder::encodeBilinearConstraint( GurobiWrapper &gurobi,
         gurobi.addBilinearConstraint( Stringf( "x%u", bs[0] ), Stringf( "x%u", bs[1] ), Stringf( "x%u", f ) );
         return;
     }
+}
+
+void MILPEncoder::encodeRoundConstraint( GurobiWrapper &gurobi,
+                                         RoundConstraint *round,
+                                         bool relax )
+{
+    // Encode the DeepPoly abstraction
+    unsigned sourceVariable = round->getB();
+    unsigned targetVariable = round->getF();
+
+    if ( !relax )
+    {
+        gurobi.markAsInteger( Stringf( "x%u", targetVariable ) );
+    }
+
+    // Use the encoding in Pei et al. https://arxiv.org/pdf/2312.12679.pdf
+    // f <= b + 0.5
+    // b <= f + 0.5 - epsilon
+    // where f is an integer, and epsilon is a small value
+    List<GurobiWrapper::Term> terms;
+    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+    terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+    gurobi.addLeqConstraint( terms, 0.5 );
+
+    terms.clear();
+    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
+    terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", targetVariable ) ) );
+    gurobi.addLeqConstraint( terms, 0.5 - GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
 }
 
 void MILPEncoder::encodeCostFunction( GurobiWrapper &gurobi,

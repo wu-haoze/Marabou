@@ -24,6 +24,7 @@
 #include "ITableau.h"
 #include "LinearExpression.h"
 #include "MStringf.h"
+#include "RoundConstraint.h"
 #include "SoftmaxConstraint.h"
 #include "Statistics.h"
 
@@ -158,6 +159,13 @@ private:
     void encodeBilinearConstraint( GurobiWrapper &gurobi,
                                    BilinearConstraint *bilinear,
                                    bool relax );
+
+    /*
+      Encode a Round constraint
+    */
+    void encodeRoundConstraint( GurobiWrapper &gurobi,
+                                RoundConstraint *round,
+                                bool relax );
 };
 
 #endif // __MILPEncoder_h__
