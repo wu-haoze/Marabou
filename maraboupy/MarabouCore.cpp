@@ -117,8 +117,8 @@ void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
 }
 
 void addRoundConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
-    PiecewiseLinearConstraint* r = new RoundConstraint(var1, var2);
-    ipq.addPiecewiseLinearConstraint(r);
+    NonlinearConstraint* r = new RoundConstraint(var1, var2);
+    ipq.addNonlinearConstraint(r);
 }
 
 void addBilinearConstraint(InputQuery& ipq, unsigned var1, unsigned var2,

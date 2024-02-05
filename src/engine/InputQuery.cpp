@@ -1052,10 +1052,10 @@ bool InputQuery::constructRoundLayer( NLR::NetworkLevelReasoner *nlr,
     List<NeuronInformation> newNeurons;
 
     // Look for ReLUs where all b variables have already been handled
-    const List<PiecewiseLinearConstraint *> &plConstraints =
-        getPiecewiseLinearConstraints();
+    const List<NonlinearConstraint *> &nlConstraints =
+        getNonlinearConstraints();
 
-    for ( const auto &plc : plConstraints )
+    for ( const auto &plc : nlConstraints )
     {
         // Only consider ReLUs
         if ( plc->getType() != ROUND )
@@ -1075,7 +1075,6 @@ bool InputQuery::constructRoundLayer( NLR::NetworkLevelReasoner *nlr,
 
         // B has been handled, f hasn't. Add f
         newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
-        nlr->addConstraintInTopologicalOrder( plc );
     }
 
     // No neurons found for the new layer

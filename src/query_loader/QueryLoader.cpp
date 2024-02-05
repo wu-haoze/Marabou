@@ -209,10 +209,6 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
         {
             inputQuery.addPiecewiseLinearConstraint( new ReluConstraint( serializeConstraint ) );
         }
-        else if ( coType == "round" )
-        {
-            inputQuery.addPiecewiseLinearConstraint( new RoundConstraint( serializeConstraint ) );
-        }
         else if ( coType == "max" )
         {
             inputQuery.addPiecewiseLinearConstraint( new MaxConstraint( serializeConstraint ) );
@@ -247,6 +243,10 @@ InputQuery QueryLoader::loadQuery( const String &fileName )
         {
             BilinearConstraint *bilinear = new BilinearConstraint( serializeConstraint );
             inputQuery.addNonlinearConstraint(bilinear);
+        }
+        else if ( coType == "round" )
+        {
+            inputQuery.addNonlinearConstraint( new RoundConstraint( serializeConstraint ) );
         }
         else
         {

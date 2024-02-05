@@ -29,17 +29,17 @@ public:
     /*
       Get the type of this constraint.
     */
-    PiecewiseLinearFunctionType getType() const override;
+    NonlinearFunctionType getType() const override;
 
     /*
       Return a clone of the constraint.
     */
-    PiecewiseLinearConstraint *duplicateConstraint() const override;
+    NonlinearConstraint *duplicateConstraint() const override;
 
     /*
       Restore the state of this constraint from the given one.
     */
-    void restoreState( const PiecewiseLinearConstraint *state ) override;
+    void restoreState( const NonlinearConstraint *state ) override;
 
     /*
       Register/unregister the constraint with a talbeau.

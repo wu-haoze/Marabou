@@ -54,20 +54,19 @@ RoundConstraint::RoundConstraint( const String &serializedRound )
     _b = atoi( var->ascii() );
 }
 
-PiecewiseLinearFunctionType RoundConstraint::getType() const
+NonlinearFunctionType RoundConstraint::getType() const
 {
-    return PiecewiseLinearFunctionType::ROUND;
+    return NonlinearFunctionType::ROUND;
 }
 
-PiecewiseLinearConstraint *RoundConstraint::duplicateConstraint() const
+NonlinearConstraint *RoundConstraint::duplicateConstraint() const
 {
     RoundConstraint *clone = new RoundConstraint( _b, _f );
     *clone = *this;
-    this->initializeDuplicateCDOs( clone );
     return clone;
 }
 
-void RoundConstraint::restoreState( const PiecewiseLinearConstraint *state )
+void RoundConstraint::restoreState( const NonlinearConstraint *state )
 {
     const RoundConstraint *round = dynamic_cast<const RoundConstraint *>( state );
     *this = *round;
@@ -93,7 +92,7 @@ void RoundConstraint::notifyLowerBound( unsigned variable, double newBound )
         _statistics->incLongAttribute(
             Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
 
-    if ( tightenLowerBound( variable, bound ) )
+    if ( tightenLowerBound( variable, newBound ) )
     {
         if ( variable == _f )
         {
@@ -114,7 +113,7 @@ void RoundConstraint::notifyUpperBound( unsigned variable, double newBound )
         _statistics->incLongAttribute(
             Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
 
-    if ( tightenUpperBound( variable, bound ) )
+    if ( tightenUpperBound( variable, newBound ) )
     {
         if ( variable == _f )
         {

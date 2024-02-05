@@ -23,7 +23,6 @@ enum PiecewiseLinearFunctionType {
     DISJUNCTION = 3,
     SIGN = 4,
     CLIP = 5,
-    ROUND = 6,
 };
 
 #endif // __PiecewiseLinearFunctionType_h__
