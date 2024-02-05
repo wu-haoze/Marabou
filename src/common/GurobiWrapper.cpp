@@ -116,6 +116,10 @@ void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType
         variableType = GRB_BINARY;
         break;
 
+    case INTEGER:
+        variableType = GRB_INTEGER;
+        break;
+
     default:
         break;
     }
@@ -139,12 +143,6 @@ void GurobiWrapper::addVariable( String name, double lb, double ub, VariableType
                                     e.getErrorCode(),
                                     e.getMessage().c_str() ).ascii() );
     }
-}
-
-void markAsInteger( String name )
-{
-    GRBVar var = _model->getVarByName( name.ascii() );
-    var.set( GRB_CharAttr_VType, GRB_INTEGER );
 }
 
 void GurobiWrapper::setLowerBound( String name, double lb )

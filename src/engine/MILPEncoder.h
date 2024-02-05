@@ -76,9 +76,14 @@ private:
     Map<unsigned, String> _variableToVariableName;
 
     /*
-      Index for Guroby binary variables
+      Index for Gurobi binary variables
     */
     unsigned _binVarIndex = 0;
+
+    /*
+      Index for Gurobi integer variables
+    */
+    unsigned _intVarIndex = 0;
 
     /*
       Encode an (in)equality into Gurobi.

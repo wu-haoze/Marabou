@@ -841,7 +841,16 @@ void MILPEncoder::encodeRoundConstraint( GurobiWrapper &gurobi,
 
     if ( !relax )
     {
-        gurobi.markAsInteger( Stringf( "x%u", targetVariable ) );
+        String varName = Stringf( "i%u", _intVarIndex );
+        gurobi.addVariable( varName,
+                            _tableau.getLowerBound( targetVariable ),
+                            _tableau.getUpperBound( targetVariable ),
+                            GurobiWrapper::INTEGER );
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( GurobiWrapper::Term( -1, Stringf( "i%u", _intVarIndex ) ) );
+        gurobi.addEqConstraint( terms, 0 );
+        ++_intVarIndex;
     }
 
     // Use the encoding in Pei et al. https://arxiv.org/pdf/2312.12679.pdf
