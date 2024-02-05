@@ -2,7 +2,7 @@
 /*! \file RoundConstraint.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Guy Katz, Parth Shah, Derek Huang
+ **   Andrew Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -14,29 +14,24 @@
 
 #include "RoundConstraint.h"
 
+#include "NonlinearConstraint.h"
 #include "Debug.h"
-#include "DivideStrategy.h"
 #include "FloatUtils.h"
 #include "GlobalConfiguration.h"
 #include "ITableau.h"
-#include "InfeasibleQueryException.h"
 #include "InputQuery.h"
 #include "MStringf.h"
 #include "MarabouError.h"
-#include "PiecewiseLinearCaseSplit.h"
-#include "PiecewiseLinearConstraint.h"
 #include "Statistics.h"
-#include "TableauRow.h"
 
 #ifdef _WIN32
 #define __attribute__( x )
 #endif
 
 RoundConstraint::RoundConstraint( unsigned b, unsigned f )
-    : PiecewiseLinearConstraint( TWO_PHASE_PIECEWISE_LINEAR_CONSTRAINT )
+    : NonlinearConstraint()
     , _b( b )
     , _f( f )
-    , _direction( PHASE_NOT_FIXED )
     , _haveEliminatedVariables( false )
 {
 }
@@ -75,14 +70,7 @@ PiecewiseLinearConstraint *RoundConstraint::duplicateConstraint() const
 void RoundConstraint::restoreState( const PiecewiseLinearConstraint *state )
 {
     const RoundConstraint *round = dynamic_cast<const RoundConstraint *>( state );
-
-    CVC4::context::CDO<bool> *activeStatus = _cdConstraintActive;
-    CVC4::context::CDO<PhaseStatus> *phaseStatus = _cdPhaseStatus;
-    CVC4::context::CDList<PhaseStatus> *infeasibleCases = _cdInfeasibleCases;
     *this = *round;
-    _cdConstraintActive = activeStatus;
-    _cdPhaseStatus = phaseStatus;
-    _cdInfeasibleCases = infeasibleCases;
 }
 
 void RoundConstraint::registerAsWatcher( ITableau *tableau )
@@ -97,20 +85,48 @@ void RoundConstraint::unregisterAsWatcher( ITableau *tableau )
     tableau->unregisterToWatchVariable( this, _f );
 }
 
-void RoundConstraint::checkIfLowerBoundUpdateFixesPhase( unsigned /*variable*/, double /*bound*/ )
+void RoundConstraint::notifyLowerBound( unsigned variable, double newBound )
 {
+    ASSERT( variable == _b || variable == _f );
+
+    if ( _statistics )
+        _statistics->incLongAttribute(
+            Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
+
+    if ( tightenLowerBound( variable, bound ) )
+    {
+        if ( variable == _f )
+        {
+            double val = std::ceil( newBound );
+            tightenLowerBound( _f, val );
+            tightenLowerBound( _b, val - 0.5 );
+
+        }
+        else if ( variable == _b )
+            tightenLowerBound( _f, FloatUtils::round( newBound ) );
+    }
 }
 
-void RoundConstraint::checkIfUpperBoundUpdateFixesPhase( unsigned /*variable*/, double /*bound*/ )
+void RoundConstraint::notifyUpperBound( unsigned variable, double newBound )
 {
-}
+    ASSERT( variable == _b || variable == _f );
 
-void RoundConstraint::notifyLowerBound( unsigned /*variable*/, double /*newBound*/ )
-{
-}
+    if ( _statistics )
+        _statistics->incLongAttribute(
+            Statistics::NUM_BOUND_NOTIFICATIONS_TO_TRANSCENDENTAL_CONSTRAINTS );
 
-void RoundConstraint::notifyUpperBound( unsigned /*variable*/, double /*newBound*/ )
-{
+    if ( tightenUpperBound( variable, bound ) )
+    {
+        if ( variable == _f )
+        {
+            double val = std::floor( newBound );
+            tightenUpperBound( _f, val );
+            tightenUpperBound( _f, val + 0.5 );
+
+        }
+        else if ( variable == _b )
+            tightenUpperBound( _f, FloatUtils::round( newBound ) );
+    }
 }
 
 bool RoundConstraint::participatingVariable( unsigned variable ) const
@@ -123,76 +139,37 @@ List<unsigned> RoundConstraint::getParticipatingVariables() const
     return List<unsigned>( { _b, _f } );
 }
 
-bool RoundConstraint::satisfied() const
-{
-    return false;
-}
-
-List<PiecewiseLinearConstraint::Fix> RoundConstraint::getPossibleFixes() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-List<PiecewiseLinearConstraint::Fix> RoundConstraint::getSmartFixes( ITableau * /*tableau*/ ) const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-List<PiecewiseLinearCaseSplit> RoundConstraint::getCaseSplits() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-List<PhaseStatus> RoundConstraint::getAllCases() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-PiecewiseLinearCaseSplit RoundConstraint::getCaseSplit( PhaseStatus /*phase*/ ) const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-PiecewiseLinearCaseSplit RoundConstraint::getInactiveSplit() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-PiecewiseLinearCaseSplit RoundConstraint::getActiveSplit() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-bool RoundConstraint::phaseFixed() const
-{
-    return _phaseStatus != PHASE_NOT_FIXED;
-}
-
-PiecewiseLinearCaseSplit RoundConstraint::getImpliedCaseSplit() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-PiecewiseLinearCaseSplit RoundConstraint::getValidCaseSplit() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
 void RoundConstraint::dump( String &output ) const
 {
-    output = Stringf( "RoundConstraint: x%u = Round( x%u ). Active? %s. \n",
-                      _f,
-                      _b,
-                      _constraintActive ? "Yes" : "No" );
+    output = Stringf( "RoundConstraint: x%u = Round( x%u ).\n", _f, _b );
+
+    output += Stringf( "b in [%s, %s], ",
+                       existsLowerBound( _b ) ? Stringf( "%lf", getLowerBound( _b ) ).ascii() : "-inf",
+                       existsUpperBound( _b ) ? Stringf( "%lf", getUpperBound( _b ) ).ascii() : "inf" );
+
+    output += Stringf( "f in [%s, %s]",
+                       existsLowerBound( _f ) ? Stringf( "%lf", getLowerBound( _f ) ).ascii() : "1",
+                       existsUpperBound( _f ) ? Stringf( "%lf", getUpperBound( _f ) ).ascii() : "0" );
 }
 
 void RoundConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
-    // Variable reindexing can only occur in preprocessing before Gurobi is
-    // registered.
-    ASSERT( _gurobi == NULL );
-
     ASSERT( oldIndex == _b || oldIndex == _f );
+    ASSERT( !_lowerBounds.exists( newIndex ) &&
+            !_upperBounds.exists( newIndex ) &&
+            newIndex != _b && newIndex != _f );
+
+    if ( _lowerBounds.exists( oldIndex ) )
+    {
+        _lowerBounds[newIndex] = _lowerBounds.get( oldIndex );
+        _lowerBounds.erase( oldIndex );
+    }
+
+    if ( _upperBounds.exists( oldIndex ) )
+    {
+        _upperBounds[newIndex] = _upperBounds.get( oldIndex );
+        _upperBounds.erase( oldIndex );
+    }
 
     if ( oldIndex == _b )
         _b = newIndex;
@@ -203,77 +180,43 @@ void RoundConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex 
 void RoundConstraint::eliminateVariable( __attribute__( ( unused ) ) unsigned variable,
                                          __attribute__( ( unused ) ) double fixedValue )
 {
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
+    ASSERT( variable == _b || variable == _f );
+
+    // In a Round constraint, if a variable is removed the entire constraint can be discarded.
+    _haveEliminatedVariables = true;
 }
 
 bool RoundConstraint::constraintObsolete() const
 {
-    return false;
+    return _haveEliminatedVariables;
 }
 
-void RoundConstraint::getEntailedTightenings( List<Tightening> & /*tightenings*/ ) const
+void RoundConstraint::getEntailedTightenings( List<Tightening> & tightenings ) const
 {
+    ASSERT( existsLowerBound( _b ) && existsLowerBound( _f ) &&
+            existsUpperBound( _b ) && existsUpperBound( _f ) );
+
+    double bLowerBound = getLowerBound( _b );
+    double fLowerBound = getLowerBound( _f );
+    double bUpperBound = getUpperBound( _b );
+    double fUpperBound = getUpperBound( _f );
+
+    tightenings.append( Tightening( _b, bLowerBound, Tightening::LB ) );
+    tightenings.append( Tightening( _f, fLowerBound, Tightening::LB ) );
+
+    tightenings.append( Tightening( _b, bUpperBound, Tightening::UB ) );
+    tightenings.append( Tightening( _f, fUpperBound, Tightening::UB ) );
 }
 
-void RoundConstraint::transformToUseAuxVariables( InputQuery &inputQuery )
+bool RoundConstraint::satisfied() const
 {
-    /*
-      We want to add the equation
+    if ( !( existsAssignment( _b ) && existsAssignment( _f ) ) )
+        throw MarabouError( MarabouError::PARTICIPATING_VARIABLE_MISSING_ASSIGNMENT );
 
-          f - b >= -0.5
-          f - b <= 0.5
+    double bValue = getAssignment( _b );
+    double fValue = getAssignment( _f );
 
-      Which actually becomes
-
-          f - b - aux1 = -0.5
-          f - b + aux2 = 0.5
-
-      where aux1, aux2 >= 0
-    */
-
-    // Create the aux variable
-    unsigned aux = inputQuery.getNumberOfVariables();
-    inputQuery.setNumberOfVariables( aux + 1 );
-
-    // Create and add the equation
-    Equation equation( Equation::EQ );
-    equation.addAddend( 1.0, _f );
-    equation.addAddend( -1.0, _b );
-    equation.addAddend( -1.0, aux );
-    equation.setScalar( -0.5 );
-    inputQuery.addEquation( equation );
-
-    // Adjust the bounds for the new variable
-    inputQuery.setLowerBound( aux, 0 );
-
-    aux = inputQuery.getNumberOfVariables();
-    inputQuery.setNumberOfVariables( aux + 1 );
-    Equation equation2( Equation::EQ );
-    equation2.addAddend( 1.0, _f );
-    equation2.addAddend( -1.0, _b );
-    equation2.addAddend( 1.0, aux );
-    equation2.setScalar( 0.5 );
-    inputQuery.addEquation( equation2 );
-
-    // Adjust the bounds for the new variable
-    inputQuery.setLowerBound( aux, 0 );
-}
-
-void RoundConstraint::getCostFunctionComponent( LinearExpression & /*cost*/,
-                                                PhaseStatus /*phase*/ ) const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-PhaseStatus
-RoundConstraint::getPhaseStatusInAssignment( const Map<unsigned, double> & /*assignment*/ ) const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-bool RoundConstraint::haveOutOfBoundVariables() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
+    return FloatUtils::areEqual( FloatUtils::round( bValue ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
 }
 
 String RoundConstraint::serializeToString() const
@@ -290,34 +233,4 @@ unsigned RoundConstraint::getB() const
 unsigned RoundConstraint::getF() const
 {
     return _f;
-}
-
-bool RoundConstraint::supportPolarity() const
-{
-    return false;
-}
-
-double RoundConstraint::computePolarity() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-void RoundConstraint::updateDirection()
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-PhaseStatus RoundConstraint::getDirection() const
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-void RoundConstraint::updateScoreBasedOnPolarity()
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
-}
-
-void RoundConstraint::createTighteningRow()
-{
-    throw MarabouError( MarabouError::FEATURE_NOT_YET_SUPPORTED );
 }
