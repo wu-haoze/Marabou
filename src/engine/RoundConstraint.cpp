@@ -14,7 +14,6 @@
 
 #include "RoundConstraint.h"
 
-#include "NonlinearConstraint.h"
 #include "Debug.h"
 #include "FloatUtils.h"
 #include "GlobalConfiguration.h"
@@ -22,6 +21,7 @@
 #include "InputQuery.h"
 #include "MStringf.h"
 #include "MarabouError.h"
+#include "NonlinearConstraint.h"
 #include "Statistics.h"
 
 #ifdef _WIN32
@@ -100,7 +100,6 @@ void RoundConstraint::notifyLowerBound( unsigned variable, double newBound )
             double val = std::ceil( newBound );
             tightenLowerBound( _f, val );
             tightenLowerBound( _b, val - 0.5 );
-
         }
         else if ( variable == _b )
             tightenLowerBound( _f, FloatUtils::round( newBound ) );
@@ -122,7 +121,6 @@ void RoundConstraint::notifyUpperBound( unsigned variable, double newBound )
             double val = std::floor( newBound );
             tightenUpperBound( _f, val );
             tightenUpperBound( _f, val + 0.5 );
-
         }
         else if ( variable == _b )
             tightenUpperBound( _f, FloatUtils::round( newBound ) );
@@ -143,20 +141,21 @@ void RoundConstraint::dump( String &output ) const
 {
     output = Stringf( "RoundConstraint: x%u = Round( x%u ).\n", _f, _b );
 
-    output += Stringf( "b in [%s, %s], ",
-                       existsLowerBound( _b ) ? Stringf( "%lf", getLowerBound( _b ) ).ascii() : "-inf",
-                       existsUpperBound( _b ) ? Stringf( "%lf", getUpperBound( _b ) ).ascii() : "inf" );
+    output +=
+        Stringf( "b in [%s, %s], ",
+                 existsLowerBound( _b ) ? Stringf( "%lf", getLowerBound( _b ) ).ascii() : "-inf",
+                 existsUpperBound( _b ) ? Stringf( "%lf", getUpperBound( _b ) ).ascii() : "inf" );
 
-    output += Stringf( "f in [%s, %s]",
-                       existsLowerBound( _f ) ? Stringf( "%lf", getLowerBound( _f ) ).ascii() : "1",
-                       existsUpperBound( _f ) ? Stringf( "%lf", getUpperBound( _f ) ).ascii() : "0" );
+    output +=
+        Stringf( "f in [%s, %s]",
+                 existsLowerBound( _f ) ? Stringf( "%lf", getLowerBound( _f ) ).ascii() : "1",
+                 existsUpperBound( _f ) ? Stringf( "%lf", getUpperBound( _f ) ).ascii() : "0" );
 }
 
 void RoundConstraint::updateVariableIndex( unsigned oldIndex, unsigned newIndex )
 {
     ASSERT( oldIndex == _b || oldIndex == _f );
-    ASSERT( !_lowerBounds.exists( newIndex ) &&
-            !_upperBounds.exists( newIndex ) &&
+    ASSERT( !_lowerBounds.exists( newIndex ) && !_upperBounds.exists( newIndex ) &&
             newIndex != _b && newIndex != _f );
 
     if ( _lowerBounds.exists( oldIndex ) )
@@ -191,10 +190,10 @@ bool RoundConstraint::constraintObsolete() const
     return _haveEliminatedVariables;
 }
 
-void RoundConstraint::getEntailedTightenings( List<Tightening> & tightenings ) const
+void RoundConstraint::getEntailedTightenings( List<Tightening> &tightenings ) const
 {
-    ASSERT( existsLowerBound( _b ) && existsLowerBound( _f ) &&
-            existsUpperBound( _b ) && existsUpperBound( _f ) );
+    ASSERT( existsLowerBound( _b ) && existsLowerBound( _f ) && existsUpperBound( _b ) &&
+            existsUpperBound( _f ) );
 
     double bLowerBound = getLowerBound( _b );
     double fLowerBound = getLowerBound( _f );
@@ -216,7 +215,8 @@ bool RoundConstraint::satisfied() const
     double bValue = getAssignment( _b );
     double fValue = getAssignment( _f );
 
-    return FloatUtils::areEqual( FloatUtils::round( bValue ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
+    return FloatUtils::areEqual(
+        FloatUtils::round( bValue ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE );
 }
 
 String RoundConstraint::serializeToString() const
