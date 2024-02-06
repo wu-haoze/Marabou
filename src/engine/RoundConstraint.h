@@ -9,6 +9,10 @@
  ** All rights reserved. See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
  **
+ ** Implements the round operation defined in pytorch
+ ** https://pytorch.org/docs/stable/generated/torch.round.html
+ ** Importantly, values equidistant from two integers are rounded towards the
+ ** nearest even value.
  **/
 
 #ifndef __RoundConstraint_h__

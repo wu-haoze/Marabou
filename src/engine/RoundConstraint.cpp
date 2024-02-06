@@ -96,12 +96,16 @@ void RoundConstraint::notifyLowerBound( unsigned variable, double newBound )
     {
         if ( variable == _f )
         {
-            double val = std::ceil( newBound );
+            double val = FloatUtils::round( newBound );
+            if ( FloatUtils::lt( val, newBound ) )
+                val = std::ceil( newBound );
             tightenLowerBound( _f, val );
             tightenLowerBound( _b, val - 0.5 );
         }
         else if ( variable == _b )
+        {
             tightenLowerBound( _f, FloatUtils::round( newBound ) );
+        }
     }
 }
 
@@ -117,9 +121,11 @@ void RoundConstraint::notifyUpperBound( unsigned variable, double newBound )
     {
         if ( variable == _f )
         {
-            double val = std::floor( newBound );
+            double val = std::round( newBound );
+            if ( FloatUtils::gt( val, newBound ) )
+                val = std::floor( newBound );
             tightenUpperBound( _f, val );
-            tightenUpperBound( _f, val + 0.5 );
+            tightenUpperBound( _b, val + 0.5 );
         }
         else if ( variable == _b )
             tightenUpperBound( _f, FloatUtils::round( newBound ) );
