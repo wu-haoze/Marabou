@@ -47,6 +47,11 @@ void InputQuery::setNumberOfVariables( unsigned numberOfVariables )
     _numberOfVariables = numberOfVariables;
 }
 
+unsigned InputQuery::getNewVariable()
+{
+    return _numberOfVariables++;
+}
+
 void InputQuery::setLowerBound( unsigned variable, double bound )
 {
     if ( variable >= _numberOfVariables )
@@ -147,6 +152,54 @@ double InputQuery::getSolutionValue( unsigned variable ) const
                              Stringf( "Variable: %u", variable ).ascii() );
 
     return _solution.get( variable );
+}
+
+void InputQuery::addClipConstraint( unsigned b, unsigned f,
+                                    double floor, double ceiling )
+{
+    /*
+      f = clip(b, floor, ceiling)
+
+      aux1 = b - floor
+      aux2 = relu(aux1)
+      aux2.5 = aux2 + floor
+      aux3 = -aux2.5 + ceiling
+      aux4 = relu(aux3)
+      f = -aux4 + ceiling
+    */
+
+    // aux1 = var1 - floor
+    unsigned aux1 = getNewVariable();
+    Equation eq1( Equation::EQ );
+    eq1.addAddend( 1.0, b );
+    eq1.addAddend( -1.0, aux1 );
+    eq1.setScalar( floor );
+    addEquation( eq1 );
+    unsigned aux2 = getNewVariable();
+    PiecewiseLinearConstraint* r1 = new ReluConstraint( aux1, aux2 );
+    addPiecewiseLinearConstraint( r1 );
+    // aux2.5 = aux2 + floor
+    // aux3 = -aux2.5 + ceiling
+    // So aux3 = -aux2 - floor + ceiling
+    unsigned aux3 = getNewVariable();
+    Equation eq2( Equation::EQ );
+    eq2.addAddend( -1.0, aux2 );
+    eq2.addAddend( -1.0, aux3 );
+    eq2.setScalar( floor - ceiling );
+    addEquation( eq2 );
+
+    unsigned aux4 = getNewVariable();
+    PiecewiseLinearConstraint* r2 = new ReluConstraint( aux3, aux4 );
+    addPiecewiseLinearConstraint( r2 );
+
+    // aux4.5 = aux4 - ceiling
+    // f = -aux4.5
+    // f = -aux4 + ceiling
+    Equation eq3( Equation::EQ );
+    eq3.addAddend( -1.0, aux4 );
+    eq3.addAddend( -1.0, f );
+    eq3.setScalar( -ceiling );
+    addEquation( eq3 );
 }
 
 void InputQuery::addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint )

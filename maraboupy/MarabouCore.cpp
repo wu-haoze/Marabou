@@ -106,10 +106,14 @@ void restoreOutputStream(int outputStream)
     close(outputStream);
 }
 
-void addClipConstraint(InputQuery& ipq, unsigned var1, unsigned var2, double floor, double ceiling){
-    PiecewiseLinearConstraint* r = new ClipConstraint(var1, var2, floor, ceiling);
-    ipq.addPiecewiseLinearConstraint(r);
+void addClipConstraint( InputQuery& ipq, unsigned var1, unsigned var2, double floor, double ceiling ){
+    ipq.addClipConstraint( var1, var2, floor, ceiling );
 }
+
+//void addClipConstraint(InputQuery& ipq, unsigned var1, unsigned var2, double floor, double ceiling){
+//    PiecewiseLinearConstraint* r = new ClipConstraint(var1, var2, floor, ceiling);
+//    ipq.addPiecewiseLinearConstraint(r);
+//}
 
 void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
     PiecewiseLinearConstraint* r = new ReluConstraint(var1, var2);

@@ -1145,6 +1145,86 @@ public:
 #endif // ENABLE_GUROBI
     }
 
+    void test_encode_clip_constraint2()
+    {
+#ifdef ENABLE_GUROBI
+
+        /*
+          1 <= x0 <= 4
+          3 <= x1 <= 4
+          x2 = x0 + x1
+          x3 = Clip( x2, 2.5, 3)
+        */
+        GurobiWrapper gurobi;
+
+        InputQuery inputQuery = InputQuery();
+        inputQuery.setNumberOfVariables( 4 );
+
+        Equation equation( Equation::EQ );
+        equation.addAddend( 1, 0 );
+        equation.addAddend( 1, 1 );
+        equation.addAddend( -1, 2 );
+        equation.setScalar( 0 );
+        inputQuery.addEquation( equation );
+
+        double floor = 2.5;
+        double ceiling = 3;
+        TS_ASSERT_THROWS_NOTHING( inputQuery.addClipConstraint( 2, 3, floor, ceiling ) );
+
+        MockTableau tableau = MockTableau();
+        tableau.setDimensions( 5, 5 );
+        inputQuery.setLowerBound( 0, 1 );
+        tableau.setLowerBound( 0, 1 );
+        inputQuery.setUpperBound( 0, 4 );
+        tableau.setUpperBound( 0, 4 );
+        inputQuery.setLowerBound( 1, 3 );
+        tableau.setLowerBound( 1, 3 );
+        inputQuery.setUpperBound( 1, 4 );
+        tableau.setUpperBound( 1, 4 );
+        inputQuery.setLowerBound( 2, 4 );
+        tableau.setLowerBound( 2, 4 );
+        inputQuery.setUpperBound( 2, 8 );
+        tableau.setUpperBound( 2, 8 );
+        inputQuery.setLowerBound( 3, 0 );
+        tableau.setLowerBound( 3, 0 );
+        inputQuery.setUpperBound( 3, 8 );
+        tableau.setUpperBound( 3, 8 );
+        for ( unsigned var = 4; var < 8; ++var )
+        {
+            TS_ASSERT_THROWS_NOTHING( inputQuery.setLowerBound( var, -20 ) );
+            TS_ASSERT_THROWS_NOTHING( tableau.setLowerBound( var, -20 ) );
+            TS_ASSERT_THROWS_NOTHING( inputQuery.setUpperBound( var, 20 ) );
+            TS_ASSERT_THROWS_NOTHING( tableau.setUpperBound( var, 20 ) );
+        }
+        TS_ASSERT_THROWS_NOTHING( inputQuery.setLowerBound( 5, 0 ) );
+        TS_ASSERT_THROWS_NOTHING( tableau.setLowerBound( 5, 0 ) );
+        TS_ASSERT_THROWS_NOTHING( inputQuery.setLowerBound( 7, 0 ) );
+        TS_ASSERT_THROWS_NOTHING( tableau.setLowerBound( 7, 0 ) );
+
+        for ( const auto &constraint : inputQuery.getPiecewiseLinearConstraints() )
+            constraint->transformToUseAuxVariables( inputQuery );
+
+        TS_ASSERT_THROWS_NOTHING( tableau.setLowerBound( 8, 0 ) );
+        TS_ASSERT_THROWS_NOTHING( tableau.setUpperBound( 8, 100 ) );
+        TS_ASSERT_THROWS_NOTHING( tableau.setLowerBound( 9, 0 ) );
+        TS_ASSERT_THROWS_NOTHING( tableau.setUpperBound( 9, 100 ) );
+
+        MILPEncoder milp( tableau );
+        TS_ASSERT_THROWS_NOTHING( milp.encodeInputQuery( gurobi, inputQuery ) );
+
+        TS_ASSERT_THROWS_NOTHING( gurobi.solve() );
+
+        TS_ASSERT( gurobi.haveFeasibleSolution() );
+
+        Map<String, double> solution;
+        double costValue;
+        TS_ASSERT_THROWS_NOTHING( gurobi.extractSolution( solution, costValue ) );
+        TS_ASSERT( FloatUtils::areEqual( solution["x3"], 3.0 ) );
+#else
+        TS_ASSERT( true );
+#endif // ENABLE_GUROBI
+    }
+
     void test_encode_round_constraint1()
     {
 #ifdef ENABLE_GUROBI

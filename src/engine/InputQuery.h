@@ -34,6 +34,7 @@ public:
       Methods for setting and getting the input part of the query
     */
     void setNumberOfVariables( unsigned numberOfVariables );
+    unsigned getNewVariable();
     void setLowerBound( unsigned variable, double bound );
     void setUpperBound( unsigned variable, double bound );
 
@@ -51,9 +52,13 @@ public:
     void removeEquationsByIndex( const Set<unsigned> indices );
 
     void addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint );
+
+    // Encode clip constraints as linear and relu constraints
+    void addClipConstraint( unsigned b, unsigned f, double floor, double ceiling );
+
     const List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints() const;
     List<PiecewiseLinearConstraint *> &getPiecewiseLinearConstraints();
-  
+
     void addNonlinearConstraint( NonlinearConstraint *constraint );
     const List<NonlinearConstraint *> &getNonlinearConstraints() const;
     List<NonlinearConstraint *> &getNonlinearConstraints();
