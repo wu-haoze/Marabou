@@ -157,8 +157,8 @@ void RoundConstraint::addAuxiliaryEquationsAfterPreprocessing( InputQuery
     // Create and add the equation
     Equation equation( Equation::EQ );
     equation.addAddend( 1.0, _f );
-    equation.addAddend( -1, _b );
-    equation.addAddend(-1, aux );
+    equation.addAddend( -1.0, _b );
+    equation.addAddend( -1.0, aux );
     equation.setScalar( 0 );
     inputQuery.addEquation( equation );
 
