@@ -9,6 +9,7 @@
 * Bumped ONNX version to >= 1.15.0
 * Added support for Leaky ReLU
 * Added support for Pythonic API
+* Added support for Clip and Round
 
 ## Version 1.0.0
 * Initial versioned release
