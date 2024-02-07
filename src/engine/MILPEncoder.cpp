@@ -760,12 +760,9 @@ void MILPEncoder::encodeRoundConstraint( GurobiWrapper &gurobi,
                                          RoundConstraint *round,
                                          bool relax )
 {
-    // Encode the DeepPoly abstraction
-    unsigned sourceVariable = round->getB();
-    unsigned targetVariable = round->getF();
-
     if ( !relax )
     {
+        unsigned targetVariable = round->getF();
         String varName = Stringf( "i%u", _intVarIndex );
         gurobi.addVariable( varName,
                             _tableau.getLowerBound( targetVariable ),
@@ -777,21 +774,6 @@ void MILPEncoder::encodeRoundConstraint( GurobiWrapper &gurobi,
         gurobi.addEqConstraint( terms, 0 );
         ++_intVarIndex;
     }
-
-    // Use the encoding in Pei et al. https://arxiv.org/pdf/2312.12679.pdf
-    // f <= b + 0.5
-    // b <= f + 0.5 - epsilon
-    // where f is an integer, and epsilon is a small value
-    List<GurobiWrapper::Term> terms;
-    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-    terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
-    gurobi.addLeqConstraint( terms, 0.5 );
-
-    terms.clear();
-    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
-    terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", targetVariable ) ) );
-
-    gurobi.addLeqConstraint( terms, 0.5 );
 }
 
 void MILPEncoder::encodeCostFunction( GurobiWrapper &gurobi,

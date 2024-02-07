@@ -142,6 +142,30 @@ List<unsigned> RoundConstraint::getParticipatingVariables() const
     return List<unsigned>( { _b, _f } );
 }
 
+void RoundConstraint::addAuxiliaryEquationsAfterPreprocessing( InputQuery
+                                                               &inputQuery )
+{
+    // Since at this point we can only encode equality,
+    // we encode the following:
+    // f - b - aux = 0 (i.e. aux = f - b)
+    // aux <= 0.5
+    // aux >= -0.5
+
+    // Create the aux variable
+    unsigned aux = inputQuery.getNewVariable();
+
+    // Create and add the equation
+    Equation equation( Equation::EQ );
+    equation.addAddend( 1.0, _f );
+    equation.addAddend( -1, _b );
+    equation.addAddend(-1, aux );
+    equation.setScalar( 0 );
+    inputQuery.addEquation( equation );
+
+    inputQuery.setLowerBound( aux, -0.5 );
+    inputQuery.setUpperBound( aux, 0.5 );
+}
+
 void RoundConstraint::dump( String &output ) const
 {
     output = Stringf( "RoundConstraint: x%u = Round( x%u ).\n", _f, _b );

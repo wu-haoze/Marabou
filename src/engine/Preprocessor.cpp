@@ -207,7 +207,11 @@ void Preprocessor::separateMergedAndFixed()
     DEBUG({
             // After this operation, the merged and fixed variable sets are disjoint
             for ( const auto &fixed : _fixedVariables )
+            {
+                if ( _mergedVariables.exists( fixed.first ) )
+                    std::cout << fixed.first << std::endl;
                 ASSERT( !_mergedVariables.exists( fixed.first ) );
+            }
           });
 }
 

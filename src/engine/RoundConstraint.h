@@ -70,6 +70,12 @@ public:
     List<unsigned> getParticipatingVariables() const override;
 
     /*
+      Encoding the convex relaxation of the round constraint
+    */
+    void addAuxiliaryEquationsAfterPreprocessing( InputQuery
+                                                  &inputQuery ) override;
+
+    /*
       Preprocessing related functions, to inform that a variable has
       been eliminated completely because it was fixed to some value,
       or that a variable's index has changed (e.g., x4 is now called
