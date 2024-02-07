@@ -27,7 +27,6 @@
 #include "MarabouMain.h"
 #include "AcasParser.h"
 #include "BilinearConstraint.h"
-#include "ClipConstraint.h"
 #include "CommonError.h"
 #include "DnCManager.h"
 #include "DisjunctionConstraint.h"
@@ -726,7 +725,6 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def("outputVariableByIndex", &InputQuery::outputVariableByIndex);
     py::enum_<PiecewiseLinearFunctionType>(m, "PiecewiseLinearFunctionType")
         .value("ReLU", PiecewiseLinearFunctionType::RELU)
-      .value("Clip", PiecewiseLinearFunctionType::CLIP)
         .value("AbsoluteValue", PiecewiseLinearFunctionType::ABSOLUTE_VALUE)
         .value("Max", PiecewiseLinearFunctionType::MAX)
         .value("Disjunction", PiecewiseLinearFunctionType::DISJUNCTION)

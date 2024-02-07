@@ -727,11 +727,7 @@ void MILPEncoder::encodeRoundConstraint( GurobiWrapper &gurobi,
     terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
     terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", targetVariable ) ) );
 
-    if ( GlobalConfiguration::ROUND_HALF_TO_EVEN )
-        gurobi.addLeqConstraint( terms, 0.5 );
-    else
-        gurobi.addLeqConstraint( terms,
-                                 0.5 - GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
+    gurobi.addLeqConstraint( terms, 0.5 );
 }
 
 void MILPEncoder::encodeCostFunction( GurobiWrapper &gurobi,
