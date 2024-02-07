@@ -33,6 +33,7 @@
 #include "Engine.h"
 #include "FloatUtils.h"
 #include "InputQuery.h"
+#include "LeakyReluConstraint.h"
 #include "MarabouError.h"
 #include "InputParserError.h"
 #include "MString.h"
@@ -109,10 +110,10 @@ void addClipConstraint( InputQuery& ipq, unsigned var1, unsigned var2, double fl
     ipq.addClipConstraint( var1, var2, floor, ceiling );
 }
 
-//void addClipConstraint(InputQuery& ipq, unsigned var1, unsigned var2, double floor, double ceiling){
-//    PiecewiseLinearConstraint* r = new ClipConstraint(var1, var2, floor, ceiling);
-//    ipq.addPiecewiseLinearConstraint(r);
-//}
+void addLeakyReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2, double slope){
+    PiecewiseLinearConstraint* r = new LeakyReluConstraint(var1, var2, slope);
+    ipq.addPiecewiseLinearConstraint(r);
+}
 
 void addReluConstraint(InputQuery& ipq, unsigned var1, unsigned var2){
     PiecewiseLinearConstraint* r = new ReluConstraint(var1, var2);
@@ -627,6 +628,16 @@ PYBIND11_MODULE(MarabouCore, m) {
             ub (double): Ceiling
         )pbdoc",
           py::arg("inputQuery"), py::arg("var1"), py::arg("var2"), py::arg("floor"), py::arg("ceiling"));
+    m.def("addLeakyReluConstraint", &addLeakyReluConstraint, R"pbdoc(
+        Add a LeakyRelu constraint to the InputQuery
+
+        Args:
+            inputQuery (:class:`~maraboupy.MarabouCore.InputQuery`): Marabou input query to be solved
+            var1 (int): Input variable to Leaky ReLU constraint
+            var2 (int): Output variable to Leaky ReLU constraint
+            slope (float): Slope of the Leaky ReLU constraint
+        )pbdoc",
+          py::arg("inputQuery"), py::arg("var1"), py::arg("var2"), py::arg("slope"));
     m.def("addReluConstraint", &addReluConstraint, R"pbdoc(
         Add a Relu constraint to the InputQuery
 

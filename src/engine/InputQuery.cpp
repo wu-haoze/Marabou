@@ -14,14 +14,15 @@
  **/
 
 #include "AutoFile.h"
+#include "BilinearConstraint.h"
 #include "Debug.h"
 #include "FloatUtils.h"
 #include "InputQuery.h"
-#include "RoundConstraint.h"
+#include "LeakyReluConstraint.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "MaxConstraint.h"
-#include "BilinearConstraint.h"
+#include "RoundConstraint.h"
 #include "SoftmaxConstraint.h"
 
 #define INPUT_QUERY_LOG( x, ... ) LOG( GlobalConfiguration::INPUT_QUERY_LOGGING, "Input Query: %s\n", x )
@@ -44,11 +45,6 @@ InputQuery::~InputQuery()
 void InputQuery::setNumberOfVariables( unsigned numberOfVariables )
 {
     _numberOfVariables = numberOfVariables;
-}
-
-unsigned InputQuery::getNewVariable()
-{
-    return _numberOfVariables++;
 }
 
 void InputQuery::setLowerBound( unsigned variable, double bound )
@@ -151,54 +147,6 @@ double InputQuery::getSolutionValue( unsigned variable ) const
                              Stringf( "Variable: %u", variable ).ascii() );
 
     return _solution.get( variable );
-}
-
-void InputQuery::addClipConstraint( unsigned b, unsigned f,
-                                    double floor, double ceiling )
-{
-    /*
-      f = clip(b, floor, ceiling)
-
-      aux1 = b - floor
-      aux2 = relu(aux1)
-      aux2.5 = aux2 + floor
-      aux3 = -aux2.5 + ceiling
-      aux4 = relu(aux3)
-      f = -aux4 + ceiling
-    */
-
-    // aux1 = var1 - floor
-    unsigned aux1 = getNewVariable();
-    Equation eq1( Equation::EQ );
-    eq1.addAddend( 1.0, b );
-    eq1.addAddend( -1.0, aux1 );
-    eq1.setScalar( floor );
-    addEquation( eq1 );
-    unsigned aux2 = getNewVariable();
-    PiecewiseLinearConstraint* r1 = new ReluConstraint( aux1, aux2 );
-    addPiecewiseLinearConstraint( r1 );
-    // aux2.5 = aux2 + floor
-    // aux3 = -aux2.5 + ceiling
-    // So aux3 = -aux2 - floor + ceiling
-    unsigned aux3 = getNewVariable();
-    Equation eq2( Equation::EQ );
-    eq2.addAddend( -1.0, aux2 );
-    eq2.addAddend( -1.0, aux3 );
-    eq2.setScalar( floor - ceiling );
-    addEquation( eq2 );
-
-    unsigned aux4 = getNewVariable();
-    PiecewiseLinearConstraint* r2 = new ReluConstraint( aux3, aux4 );
-    addPiecewiseLinearConstraint( r2 );
-
-    // aux4.5 = aux4 - ceiling
-    // f = -aux4.5
-    // f = -aux4 + ceiling
-    Equation eq3( Equation::EQ );
-    eq3.addAddend( -1.0, aux4 );
-    eq3.addAddend( -1.0, f );
-    eq3.setScalar( -ceiling );
-    addEquation( eq3 );
 }
 
 void InputQuery::addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint )
@@ -348,7 +296,7 @@ InputQuery &InputQuery::operator=( const InputQuery &other )
                 _plConstraints.append( newPlc );
                 ++numberOfMaxs;
             }
-            
+
         }
 
         ASSERT( other._networkLevelReasoner->getConstraintsInTopologicalOrder().size() +
@@ -745,13 +693,14 @@ bool InputQuery::constructNetworkLevelReasoner()
     while ( constructWeighedSumLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructReluLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructRoundLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
+            constructLeakyReluLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructAbsoluteValueLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSignLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSigmoidLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructMaxLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructBilinearLayer( nlr, handledVariableToLayer, newLayerIndex ) ||
             constructSoftmaxLayer( nlr, handledVariableToLayer, newLayerIndex )
-        )
+            )
     {
         ++newLayerIndex;
     }
@@ -954,6 +903,102 @@ bool InputQuery::constructReluLayer( NLR::NetworkLevelReasoner *nlr,
     nlr->addLayer( newLayerIndex, NLR::Layer::RELU, newNeurons.size() );
 
     NLR::Layer *layer = nlr->getLayer( newLayerIndex );
+    for ( const auto &newNeuron : newNeurons )
+    {
+        handledVariableToLayer[newNeuron._variable] = newLayerIndex;
+
+        layer->setLb( newNeuron._neuron, _lowerBounds.exists( newNeuron._variable ) ?
+                      _lowerBounds[newNeuron._variable] : FloatUtils::negativeInfinity() );
+        layer->setUb( newNeuron._neuron, _upperBounds.exists( newNeuron._variable ) ?
+                      _upperBounds[newNeuron._variable] : FloatUtils::infinity() );
+
+        unsigned sourceLayer = handledVariableToLayer[newNeuron._sourceVariable];
+        unsigned sourceNeuron = nlr->getLayer( sourceLayer )->variableToNeuron( newNeuron._sourceVariable );
+
+        // Mark the layer dependency
+        nlr->addLayerDependency( sourceLayer, newLayerIndex );
+
+        // Add the new neuron
+        nlr->setNeuronVariable( NLR::NeuronIndex( newLayerIndex, newNeuron._neuron ), newNeuron._variable );
+
+        // Mark the activation connection
+        nlr->addActivationSource( sourceLayer,
+                                  sourceNeuron,
+                                  newLayerIndex,
+                                  newNeuron._neuron );
+    }
+
+    INPUT_QUERY_LOG( "\tSuccessful!" );
+    return true;
+}
+
+bool InputQuery::constructLeakyReluLayer( NLR::NetworkLevelReasoner *nlr,
+                                          Map<unsigned, unsigned> &handledVariableToLayer,
+                                          unsigned newLayerIndex )
+{
+    INPUT_QUERY_LOG( "Attempting to construct LeakyReLULayer..." );
+    struct NeuronInformation
+    {
+    public:
+
+      NeuronInformation( unsigned variable, unsigned neuron, unsigned sourceVariable )
+          : _variable( variable )
+          , _neuron( neuron )
+          , _sourceVariable( sourceVariable )
+      {
+      }
+
+      unsigned _variable;
+      unsigned _neuron;
+      unsigned _sourceVariable;
+    };
+
+    List<NeuronInformation> newNeurons;
+
+    // Look for LeakyReLUs where all b variables have already been handled
+    const List<PiecewiseLinearConstraint *> &plConstraints =
+      getPiecewiseLinearConstraints();
+
+    double alpha = 0;
+    for ( const auto &plc : plConstraints )
+    {
+        // Only consider Leaky ReLUs
+        if ( plc->getType() != LEAKY_RELU )
+            continue;
+
+        const LeakyReluConstraint *leakyRelu = (const LeakyReluConstraint *)plc;
+
+        // Has the b variable been handled?
+        unsigned b = leakyRelu->getB();
+        if ( !handledVariableToLayer.exists( b ) )
+            continue;
+
+        // If the f variable has also been handled, ignore this constraint
+        unsigned f = leakyRelu->getF();
+        if ( handledVariableToLayer.exists( f ) )
+            continue;
+        // B has been handled, f hasn't. Add f
+        newNeurons.append( NeuronInformation( f, newNeurons.size(), b ) );
+        nlr->addConstraintInTopologicalOrder( plc );
+        double alphaTemp = leakyRelu->getSlope();
+        ASSERT( alphaTemp > 0 );
+        if ( alpha != 0 && alpha != alphaTemp ) {
+            throw NLRError( NLRError::LEAKY_RELU_SLOPES_NOT_UNIFORM );
+        }
+        alpha = alphaTemp;
+    }
+
+    // No neurons found for the new layer
+    if ( newNeurons.empty() )
+    {
+        INPUT_QUERY_LOG( "\tFailed!" );
+        return false;
+    }
+
+    nlr->addLayer( newLayerIndex, NLR::Layer::LEAKY_RELU, newNeurons.size() );
+
+    NLR::Layer *layer = nlr->getLayer( newLayerIndex );
+    layer->setAlpha( alpha );
     for ( const auto &newNeuron : newNeurons )
     {
         handledVariableToLayer[newNeuron._variable] = newLayerIndex;

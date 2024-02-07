@@ -5,6 +5,7 @@ Top contributors (to current version):
     - Andrew Wu
     - Kyle Julian
     - Teruhiro Tagomori
+    - Min Wu
     
 This file is part of the Marabou project.
 Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
@@ -17,17 +18,18 @@ MarabouNetwork defines an abstract class that represents neural networks with pi
 
 from maraboupy import MarabouCore
 from maraboupy import MarabouUtils
-
+from maraboupy.MarabouPythonic import *
 import numpy as np
 
 
 class MarabouNetwork:
     """Abstract class representing general Marabou network
-    
+
     Attributes:
         numVars (int): Total number of variables to represent network
         equList (list of :class:`~maraboupy.MarabouUtils.Equation`): Network equations
         reluList (list of tuples): List of relu constraint tuples, where each tuple contains the backward and forward variables
+        leakyReluList (list of tuples): List of leaky relu constraint tuples, where each tuple contains the backward and forward variables, and the slope
         sigmoidList (list of tuples): List of sigmoid constraint tuples, where each tuple contains the backward and forward variables
         maxList (list of tuples): List of max constraint tuples, where each tuple conatins the set of input variables and output variable
         absList (list of tuples): List of abs constraint tuples, where each tuple conatins the input variable and the output variable
@@ -50,6 +52,7 @@ class MarabouNetwork:
         self.additionalEquList = [] # used to store user defined equations
         self.clipList = []
         self.reluList = []
+        self.leakyReluList = []
         self.sigmoidList = []
         self.maxList = []
         self.softmaxList = []
@@ -127,6 +130,16 @@ class MarabouNetwork:
             v2 (int): Variable representing output of Relu
         """
         self.reluList += [(v1, v2)]
+
+    def addLeakyRelu(self, v1, v2, slope):
+        """Function to add a new Leaky Relu constraint
+
+        Args:
+            v1 (int): Variable representing input of Leaky Relu
+            v2 (int): Variable representing output of Leaky Relu
+            slope (float): Shope of the Leaky ReLU
+        """
+        self.leakyReluList += [(v1, v2, slope)]
 
     def addBilinear(self, v1, v2, v3):
         """Function to add a bilinear constraint to the network
@@ -289,6 +302,11 @@ class MarabouNetwork:
             assert r[1] < self.numVars and r[0] < self.numVars
             MarabouCore.addReluConstraint(ipq, r[0], r[1])
 
+        for r in self.leakyReluList:
+            assert r[1] < self.numVars and r[0] < self.numVars
+            assert(r[2] > 0 and r[2] < 1)
+            MarabouCore.addLeakyReluConstraint(ipq, r[0], r[1], r[2])
+
         for r in self.bilinearList:
             assert r[2] < self.numVars and r[1] < self.numVars and r[0] < self.numVars
             MarabouCore.addBilinearConstraint(ipq, r[0], r[1], r[2])
@@ -337,7 +355,7 @@ class MarabouNetwork:
         for u in self.upperBounds:
             assert u < self.numVars
             ipq.setUpperBound(u, self.upperBounds[u])
-            
+
         return ipq
 
     def solve(self, filename="", verbose=True, options=None, propertyFilename=""):
@@ -579,3 +597,51 @@ class MarabouNetwork:
         assert len(outMar) == len(outNotMar)
         err = [np.abs(outMar[i] - outNotMar[i]) for i in range(len(outMar))]
         return err
+
+    def isEqualTo(self, network):
+        """
+        Add a comparison between two Marabou networks and all their attributes.
+
+        :param network: the other Marabou network to be compared with.
+        :return: True if these two networks and all their attributes are identical; False if not.
+        """
+        equivalence = True
+        if self.numVars != network.numVars \
+                or self.reluList != network.reluList \
+                or self.sigmoidList != network.sigmoidList \
+                or self.maxList != network.maxList \
+                or self.absList != network.absList \
+                or self.signList != network.signList \
+                or self.disjunctionList != network.disjunctionList \
+                or self.lowerBounds != network.lowerBounds \
+                or self.upperBounds != network.upperBounds:
+            equivalence = False
+        for equation1, equation2 in zip(self.equList, network.equList):
+            if not equation1.isEqualTo(equation2):
+                equivalence = False
+        for inputvars1, inputvars2 in zip(self.inputVars, network.inputVars):
+            if (inputvars1.flatten() != inputvars2.flatten()).any():
+                equivalence = False
+        for outputVars1, outputVars2 in zip(self.outputVars, network.outputVars):
+            if (outputVars1.flatten() != outputVars1.flatten()).any():
+                equivalence = False
+        return equivalence
+
+    def addConstraint(self, constraint: VarConstraint):
+        """
+        Support the Pythonic API to add constraints to the neurons in the Marabou network.
+
+        :param constraint: an instance of the VarConstraint class, which comprises various neuron constraints.
+        :return: delegate various constraints into lower/upper bounds and equality/inequality.
+        """
+        vars = list(constraint.combination.varCoeffs)
+        coeffs = [constraint.combination.varCoeffs[i] for i in vars]
+        if constraint.lowerBound is not None:
+            self.setLowerBound(vars[0], constraint.lowerBound)
+        elif constraint.upperBound is not None:
+            self.setUpperBound(vars[0], constraint.upperBound)
+        else:
+            if constraint.isEquality:
+                self.addEquality(vars, coeffs, - constraint.combination.scalar)
+            else:
+                self.addInequality(vars, coeffs, - constraint.combination.scalar)
