@@ -74,11 +74,6 @@ void MILPEncoder::encodeInputQuery( GurobiWrapper &gurobi,
                                            (AbsoluteValueConstraint *)plConstraint,
                                            relax );
             break;
-        case PiecewiseLinearFunctionType::CLIP:
-            encodeClipConstraint( gurobi,
-                                  (ClipConstraint *)plConstraint,
-                                  relax );
-            break;
         case PiecewiseLinearFunctionType::DISJUNCTION:
             encodeDisjunctionConstraint( gurobi,
                                          (DisjunctionConstraint *)plConstraint,
@@ -202,140 +197,6 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi,
     terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
     terms.append( GurobiWrapper::Term( -targetUb, Stringf( "a%u", _binVarIndex++ ) ) );
     gurobi.addLeqConstraint( terms, 0 );
-}
-
-void MILPEncoder::encodeClipConstraint( GurobiWrapper &gurobi,
-                                        ClipConstraint *clip, bool relax )
-{
-
-    if ( !clip->isActive() || clip->phaseFixed() )
-    {
-        ASSERT( ( FloatUtils::lte( _tableau.getUpperBound( clip->getB() ),  clip->getFloor() ) &&
-                  FloatUtils::lte( _tableau.getUpperBound( clip->getF() ),  clip->getFloor() ) ) ||
-                ( FloatUtils::gte( _tableau.getLowerBound( clip->getB() ),  clip->getCeiling() ) &&
-                  FloatUtils::lte( _tableau.getLowerBound( clip->getF() ),  clip->getCeiling() ) ) ||
-                ( FloatUtils::gte( _tableau.getLowerBound( clip->getB() ),  clip->getFloor() ) &&
-                  FloatUtils::lte( _tableau.getUpperBound( clip->getB() ),  clip->getCeiling() ) ) );
-        return;
-    }
-
-    unsigned sourceVariable = clip->getB();
-    unsigned targetVariable = clip->getF();
-    double sourceLb = _tableau.getLowerBound( sourceVariable );
-    double sourceUb = _tableau.getUpperBound( sourceVariable );
-    double floor = clip->getFloor();
-    double ceiling = clip->getCeiling();
-
-    if ( sourceLb < floor || sourceUb > ceiling )
-    {
-        if ( relax )
-        {
-            // Let lambda1 = (ceiling - floor ) / ( ceiling - lb )
-            // Let lambda2 = (ceiling - floor ) / ( ub - floor )
-            // we add f <= lambda1 * b + ( 1 - lambda1 ) * ceiling
-            // and    f >= lambda2 * b + ( 1 - lambda2 ) * floor
-
-            double lambda1 = (ceiling - floor ) / ( ceiling - sourceLb );
-            double lambda2 = (ceiling - floor ) / ( sourceUb - floor );
-
-            List<GurobiWrapper::Term> terms;
-            terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-            terms.append( GurobiWrapper::Term( -lambda1, Stringf( "x%u", sourceVariable ) ) );
-            gurobi.addLeqConstraint( terms, ( 1 - lambda1 ) * ceiling );
-
-            terms.clear();
-            terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-            terms.append( GurobiWrapper::Term( -lambda2, Stringf( "x%u", sourceVariable ) ) );
-            gurobi.addGeqConstraint( terms, ( 1 - lambda2 ) * floor );
-        }
-        else
-        {
-            double xPoints[4];
-            double yPoints[4];
-            xPoints[0] = sourceLb;
-            yPoints[0] = floor;
-            xPoints[1] = floor;
-            yPoints[1] = floor;
-            xPoints[2] = ceiling;
-            yPoints[2] = ceiling;
-            xPoints[3] = sourceUb;
-            yPoints[3] = ceiling;
-            gurobi.addPiecewiseLinearConstraint( Stringf( "x%u", sourceVariable ),
-                                                 Stringf( "x%u", targetVariable ),
-                                                 4, xPoints, yPoints );
-        }
-    }
-    else if ( sourceLb >= floor )
-    {
-        if ( relax )
-        {
-            // Let lambda = (ceiling - lb ) / ( ub - lb )
-            // we add f <= b
-            // and    f >= lambda * b + ( 1 - lambda ) * lb
-
-            double lambda = (ceiling - sourceLb ) / ( sourceUb - sourceLb );
-
-            List<GurobiWrapper::Term> terms;
-            terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-            terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
-            gurobi.addLeqConstraint( terms, 0 );
-
-            terms.clear();
-            terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-            terms.append( GurobiWrapper::Term( -lambda, Stringf( "x%u", sourceVariable ) ) );
-            gurobi.addGeqConstraint( terms, ( 1 - lambda ) * sourceLb );
-        }
-        else
-        {
-            double xPoints[3];
-            double yPoints[3];
-            xPoints[0] = sourceLb;
-            yPoints[0] = sourceLb;
-            xPoints[1] = ceiling;
-            yPoints[1] = ceiling;
-            xPoints[2] = sourceUb;
-            yPoints[2] = ceiling;
-            gurobi.addPiecewiseLinearConstraint( Stringf( "x%u", sourceVariable ),
-                                                 Stringf( "x%u", targetVariable ),
-                                                 3, xPoints, yPoints );
-        }
-    }
-    else
-    {
-        ASSERT( sourceUb <= ceiling )
-        if ( relax )
-        {
-            // Let lambda = (ub - floor ) / ( ub - lb )
-            // we add f >= b
-            // and    f <= lambda * b + ( 1 - lambda ) * ub
-
-            double lambda = ( sourceUb - floor ) / ( sourceUb - sourceLb );
-
-            List<GurobiWrapper::Term> terms;
-            terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-            terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
-            gurobi.addGeqConstraint( terms, 0 );
-
-            terms.clear();
-            terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-            terms.append( GurobiWrapper::Term( -lambda, Stringf( "x%u", sourceVariable ) ) );
-            gurobi.addLeqConstraint( terms, ( 1 - lambda ) * sourceUb );
-        }
-        else
-        {
-            double xPoints[4];
-            double yPoints[4];
-            xPoints[0] = sourceLb;
-            yPoints[0] = floor;
-            xPoints[1] = floor;
-            yPoints[1] = floor;
-            xPoints[2] = sourceUb;
-            yPoints[2] = sourceUb;
-            gurobi.addPiecewiseLinearConstraint( Stringf( "x%u", sourceVariable ),
-                                                 Stringf( "x%u", targetVariable ),
-                                                 3, xPoints, yPoints );
-        }
-    }
 }
 
 void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max,
@@ -865,7 +726,12 @@ void MILPEncoder::encodeRoundConstraint( GurobiWrapper &gurobi,
     terms.clear();
     terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", sourceVariable ) ) );
     terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", targetVariable ) ) );
-    gurobi.addLeqConstraint( terms, 0.5 - GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
+
+    if ( GlobalConfiguration::ROUND_HALF_TO_EVEN )
+        gurobi.addLeqConstraint( terms, 0.5 );
+    else
+        gurobi.addLeqConstraint( terms,
+                                 0.5 - GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS );
 }
 
 void MILPEncoder::encodeCostFunction( GurobiWrapper &gurobi,

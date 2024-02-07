@@ -172,9 +172,6 @@ private:
     bool constructReluLayer( NLR::NetworkLevelReasoner *nlr,
                              Map<unsigned, unsigned> &handledVariableToLayer,
                              unsigned newLayerIndex );
-  bool constructClipLayer( NLR::NetworkLevelReasoner *nlr,
-                           Map<unsigned, unsigned> &handledVariableToLayer,
-                           unsigned newLayerIndex );
     bool constructRoundLayer( NLR::NetworkLevelReasoner *nlr,
                               Map<unsigned, unsigned> &handledVariableToLayer,
                               unsigned newLayerIndex );

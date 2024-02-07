@@ -17,7 +17,6 @@
 #define __MILPEncoder_h__
 
 #include "BilinearConstraint.h"
-#include "ClipConstraint.h"
 #include "DisjunctionConstraint.h"
 #include "GurobiWrapper.h"
 #include "InputQuery.h"
@@ -104,15 +103,6 @@ private:
       preprocessing
     */
     void encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *relu,
-                               bool relax );
-
-    /*
-      Encode a Clip constraint in Gurobi
-
-      If precise encoding is used, Clip is encoded as a piecewise-linear constraint
-      If relaxed encoding, the symbolic bounds are encoded
-    */
-    void encodeClipConstraint( GurobiWrapper &gurobi, ClipConstraint *clip,
                                bool relax );
 
     /*
