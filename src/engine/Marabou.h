@@ -73,6 +73,11 @@ private:
     OnnxParser *_onnxParser;
 
     /*
+      CEGAR solver
+    */
+    CegarSolver *_cegarSolver;
+
+    /*
       The solver
     */
     Engine _engine;

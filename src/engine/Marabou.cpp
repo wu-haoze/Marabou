@@ -34,6 +34,7 @@
 Marabou::Marabou()
     : _acasParser( NULL )
     , _onnxParser( NULL )
+    , _cegarSolver( NULL )
     , _engine()
 {
 }
@@ -210,15 +211,19 @@ void Marabou::exportAssignment() const
 
 void Marabou::solveQuery()
 {
-    if ( _engine.processInputQuery( _inputQuery ) )
-    {
-        _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
-        if ( _engine.shouldProduceProofs() && _engine.getExitCode() == Engine::UNSAT )
-            _engine.certifyUNSATCertificate();
-    }
+    if ( !_inputQuery->getNonlinearConstraints().empty() )
+        _cegarSolver = IncrementalLinearization();
 
-    if ( _engine.getExitCode() == Engine::SAT )
-        _engine.extractSolution( _inputQuery );
+        if ( _engine.processInputQuery( _inputQuery ) )
+        {
+            _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
+            if ( _engine.shouldProduceProofs() && _engine.getExitCode() == Engine::UNSAT )
+                _engine.certifyUNSATCertificate();
+        }
+
+        if ( _engine.getExitCode() == Engine::SAT )
+            _engine.extractSolution( _inputQuery );
+    }
 }
 
 void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
