@@ -1,6 +1,9 @@
 
 import numpy as np
 import onnx
+from onnx import TensorProto
+import os
+import sys
 
 ##############
 ## Settings ##
@@ -20,7 +23,8 @@ def make_network(name, node, input_shape, output_shape, aux_nodes):
     graph = onnx.helper.make_graph([node] + aux_nodes, name, input, output)
     model = onnx.helper.make_model(graph, producer_name=producer_name)
     print(f"Generated {name}.onnx")
-    onnx.save(model, f"{name}.onnx")
+    output_dir = os.path.dirname(sys.argv[0])
+    onnx.save(model, os.path.join(output_dir ,f"{name}.onnx"))
 
 def make_constant_float_node(name, values):
     value_array = np.array(values).astype(float)
@@ -112,6 +116,24 @@ def transpose_node():
         perm=[1,0]
     )
     return ("transpose", node, [2,3], [3,2], [])
+
+def squeeze_node():
+    node = onnx.helper.make_node(
+        "Squeeze",
+        inputs=[input_name],
+        outputs=[output_name]
+    )
+    return ("squeeze", node, [1,2,1,3], [2,3], [])
+
+def squeeze_node_with_axes():
+    axes = make_constant_int_node( "axes", [-2] )
+
+    node = onnx.helper.make_node(
+        "Squeeze",
+        inputs=[input_name, "axes"],
+        outputs=[output_name]
+    )
+    return ("squeeze_with_axes", node, [1,2,1,3], [2,3], [axes])
 
 def batch_normalization_node():
     scale = make_constant_float_node("scale", [0.5, 1, 2])
@@ -233,6 +255,27 @@ def tanh_node():
     )
     return ("tanh", node, [2,2], [2,2], [])
 
+def cast_int_to_float_node():
+    const_node = make_constant_int_node("const", np.array([[0, 1], [-1, 2]]))
+
+    cast_node = onnx.helper.make_node(
+        "Cast",
+        inputs=["const"],
+        outputs=["c"],
+        name="c",
+        to=TensorProto.FLOAT,
+    )
+
+    # Have to have at least one variable output so create an Add node.
+    node = onnx.helper.make_node(
+        "Add",
+        inputs=[input_name, "c"],
+        name="add",
+        outputs=[output_name],
+    )
+
+    return ("cast_int_to_float", node, [2,2], [2,2], [cast_node, const_node])
+
 ##########
 ## Main ##
 ##########
@@ -244,6 +287,8 @@ if __name__ == "__main__":
     make_network(*reshape_node_with_dimension_inference())
     make_network(*flatten_node())
     make_network(*transpose_node())
+    make_network(*squeeze_node())
+    make_network(*squeeze_node_with_axes())
     make_network(*batch_normalization_node())
     make_network(*max_pool_node())
     make_network(*conv_node())
@@ -254,3 +299,4 @@ if __name__ == "__main__":
     make_network(*matmul_node())
     make_network(*sigmoid_node())
     make_network(*tanh_node())
+    make_network(*cast_int_to_float_node())

@@ -175,6 +175,10 @@ void OptionParser::initialize()
         ( "refinement-factor",
           boost::program_options::value<float>( &((*_floatOptions)[Options::REFINEMENT_SCALING_FACTOR_INC_LIN]) )->default_value( (*_floatOptions)[Options::REFINEMENT_SCALING_FACTOR_INC_LIN] ),
           "(Inc. Lin.) In each iteration of incremental linearization, scale the maximal number of constraints to refine by this number." )
+        ( "no-merge-ws-layers",
+          boost::program_options::bool_switch( &(*_boolOptions)[Options::DO_NOT_MERGE_CONSECUTIVE_WEIGHTED_SUM_LAYERS] )->
+          default_value( (*_boolOptions)[Options::DO_NOT_MERGE_CONSECUTIVE_WEIGHTED_SUM_LAYERS] ),
+          "Do no merge consecutive weighted-sum layers." )
 #ifdef ENABLE_GUROBI
         ( "lp-solver",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::LP_SOLVER]) )->default_value( (*_stringOptions)[Options::LP_SOLVER] ),
