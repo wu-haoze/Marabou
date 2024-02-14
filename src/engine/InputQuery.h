@@ -79,6 +79,7 @@ public:
     */
     void setSolutionValue( unsigned variable, double value );
     double getSolutionValue( unsigned variable ) const;
+    void clearSolution();
 
     /*
       Count the number of infinite bounds in the input query.

@@ -158,6 +158,11 @@ double InputQuery::getSolutionValue( unsigned variable ) const
     return _solution.get( variable );
 }
 
+void InputQuery::clearSolution()
+{
+    _solution.clear();
+}
+
 void InputQuery::addPiecewiseLinearConstraint( PiecewiseLinearConstraint *constraint )
 {
     _plConstraints.append( constraint );
