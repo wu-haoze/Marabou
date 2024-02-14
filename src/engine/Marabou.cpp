@@ -2,7 +2,7 @@
 /*! \file Marabou.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Guy Katz
+ **   Guy Katz, Andrew Wu
  ** This file is part of the Marabou project.
  ** Copyright (c) 2017-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -14,18 +14,19 @@
  ** [[ Add lengthier description here ]]
  **/
 
+#include "Marabou.h"
+
 #include "AcasParser.h"
 #include "AutoFile.h"
-#include "GlobalConfiguration.h"
 #include "File.h"
+#include "GlobalConfiguration.h"
 #include "MStringf.h"
-#include "Marabou.h"
+#include "MarabouError.h"
 #include "OnnxParser.h"
 #include "Options.h"
 #include "PropertyParser.h"
-#include "VnnLibParser.h"
-#include "MarabouError.h"
 #include "QueryLoader.h"
+#include "VnnLibParser.h"
 
 #ifdef _WIN32
 #undef ERROR
@@ -66,7 +67,7 @@ void Marabou::run()
     unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
     displayResults( totalElapsed );
 
-    if( Options::get()->getBool( Options::EXPORT_ASSIGNMENT ) )
+    if ( Options::get()->getBool( Options::EXPORT_ASSIGNMENT ) )
         exportAssignment();
 }
 
@@ -80,7 +81,8 @@ void Marabou::prepareInputQuery()
         */
         if ( !File::exists( inputQueryFilePath ) )
         {
-            printf( "Error: the specified inputQuery file (%s) doesn't exist!\n", inputQueryFilePath.ascii() );
+            printf( "Error: the specified inputQuery file (%s) doesn't exist!\n",
+                    inputQueryFilePath.ascii() );
             throw MarabouError( MarabouError::FILE_DOESNT_EXIST, inputQueryFilePath.ascii() );
         }
 
@@ -102,12 +104,13 @@ void Marabou::prepareInputQuery()
 
         if ( !File::exists( networkFilePath ) )
         {
-            printf( "Error: the specified network file (%s) doesn't exist!\n", networkFilePath.ascii() );
+            printf( "Error: the specified network file (%s) doesn't exist!\n",
+                    networkFilePath.ascii() );
             throw MarabouError( MarabouError::FILE_DOESNT_EXIST, networkFilePath.ascii() );
         }
         printf( "Network: %s\n", networkFilePath.ascii() );
 
-        if ( ((String) networkFilePath).endsWith( ".onnx" ) )
+        if ( ( (String)networkFilePath ).endsWith( ".onnx" ) )
         {
             _onnxParser = new OnnxParser( networkFilePath );
             _onnxParser->generateQuery( _inputQuery );
@@ -154,12 +157,13 @@ void Marabou::prepareInputQuery()
 
 void Marabou::importDebuggingSolution()
 {
-    String fileName=  Options::get()->getString( Options::IMPORT_ASSIGNMENT_FILE_PATH );
+    String fileName = Options::get()->getString( Options::IMPORT_ASSIGNMENT_FILE_PATH );
     AutoFile input( fileName );
 
     if ( !IFile::exists( fileName ) )
     {
-        throw MarabouError( MarabouError::FILE_DOES_NOT_EXIST, Stringf( "File %s not found.\n", fileName.ascii() ).ascii() );
+        throw MarabouError( MarabouError::FILE_DOES_NOT_EXIST,
+                            Stringf( "File %s not found.\n", fileName.ascii() ).ascii() );
     }
 
     input->open( IFile::MODE_READ );
@@ -172,7 +176,7 @@ void Marabou::importDebuggingSolution()
     String line;
 
     // Import each assignment
-    for ( unsigned i = 0;  i < numVars; ++i )
+    for ( unsigned i = 0; i < numVars; ++i )
     {
         line = input->readLine();
         List<String> tokens = line.tokenize( "," );
@@ -183,7 +187,7 @@ void Marabou::importDebuggingSolution()
         value = atof( it->ascii() );
         it++;
         ASSERT( it == tokens.end() );
-        _inputQuery.storeDebuggingSolution( var, value);
+        _inputQuery.storeDebuggingSolution( var, value );
     }
 
     input->close();
@@ -200,7 +204,7 @@ void Marabou::exportAssignment() const
     exportFile->write( Stringf( "%u\n", numberOfVariables ) );
 
     // Export each assignment
-    for ( unsigned var = 0;  var < numberOfVariables; ++var )
+    for ( unsigned var = 0; var < numberOfVariables; ++var )
         exportFile->write( Stringf( "%u, %f\n", var, _inputQuery.getSolutionValue( var ) ) );
 
     exportFile->close();
@@ -260,7 +264,9 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         printf( "Input assignment:\n" );
         for ( unsigned i = 0; i < _inputQuery.getNumInputVariables(); ++i )
-            printf( "\tx%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) ) );
+            printf( "\tx%u = %lf\n",
+                    i,
+                    _inputQuery.getSolutionValue( _inputQuery.inputVariableByIndex( i ) ) );
 
         if ( _inputQuery._networkLevelReasoner )
         {
@@ -287,7 +293,9 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
             printf( "\n" );
             printf( "Output:\n" );
             for ( unsigned i = 0; i < _inputQuery.getNumOutputVariables(); ++i )
-                printf( "\ty%u = %lf\n", i, _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
+                printf( "\ty%u = %lf\n",
+                        i,
+                        _inputQuery.getSolutionValue( _inputQuery.outputVariableByIndex( i ) ) );
             printf( "\n" );
         }
     }

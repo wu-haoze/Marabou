@@ -13,10 +13,11 @@
 
 **/
 
+#include "Options.h"
+
 #include "ConfigurationError.h"
 #include "Debug.h"
 #include "GlobalConfiguration.h"
-#include "Options.h"
 
 Options *Options::get()
 {
@@ -76,7 +77,7 @@ void Options::initializeDefaultValues()
     */
     _floatOptions[TIMEOUT_FACTOR] = 1.5;
     _floatOptions[MILP_SOLVER_TIMEOUT] = 1.0;
-    _floatOptions[PREPROCESSOR_BOUND_TOLERANCE] = \
+    _floatOptions[PREPROCESSOR_BOUND_TOLERANCE] =
         GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
     _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 10;
     _floatOptions[REFINEMENT_SCALING_FACTOR_INC_LIN] = 2;
@@ -153,8 +154,7 @@ void Options::setString( unsigned option, std::string value )
 
 DivideStrategy Options::getDivideStrategy() const
 {
-    String strategyString = String( _stringOptions.get
-                                    ( Options::SPLITTING_STRATEGY ) );
+    String strategyString = String( _stringOptions.get( Options::SPLITTING_STRATEGY ) );
     if ( strategyString == "polarity" )
         return DivideStrategy::Polarity;
     else if ( strategyString == "earliest-relu" )
@@ -182,8 +182,7 @@ SnCDivideStrategy Options::getSnCDivideStrategy() const
 
 SymbolicBoundTighteningType Options::getSymbolicBoundTighteningType() const
 {
-    String strategyString =
-        String( _stringOptions.get( Options::SYMBOLIC_BOUND_TIGHTENING_TYPE ) );
+    String strategyString = String( _stringOptions.get( Options::SYMBOLIC_BOUND_TIGHTENING_TYPE ) );
     if ( strategyString == "sbt" )
         return SymbolicBoundTighteningType::SYMBOLIC_BOUND_TIGHTENING;
     else if ( strategyString == "deeppoly" )
@@ -198,7 +197,8 @@ MILPSolverBoundTighteningType Options::getMILPSolverBoundTighteningType() const
 {
     if ( gurobiEnabled() )
     {
-        String strategyString = String( _stringOptions.get( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE ) );
+        String strategyString =
+            String( _stringOptions.get( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE ) );
         if ( strategyString == "lp" )
             return MILPSolverBoundTighteningType::LP_RELAXATION;
         else if ( strategyString == "lp-inc" )
@@ -222,8 +222,7 @@ MILPSolverBoundTighteningType Options::getMILPSolverBoundTighteningType() const
 
 SoISearchStrategy Options::getSoISearchStrategy() const
 {
-    String strategyString = String( _stringOptions.get
-                                    ( Options::SOI_SEARCH_STRATEGY ) );
+    String strategyString = String( _stringOptions.get( Options::SOI_SEARCH_STRATEGY ) );
     if ( strategyString == "mcmc" )
         return SoISearchStrategy::MCMC;
     else if ( strategyString == "walksat" )
@@ -234,8 +233,7 @@ SoISearchStrategy Options::getSoISearchStrategy() const
 
 SoIInitializationStrategy Options::getSoIInitializationStrategy() const
 {
-    String strategyString = String( _stringOptions.get
-                                    ( Options::SOI_INITIALIZATION_STRATEGY ) );
+    String strategyString = String( _stringOptions.get( Options::SOI_INITIALIZATION_STRATEGY ) );
     if ( strategyString == "input-assignment" )
         return SoIInitializationStrategy::INPUT_ASSIGNMENT;
     if ( strategyString == "current-assignment" )
@@ -246,8 +244,7 @@ SoIInitializationStrategy Options::getSoIInitializationStrategy() const
 
 LPSolverType Options::getLPSolverType() const
 {
-    String solverString = String( _stringOptions.get
-                                    ( Options::LP_SOLVER ) );
+    String solverString = String( _stringOptions.get( Options::LP_SOLVER ) );
     if ( solverString == "native" )
         return LPSolverType::NATIVE;
     else if ( _boolOptions.get( Options::PRODUCE_PROOFS ) )
@@ -272,5 +269,4 @@ SoftmaxBoundType Options::getSoftmaxBoundType() const
     {
         return SoftmaxBoundType::LOG_SUM_EXP_DECOMPOSITION;
     }
-
 }
