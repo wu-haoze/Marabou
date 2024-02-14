@@ -35,7 +35,7 @@ Marabou::Marabou()
     : _acasParser( NULL )
     , _onnxParser( NULL )
     , _cegarSolver( NULL )
-    , _engine()
+    , _engine( std::unique_ptr<Engine>( new Engine() ) )
 {
 }
 
@@ -211,24 +211,44 @@ void Marabou::exportAssignment() const
 
 void Marabou::solveQuery()
 {
-    if ( !_inputQuery->getNonlinearConstraints().empty() )
-        _cegarSolver = IncrementalLinearization();
+    enum {
+        MICROSECONDS_IN_SECOND = 1000000
+    };
 
-        if ( _engine.processInputQuery( _inputQuery ) )
-        {
-            _engine.solve( Options::get()->getInt( Options::TIMEOUT ) );
-            if ( _engine.shouldProduceProofs() && _engine.getExitCode() == Engine::UNSAT )
-                _engine.certifyUNSATCertificate();
-        }
-
-        if ( _engine.getExitCode() == Engine::SAT )
-            _engine.extractSolution( _inputQuery );
+    struct timespec start = TimeUtils::sampleMicro();
+    unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
+    if ( _engine->processInputQuery( _inputQuery ) )
+    {
+        _engine->solve( timeoutInSeconds );
+        if ( _engine->shouldProduceProofs() && _engine->getExitCode() == Engine::UNSAT )
+            _engine->certifyUNSATCertificate();
     }
+
+    if ( _engine->getExitCode() == Engine::UNKNOWN )
+    {
+        _engine->extractSolution( _inputQuery );
+        _engine.reset();
+        struct timespec end = TimeUtils::sampleMicro();
+        unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+        if ( timeoutInSeconds == 0 ||
+             totalElapsed < timeoutInSeconds * MICROSECONDS_IN_SECOND )
+        {
+            _cegarSolver = new CEGAR::IncrementalLinearization( _inputQuery );
+            unsigned long long timeoutInMicroSeconds =
+                ( timeoutInSeconds == 0 ? 0 : timeoutInSeconds * MICROSECONDS_IN_SECOND - totalElapsed );
+            _cegarSolver->setInitialTimeoutInMicroSeconds( timeoutInMicroSeconds );
+            _cegarSolver->solve();
+            _engine = std::unique_ptr<Engine>( _cegarSolver->releaseEngine() );
+        }
+    }
+
+    if ( _engine->getExitCode() == Engine::SAT )
+        _engine->extractSolution( _inputQuery );
 }
 
 void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 {
-    Engine::ExitCode result = _engine.getExitCode();
+    Engine::ExitCode result = _engine->getExitCode();
     String resultString;
 
     if ( result == Engine::UNSAT )
@@ -305,13 +325,13 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         // Field #3: number of visited tree states
         summaryFile.write( Stringf( "%u ",
-                                    _engine.getStatistics()->
+                                    _engine->getStatistics()->
                                     getUnsignedAttribute
                                     ( Statistics::NUM_VISITED_TREE_STATES ) ) );
 
         // Field #4: average pivot time in micro seconds
         summaryFile.write( Stringf( "%u",
-                                    _engine.getStatistics()->getAveragePivotTimeInMicro() ) );
+                                    _engine->getStatistics()->getAveragePivotTimeInMicro() ) );
 
         summaryFile.write( "\n" );
     }

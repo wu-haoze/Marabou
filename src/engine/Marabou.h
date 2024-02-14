@@ -17,6 +17,7 @@
 #define __Marabou_h__
 
 #include "AcasParser.h"
+#include "IncrementalLinearization.h"
 #include "OnnxParser.h"
 #include "Engine.h"
 #include "InputQuery.h"
@@ -75,12 +76,12 @@ private:
     /*
       CEGAR solver
     */
-    CegarSolver *_cegarSolver;
+    CEGAR::IncrementalLinearization *_cegarSolver;
 
     /*
       The solver
     */
-    Engine _engine;
+    std::unique_ptr<Engine> _engine;
 };
 
 #endif // __Marabou_h__

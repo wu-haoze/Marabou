@@ -179,7 +179,7 @@ void Engine::exportInputQueryWithError( String errorMessage )
     printf( "Engine: %s!\nInput query has been saved as %s. Please attach the input query when you open the issue on GitHub.\n", errorMessage.ascii(), ipqFileName.ascii() );
 }
 
-bool Engine::solve( unsigned timeoutInSeconds )
+bool Engine::solve( double timeoutInSeconds )
 {
     SignalHandler::getInstance()->initialize();
     SignalHandler::getInstance()->registerClient( this );
@@ -2465,13 +2465,13 @@ void Engine::performSymbolicBoundTightening( InputQuery *inputQuery )
                                   numTightenedBounds );
 }
 
-bool Engine::shouldExitDueToTimeout( unsigned timeout ) const
+bool Engine::shouldExitDueToTimeout( double timeout ) const
 {
     // A timeout value of 0 means no time limit
     if ( timeout == 0 )
         return false;
 
-    return _statistics.getTotalTimeInMicro() / MICROSECONDS_TO_SECONDS > timeout;
+    return static_cast<long double>(_statistics.getTotalTimeInMicro()) / MICROSECONDS_TO_SECONDS > timeout;
 }
 
 void Engine::preContextPushHook()
@@ -2874,7 +2874,7 @@ void Engine::storeSmtState( SmtState & smtState )
     _smtCore.storeSmtState( smtState );
 }
 
-bool Engine::solveWithMILPEncoding( unsigned timeoutInSeconds )
+bool Engine::solveWithMILPEncoding( double timeoutInSeconds )
 {
     try
     {

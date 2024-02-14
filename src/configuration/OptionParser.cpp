@@ -169,6 +169,12 @@ void OptionParser::initialize()
         ( "poi",
           boost::program_options::bool_switch( &(*_boolOptions)[Options::PARALLEL_DEEPSOI] )->default_value( (*_boolOptions)[Options::PARALLEL_DEEPSOI] ),
           "Use the parallel deep-soi solving mode." )
+        ( "refined-constraints",
+          boost::program_options::value<int>( &((*_intOptions)[Options::NUM_CONSTRAINTS_TO_REFINE_INC_LIN]) )->default_value( (*_intOptions)[Options::NUM_CONSTRAINTS_TO_REFINE_INC_LIN] ),
+          "(Inc. Lin.) Maximal number of constraints to refine in a single round." )
+        ( "refinement-factor",
+          boost::program_options::value<float>( &((*_floatOptions)[Options::REFINEMENT_SCALING_FACTOR_INC_LIN]) )->default_value( (*_floatOptions)[Options::REFINEMENT_SCALING_FACTOR_INC_LIN] ),
+          "(Inc. Lin.) In each iteration of incremental linearization, scale the maximal number of constraints to refine by this number." )
 #ifdef ENABLE_GUROBI
         ( "lp-solver",
           boost::program_options::value<std::string>( &((*_stringOptions)[Options::LP_SOLVER]) )->default_value( (*_stringOptions)[Options::LP_SOLVER] ),
