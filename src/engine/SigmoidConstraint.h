@@ -25,6 +25,7 @@
 class SigmoidConstraint : public NonlinearConstraint
 {
 public:
+
     SigmoidConstraint( unsigned b, unsigned f );
     SigmoidConstraint( const String &serializedSigmoid );
 
@@ -128,6 +129,8 @@ public:
 private:
     unsigned _b, _f;
     bool _haveEliminatedVariables;
+
+    static constexpr double INFLECTION_POINT = 0;
 };
 
 #endif // __SigmoidConstraint_h__

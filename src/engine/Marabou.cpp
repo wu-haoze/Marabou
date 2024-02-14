@@ -227,7 +227,6 @@ void Marabou::solveQuery()
 
     if ( _engine->getExitCode() == Engine::UNKNOWN )
     {
-        _engine->extractSolution( _inputQuery );
         struct timespec end = TimeUtils::sampleMicro();
         unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
         if ( timeoutInSeconds == 0 || totalElapsed < timeoutInSeconds * MICROSECONDS_IN_SECOND )

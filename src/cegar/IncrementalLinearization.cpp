@@ -90,40 +90,32 @@ void IncrementalLinearization::solve()
 unsigned IncrementalLinearization::refine()
 {
     INCREMENTAL_LINEARIZATION_LOG( "Performing abstraction refinement..." );
-    // for ( unsigned i = 0; i < _inputQuery.getNumberOfVariables(); ++i )
-    //{
-    //     std::cout << _inputQuery.getLowerBound( i ) << " <= x" << i << " <= " <<
-    //     _inputQuery.getUpperBound( i ) << std::endl;
-    // }
 
-    _engine->extractBounds( _inputQuery );
-    // for ( unsigned i = 0; i < _inputQuery.getNumberOfVariables(); ++i )
-    //{
-    //     std::cout << _inputQuery.getLowerBound( i ) << " <= x" << i << " <= " <<
-    //     _inputQuery.getUpperBound( i ) << std::endl;
-    // }
+    InputQuery refinement;
+    refinement.setNumberOfVariables( _inputQuery.getNumberOfVariables() );
+    _engine->extractSolution( refinement );
+    _engine->extractBounds( refinement );
 
     _nlConstraints.shuffle();
 
     unsigned numRefined = 0;
     for ( const auto &nlc : _nlConstraints )
     {
-        unsigned numEquationsBefore = _inputQuery.getEquations().size();
-        unsigned numConstraintsBefore = _inputQuery.getPiecewiseLinearConstraints().size();
-        bool refined = nlc->attemptToRefine( _inputQuery );
-        unsigned numAddedEquations = _inputQuery.getEquations().size() - numEquationsBefore;
-        unsigned numAddedConstraints =
-            _inputQuery.getPiecewiseLinearConstraints().size() - numConstraintsBefore;
-
-        ASSERT( refined == ( numAddedEquations || numAddedConstraints ) );
-
-        numRefined += refined;
-        _numAdditionalEquations += numAddedEquations;
-        _numAdditionalPLConstraints += numAddedConstraints;
-
-        if ( refined >= _numConstraintsToRefine )
+        numRefined += nlc->attemptToRefine( refinement );
+        if ( numRefined >= _numConstraintsToRefine )
             break;
     }
+
+    for ( const auto &e : refinement.getEquations() )
+        _inputQuery.addEquation( e );
+
+    for ( const auto &plc : refinement.getPiecewiseLinearConstraints() )
+    {
+        _inputQuery.addPiecewiseLinearConstraint( plc );
+    }
+    // Ownership of the additional constraints are transferred.
+    refinement.getPiecewiseLinearConstraints().clear();
+
     INCREMENTAL_LINEARIZATION_LOG(
         Stringf( "Refined %u non-linear constraints", numRefined ).ascii() );
     return numRefined;

@@ -25,6 +25,7 @@
 #include "NonlinearConstraint.h"
 #include "Statistics.h"
 #include "TableauRow.h"
+#include "LeakyReluConstraint.h"
 
 #ifdef _WIN32
 #define __attribute__( x )
@@ -231,12 +232,9 @@ unsigned SigmoidConstraint::getF() const
 
 double SigmoidConstraint::sigmoid( double x )
 {
-    if ( x > GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT )
-        return 1 - GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
-    else if ( x < -GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT )
-        return GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
-    else
-        return 1 / ( 1 + std::exp( -x ) );
+    x = std::max( -GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT, x );
+    x = std::min( GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT, x );
+    return 1 / ( 1 + std::exp( -x ) );
 }
 
 double SigmoidConstraint::sigmoidInverse( double y )
@@ -266,29 +264,169 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
     }
     else
     {
-        return false;
         /*
           Use the strategy described in "Toward Certified Robustness Against Real-World
           Distribution Shifts" to refine the Sigmoid constraint.
 
-          First, we need to add a two-phased piecewise-linear constraints
+          We need to add a two-phased piecewise-linear constraints
           of the form:
 
           (aux = beta * _b + sigmoid(bValue) - beta * bValue) /\ x <= bValue) \/
           (aux = gamma * _b + sigmoid(bValue) - gamma * bValue) /\ x >= bValue)
 
           The value of beta and gamma depends on the values of bValue and fValue
+
+          If fValue > sigmoid(bValue), we add _f <= aux, otherwise, we add _f >= aux
         */
-        // double INFLECTION_POINT = 0;
-        // if ( l < INFLECTION_POINT
 
+        // Due to the DeepPoly abstraction, assignments at the end points are precise.
+        double lb = inputQuery.getLowerBound( _b );
+        double ub = inputQuery.getLowerBound( _f );
+        double correctfValue = sigmoid( bValue );
 
-        /*
-          Next, if fValue > sigmoid(bValue), we add _f <= aux
-          otherwise, we add _f >= aux
-        */
-        // double correctfValue = sigmoid( bValue );
+        ASSERT( !FloatUtils::areEqual( bValue, lb ) && !FloatUtils::areEqual( bValue, ub ) );
 
-        // return true;
+        double beta = NAN;
+        double gamma = NAN;
+        double alpha = NAN;
+        if ( FloatUtils::lt( fValue, correctfValue ) )
+        {
+            // fValue is below the Sigmoid
+            if ( FloatUtils::lt( lb, INFLECTION_POINT ) && FloatUtils::gt( ub, INFLECTION_POINT ) )
+            {
+                if ( FloatUtils::lt( bValue , 0 ) )
+                {
+                    // Case 1
+                    beta = sigmoidDerivative( bValue );
+                    gamma = std::min( sigmoidDerivative( lb ), sigmoidDerivative( ub ) );
+                }
+                else if ( FloatUtils::isZero( bValue, 0 ) )
+                {
+                    // Case 2
+                    beta = sigmoidDerivative( bValue );
+                    gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
+                }
+                else
+                {
+                    // Case 3
+                    beta = ( sigmoid( lb ) + sigmoidDerivative( lb ) * ( INFLECTION_POINT - lb ) - correctfValue ) /
+                        ( INFLECTION_POINT - bValue );
+                    gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
+                }
+            }
+            else
+            {
+                if ( FloatUtils::gt( bValue , 0 ) )
+                {
+                    // Case 4
+                    beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
+                    gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
+                }
+                else
+                {
+                    // Case 5
+                    beta = sigmoidDerivative( bValue );
+                    gamma = beta;
+                }
+            }
+        }
+        else
+        {
+            // fValue is above the Sigmoid
+            if ( FloatUtils::lt( lb, INFLECTION_POINT ) && FloatUtils::gt( ub, INFLECTION_POINT ) )
+            {
+                if ( FloatUtils::lt( bValue , 0 ) )
+                {
+                    // Case 1
+                    beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
+                    gamma = ( sigmoid( ub ) - sigmoidDerivative( ub ) * ( ub - INFLECTION_POINT ) - correctfValue ) /
+                        ( INFLECTION_POINT - bValue );
+                }
+                else if ( FloatUtils::isZero( bValue, 0 ) )
+                {
+                    // Case 2
+                    beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
+                    gamma = sigmoidDerivative( bValue );
+                }
+                else
+                {
+                    // Case 3
+                    beta = std::min( sigmoidDerivative( lb ), sigmoidDerivative( ub ) );
+                    gamma = sigmoidDerivative( bValue );
+                }
+            }
+            else
+            {
+                if ( FloatUtils::gt( bValue , 0 ) )
+                {
+                    // Case 4
+                    beta = sigmoidDerivative( bValue );
+                    gamma = beta;
+                }
+                else
+                {
+                    // Case 5
+                    beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
+                    gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
+                }
+            }
+        }
+
+        ASSERT( !FloatUtils::isNan( beta) && FloatUtils::isPositive( beta ) &&
+                !FloatUtils::isNan( gamma ) && FloatUtils::isPositive( gamma ) );
+
+        alpha = beta / gamma;
+
+        unsigned aux1 = inputQuery.getNewVariable();
+        unsigned aux2 = inputQuery.getNewVariable();
+        unsigned aux3 = inputQuery.getNewVariable();
+
+        {
+            Equation e;
+            e.addAddend( 1, _b );
+            e.addAddend( -1, aux1 );
+            e.setScalar( bValue );
+            inputQuery.addEquation( e );
+        }
+
+        {
+            if ( alpha != 1 )
+            {
+                LeakyReluConstraint *r = new LeakyReluConstraint( aux1, aux2, alpha );
+                inputQuery.addPiecewiseLinearConstraint( r );
+            }
+            else
+            {
+                Equation e;
+                e.addAddend( 1, aux1 );
+                e.addAddend( -1, aux2 );
+                e.setScalar( 0 );
+                inputQuery.addEquation( e );
+            }
+        }
+
+        {
+            Equation e;
+            e.addAddend( 1, aux2 );
+            e.addAddend( -1, aux3 );
+            e.setScalar( -correctfValue );
+            inputQuery.addEquation( e );
+        }
+
+        {
+            // if fValue is above sigmoid, we add
+            // f <= aux3. Otherwise, we add f >= aux3
+            Equation e;
+            if ( FloatUtils::gt( fValue, correctfValue ) )
+                e.setType( Equation::LE );
+            else
+                e.setType( Equation::GE );
+            e.addAddend( 1, _f );
+            e.addAddend( -1, aux3 );
+            e.setScalar( 0 );
+            inputQuery.addEquation( e );
+        }
+
+        return true;
     }
 }
