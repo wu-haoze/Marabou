@@ -258,8 +258,8 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
 {
     double bValue = inputQuery.getSolutionValue( _b );
     double fValue = inputQuery.getSolutionValue( _f );
-    if ( FloatUtils::areEqual( sigmoid( bValue ), fValue,
-                               GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) )
+    if ( FloatUtils::areEqual(
+             sigmoid( bValue ), fValue, GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) )
     {
         // Already satisfied
         return false;
@@ -279,16 +279,16 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
 
           The value of beta and gamma depends on the values of bValue and fValue
         */
-        //double INFLECTION_POINT = 0;
-        //if ( l < INFLECTION_POINT
+        // double INFLECTION_POINT = 0;
+        // if ( l < INFLECTION_POINT
 
 
         /*
           Next, if fValue > sigmoid(bValue), we add _f <= aux
           otherwise, we add _f >= aux
         */
-        //double correctfValue = sigmoid( bValue );
+        // double correctfValue = sigmoid( bValue );
 
-        //return true;
+        // return true;
     }
 }

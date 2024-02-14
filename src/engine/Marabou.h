@@ -17,9 +17,8 @@
 #define __Marabou_h__
 
 #include "AcasParser.h"
-#include "IncrementalLinearization.h"
-#include "OnnxParser.h"
 #include "Engine.h"
+#include "IncrementalLinearization.h"
 #include "InputQuery.h"
 #include "OnnxParser.h"
 

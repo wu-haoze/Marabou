@@ -230,12 +230,13 @@ void Marabou::solveQuery()
         _engine->extractSolution( _inputQuery );
         struct timespec end = TimeUtils::sampleMicro();
         unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
-        if ( timeoutInSeconds == 0 ||
-             totalElapsed < timeoutInSeconds * MICROSECONDS_IN_SECOND )
+        if ( timeoutInSeconds == 0 || totalElapsed < timeoutInSeconds * MICROSECONDS_IN_SECOND )
         {
             _cegarSolver = new CEGAR::IncrementalLinearization( _inputQuery, _engine.release() );
             unsigned long long timeoutInMicroSeconds =
-                ( timeoutInSeconds == 0 ? 0 : timeoutInSeconds * MICROSECONDS_IN_SECOND - totalElapsed );
+                ( timeoutInSeconds == 0
+                      ? 0
+                      : timeoutInSeconds * MICROSECONDS_IN_SECOND - totalElapsed );
             _cegarSolver->setInitialTimeoutInMicroSeconds( timeoutInMicroSeconds );
             _cegarSolver->solve();
             _engine = std::unique_ptr<Engine>( _cegarSolver->releaseEngine() );
@@ -335,13 +336,12 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
 
         // Field #3: number of visited tree states
         summaryFile.write( Stringf( "%u ",
-                                    _engine->getStatistics()->
-                                    getUnsignedAttribute
-                                    ( Statistics::NUM_VISITED_TREE_STATES ) ) );
+                                    _engine->getStatistics()->getUnsignedAttribute(
+                                        Statistics::NUM_VISITED_TREE_STATES ) ) );
 
         // Field #4: average pivot time in micro seconds
-        summaryFile.write( Stringf( "%u",
-                                    _engine->getStatistics()->getAveragePivotTimeInMicro() ) );
+        summaryFile.write(
+            Stringf( "%u", _engine->getStatistics()->getAveragePivotTimeInMicro() ) );
 
         summaryFile.write( "\n" );
     }

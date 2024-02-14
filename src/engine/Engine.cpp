@@ -2465,7 +2465,8 @@ bool Engine::shouldExitDueToTimeout( double timeout ) const
     if ( timeout == 0 )
         return false;
 
-    return static_cast<long double>(_statistics.getTotalTimeInMicro()) / MICROSECONDS_TO_SECONDS > timeout;
+    return static_cast<long double>( _statistics.getTotalTimeInMicro() ) / MICROSECONDS_TO_SECONDS >
+           timeout;
 }
 
 void Engine::preContextPushHook()

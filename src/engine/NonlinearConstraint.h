@@ -98,7 +98,10 @@ public:
       If so, add additional constraints (equations or PLConstraints)
       to exclude the violation. Return true if new constraints are added.
     */
-    virtual bool attemptToRefine( InputQuery &/*inputQuery*/ ) const { return false; };
+    virtual bool attemptToRefine( InputQuery & /*inputQuery*/ ) const
+    {
+        return false;
+    };
 
     /*
       Dump the current state of the constraint.
