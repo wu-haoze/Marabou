@@ -253,3 +253,42 @@ double SigmoidConstraint::sigmoidDerivative( double x )
 {
     return sigmoid( x ) * ( 1 - sigmoid( x ) );
 }
+
+bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
+{
+    double bValue = inputQuery.getSolutionValue( _b );
+    double fValue = inputQuery.getSolutionValue( _f );
+    if ( FloatUtils::areEqual( sigmoid( bValue ), fValue,
+                               GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE ) )
+    {
+        // Already satisfied
+        return false;
+    }
+    else
+    {
+        return false;
+        /*
+          Use the strategy described in "Toward Certified Robustness Against Real-World
+          Distribution Shifts" to refine the Sigmoid constraint.
+
+          First, we need to add a two-phased piecewise-linear constraints
+          of the form:
+
+          (aux = beta * _b + sigmoid(bValue) - beta * bValue) /\ x <= bValue) \/
+          (aux = gamma * _b + sigmoid(bValue) - gamma * bValue) /\ x >= bValue)
+
+          The value of beta and gamma depends on the values of bValue and fValue
+        */
+        //double INFLECTION_POINT = 0;
+        //if ( l < INFLECTION_POINT
+
+
+        /*
+          Next, if fValue > sigmoid(bValue), we add _f <= aux
+          otherwise, we add _f >= aux
+        */
+        //double correctfValue = sigmoid( bValue );
+
+        //return true;
+    }
+}

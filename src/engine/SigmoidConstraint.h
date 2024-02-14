@@ -41,7 +41,7 @@ public:
     /*
       Restore the state of this constraint from the given one.
     */
-    void restoreState( const NonlinearConstraint *state ) override; 
+    void restoreState( const NonlinearConstraint *state ) override;
 
     /*
       Register/unregister the constraint with a talbeau.
@@ -119,6 +119,8 @@ public:
       Compute the derivative of the sigmoid function.
     */
     static double sigmoidDerivative( double x );
+
+    virtual bool attemptToRefine( InputQuery &inputQuery ) const override;
 
 private:
     unsigned _b, _f;

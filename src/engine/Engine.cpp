@@ -1694,6 +1694,10 @@ void Engine::extractSolution( InputQuery &inputQuery, Preprocessor *preprocessor
     {
         if ( preprocessorInUse )
         {
+            // Symbolically fixed variables are skipped. They will be re-constructed in the end.
+            if ( preprocessorInUse->variableIsUnusedAndSymbolicallyFixed( i ) )
+                continue;
+
             // Has the variable been merged into another?
             unsigned variable = i;
             while ( preprocessorInUse->variableIsMerged( variable ) )
@@ -1703,8 +1707,6 @@ void Engine::extractSolution( InputQuery &inputQuery, Preprocessor *preprocessor
             if ( preprocessorInUse->variableIsFixed( variable ) )
             {
                 inputQuery.setSolutionValue( i, preprocessorInUse->getFixedValue( variable ) );
-                inputQuery.setLowerBound( i, preprocessorInUse->getFixedValue( variable ) );
-                inputQuery.setUpperBound( i, preprocessorInUse->getFixedValue( variable ) );
                 continue;
             }
 
@@ -1714,14 +1716,10 @@ void Engine::extractSolution( InputQuery &inputQuery, Preprocessor *preprocessor
 
             // Finally, set the assigned value
             inputQuery.setSolutionValue( i, _tableau->getValue( variable ) );
-            inputQuery.setLowerBound( i, _tableau->getLowerBound( variable ) );
-            inputQuery.setUpperBound( i, _tableau->getUpperBound( variable ) );
         }
         else
         {
             inputQuery.setSolutionValue( i, _tableau->getValue( i ) );
-            inputQuery.setLowerBound( i, _tableau->getLowerBound( i ) );
-            inputQuery.setUpperBound( i, _tableau->getUpperBound( i ) );
         }
     }
 
@@ -3675,6 +3673,14 @@ void Engine::extractBounds( InputQuery &inputQuery )
             unsigned variable = i;
             while ( _preprocessor.variableIsMerged( variable ) )
                 variable = _preprocessor.getMergedIndex( variable );
+
+            // Symbolically fixed variables are ignored
+            if ( _preprocessor.variableIsUnusedAndSymbolicallyFixed( i ) )
+            {
+                inputQuery.setLowerBound( i, FloatUtils::negativeInfinity() );
+                inputQuery.setUpperBound( i, FloatUtils::infinity() );
+                continue;
+            }
 
             // Fixed variables are easy: return the value they've been fixed to.
             if ( _preprocessor.variableIsFixed( variable ) )

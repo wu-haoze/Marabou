@@ -224,13 +224,12 @@ void Marabou::solveQuery()
     if ( _engine->getExitCode() == Engine::UNKNOWN )
     {
         _engine->extractSolution( _inputQuery );
-        _engine.reset();
         struct timespec end = TimeUtils::sampleMicro();
         unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
         if ( timeoutInSeconds == 0 ||
              totalElapsed < timeoutInSeconds * MICROSECONDS_IN_SECOND )
         {
-            _cegarSolver = new CEGAR::IncrementalLinearization( _inputQuery );
+            _cegarSolver = new CEGAR::IncrementalLinearization( _inputQuery, _engine.release() );
             unsigned long long timeoutInMicroSeconds =
                 ( timeoutInSeconds == 0 ? 0 : timeoutInSeconds * MICROSECONDS_IN_SECOND - totalElapsed );
             _cegarSolver->setInitialTimeoutInMicroSeconds( timeoutInMicroSeconds );
@@ -238,6 +237,7 @@ void Marabou::solveQuery()
             _engine = std::unique_ptr<Engine>( _cegarSolver->releaseEngine() );
         }
     }
+
 
     if ( _engine->getExitCode() == Engine::SAT )
         _engine->extractSolution( _inputQuery );
@@ -301,10 +301,15 @@ void Marabou::displayResults( unsigned long long microSecondsElapsed ) const
         resultString = "ERROR";
         printf( "Error\n" );
     }
-    else
+    else if ( result == Engine::UNKNOWN )
     {
         resultString = "UNKNOWN";
-        printf( "UNKNOWN EXIT CODE! (this should not happen)" );
+        printf( "UNKNOWN\n" );
+    }
+    else
+    {
+        resultString = "NOT_DONE";
+        printf( "Unexpected exit code! (this should not happen)" );
     }
 
     // Create a summary file, if requested
