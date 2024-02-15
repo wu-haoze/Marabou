@@ -57,7 +57,12 @@ void IncrementalLinearization::solve()
 
         // Refine the non-linear constraints using the counter-example stored
         // in the _inputQuery
-        unsigned numRefined = refine();
+        InputQuery refinement;
+        refinement.setNumberOfVariables( _inputQuery.getNumberOfVariables() );
+        _engine->extractSolution( refinement );
+        _engine->extractBounds( refinement );
+        unsigned numRefined = refine( refinement );
+
         printStatus();
         if ( numRefined == 0 )
             return;
@@ -87,14 +92,9 @@ void IncrementalLinearization::solve()
     }
 }
 
-unsigned IncrementalLinearization::refine()
+unsigned IncrementalLinearization::refine( InputQuery &refinement )
 {
     INCREMENTAL_LINEARIZATION_LOG( "Performing abstraction refinement..." );
-
-    InputQuery refinement;
-    refinement.setNumberOfVariables( _inputQuery.getNumberOfVariables() );
-    _engine->extractSolution( refinement );
-    _engine->extractBounds( refinement );
 
     _nlConstraints.shuffle();
 
@@ -105,7 +105,6 @@ unsigned IncrementalLinearization::refine()
         if ( numRefined >= _numConstraintsToRefine )
             break;
     }
-
     _inputQuery.setNumberOfVariables( refinement.getNumberOfVariables() );
     for ( const auto &e : refinement.getEquations() )
         _inputQuery.addEquation( e );

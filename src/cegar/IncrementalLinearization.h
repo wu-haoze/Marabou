@@ -46,6 +46,14 @@ public:
 
     void setInitialTimeoutInMicroSeconds( unsigned long long timeoutInMicroSeconds );
 
+    /*
+      Refine the abstraction by adding constraints to exclude
+      the counter-example related to the given constraint
+
+      Returns the number of refined non-linear constraints
+    */
+    unsigned refine( InputQuery &inputQuery );
+
 private:
     InputQuery &_inputQuery;
     std::unique_ptr<Engine> _engine;
@@ -68,14 +76,6 @@ private:
     // Hyper-parmeters of incremental linearization
     unsigned _numConstraintsToRefine;
     double _refinementScalingFactor;
-
-    /*
-      Refine the abstraction by adding constraints to exclude
-      the counter-example related to the given constraint
-
-      Returns the number of refined non-linear constraints
-    */
-    unsigned refine();
 
     void printStatus();
 };

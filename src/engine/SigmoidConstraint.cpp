@@ -296,7 +296,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
 
         // Due to the DeepPoly abstraction, assignments at the end points are precise.
         double lb = inputQuery.getLowerBound( _b );
-        double ub = inputQuery.getLowerBound( _f );
+        double ub = inputQuery.getUpperBound( _b );
         double correctfValue = sigmoid( bValue );
 
         ASSERT( !FloatUtils::areEqual( bValue, lb ) && !FloatUtils::areEqual( bValue, ub ) );
@@ -351,20 +351,20 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             {
                 if ( FloatUtils::lt( bValue , 0 ) )
                 {
-                    // Case 1
+                    // Case 6
                     beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
                     gamma = ( sigmoid( ub ) - sigmoidDerivative( ub ) * ( ub - INFLECTION_POINT ) - correctfValue ) /
                         ( INFLECTION_POINT - bValue );
                 }
                 else if ( FloatUtils::isZero( bValue ) )
                 {
-                    // Case 2
+                    // Case 7
                     beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
                     gamma = sigmoidDerivative( bValue );
                 }
                 else
                 {
-                    // Case 3
+                    // Case 8
                     beta = std::min( sigmoidDerivative( lb ), sigmoidDerivative( ub ) );
                     gamma = sigmoidDerivative( bValue );
                 }
@@ -373,13 +373,13 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             {
                 if ( FloatUtils::gt( bValue , 0 ) )
                 {
-                    // Case 4
+                    // Case 9
                     beta = sigmoidDerivative( bValue );
                     gamma = beta;
                 }
                 else
                 {
-                    // Case 5
+                    // Case 10
                     beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
                     gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
                 }

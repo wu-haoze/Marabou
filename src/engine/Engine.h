@@ -576,6 +576,11 @@ private:
     bool allNonlinearConstraintsHold();
 
     /*
+      Return true iff there are active unfixed constraints
+    */
+    bool hasBranchingCandidate();
+
+    /*
       Select a currently-violated LP constraint for fixing
     */
     void selectViolatedPlConstraint();

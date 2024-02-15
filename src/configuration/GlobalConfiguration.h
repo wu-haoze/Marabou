@@ -86,7 +86,7 @@ public:
 
     // Assuming the preprocessor is on, toggle whether or not it will attempt to perform variable
     // elimination.
-    static const bool PREPROCESSOR_ELIMINATE_VARIABLES;
+    static bool PREPROCESSOR_ELIMINATE_VARIABLES;
 
     // Toggle whether or not PL/NL constraints will be called upon
     // to add auxiliary variables and equations after preprocessing.

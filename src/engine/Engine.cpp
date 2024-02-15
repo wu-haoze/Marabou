@@ -344,8 +344,23 @@ bool Engine::solve( double timeoutInSeconds )
                     _exitCode = Engine::SAT;
                     return true;
                 }
-                else
+                else if ( hasBranchingCandidate() )
+                {
+                    mainLoopEnd = TimeUtils::sampleMicro();
+                    _statistics.incLongAttribute(
+                        Statistics::TIME_MAIN_LOOP_MICRO,
+                        TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+                    if ( _verbosity > 0 )
+                    {
+                        printf( "\nEngine::solve: at leaf node but solving inconclusive\n" );
+                        _statistics.print();
+                    }
+                    _exitCode = Engine::UNKNOWN;
+                    return false;
+                }
+                {
                     continue;
+                }
             }
 
             // We have out-of-bounds variables.
@@ -1410,7 +1425,6 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         invokePreprocessor( inputQuery, preprocess );
         if ( _verbosity > 1 )
             printInputBounds( inputQuery );
-
         initializeNetworkLevelReasoning();
         if ( preprocess )
         {
@@ -1758,6 +1772,16 @@ bool Engine::allNonlinearConstraintsHold()
             return false;
     }
     return true;
+}
+
+bool Engine::hasBranchingCandidate()
+{
+    for ( const auto &constraint : _plConstraints )
+    {
+        if ( constraint->isActive() && !constraint->phaseFixed() )
+            return true;
+    }
+    return false;
 }
 
 void Engine::selectViolatedPlConstraint()
@@ -2986,7 +3010,7 @@ bool Engine::performDeepSoILocalSearch()
               The overhead is low anyway.
             */
             collectViolatedPlConstraints();
-            if ( allPlConstraintsHold() && allNonlinearConstraintsHold() )
+            if ( allPlConstraintsHold() )
             {
                 if ( _lpSolverType == LPSolverType::NATIVE &&
                      _tableau->getBasicAssignmentStatus() !=
@@ -2999,6 +3023,12 @@ bool Engine::performDeepSoILocalSearch()
                     // Make sure that the assignment is precise before declaring success
                     _tableau->computeAssignment();
                     // If we actually have a real satisfying assignment,
+                    return false;
+                }
+                else if ( !allNonlinearConstraintsHold() )
+                {
+                    ENGINE_LOG( "All PL constraints satisfied but there "
+                                "are unsatisfied NL constraints..." );
                     return false;
                 }
                 else

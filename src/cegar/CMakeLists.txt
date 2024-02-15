@@ -10,10 +10,10 @@ target_include_directories(${MARABOU_TEST_LIB} PUBLIC "${CMAKE_CURRENT_SOURCE_DI
 
 set (CEGAR_TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 macro(cegar_add_unit_test name)
-    set(USE_MOCK_COMMON FALSE)
-    set(USE_MOCK_CEGAR FALSE)
-    marabou_add_test(${CEGAR_TESTS_DIR}/Test_${name} cegar USE_MOCK_COMMON
-        USE_MOCK_CEGAR "unit")
+    set(USE_REAK_COMMON TRUE)
+    set(USE_REAL_ENGINE TRUE)
+    marabou_add_test(${CEGAR_TESTS_DIR}/Test_${name} cegar USE_REAL_COMMON
+        USE_REAL_ENGINE "unit")
 endmacro()
 
 cegar_add_unit_test(IncrementalLinearization)

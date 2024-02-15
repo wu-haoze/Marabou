@@ -76,12 +76,12 @@ const double GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT = 20;
 const double GlobalConfiguration::SIGMOID_REFINEMENT_CUTOFF_CONSTANT = 5;
 
 const bool GlobalConfiguration::PREPROCESS_INPUT_QUERY = true;
-const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;
+bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;
 const bool GlobalConfiguration::PL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING = true;
 const bool GlobalConfiguration::NL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING = true;
 const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 0.00001;
 
-const unsigned GlobalConfiguration::PREPROCESSSING_MAX_TIGHTEING_ROUND = 50;
+const unsigned GlobalConfiguration::PREPROCESSSING_MAX_TIGHTEING_ROUND = 1000;
 
 const bool GlobalConfiguration::WARM_START = false;
 

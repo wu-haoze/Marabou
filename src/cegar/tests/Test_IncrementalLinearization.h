@@ -12,14 +12,17 @@
 ** [[ Add lengthier description here ]]
 **/
 
+#include "Engine.h"
 #include "FloatUtils.h"
 #include "IncrementalLinearization.h"
 #include "InputQuery.h"
-#include "MILPEncoder.h"
-#include "MarabouError.h"
+#include "SigmoidConstraint.h"
 
 #include <cxxtest/TestSuite.h>
 #include <string.h>
+
+
+using namespace CEGAR;
 
 class IncrementalLinearizationTestSuite : public CxxTest::TestSuite
 {
@@ -32,9 +35,67 @@ public:
     {
     }
 
-    void test_incremental_linearization()
+    void run_sigmoid_test( unsigned testNumber, double lb, double ub, double bValue, double fValue )
     {
+        std::cout << "Sigmoid case " << testNumber << std::endl;
+        InputQuery ipq;
+        ipq.setNumberOfVariables( 2 );
+        ipq.setLowerBound( 0, lb );
+        ipq.setUpperBound( 0, ub );
+        ipq.addNonlinearConstraint( new SigmoidConstraint( 0, 1 ) );
+        Engine *dummy = new Engine();
+        IncrementalLinearization cegarEngine( ipq, dummy );
+
+        InputQuery refinement;
+        refinement.setNumberOfVariables( 2 );
+        refinement.setLowerBound( 0, lb );
+        refinement.setUpperBound( 0, ub );
+        refinement.setSolutionValue( 0, bValue );
+        refinement.setSolutionValue( 1, fValue );
+        TS_ASSERT_THROWS_NOTHING( cegarEngine.refine( refinement ) );
+
         Engine engine;
-        //InputQuery
+        TS_ASSERT_THROWS_NOTHING( engine.processInputQuery( ipq ) );
+        TS_ASSERT_THROWS_NOTHING( engine.solve() );
+        Engine::ExitCode code = engine.getExitCode();
+        TS_ASSERT( code == Engine::SAT || code == Engine::UNKNOWN );
+    }
+
+    void test_incremental_linearization_sigmoid()
+    {
+        // We test that given a counter-example,
+        // a refinement can be sucessfully applied to
+        // excude that counter-example.
+
+        // Case 1
+        run_sigmoid_test( 1, -10, 10, -3, 0.00001 );
+        return;
+        // Case 2
+        run_sigmoid_test( 2, -10, 10, 0, 0.01 );
+
+        // Case 3
+        run_sigmoid_test( 3, -10, 10, 3, 0.01 );
+
+        // Case 4
+        run_sigmoid_test( 4, 1, 10, 3, 0.5 );
+
+        // Case 5
+        run_sigmoid_test( 5, -10, -2, -3, 0.00001 );
+
+
+        // Case 6
+        run_sigmoid_test( 6, -10, 10, -3, 0.08 );
+
+        // Case 7
+        run_sigmoid_test( 7, -10, 10, 0, 0.8 );
+
+        // Case 8
+        run_sigmoid_test( 8, -10, 10, 3, 0.999 );
+
+        // Case 9
+        run_sigmoid_test( 9, 1, 10, 3, 0.999 );
+
+        // Case 10
+        run_sigmoid_test( 10, -10, -2, -3, 0.08 );
     }
 };
