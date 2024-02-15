@@ -72,7 +72,7 @@ const bool GlobalConfiguration::USE_HARRIS_RATIO_TEST = true;
 
 const double GlobalConfiguration::SYMBOLIC_TIGHTENING_ROUNDING_CONSTANT = 0.00000000001;
 
-const double GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT = 30;
+const double GlobalConfiguration::SIGMOID_CUTOFF_CONSTANT = 20;
 
 const bool GlobalConfiguration::PREPROCESS_INPUT_QUERY = true;
 const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;

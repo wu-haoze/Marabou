@@ -274,6 +274,18 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
           (aux = beta * _b + sigmoid(bValue) - beta * bValue) /\ x <= bValue) \/
           (aux = gamma * _b + sigmoid(bValue) - gamma * bValue) /\ x >= bValue)
 
+          which can be encoded as
+
+              aux = gamma * leakyrelu(x - bValue, beta/gamma) + sigmoid(bValue)
+
+          if beta/gamma < 1,
+
+          or as
+
+              aux = -beta * leakyrelu(bValue - x, gamma/beta)  + sigmoid(bValue)
+
+          otherwise.
+
           The value of beta and gamma depends on the values of bValue and fValue
 
           If fValue > sigmoid(bValue), we add _f <= aux, otherwise, we add _f >= aux
@@ -288,7 +300,6 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
 
         double beta = NAN;
         double gamma = NAN;
-        double alpha = NAN;
         if ( FloatUtils::lt( fValue, correctfValue ) )
         {
             // fValue is below the Sigmoid
@@ -300,7 +311,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                     beta = sigmoidDerivative( bValue );
                     gamma = std::min( sigmoidDerivative( lb ), sigmoidDerivative( ub ) );
                 }
-                else if ( FloatUtils::isZero( bValue, 0 ) )
+                else if ( FloatUtils::isZero( bValue ) )
                 {
                     // Case 2
                     beta = sigmoidDerivative( bValue );
@@ -342,7 +353,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                     gamma = ( sigmoid( ub ) - sigmoidDerivative( ub ) * ( ub - INFLECTION_POINT ) - correctfValue ) /
                         ( INFLECTION_POINT - bValue );
                 }
-                else if ( FloatUtils::isZero( bValue, 0 ) )
+                else if ( FloatUtils::isZero( bValue ) )
                 {
                     // Case 2
                     beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
@@ -375,58 +386,122 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
         ASSERT( !FloatUtils::isNan( beta) && FloatUtils::isPositive( beta ) &&
                 !FloatUtils::isNan( gamma ) && FloatUtils::isPositive( gamma ) );
 
-        alpha = beta / gamma;
-
-        unsigned aux1 = inputQuery.getNewVariable();
-        unsigned aux2 = inputQuery.getNewVariable();
-        unsigned aux3 = inputQuery.getNewVariable();
-
+        if ( FloatUtils::lt( beta, gamma ) )
         {
-            Equation e;
-            e.addAddend( 1, _b );
-            e.addAddend( -1, aux1 );
-            e.setScalar( bValue );
-            inputQuery.addEquation( e );
-        }
+            /*
+              Need to encode aux = gamma * leakyrelu(b - bValue, beta/gamma) + sigmoid(bValue)
+              which becomes
 
-        {
-            if ( alpha != 1 )
-            {
-                LeakyReluConstraint *r = new LeakyReluConstraint( aux1, aux2, alpha );
-                inputQuery.addPiecewiseLinearConstraint( r );
-            }
-            else
+              aux1 = b - bValue
+              aux2 = leakyReLU(aux1, beta/gamma)
+              aux3 = gamma * aux2 + sigmoid(bValue)
+            */
+
+            unsigned aux1 = inputQuery.getNewVariable();
+            unsigned aux2 = inputQuery.getNewVariable();
+            unsigned aux3 = inputQuery.getNewVariable();
+
             {
                 Equation e;
-                e.addAddend( 1, aux1 );
-                e.addAddend( -1, aux2 );
+                e.addAddend( 1, _b );
+                e.addAddend( -1, aux1 );
+                e.setScalar( bValue );
+                inputQuery.addEquation( e );
+            }
+
+            LeakyReluConstraint *r = new LeakyReluConstraint( aux1, aux2, beta / gamma );
+            inputQuery.addPiecewiseLinearConstraint( r );
+
+            {
+                Equation e;
+                e.addAddend( gamma, aux2 );
+                e.addAddend( -1, aux3 );
+                e.setScalar( -correctfValue );
+                inputQuery.addEquation( e );
+            }
+
+            {
+                // if fValue is above sigmoid, we add
+                // f <= aux3. Otherwise, we add f >= aux3
+                Equation e;
+                if ( FloatUtils::gt( fValue, correctfValue ) )
+                    e.setType( Equation::LE );
+                else
+                    e.setType( Equation::GE );
+                e.addAddend( 1, _f );
+                e.addAddend( -1, aux3 );
                 e.setScalar( 0 );
                 inputQuery.addEquation( e );
             }
         }
-
+        else if ( FloatUtils::areEqual( beta, gamma ) )
         {
-            Equation e;
-            e.addAddend( 1, aux2 );
-            e.addAddend( -1, aux3 );
-            e.setScalar( -correctfValue );
-            inputQuery.addEquation( e );
-        }
+            /*
+              Need to encode aux = beta * _b + sigmoid(bValue) - beta * bValue
 
-        {
-            // if fValue is above sigmoid, we add
-            // f <= aux3. Otherwise, we add f >= aux3
+              and y <= aux if fValue > corectFValue
+                  y >= aux if fValue < corectFValue
+
+              So we don't really need to introduce any aux variables
+            */
             Equation e;
             if ( FloatUtils::gt( fValue, correctfValue ) )
                 e.setType( Equation::LE );
             else
                 e.setType( Equation::GE );
             e.addAddend( 1, _f );
-            e.addAddend( -1, aux3 );
-            e.setScalar( 0 );
+            e.addAddend( -beta, _b  );
+            e.setScalar( correctfValue - beta * bValue );
             inputQuery.addEquation( e );
         }
+        else
+        {
+            /*
+              Need to encode aux = -beta * leakyrelu(bValue - b, gamma/beta)  + sigmoid(bValue)
+              which becomes
 
+              aux1 = bValue - b
+              aux2 = leakyReLU(aux1, gamma/beta)
+              aux3 = -beta * aux2 + sigmoid(bValue)
+            */
+
+            unsigned aux1 = inputQuery.getNewVariable();
+            unsigned aux2 = inputQuery.getNewVariable();
+            unsigned aux3 = inputQuery.getNewVariable();
+
+            {
+                Equation e;
+                e.addAddend( 1, _b );
+                e.addAddend( 1, aux1 );
+                e.setScalar( bValue );
+                inputQuery.addEquation( e );
+            }
+
+            LeakyReluConstraint *r = new LeakyReluConstraint( aux1, aux2, gamma/beta );
+            inputQuery.addPiecewiseLinearConstraint( r );
+
+            {
+                Equation e;
+                e.addAddend( beta, aux2 );
+                e.addAddend( 1, aux3 );
+                e.setScalar( correctfValue );
+                inputQuery.addEquation( e );
+            }
+
+            {
+                // if fValue is above sigmoid, we add
+                // f <= aux3. Otherwise, we add f >= aux3
+                Equation e;
+                if ( FloatUtils::gt( fValue, correctfValue ) )
+                    e.setType( Equation::LE );
+                else
+                    e.setType( Equation::GE );
+                e.addAddend( 1, _f );
+                e.addAddend( -1, aux3 );
+                e.setScalar( 0 );
+                inputQuery.addEquation( e );
+            }
+        }
         return true;
     }
 }

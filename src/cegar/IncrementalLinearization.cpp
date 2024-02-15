@@ -59,12 +59,12 @@ void IncrementalLinearization::solve()
         // Refine the non-linear constraints using the counter-example stored
         // in the _inputQuery
         unsigned numRefined = refine();
-        if ( numRefined != 0 )
+        if ( numRefined == 0 )
             return;
 
         // Create a new engine
         _engine = std::unique_ptr<Engine>( new Engine() );
-        _engine->setVerbosity( 2 );
+        _engine->setVerbosity( 0 );
 
         // Solve the refined abstraction
         if ( _engine->processInputQuery( _inputQuery ) )
@@ -106,6 +106,7 @@ unsigned IncrementalLinearization::refine()
             break;
     }
 
+    _inputQuery.setNumberOfVariables( refinement.getNumberOfVariables() );
     for ( const auto &e : refinement.getEquations() )
         _inputQuery.addEquation( e );
 
