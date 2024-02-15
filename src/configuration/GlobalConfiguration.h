@@ -200,6 +200,9 @@ public:
 
     static const double SIGMOID_CUTOFF_CONSTANT;
 
+    // The cut off value for not performing refinement
+    static const double SIGMOID_REFINEMENT_CUTOFF_CONSTANT;
+
     /*
       Constraint fixing heuristics
     */

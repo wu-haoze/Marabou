@@ -54,17 +54,17 @@ void IncrementalLinearization::solve()
     while ( true )
     {
         struct timespec start = TimeUtils::sampleMicro();
-        printStatus();
 
         // Refine the non-linear constraints using the counter-example stored
         // in the _inputQuery
         unsigned numRefined = refine();
+        printStatus();
         if ( numRefined == 0 )
             return;
 
         // Create a new engine
         _engine = std::unique_ptr<Engine>( new Engine() );
-        _engine->setVerbosity( 0 );
+        _engine->setVerbosity( 1 );
 
         // Solve the refined abstraction
         if ( _engine->processInputQuery( _inputQuery ) )
@@ -109,11 +109,13 @@ unsigned IncrementalLinearization::refine()
     _inputQuery.setNumberOfVariables( refinement.getNumberOfVariables() );
     for ( const auto &e : refinement.getEquations() )
         _inputQuery.addEquation( e );
+    _numAdditionalEquations += refinement.getEquations().size();
 
     for ( const auto &plc : refinement.getPiecewiseLinearConstraints() )
     {
         _inputQuery.addPiecewiseLinearConstraint( plc );
     }
+    _numAdditionalPLConstraints += refinement.getPiecewiseLinearConstraints().size();
     // Ownership of the additional constraints are transferred.
     refinement.getPiecewiseLinearConstraints().clear();
 
@@ -121,63 +123,6 @@ unsigned IncrementalLinearization::refine()
         Stringf( "Refined %u non-linear constraints", numRefined ).ascii() );
     return numRefined;
 }
-
-/*
-void IncrementalLinearization::incrementLinearConstraint
-( TranscendentalConstraint *constraint,
-const Map<String, double> &assignment,
-unsigned &satisfied,
-unsigned &tangentAdded,
-unsigned &secantAdded,
-unsigned &skipped,
-unsigned cutOff )
-{
-SigmoidConstraint *sigmoid = ( SigmoidConstraint * )constraint;
-unsigned sourceVariable = sigmoid->getB();  // x_b
-unsigned targetVariable = sigmoid->getF();  // x_f
-
-// get x of the found solution and calculate y of the x
-// This x is going to become a new split point
-double xpt = assignment[_milpEncoder.getVariableNameFromVariable( sourceVariable )];
-double ypt = sigmoid->sigmoid( xpt );
-double yptOfSol = assignment[_milpEncoder.getVariableNameFromVariable( targetVariable )];
-
-if ( constraint->phaseFixed() ||
-     FloatUtils::areEqual
-     ( ypt, yptOfSol, GlobalConfiguration::SIGMOID_CONSTRAINT_COMPARISON_TOLERANCE ) )
-{
-    ++satisfied;
-    return;
-}
-
-//std::cout << "Solution: (" << xpt << " " << yptOfSol << ")" << std::endl;
-
-const bool clipUse = GlobalConfiguration::SIGMOID_CLIP_POINT_USE;
-const double clipPoint = GlobalConfiguration::SIGMOID_CLIP_POINT_OF_LINEARIZATION;
-bool above = FloatUtils::gt( yptOfSol, ypt );
-bool justTangent = ( ( FloatUtils::lte( _milpEncoder.getUpperBound( sourceVariable ), 0 ) && !above
-) && ( FloatUtils::gte( _milpEncoder.getLowerBound( sourceVariable ), 0 ) && above ) );
-
-if ( (clipUse && ( xpt <= -clipPoint || xpt >= clipPoint ) ) ||
-     ( !justTangent && secantAdded == cutOff ) )
-{
-    ++skipped;
-    return;
-}
-
-// If true, secant lines are added, otherwise a tangent line is added.
-sigmoid->addCutPoint( xpt, above );
-
-if( !justTangent )
-{
-    ++secantAdded;
-}
-else
-{
-    ++tangentAdded;
-}
-}
-*/
 
 void IncrementalLinearization::printStatus()
 {

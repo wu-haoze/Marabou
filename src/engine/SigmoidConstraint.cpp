@@ -262,6 +262,9 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
         // Already satisfied
         return false;
     }
+    else if ( bValue > GlobalConfiguration::SIGMOID_REFINEMENT_CUTOFF_CONSTANT ||
+              bValue < -GlobalConfiguration::SIGMOID_REFINEMENT_CUTOFF_CONSTANT )
+        return false;
     else
     {
         /*
