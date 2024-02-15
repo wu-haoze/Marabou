@@ -32,81 +32,9 @@ public:
     {
     }
 
-    void test_solve_with_incremental_linearization_sat()
+    void test_incremental_linearization()
     {
-#ifdef ENABLE_GUROBI
-
-        /*
-         * Unknown case
-         */
-        /*
-        GurobiWrapper gurobi1;
-
-        InputQuery inputQuery1 = InputQuery();
-        inputQuery1.setNumberOfVariables( 4 );
-
-        MockTableau tableau1 = MockTableau();
-        // 0 <= x0 <= 1
-        inputQuery1.setLowerBound( 0, 0 );
-        inputQuery1.setUpperBound( 0, 1 );
-        tableau1.setLowerBound( 0, 0 );
-        tableau1.setUpperBound( 0, 1 );
-
-        inputQuery1.setLowerBound( 2, -1 );
-        inputQuery1.setUpperBound( 2, 1 );
-        tableau1.setLowerBound( 2, -1 );
-        tableau1.setUpperBound( 2, 1 );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid1 = new SigmoidConstraint( 0, 1 );
-        inputQuery1.addTranscendentalConstraint( sigmoid1 );
-        inputQuery1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
-        inputQuery1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
-        tableau1.setLowerBound( 1, sigmoid1->sigmoid( 0 ) );
-        tableau1.setUpperBound( 1, sigmoid1->sigmoid( 1 ) );
-
-        sigmoid1->notifyLowerBound( 0, 0 );
-        sigmoid1->notifyUpperBound( 0, 1 );
-        sigmoid1->notifyLowerBound( 1, sigmoid1->sigmoid( 0 ) );
-        sigmoid1->notifyUpperBound( 1, sigmoid1->sigmoid( 1 ) );
-
-        // x1 = sigmoid( x0 )
-        SigmoidConstraint *sigmoid2 = new SigmoidConstraint( 2, 3 );
-        inputQuery1.addTranscendentalConstraint( sigmoid2 );
-        inputQuery1.setLowerBound( 3, sigmoid1->sigmoid( -1 ) );
-        inputQuery1.setUpperBound( 3, sigmoid1->sigmoid( 1 ) );
-        tableau1.setLowerBound( 3, sigmoid1->sigmoid( -1 ) );
-        tableau1.setUpperBound( 3, sigmoid1->sigmoid( 1 ) );
-
-        sigmoid2->notifyLowerBound( 2, -1 );
-        sigmoid2->notifyUpperBound( 2, 1 );
-        sigmoid2->notifyLowerBound( 3, sigmoid2->sigmoid( -1 ) );
-        sigmoid2->notifyUpperBound( 3, sigmoid2->sigmoid( 1 ) );
-
-        MILPEncoder milp1( tableau1 );
-        milp1.encodeInputQuery( gurobi1, inputQuery1 );
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.solve() );
-
-        TS_ASSERT( gurobi1.haveFeasibleSolution() );
-
-        Map<String, double> solution1;
-        double costValue1;
-
-        TS_ASSERT_THROWS_NOTHING( gurobi1.extractSolution( solution1, costValue1 ) );
-
-        TS_ASSERT( solution1.exists( "x0" ) );
-        TS_ASSERT( solution1.exists( "x1" ) );
-
-                IncrementalLinearization incrLinear = IncrementalLinearization
-                    ( milp1, inputQuery1 );
-                IEngine::ExitCode exitCode =
-                                incrLinear.solveWithIncrementalLinearization
-                    ( gurobi1, 30 );
-                TS_ASSERT( exitCode == IEngine::SAT );
-                #else
-                TS_ASSERT( true );
-        */
-#endif // ENABLE_GUROBI
+        Engine engine;
+        //InputQuery
     }
 };
