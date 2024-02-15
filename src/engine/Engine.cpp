@@ -906,7 +906,7 @@ bool Engine::calculateBounds( InputQuery &inputQuery )
     {
         informConstraintsOfInitialBounds( inputQuery );
         invokePreprocessor( inputQuery, true );
-        if ( _verbosity > 0 )
+        if ( _verbosity > 1 )
             printInputBounds( inputQuery );
 
         initializeNetworkLevelReasoning();
@@ -1408,7 +1408,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
     {
         informConstraintsOfInitialBounds( inputQuery );
         invokePreprocessor( inputQuery, preprocess );
-        if ( _verbosity > 0 )
+        if ( _verbosity > 1 )
             printInputBounds( inputQuery );
 
         initializeNetworkLevelReasoning();
@@ -2902,7 +2902,7 @@ bool Engine::solveWithMILPEncoding( double timeoutInSeconds )
     _gurobi->setTimeLimit( timeoutForGurobi );
     if ( !_sncMode )
         _gurobi->setNumberOfThreads( Options::get()->getInt( Options::NUM_WORKERS ) );
-    _gurobi->setVerbosity( _verbosity > 1 );
+    _gurobi->setVerbosity( _verbosity > 0 );
     _gurobi->solve();
 
     if ( _gurobi->haveFeasibleSolution() )
