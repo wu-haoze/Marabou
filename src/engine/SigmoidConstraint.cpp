@@ -20,12 +20,12 @@
 #include "GlobalConfiguration.h"
 #include "ITableau.h"
 #include "InputQuery.h"
+#include "LeakyReluConstraint.h"
 #include "MStringf.h"
 #include "MarabouError.h"
 #include "NonlinearConstraint.h"
 #include "Statistics.h"
 #include "TableauRow.h"
-#include "LeakyReluConstraint.h"
 
 #ifdef _WIN32
 #define __attribute__( x )
@@ -303,7 +303,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             // fValue is below the Sigmoid
             if ( FloatUtils::lt( lb, INFLECTION_POINT ) && FloatUtils::gt( ub, INFLECTION_POINT ) )
             {
-                if ( FloatUtils::lt( bValue , 0 ) )
+                if ( FloatUtils::lt( bValue, 0 ) )
                 {
                     // Case 1
                     gamma = std::min( sigmoidDerivative( lb ), sigmoidDerivative( ub ) );
@@ -321,8 +321,9 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 else
                 {
                     // Case 3
-                    beta = ( sigmoid( lb ) + sigmoidDerivative( lb ) * ( INFLECTION_POINT - lb ) - correctfValue ) /
-                        ( INFLECTION_POINT - bValue );
+                    beta = ( sigmoid( lb ) + sigmoidDerivative( lb ) * ( INFLECTION_POINT - lb ) -
+                             correctfValue ) /
+                           ( INFLECTION_POINT - bValue );
                     if ( FloatUtils::areEqual( bValue, ub ) )
                         gamma = beta;
                     else
@@ -331,7 +332,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             }
             else
             {
-                if ( FloatUtils::gt( bValue , 0 ) )
+                if ( FloatUtils::gt( bValue, 0 ) )
                 {
                     // Case 4
                     beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
@@ -353,11 +354,12 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             // fValue is above the Sigmoid
             if ( FloatUtils::lt( lb, INFLECTION_POINT ) && FloatUtils::gt( ub, INFLECTION_POINT ) )
             {
-                if ( FloatUtils::lt( bValue , 0 ) )
+                if ( FloatUtils::lt( bValue, 0 ) )
                 {
                     // Case 6
-                    gamma = ( sigmoid( ub ) - sigmoidDerivative( ub ) * ( ub - INFLECTION_POINT ) - correctfValue ) /
-                        ( INFLECTION_POINT - bValue );
+                    gamma = ( sigmoid( ub ) - sigmoidDerivative( ub ) * ( ub - INFLECTION_POINT ) -
+                              correctfValue ) /
+                            ( INFLECTION_POINT - bValue );
                     if ( FloatUtils::areEqual( bValue, lb ) )
                         beta = gamma;
                     else
@@ -381,7 +383,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             }
             else
             {
-                if ( FloatUtils::gt( bValue , 0 ) )
+                if ( FloatUtils::gt( bValue, 0 ) )
                 {
                     // Case 9
                     beta = sigmoidDerivative( bValue );
@@ -399,7 +401,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             }
         }
 
-        ASSERT( !FloatUtils::isNan( beta) && FloatUtils::isPositive( beta ) &&
+        ASSERT( !FloatUtils::isNan( beta ) && FloatUtils::isPositive( beta ) &&
                 !FloatUtils::isNan( gamma ) && FloatUtils::isPositive( gamma ) );
 
         if ( FloatUtils::lt( beta, gamma ) )
@@ -457,7 +459,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             else
                 e.setType( Equation::GE );
             e.addAddend( 1, _f );
-            e.addAddend( -beta, _b  );
+            e.addAddend( -beta, _b );
             e.setScalar( correctfValue - beta * bValue );
             inputQuery.addEquation( e );
         }
@@ -483,7 +485,7 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 inputQuery.addEquation( e );
             }
 
-            LeakyReluConstraint *r = new LeakyReluConstraint( aux1, aux2, gamma/beta );
+            LeakyReluConstraint *r = new LeakyReluConstraint( aux1, aux2, gamma / beta );
             inputQuery.addPiecewiseLinearConstraint( r );
 
             {

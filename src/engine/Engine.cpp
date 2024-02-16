@@ -336,8 +336,8 @@ bool Engine::solve( double timeoutInSeconds )
                             _statistics.print();
                         }
 
-                        // Allows checking proofs produced for UNSAT leaves of satisfiable query search
-                        // tree
+                        // Allows checking proofs produced for UNSAT leaves of satisfiable query
+                        // search tree
                         if ( _produceUNSATProofs )
                         {
                             ASSERT( _UNSATCertificateCurrentPointer );
@@ -2671,7 +2671,7 @@ void Engine::decideBranchingHeuristics()
     {
         if ( !_preprocessedQuery->getInputVariables().empty() &&
              _preprocessedQuery->getInputVariables().size() <
-             GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
+                 GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
         {
             divideStrategy = DivideStrategy::LargestInterval;
             if ( _verbosity >= 2 )
@@ -2800,7 +2800,7 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint( DivideStrategy strateg
             candidatePLConstraint = _smtCore.getConstraintsWithHighestScore();
         else if ( !_preprocessedQuery->getInputVariables().empty() &&
                   _preprocessedQuery->getInputVariables().size() <
-                  GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
+                      GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
             candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
         else
         {

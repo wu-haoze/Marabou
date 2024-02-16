@@ -102,16 +102,16 @@ unsigned IncrementalLinearization::refine( InputQuery &refinement )
     unsigned numRefined = 0;
     for ( const auto &nlc : _nlConstraints )
     {
-        DEBUG({
-                String s;
-                nlc->dump(s);
-                s += "\nAssignment:\n";
-                for ( const auto &var : nlc->getParticipatingVariables() )
-                {
-                    s += Stringf( "\tx%u = %.5f\n", var, refinement.getSolutionValue( var ) );
-                }
-                INCREMENTAL_LINEARIZATION_LOG( s.ascii() );
-            });
+        DEBUG( {
+            String s;
+            nlc->dump( s );
+            s += "\nAssignment:\n";
+            for ( const auto &var : nlc->getParticipatingVariables() )
+            {
+                s += Stringf( "\tx%u = %.5f\n", var, refinement.getSolutionValue( var ) );
+            }
+            INCREMENTAL_LINEARIZATION_LOG( s.ascii() );
+        } );
         numRefined += nlc->attemptToRefine( refinement );
         if ( numRefined >= _numConstraintsToRefine )
             break;

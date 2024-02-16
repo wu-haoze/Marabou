@@ -25,7 +25,6 @@
 class SigmoidConstraint : public NonlinearConstraint
 {
 public:
-
     SigmoidConstraint( unsigned b, unsigned f );
     SigmoidConstraint( const String &serializedSigmoid );
 

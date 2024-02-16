@@ -16,8 +16,8 @@
 #include "FloatUtils.h"
 #include "IncrementalLinearization.h"
 #include "InputQuery.h"
-#include "SigmoidConstraint.h"
 #include "Options.h"
+#include "SigmoidConstraint.h"
 
 #include <cxxtest/TestSuite.h>
 #include <string.h>
