@@ -324,40 +324,50 @@ bool Engine::solve( double timeoutInSeconds )
                 bool solutionFound = adjustAssignmentToSatisfyNonLinearConstraints();
                 if ( solutionFound )
                 {
-                    mainLoopEnd = TimeUtils::sampleMicro();
-                    _statistics.incLongAttribute(
-                        Statistics::TIME_MAIN_LOOP_MICRO,
-                        TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
-                    if ( _verbosity > 0 )
+                    if ( allNonlinearConstraintsHold() )
                     {
-                        printf( "\nEngine::solve: sat assignment found\n" );
-                        _statistics.print();
-                    }
+                        mainLoopEnd = TimeUtils::sampleMicro();
+                        _statistics.incLongAttribute(
+                            Statistics::TIME_MAIN_LOOP_MICRO,
+                            TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+                        if ( _verbosity > 0 )
+                        {
+                            printf( "\nEngine::solve: sat assignment found\n" );
+                            _statistics.print();
+                        }
 
-                    // Allows checking proofs produced for UNSAT leaves of satisfiable query search
-                    // tree
-                    if ( _produceUNSATProofs )
-                    {
-                        ASSERT( _UNSATCertificateCurrentPointer );
-                        ( **_UNSATCertificateCurrentPointer ).setSATSolutionFlag();
+                        // Allows checking proofs produced for UNSAT leaves of satisfiable query search
+                        // tree
+                        if ( _produceUNSATProofs )
+                        {
+                            ASSERT( _UNSATCertificateCurrentPointer );
+                            ( **_UNSATCertificateCurrentPointer ).setSATSolutionFlag();
+                        }
+                        _exitCode = Engine::SAT;
+                        return true;
                     }
-                    _exitCode = Engine::SAT;
-                    return true;
-                }
-                else if ( hasBranchingCandidate() )
-                {
-                    mainLoopEnd = TimeUtils::sampleMicro();
-                    _statistics.incLongAttribute(
-                        Statistics::TIME_MAIN_LOOP_MICRO,
-                        TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
-                    if ( _verbosity > 0 )
+                    else if ( !hasBranchingCandidate() )
                     {
-                        printf( "\nEngine::solve: at leaf node but solving inconclusive\n" );
-                        _statistics.print();
+                        mainLoopEnd = TimeUtils::sampleMicro();
+                        _statistics.incLongAttribute(
+                            Statistics::TIME_MAIN_LOOP_MICRO,
+                            TimeUtils::timePassed( mainLoopStart, mainLoopEnd ) );
+                        if ( _verbosity > 0 )
+                        {
+                            printf( "\nEngine::solve: at leaf node but solving inconclusive\n" );
+                            _statistics.print();
+                        }
+                        _exitCode = Engine::UNKNOWN;
+                        return false;
                     }
-                    _exitCode = Engine::UNKNOWN;
-                    return false;
+                    else
+                    {
+                        while ( !_smtCore.needToSplit() )
+                            _smtCore.reportRejectedPhasePatternProposal();
+                        continue;
+                    }
                 }
+                else
                 {
                     continue;
                 }
@@ -490,7 +500,7 @@ bool Engine::adjustAssignmentToSatisfyNonLinearConstraints()
     collectViolatedPlConstraints();
 
     // If all constraints are satisfied, we are possibly done
-    if ( allPlConstraintsHold() && allNonlinearConstraintsHold() )
+    if ( allPlConstraintsHold() )
     {
         if ( _lpSolverType == LPSolverType::NATIVE &&
              _tableau->getBasicAssignmentStatus() != ITableau::BASIC_ASSIGNMENT_JUST_COMPUTED )
@@ -2659,7 +2669,8 @@ void Engine::decideBranchingHeuristics()
     DivideStrategy divideStrategy = Options::get()->getDivideStrategy();
     if ( divideStrategy == DivideStrategy::Auto )
     {
-        if ( _preprocessedQuery->getInputVariables().size() <
+        if ( !_preprocessedQuery->getInputVariables().empty() &&
+             _preprocessedQuery->getInputVariables().size() <
              GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
         {
             divideStrategy = DivideStrategy::LargestInterval;
@@ -2692,7 +2703,7 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraintBasedOnPolarity()
     ENGINE_LOG( Stringf( "Using Polarity-based heuristics..." ).ascii() );
 
     if ( !_networkLevelReasoner )
-        throw MarabouError( MarabouError::NETWORK_LEVEL_REASONER_NOT_AVAILABLE );
+        return NULL;
 
     List<PiecewiseLinearConstraint *> constraints =
         _networkLevelReasoner->getConstraintsInTopologicalOrder();
@@ -2787,11 +2798,16 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint( DivideStrategy strateg
     {
         if ( _smtCore.getStackDepth() > 3 )
             candidatePLConstraint = _smtCore.getConstraintsWithHighestScore();
-        else if ( _preprocessedQuery->getInputVariables().size() <
+        else if ( !_preprocessedQuery->getInputVariables().empty() &&
+                  _preprocessedQuery->getInputVariables().size() <
                   GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
             candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
         else
+        {
             candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
+            if ( candidatePLConstraint == NULL )
+                candidatePLConstraint = _smtCore.getConstraintsWithHighestScore();
+        }
     }
     else if ( strategy == DivideStrategy::Polarity )
         candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
@@ -2975,8 +2991,9 @@ bool Engine::performDeepSoILocalSearch()
 
     if ( initialPhasePattern.isZero() )
     {
-        while ( !_smtCore.needToSplit() )
-            _smtCore.reportRejectedPhasePatternProposal();
+        if ( hasBranchingCandidate() )
+            while ( !_smtCore.needToSplit() )
+                _smtCore.reportRejectedPhasePatternProposal();
         return false;
     }
 
@@ -3025,15 +3042,9 @@ bool Engine::performDeepSoILocalSearch()
                     // If we actually have a real satisfying assignment,
                     return false;
                 }
-                else if ( !allNonlinearConstraintsHold() )
-                {
-                    ENGINE_LOG( "All PL constraints satisfied but there "
-                                "are unsatisfied NL constraints..." );
-                    return false;
-                }
                 else
                 {
-                    ENGINE_LOG( "Performing local search - done" );
+                    ENGINE_LOG( "Performing local search - done." );
                     return true;
                 }
             }
@@ -3044,8 +3055,9 @@ bool Engine::performDeepSoILocalSearch()
                 // In this case, we bump up the score of PLConstraints not in
                 // the SoI with the hope to branch on them early.
                 bumpUpPseudoImpactOfPLConstraintsNotInSoI();
-                while ( !_smtCore.needToSplit() )
-                    _smtCore.reportRejectedPhasePatternProposal();
+                if ( hasBranchingCandidate() )
+                    while ( !_smtCore.needToSplit() )
+                        _smtCore.reportRejectedPhasePatternProposal();
                 return false;
             }
         }

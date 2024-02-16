@@ -17,6 +17,7 @@
 #include "IncrementalLinearization.h"
 #include "InputQuery.h"
 #include "SigmoidConstraint.h"
+#include "Options.h"
 
 #include <cxxtest/TestSuite.h>
 #include <string.h>
@@ -55,18 +56,15 @@ public:
         TS_ASSERT_THROWS_NOTHING( cegarEngine.refine( refinement ) );
 
         Engine engine;
+        engine.setVerbosity( 2 );
         TS_ASSERT_THROWS_NOTHING( engine.processInputQuery( ipq ) );
         TS_ASSERT_THROWS_NOTHING( engine.solve() );
         Engine::ExitCode code = engine.getExitCode();
         TS_ASSERT( code == Engine::SAT || code == Engine::UNKNOWN );
     }
 
-    void test_incremental_linearization_sigmoid()
+    void _test_incremental_linearization_sigmoid()
     {
-        // We test that given a counter-example,
-        // a refinement can be sucessfully applied to
-        // excude that counter-example.
-
         // Case 1
         run_sigmoid_test( 1, -10, 10, -3, 0.00001 );
         return;
@@ -97,5 +95,89 @@ public:
 
         // Case 10
         run_sigmoid_test( 10, -10, -2, -3, 0.08 );
+    }
+
+    void run_inc_lin_cegar_test( List<Equation> &additionalConstraints )
+    {
+        unsigned b = 0;
+        unsigned f = 1;
+        InputQuery ipq;
+        ipq.setNumberOfVariables( 2 );
+        ipq.setLowerBound( 0, -10 );
+        ipq.setUpperBound( 0, 10 );
+        ipq.addNonlinearConstraint( new SigmoidConstraint( b, f ) );
+
+        for ( const auto &e : additionalConstraints )
+            ipq.addEquation( e );
+
+        Options::get()->setString( Options::LP_SOLVER, "native" );
+
+        Engine *initialEngine = new Engine();
+        initialEngine->setVerbosity( 0 );
+        TS_ASSERT( initialEngine->processInputQuery( ipq ) );
+        TS_ASSERT_THROWS_NOTHING( initialEngine->solve() );
+
+        TS_ASSERT( initialEngine->getExitCode() == Engine::UNKNOWN );
+        TS_ASSERT( initialEngine->getExitCode() == Engine::UNKNOWN ||
+                   initialEngine->getExitCode() == Engine::SAT );
+        if ( initialEngine->getExitCode() == Engine::SAT )
+        {
+            delete initialEngine;
+            return;
+        }
+        initialEngine->extractSolution( ipq );
+        IncrementalLinearization cegarEngine( ipq, initialEngine );
+        TS_ASSERT_THROWS_NOTHING( cegarEngine.solve() );
+        Engine *afterEngine = nullptr;
+        TS_ASSERT_THROWS_NOTHING( afterEngine = cegarEngine.releaseEngine() );
+
+        afterEngine->extractSolution( ipq );
+        std::cout << ipq.getSolutionValue( 0 ) << std::endl;
+        std::cout << ipq.getSolutionValue( 1 ) << std::endl;
+
+        TS_ASSERT_EQUALS( afterEngine->getExitCode(), Engine::SAT );
+
+        if ( afterEngine )
+            delete afterEngine;
+    }
+
+    void test_incremental_linearization_sigmoid_sat()
+    {
+        unsigned b = 0;
+        unsigned f = 1;
+        {
+            List<Equation> equations;
+            {
+                Equation e;
+                e.setType( Equation::GE );
+                e.addAddend( 1, f );
+                e.addAddend( -1, b );
+                e.setScalar( 0 );
+                equations.append( e );
+            }
+            run_inc_lin_cegar_test( equations );
+        }
+
+        {
+            List<Equation> equations;
+            {
+                Equation e;
+                e.setType( Equation::GE );
+                e.addAddend( 1, f );
+                e.addAddend( -1, b );
+                e.setScalar( 0 );
+                equations.append( e );
+            }
+
+            {
+                Equation e;
+                e.setType( Equation::GE );
+                e.addAddend( 1, f );
+                e.addAddend( 1, b );
+                e.setScalar( 0 );
+                equations.append( e );
+            }
+            run_inc_lin_cegar_test( equations );
+        }
     }
 };

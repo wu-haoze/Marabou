@@ -262,9 +262,6 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
         // Already satisfied
         return false;
     }
-    else if ( bValue > GlobalConfiguration::SIGMOID_REFINEMENT_CUTOFF_CONSTANT ||
-              bValue < -GlobalConfiguration::SIGMOID_REFINEMENT_CUTOFF_CONSTANT )
-        return false;
     else
     {
         /*
@@ -299,8 +296,6 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
         double ub = inputQuery.getUpperBound( _b );
         double correctfValue = sigmoid( bValue );
 
-        ASSERT( !FloatUtils::areEqual( bValue, lb ) && !FloatUtils::areEqual( bValue, ub ) );
-
         double beta = NAN;
         double gamma = NAN;
         if ( FloatUtils::lt( fValue, correctfValue ) )
@@ -311,8 +306,11 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 if ( FloatUtils::lt( bValue , 0 ) )
                 {
                     // Case 1
-                    beta = sigmoidDerivative( bValue );
                     gamma = std::min( sigmoidDerivative( lb ), sigmoidDerivative( ub ) );
+                    if ( FloatUtils::areEqual( bValue, lb ) )
+                        beta = gamma;
+                    else
+                        beta = sigmoidDerivative( bValue );
                 }
                 else if ( FloatUtils::isZero( bValue ) )
                 {
@@ -325,7 +323,10 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                     // Case 3
                     beta = ( sigmoid( lb ) + sigmoidDerivative( lb ) * ( INFLECTION_POINT - lb ) - correctfValue ) /
                         ( INFLECTION_POINT - bValue );
-                    gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
+                    if ( FloatUtils::areEqual( bValue, ub ) )
+                        gamma = beta;
+                    else
+                        gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
                 }
             }
             else
@@ -334,7 +335,10 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 {
                     // Case 4
                     beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
-                    gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
+                    if ( FloatUtils::areEqual( bValue, ub ) )
+                        gamma = beta;
+                    else
+                        gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
                 }
                 else
                 {
@@ -352,9 +356,12 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 if ( FloatUtils::lt( bValue , 0 ) )
                 {
                     // Case 6
-                    beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
                     gamma = ( sigmoid( ub ) - sigmoidDerivative( ub ) * ( ub - INFLECTION_POINT ) - correctfValue ) /
                         ( INFLECTION_POINT - bValue );
+                    if ( FloatUtils::areEqual( bValue, lb ) )
+                        beta = gamma;
+                    else
+                        beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
                 }
                 else if ( FloatUtils::isZero( bValue ) )
                 {
@@ -366,7 +373,10 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 {
                     // Case 8
                     beta = std::min( sigmoidDerivative( lb ), sigmoidDerivative( ub ) );
-                    gamma = sigmoidDerivative( bValue );
+                    if ( FloatUtils::areEqual( bValue, ub ) )
+                        gamma = beta;
+                    else
+                        gamma = sigmoidDerivative( bValue );
                 }
             }
             else
@@ -380,8 +390,11 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 else
                 {
                     // Case 10
-                    beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
                     gamma = ( correctfValue - sigmoid( ub ) ) / ( bValue - ub );
+                    if ( FloatUtils::areEqual( bValue, lb ) )
+                        beta = gamma;
+                    else
+                        beta = ( correctfValue - sigmoid( lb ) ) / ( bValue - lb );
                 }
             }
         }
@@ -402,7 +415,6 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
 
             unsigned aux1 = inputQuery.getNewVariable();
             unsigned aux2 = inputQuery.getNewVariable();
-            unsigned aux3 = inputQuery.getNewVariable();
 
             {
                 Equation e;
@@ -416,14 +428,6 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             inputQuery.addPiecewiseLinearConstraint( r );
 
             {
-                Equation e;
-                e.addAddend( gamma, aux2 );
-                e.addAddend( -1, aux3 );
-                e.setScalar( -correctfValue );
-                inputQuery.addEquation( e );
-            }
-
-            {
                 // if fValue is above sigmoid, we add
                 // f <= aux3. Otherwise, we add f >= aux3
                 Equation e;
@@ -432,8 +436,8 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 else
                     e.setType( Equation::GE );
                 e.addAddend( 1, _f );
-                e.addAddend( -1, aux3 );
-                e.setScalar( 0 );
+                e.addAddend( -gamma, aux2 );
+                e.setScalar( correctfValue );
                 inputQuery.addEquation( e );
             }
         }
@@ -470,7 +474,6 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
 
             unsigned aux1 = inputQuery.getNewVariable();
             unsigned aux2 = inputQuery.getNewVariable();
-            unsigned aux3 = inputQuery.getNewVariable();
 
             {
                 Equation e;
@@ -484,14 +487,6 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
             inputQuery.addPiecewiseLinearConstraint( r );
 
             {
-                Equation e;
-                e.addAddend( beta, aux2 );
-                e.addAddend( 1, aux3 );
-                e.setScalar( correctfValue );
-                inputQuery.addEquation( e );
-            }
-
-            {
                 // if fValue is above sigmoid, we add
                 // f <= aux3. Otherwise, we add f >= aux3
                 Equation e;
@@ -500,8 +495,8 @@ bool SigmoidConstraint::attemptToRefine( InputQuery &inputQuery ) const
                 else
                     e.setType( Equation::GE );
                 e.addAddend( 1, _f );
-                e.addAddend( -1, aux3 );
-                e.setScalar( 0 );
+                e.addAddend( beta, aux2 );
+                e.setScalar( correctfValue );
                 inputQuery.addEquation( e );
             }
         }
