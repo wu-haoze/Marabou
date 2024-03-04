@@ -116,6 +116,8 @@ void InputQueryBuilder::addMaxConstraint( Variable var, Set<Variable> elements )
 void InputQueryBuilder::addSignConstraint( Variable inputVar, Variable outputVar )
 {
     _signList.append( new SignConstraint( inputVar, outputVar ) );
+    setLowerBound( outputVar, -1.0 );
+    setUpperBound( outputVar, 1.0 );
 }
 
 void InputQueryBuilder::addAbsConstraint( Variable inputVar, Variable outputVar )

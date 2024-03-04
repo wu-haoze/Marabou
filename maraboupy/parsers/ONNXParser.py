@@ -193,6 +193,8 @@ class ONNXParser:
             self.addEquations(node, makeEquations)
         elif node.op_type == 'Relu':
             self.reluEquations(node, makeEquations)
+        elif node.op_type == 'Sign':
+            self.signEquations(node, makeEquations)
         elif node.op_type == 'Sigmoid':
             self.sigmoidEquations(node, makeEquations)
         elif node.op_type == 'Split':
@@ -1185,6 +1187,7 @@ class ONNXParser:
         for f in outputVars:
             self.query.setLowerBound(f, 0.0)
 
+
     def leakyReluEquations(self, node, makeEquations):
         """Function to generate equations corresponding to pointwise LeakyRelu
         Args:
@@ -1211,6 +1214,33 @@ class ONNXParser:
         # Generate equations
         for i in range(len(inputVars)):
             self.query.addLeakyRelu(inputVars[i], outputVars[i], alpha)
+
+    def signEquations(self, node, makeEquations):
+        """Function to generate equations corresponding to Sign
+
+        Args:
+            node (node): ONNX node representing the Sign operation
+            makeEquations (bool): True if we need to create new variables and add new Sign
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+        inputName = node.input[0]
+        self.shapeMap[nodeName] = self.shapeMap[inputName]
+        if not makeEquations:
+            return
+
+        # Get variables
+        inputVars = self.varMap[inputName].reshape(-1)
+        outputVars = self.makeNewVariables(nodeName).reshape(-1)
+        assert len(inputVars) == len(outputVars)
+
+        # Generate equations
+        for i in range(len(inputVars)):
+            self.query.addSignConstraint(inputVars[i], outputVars[i])
+        for f in outputVars:
+            self.query.setLowerBound(f, -1.0)
+            self.query.setUpperBound(f, 1.0)
 
     def subEquations(self, node, makeEquations):
         """Function to generate equations corresponding to subtraction

@@ -28,7 +28,6 @@
 #include "InputParserError.h"
 #include "InputQuery.h"
 #include "MString.h"
-#include "ReluConstraint.h"
 #include "TensorUtils.h"
 #include "onnx.proto3.pb.h"
 
@@ -900,6 +899,10 @@ void OnnxParser::makeMarabouEquations( onnx::NodeProto &node, bool makeEquations
     else if ( strcmp( nodeType, "LeakyRelu" ) == 0 )
     {
         leakyReluEquations( node, makeEquations );
+    }
+    else if ( strcmp( nodeType, "Sign" ) == 0 )
+    {
+        signEquations( node, makeEquations );
     }
     else if ( strcmp( nodeType, "MatMul" ) == 0 )
     {
@@ -1775,6 +1778,36 @@ void OnnxParser::leakyReluEquations( onnx::NodeProto &node, bool makeEquations )
     for ( PackedTensorIndices i = 0; i < inputVars.size(); i++ )
     {
         _query.addLeakyRelu( inputVars[i], outputVars[i], alpha );
+    }
+}
+
+/**
+ * @brief Function to generate equations corresponding to pointwise Sign
+ * Implements https://github.com/onnx/onnx/blob/main/docs/Operators.md#Sign
+ *
+ * @param node ONNX node representing the Sign operation
+ * @param makeEquations True if we need to create new variables and add new Signs
+ */
+void OnnxParser::signEquations( onnx::NodeProto &node, bool makeEquations )
+{
+    String outputNodeName = node.output()[0];
+    String inputNodeName = node.input()[0];
+
+    _shapeMap[outputNodeName] = _shapeMap[inputNodeName];
+    if ( !makeEquations )
+        return;
+
+    // Get variables
+    Vector<Variable> inputVars = _varMap[inputNodeName];
+    Vector<Variable> outputVars = makeNodeVariables( outputNodeName, false );
+    ASSERT( inputVars.size() == outputVars.size() );
+
+    // Generate equations
+    for ( PackedTensorIndices i = 0; i < inputVars.size(); i++ )
+    {
+        int inputVar = inputVars[i];
+        int outputVar = outputVars[i];
+        _query.addSignConstraint( inputVar, outputVar );
     }
 }
 

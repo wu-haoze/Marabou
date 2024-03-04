@@ -257,6 +257,13 @@ def matmul_node():
     )
     return ("matmul", node, [2,3], [2,2], [const_node])
 
+def sign_node():
+    node = onnx.helper.make_node(
+        "Sign",
+        inputs=[input_name],
+        outputs=[output_name],
+    )
+    return ("sign", node, [2,2], [2,2], [])
 
 def sigmoid_node():
     node = onnx.helper.make_node(
@@ -319,6 +326,7 @@ if __name__ == "__main__":
     make_network(*add_node())
     make_network(*sub_node())
     make_network(*matmul_node())
+    make_network(*sign_node())
     make_network(*sigmoid_node())
     make_network(*tanh_node())
     make_network(*cast_int_to_float_node())

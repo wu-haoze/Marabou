@@ -368,6 +368,42 @@ public:
         return 1.0 / ( 1.0 + exp( -value ) );
     }
 
+    /*
+    void _test_sign_failed()
+    {
+        Vector<double> input = {
+            -2.0,
+            0.0, //
+            1.4,
+            10.5, //
+        };
+        Vector<double> output = {
+            -1,
+            0, //
+            1,
+            1, //
+        };
+        run_test( "sign", input, output );
+    }
+    */
+
+    void test_sign()
+    {
+        Vector<double> input = {
+            -2.0,
+            -0.1, //
+            1.4,
+            10.5, //
+        };
+        Vector<double> output = {
+            -1,
+            -1, //
+            1,
+            1, //
+        };
+        run_test( "sign", input, output );
+    }
+
     void test_sigmoid()
     {
         Vector<double> input = { -2, 0, 1, 3.5 };
