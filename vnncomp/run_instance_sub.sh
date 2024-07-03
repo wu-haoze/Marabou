@@ -23,7 +23,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 WORKING_DIR_BENCHMARK=$SCRIPT_DIR/data/$BENCHMARK/
 WORKING_DIR_INSTANCE=$WORKING_DIR_BENCHMARK/"$NET_NAME"_"$PROP_NAME"/
 
-ONNX_FILE_POSTDNNV=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp_presoftmax_postdnnv.onnx
+ONNX_FILE_POSTDNNV=$WORKING_DIR_BENCHMARK/"$NET_NAME"_simp_presoftmax.onnx
 
 VNNLIB_FILE_PICKLED=$WORKING_DIR_INSTANCE/vnnlib.pkl
 IPQ_FILE=$WORKING_DIR_INSTANCE/query.ipq.pickle
@@ -50,14 +50,14 @@ done
 pids=()
 python3 -u $SCRIPT_DIR/../resources/enumeratePoints.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_1 1 10000000000 &
 pids+=($!)
-python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_2 2 10000000000 &
-pids+=($!)
-# big step
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_3 3 0.1 10000000 &
-pids+=($!)
+#python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_2 2 10000000000 &
+#pids+=($!)
+## big step
+#python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_3 3 0.1 10000000 &
+#pids+=($!)
 # small step
-python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
-pids+=($!)
+#python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
+#pids+=($!)
 python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 nodefault &
 pids+=($!)
 python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_6 default &
@@ -104,7 +104,7 @@ while true; do
 
     # Check the flag value
     if [ $all_exist -eq 1 ]; then
-	echo "All threads finished1"
+	echo "All threads finished!"
 	break;
     fi
 

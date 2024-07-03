@@ -25,7 +25,7 @@ import itertools
 from copy import copy
 from onnx.reference.ops._op_list import Split_18, Unsqueeze_1
 
-class ONNXParser:
+class ONNXParserThresh:
     """
     Class for parsing ONNX files.
     Should eventually be implemented by a renamed `ONNXParser.cpp` on the C++ side.
@@ -45,7 +45,7 @@ class ONNXParser:
         Returns:
             :class:`~maraboupy.Marabou.marabouNetworkONNX.marabouNetworkONNX`
         """
-        parser = ONNXParser(query, graph, inputNames, outputNames, equalityThreshold, nonlinearityThreshold)
+        parser = ONNXParserThresh(query, graph, inputNames, outputNames, equalityThreshold, nonlinearityThreshold)
         parser.parseGraph()
 
 
@@ -150,9 +150,9 @@ class ONNXParser:
             # Compute node's shape and create Marabou equations as needed
             self.makeMarabouEquations(nodeName, makeEquations)
 
-            numEquations = len(self.equList)
-            numNonLinearities = (len(self.reluList) + len(self.sigmoidList) +
-                                 len(self.maxList) + len(self.absList) + len(self.signList))
+            numEquations = len(self.query.equList)
+            numNonLinearities = (len(self.query.reluList) + len(self.query.sigmoidList) +
+                                 len(self.query.maxList) + len(self.query.absList) + len(self.query.signList))
             if (numEquations > self.equalityThreshold and
                 numNonLinearities > self.nonlinearityThreshold):
                 print(f"Split threshold reached: {numEquations} equations, {numNonLinearities} nonlinear constraints")

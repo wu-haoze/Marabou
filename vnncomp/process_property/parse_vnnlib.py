@@ -23,7 +23,7 @@ def parse_vnnlib_file(onnx_file, vnnlib_file, pickle_output, ipq_output):
     input_nodes = model.graph.input
     output_nodes = model.graph.output
 
-    assert(len(input_nodes) == 1)
+    #assert(len(input_nodes) == 1)
     assert(len(output_nodes) == 1)
 
     num_inputs = 1

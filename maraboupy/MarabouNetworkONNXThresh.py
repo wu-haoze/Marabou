@@ -17,7 +17,7 @@ MarabouNetworkONNX represents neural networks with piecewise linear constraints 
 import onnx
 import onnxruntime
 from maraboupy.MarabouNetwork import MarabouNetwork
-from maraboupy.parsers.ONNXParser import ONNXParser
+from maraboupy.parsers.ONNXParserThresh import ONNXParserThresh
 import os
 
 class MarabouNetworkONNXThresh(MarabouNetwork):
@@ -41,7 +41,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork):
         self.readONNXThresh(filename, inputNames, outputNames,
                             equalityThreshold, nonlinearityThreshold)
 
-    def readONNXThresh(self, filename, inputNames=None, outputNames=None, equalityThreshold, nonlinearityThreshold, preserveExistingConstraints=False):
+    def readONNXThresh(self, filename, inputNames=None, outputNames=None, equalityThreshold=0, nonlinearityThreshold=0, preserveExistingConstraints=False):
         if not preserveExistingConstraints:
             self.clear()
 
@@ -78,7 +78,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork):
             initNames = [node.name for node in self.graph.initializer]
             self.outputNames = [out.name for out in self.graph.output if out.name not in initNames]
 
-        ONNXParser.parse(self, self.graph, self.inputNames, self.outputNames, equalityThreshold, nonlinearityThreshold)
+        ONNXParserThresh.parse(self, self.graph, self.inputNames, self.outputNames, equalityThreshold, nonlinearityThreshold)
 
     def getNode(self, nodeName):
         """Find the node in the graph corresponding to the given name
