@@ -23,6 +23,7 @@
 #include "FloatUtils.h"
 #include "InputParserError.h"
 #include "InputQuery.h"
+#include "IncrementalLinearization.h"
 #include "LeakyReluConstraint.h"
 #include "MString.h"
 #include "MarabouError.h"
@@ -455,49 +456,100 @@ solve( InputQuery &inputQuery, int mode=-1, std::string redirect = "" )
       if ( mode == 1 )
         {
           // MILP
+            //Options::get()->setBool( Options::DO_NOT_MERGE_CONSECUTIVE_WEIGHTED_SUM_LAYERS, true );
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
-	  Options::get()->setInt( Options::VERBOSITY, 0 );
+          Options::get()->setInt( Options::VERBOSITY, 0 );
           Options::get()->setInt( Options::NUM_WORKERS, 48 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 48 );
         }
       else if ( mode == 2)
       {
-	// SNC
-	Options::get()->setBool( Options::SOLVE_WITH_MILP, false );
-	Options::get()->setInt( Options::VERBOSITY, 0 );
-	Options::get()->setBool( Options::DNC_MODE, true );
-	Options::get()->setInt( Options::NUM_WORKERS, 128 );
-	Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
-	Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 );
-	Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 7 );
-	Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
+          // SNC
+          Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, false );
+          Options::get()->setInt( Options::VERBOSITY, 0 );
+          Options::get()->setBool( Options::DNC_MODE, true );
+          Options::get()->setInt( Options::NUM_WORKERS, 128 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
+          Options::get()->setInt( Options::INITIAL_TIMEOUT, 360000 );
+          Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 7 );
+          Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 0 );
       }
       else if (mode == 3)
       {
-          // MILP 2
-	Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
-	  Options::get()->setInt( Options::VERBOSITY, 0 );
-	  Options::get()->setInt( Options::NUM_WORKERS, 4 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
+          // Portfolio
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+          Options::get()->setInt( Options::VERBOSITY, 0 );
+          Options::get()->setInt( Options::NUM_WORKERS, 4 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 4 );
         }
       else if (mode == 4)
         {
-	  Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
-	  Options::get()->setInt( Options::VERBOSITY, 0 );
-	  Options::get()->setInt( Options::NUM_WORKERS, 48 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
-          Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "lse2" );
+            // MILP
+            Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
+            Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+            Options::get()->setInt( Options::VERBOSITY, 0 );
+            Options::get()->setInt( Options::NUM_WORKERS, 48 );
+            Options::get()->setInt( Options::NUM_BLAS_THREADS, 48 );
         }
       else if (mode == 5)
-        {
-          // MILP 3
+      {
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
-	  Options::get()->setInt( Options::VERBOSITY, 0 );
+          Options::get()->setInt( Options::VERBOSITY, 0 );
           Options::get()->setInt( Options::NUM_WORKERS, 48 );
-          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
-          Options::get()->setString( Options::SOFTMAX_BOUND_TYPE, "er" );
-        }
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 48 );
 
+          printf("Solving in CEGAR mode...\n");
+#ifdef ENABLE_OPENBLAS
+          openblas_set_num_threads( 48 );
+#endif
+
+          // MILP
+          enum {
+              MICROSECONDS_IN_SECOND = 1000000
+          };
+
+          struct timespec start = TimeUtils::sampleMicro();
+          unsigned timeoutInSeconds = Options::get()->getInt( Options::TIMEOUT );
+          std::unique_ptr<Engine> engine = std::unique_ptr<Engine>( new Engine() );
+
+          if(!engine->processInputQuery(inputQuery))
+              return std::make_tuple(exitCodeToString(engine->getExitCode()),
+                                     ret, *(engine->getStatistics()));
+          else
+          {
+              engine->solve( timeoutInSeconds );
+          }
+
+          if ( engine->getExitCode() == Engine::UNKNOWN )
+          {
+              struct timespec end = TimeUtils::sampleMicro();
+              unsigned long long totalElapsed = TimeUtils::timePassed( start, end );
+              if ( timeoutInSeconds == 0 || totalElapsed < timeoutInSeconds * MICROSECONDS_IN_SECOND )
+              {
+                  auto cegarSolver = new CEGAR::IncrementalLinearization( inputQuery, engine.release() );
+                  unsigned long long timeoutInMicroSeconds =
+                      ( timeoutInSeconds == 0
+                        ? 0
+                        : timeoutInSeconds * MICROSECONDS_IN_SECOND - totalElapsed );
+                  cegarSolver->setInitialTimeoutInMicroSeconds( timeoutInMicroSeconds );
+                  cegarSolver->solve();
+                  engine = std::unique_ptr<Engine>( cegarSolver->releaseEngine() );
+              }
+          }
+
+          if ( engine->getExitCode() == Engine::SAT )
+          {
+              engine->extractSolution( inputQuery );
+              for(unsigned int i=0; i<inputQuery.getNumberOfVariables(); ++i)
+                  ret[i] = inputQuery.getSolutionValue(i);
+          }
+
+          resultString = exitCodeToString(engine->getExitCode());
+          retStats = *(engine->getStatistics());
+
+          return std::make_tuple(resultString, ret, retStats);
+      }
       else {
         std::cout << "UNKNOWN option!!!" << std::endl;
       }
@@ -543,9 +595,9 @@ solve( InputQuery &inputQuery, int mode=-1, std::string redirect = "" )
       openblas_set_num_threads( 48 );
 #endif
 
-        engine.solve(timeoutInSeconds);
-	std::cout << "Solving - done" << std::endl;
-        resultString = exitCodeToString(engine.getExitCode());
+      engine.solve(timeoutInSeconds);
+      std::cout << "Solving - done" << std::endl;
+      resultString = exitCodeToString(engine.getExitCode());
 
         if (engine.getExitCode() == Engine::SAT)
         {
@@ -583,6 +635,10 @@ calculateBounds( InputQuery &inputQuery, std::string redirect = "" )
 #ifdef ENABLE_OPENBLAS
       openblas_set_num_threads( 48 );
 #endif
+      Options::get()->setBool( Options::DO_NOT_MERGE_CONSECUTIVE_WEIGHTED_SUM_LAYERS, true );
+      Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
+      Options::get()->setInt( Options::VERBOSITY, 0 );
+      Options::get()->setInt( Options::NUM_WORKERS, 48 );
 
         Engine *engine = new Engine();
 

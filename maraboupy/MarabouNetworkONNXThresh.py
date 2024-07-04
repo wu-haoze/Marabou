@@ -32,16 +32,13 @@ class MarabouNetworkONNXThresh(MarabouNetwork):
         :class:`~maraboupy.Marabou.marabouNetworkONNX.marabouNetworkONNX`
     """
     def __init__(self, filename, inputNames=None, outputNames=None,
-                 equalityThreshold=50000, nonlinearityThreshold=50000,
+                 equalityThreshold=30000, nonlinearityThreshold=30000,
                  candidateSubONNXFileName=None):
         super().__init__()
-        self.candidateSubONNXFileName = candidateSubONNXFileName
-        self.subONNXFile = None
-
         self.readONNXThresh(filename, inputNames, outputNames,
-                            equalityThreshold, nonlinearityThreshold)
+                            equalityThreshold, nonlinearityThreshold, candidateSubONNXFileName=candidateSubONNXFileName)
 
-    def readONNXThresh(self, filename, inputNames=None, outputNames=None, equalityThreshold=0, nonlinearityThreshold=0, preserveExistingConstraints=False):
+    def readONNXThresh(self, filename, inputNames=None, outputNames=None, equalityThreshold=0, nonlinearityThreshold=0, preserveExistingConstraints=False, candidateSubONNXFileName=None):
         if not preserveExistingConstraints:
             self.clear()
 
@@ -78,7 +75,7 @@ class MarabouNetworkONNXThresh(MarabouNetwork):
             initNames = [node.name for node in self.graph.initializer]
             self.outputNames = [out.name for out in self.graph.output if out.name not in initNames]
 
-        ONNXParserThresh.parse(self, self.graph, self.inputNames, self.outputNames, equalityThreshold, nonlinearityThreshold)
+        self.subONNXFile = ONNXParserThresh.parse(filename, self, self.graph, self.inputNames, self.outputNames, equalityThreshold, nonlinearityThreshold, candidateSubONNXFileName)
 
     def getNode(self, nodeName):
         """Find the node in the graph corresponding to the given name

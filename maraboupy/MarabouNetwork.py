@@ -236,7 +236,7 @@ class MarabouNetwork(InputQueryBuilder):
 
         if options == None:
             options = MarabouCore.Options()
-        exitCode, outputDict, _ = MarabouCore.solve(ipq, options, str(filename))
+        exitCode, outputDict, _ = MarabouCore.solve(ipq, 1, str(filename))
 
         # When the query is UNSAT an empty dictionary is returned
         if outputDict == {}:

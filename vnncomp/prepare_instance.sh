@@ -16,7 +16,7 @@ echo "Property name: $PROP_NAME"
 
 ####### Creating working directories #######
 
-list="acasxu cgan collins_rul_cnn dist_shift ml4acopf nn4sys tllverifybench traffic_signs_recognition vggnet16 vit"
+list="acasxu cgan collins_rul_cnn cora dist_shift linearizeNN nn4sys tllverifybench traffic_signs_recognition"
 
 if [[ $list =~ (^|[[:space:]])$BENCHMARK($|[[:space:]]) ]]; then
     echo "Supported benchmark"
@@ -46,10 +46,12 @@ echo "Working directory: $WORKING_DIR_INSTANCE"
 pkill -9 python
 pkill -9 python3
 pkill -9 run_instance.sh
+pkill -9 pt_main_thread
 sleep 1
 pkill -9 python
 pkill -9 python3
 pkill -9 run_instance.sh
+pkill -9 pt_main_thread
 sleep 1
 
 ############################### NETWORK PROCESSING #################################

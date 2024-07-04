@@ -206,13 +206,30 @@ void NetworkLevelReasoner::symbolicBoundPropagation()
 
 void NetworkLevelReasoner::deepPolyPropagation()
 {
+    if ( _maxLayerSize == 0 ) {
+        for ( const auto &pair : _layerIndexToLayer )
+        {
+            unsigned thisLayerSize = pair.second->getSize();
+            if ( thisLayerSize > _maxLayerSize )
+                _maxLayerSize = thisLayerSize;
+        }
+        std::cout << "Max layer size: " << _maxLayerSize << std::endl;
+    }
+    if ( _maxLayerSize > 20000 )
+        return;
+
     if ( _deepPolyAnalysis == nullptr )
-        _deepPolyAnalysis = std::unique_ptr<DeepPolyAnalysis>( new DeepPolyAnalysis( this ) );
+        _deepPolyAnalysis = std::unique_ptr<DeepPolyAnalysis>
+            ( new DeepPolyAnalysis( this ) );
     _deepPolyAnalysis->run();
 }
 
 void NetworkLevelReasoner::lpRelaxationPropagation()
 {
+    if ( _maxLayerSize > 1000 )
+        return;
+
+    std::cout << "Performing LP-based bound tightening..." << std::endl;
     LPFormulator lpFormulator( this );
     lpFormulator.setCutoff( 0 );
 
@@ -227,6 +244,7 @@ void NetworkLevelReasoner::lpRelaxationPropagation()
     else if ( Options::get()->getMILPSolverBoundTighteningType() ==
               MILPSolverBoundTighteningType::LP_RELAXATION_INCREMENTAL )
         lpFormulator.optimizeBoundsWithIncrementalLpRelaxation( _layerIndexToLayer );
+    std::cout << "Performing LP-based bound tightening - done" << std::endl;
 }
 
 void NetworkLevelReasoner::LPTighteningForOneLayer( unsigned targetIndex )

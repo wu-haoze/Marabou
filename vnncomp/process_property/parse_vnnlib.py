@@ -101,7 +101,7 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
                     for out_index, c in output_props[i].items():
                         eq.addAddend(c, outputVars[out_index])
                     eq.setScalar(rhss[i])
-                    conjuncts.append(toMarabouEquation(eq))
+                    conjuncts.append(eq)
                 disjuncts.append(conjuncts)
             network.addDisjunctionConstraint(disjuncts)
 
@@ -168,7 +168,7 @@ def create_marabou_query(onnx_file, box_spec_list, ipq_output):
                     for out_index, c in output_props[i].items():
                         eq.addAddend(c, outputVars[out_index])
                     eq.setScalar(rhss[i])
-                    conjuncts.append(toMarabouEquation(eq))
+                    conjuncts.append(eq)
                 disjuncts.append(conjuncts)
             network.addDisjunctionConstraint(disjuncts)
 

@@ -48,24 +48,22 @@ done
 
 # Run the processes in the background and store their PIDs in an array
 pids=()
-python3 -u $SCRIPT_DIR/../resources/enumeratePoints.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_1 1 10000000000 &
-pids+=($!)
 #python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_2 2 10000000000 &
 #pids+=($!)
-## big step
+# big step
 #python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_3 3 0.1 10000000 &
 #pids+=($!)
 # small step
 #python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_4 4 0.05 10000000 &
 #pids+=($!)
-python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 nodefault &
-pids+=($!)
+#python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_5 nodefault &
+#pids+=($!)
 python3 -u $SCRIPT_DIR/../resources/runVerify.py $IPQ_FILE $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_6 default &
 pids+=($!)
 
 
 # Define a list of files
-FILES=("$RESULTS_FILE"_1 "$RESULTS_FILE"_2 "$RESULTS_FILE"_3 "$RESULTS_FILE"_4 "$RESULTS_FILE"_5)
+FILES=("$RESULTS_FILE"_2 "$RESULTS_FILE"_3 "$RESULTS_FILE"_4 "$RESULTS_FILE"_5)
 
 
 for pid in "${pids[@]}"; do

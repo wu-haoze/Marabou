@@ -17,11 +17,6 @@ assert(len(sys.argv) == 6)
 
 # python runSample.py [ipq_file.pickle] [onnx_file] [vnnlib] [output file] [mode]
 
-if "vgg16-7" in os.path.basename(sys.argv[2]):
-    with open(sys.argv[4], 'w') as out_file:
-        out_file.write("unknown")
-    exit(0)
-
 # output_props : List[Dict[index:float], float]
 with open(sys.argv[1], "rb") as f:
     max_query_id, queriesMap, inputVarsMap, outputVarsMap  = pickle.load(f)
@@ -56,8 +51,8 @@ def output_property_hold(outputs, output_specs):
 MODE_MILP = 1
 MODE_SNC = 2
 MODE_PORTFOLIO = 3
-MODE_MILP2 = 4
-MODE_MILP3 = 5
+MODE_MILP_LP = 4
+MODE_CEGAR = 5
 
 if max_query_id > 1 and len(outputVarsMap) == 0:
     print("Input disjunction detected!")
@@ -110,8 +105,9 @@ elif max_query_id == 1:
     inputVars = inputVarsMap[1]
     queryName = queriesMap[1]
     ipq = Marabou.loadQuery(queryName)
-
-    if ipq.getNumberOfVariables() < 2000 and ipq.getNumInputVariables() < 10:
+    if "mnist_concat_simp" in os.path.basename(sys.argv[2]) and mode == "default":
+        mode = MODE_CEGAR
+    elif ipq.getNumberOfVariables() < 2000 and ipq.getNumInputVariables() < 10:
         if mode == "default":
             mode = MODE_SNC
         else:
@@ -129,7 +125,7 @@ elif max_query_id == 1:
         sess_opt.inter_op_num_threads = 2
         ort_model = ort.InferenceSession(onnx_network, sess_opt)
         name, shape, dtype = [(i.name, i.shape, i.type) for i in ort_model.get_inputs()][0]
-        if shape[0] in ["batch_size", "unk__195"]:
+        if isinstance(shape[0], str):
             shape[0] = 1
         assert dtype in ['tensor(float)', 'tensor(double)']
         dtype = "float32" if dtype == 'tensor(float)' else "float64"
@@ -142,90 +138,39 @@ elif max_query_id == 1:
         else:
             print("ONNX test failed!")
             result = "unknown"
-
-    if result not in ["sat", "unsat"]:
-        mode = MODE_MILP2
-        result, vals, stats = MarabouCore.solve(ipq, mode=mode)
-        if result == "sat":
-            # Load the onnx model
-            sess_opt = ort.SessionOptions()
-            sess_opt.intra_op_num_threads = 2
-            sess_opt.inter_op_num_threads = 2
-            ort_model = ort.InferenceSession(onnx_network, sess_opt)
-            name, shape, dtype = [(i.name, i.shape, i.type) for i in ort_model.get_inputs()][0]
-            if shape[0] in ["batch_size", "unk__195"]:
-                shape[0] = 1
-            assert dtype in ['tensor(float)', 'tensor(double)']
-            dtype = "float32" if dtype == 'tensor(float)' else "float64"
-
-            assignments = [vals[i] for i in inputVars[0].flatten()]
-            ort_outputs = ort_model.run(None, {name: np.array([assignments]).astype(dtype).reshape(shape)})[0]
-            input_spec, output_specs = specs[0]
-            if output_property_hold(ort_outputs, output_specs):
-                print("ONNX test passed!")
-            else:
-                print("ONNX test failed!")
-                result = "unknown"
-
-    if result not in ["sat", "unsat"]:
-        mode = MODE_MILP3
-        result, vals, stats = MarabouCore.solve(ipq, mode=mode)
-        if result == "sat":
-            # Load the onnx model
-            sess_opt = ort.SessionOptions()
-            sess_opt.intra_op_num_threads = 2
-            sess_opt.inter_op_num_threads = 2
-            ort_model = ort.InferenceSession(onnx_network, sess_opt)
-            name, shape, dtype = [(i.name, i.shape, i.type) for i in ort_model.get_inputs()][0]
-            if shape[0] in ["batch_size", "unk__195"]:
-                shape[0] = 1
-            assert dtype in ['tensor(float)', 'tensor(double)']
-            dtype = "float32" if dtype == 'tensor(float)' else "float64"
-
-            assignments = [vals[i] for i in inputVars[0].flatten()]
-            ort_outputs = ort_model.run(None, {name: np.array([assignments]).astype(dtype).reshape(shape)})[0]
-            input_spec, output_specs = specs[0]
-            if output_property_hold(ort_outputs, output_specs):
-                print("ONNX test passed!")
-            else:
-                print("ONNX test failed!")
-                result = "unknown"
-
 else:
-    if mode != "default":
-        mode = MODE_MILP
-    else:
-        exit(0)
+    if mode == "default":
+        mode = MODE_MILP_LP
 
-    for i in range(max_query_id + 1)[1:]:
-        print(f"Calculating bound for query {i}")
-        queryName = queriesMap[i]
-        inputVars = inputVarsMap[i]
-        outputVars = outputVarsMap[i]
-        print("Loading query...")
-        ipq = Marabou.loadQuery(queryName)
-        if i < max_query_id:
-            if i > 1:
-                print(lastOutputBounds)
-                print(f"Encoding bound from query {i-1}")
+        for i in range(max_query_id + 1)[1:]:
+            print(f"Calculating bound for query {i}")
+            queryName = queriesMap[i]
+            inputVars = inputVarsMap[i]
+            outputVars = outputVarsMap[i]
+            ipq = Marabou.loadQuery(queryName)
+            if i < max_query_id:
+                if i > 1:
+                    #print(f"Encoding bound from query {i-1}")
+                    assert(lastOutputShape==inputVars[0].shape)
+                    inputBounds = dict()
+                    for i, v in enumerate(inputVars[0].flatten()):
+                        ipq.setLowerBound(v, lastOutputBounds[i][0])
+                        ipq.setUpperBound(v, lastOutputBounds[i][1])
+                result, bounds, stats = MarabouCore.calculateBounds(ipq)
+                lastOutputBounds = np.array([bounds[v] for v in outputVars[0].flatten()])
+                lastOutputShape = outputVars[0].shape
+            else:
                 assert(lastOutputShape==inputVars[0].shape)
                 inputBounds = dict()
                 for i, v in enumerate(inputVars[0].flatten()):
                     ipq.setLowerBound(v, lastOutputBounds[i][0])
                     ipq.setUpperBound(v, lastOutputBounds[i][1])
-            result, bounds, stats = MarabouCore.calculateBounds(ipq)
-            lastOutputBounds = np.array([bounds[v] for v in outputVars[0].flatten()])
-            lastOutputShape = outputVars[0].shape
+                result, vals, stats = MarabouCore.solve(ipq, mode=MODE_MILP_LP)
+            del ipq
+        if result == "unsat":
+            result == "unsat"
         else:
-            assert(lastOutputShape==inputVars[0].shape)
-            inputBounds = dict()
-            for i, v in enumerate(inputVars[0].flatten()):
-                ipq.setLowerBound(v, lastOutputBounds[i][0])
-                ipq.setUpperBound(v, lastOutputBounds[i][1])
-            result, vals, stats = MarabouCore.solve(ipq, mode=MODE_MILP)
-        del ipq
-    if result == "unsat":
-        result == "unsat"
+            result = "unknown"
     else:
         result = "unknown"
 

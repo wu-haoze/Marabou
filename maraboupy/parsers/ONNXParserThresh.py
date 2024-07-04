@@ -16,6 +16,7 @@ MarabouNetworkONNX represents neural networks with piecewise linear constraints 
 '''
 from typing import List
 import numpy as np
+from onnx.utils import extract_model
 from onnx import numpy_helper
 from onnx.helper import get_attribute_value
 from maraboupy import MarabouUtils
@@ -23,7 +24,7 @@ from maraboupy.parsers.InputQueryBuilder import InputQueryBuilder
 from onnx import TensorProto
 import itertools
 from copy import copy
-from onnx.reference.ops._op_list import Split_18, Unsqueeze_1
+from onnx.reference.ops._op_list import Split_18, Unsqueeze_1, Slice_10
 
 class ONNXParserThresh:
     """
@@ -32,7 +33,7 @@ class ONNXParserThresh:
     """
 
     @staticmethod
-    def parse(query:InputQueryBuilder, graph, inputNames:List[str], outputNames:List[str], equalityThreshold, nonlinearityThreshold):
+    def parse(filename, query:InputQueryBuilder, graph, inputNames:List[str], outputNames:List[str], equalityThreshold, nonlinearityThreshold, candidateSubONNXFileName):
         """
         Parses the provided ONNX graph into constraints which are stored in the query argument.
 
@@ -45,17 +46,19 @@ class ONNXParserThresh:
         Returns:
             :class:`~maraboupy.Marabou.marabouNetworkONNX.marabouNetworkONNX`
         """
-        parser = ONNXParserThresh(query, graph, inputNames, outputNames, equalityThreshold, nonlinearityThreshold)
+        parser = ONNXParserThresh(filename, query, graph, inputNames, outputNames, equalityThreshold, nonlinearityThreshold, candidateSubONNXFileName)
         parser.parseGraph()
+        return parser.subONNXFile
 
 
-    def __init__(self, query:InputQueryBuilder, graph, inputNames, outputNames, equalityThreshold, nonlinearityThreshold):
+    def __init__(self, filename, query:InputQueryBuilder, graph, inputNames, outputNames, equalityThreshold, nonlinearityThreshold, candidateSubONNXFileName):
         """
         Should not be called directly. Use `ONNXParser.parse` instead.
 
         :meta private:
         """
         super().__init__()
+        self.filename = filename
         self.query = query
         self.graph = graph
         self.inputNames = inputNames
@@ -67,6 +70,8 @@ class ONNXParserThresh:
         self.shapeMap = dict()
 
         self.thresholdReached = False
+        self.candidateSubONNXFileName = candidateSubONNXFileName
+        self.subONNXFile = None
         self.equalityThreshold = equalityThreshold
         self.nonlinearityThreshold = nonlinearityThreshold
 
@@ -153,8 +158,7 @@ class ONNXParserThresh:
             numEquations = len(self.query.equList)
             numNonLinearities = (len(self.query.reluList) + len(self.query.sigmoidList) +
                                  len(self.query.maxList) + len(self.query.absList) + len(self.query.signList))
-            if (numEquations > self.equalityThreshold and
-                numNonLinearities > self.nonlinearityThreshold):
+            if numEquations > self.equalityThreshold or numNonLinearities > self.nonlinearityThreshold:
                 print(f"Split threshold reached: {numEquations} equations, {numNonLinearities} nonlinear constraints")
                 if self.splitNetworkAtNode(nodeName):
                     self.thresholdReached = True
@@ -201,9 +205,9 @@ class ONNXParserThresh:
         if noResidualAfter or noResidualBefore:
             outputName = self.getNode(nodeName).output[0]
             self.subONNXFile = self.candidateSubONNXFileName
-            onnx.utils.extract_model(self.filename, self.subONNXFile,
-                                     input_names=[outputName],
-                                     output_names=self.outputNames)
+            extract_model(self.filename, self.subONNXFile,
+                          input_names=[outputName],
+                          output_names=self.outputNames)
             self.outputNames = [outputName]
             print(f"Attempting to split the network at node {nodeName} - successful!")
             return True
@@ -234,6 +238,8 @@ class ONNXParserThresh:
             self.flatten(node)
         elif node.op_type == "Transpose":
             self.transpose(node)
+        elif node.op_type == "Slice":
+            self.slice(node)
         elif node.op_type == 'Unsqueeze':
             self.unsqueeze(node)
         elif node.op_type == 'Squeeze':
@@ -246,6 +252,8 @@ class ONNXParserThresh:
             self.maxpoolEquations(node, makeEquations)
         elif node.op_type == "Conv":
             self.convEquations(node, makeEquations)
+        elif node.op_type == "ConvTranspose":
+            self.convTransposeEquations(node, makeEquations)
         elif node.op_type == 'Gemm':
             self.gemmEquations(node, makeEquations)
         elif node.op_type == 'MatMul':
@@ -501,6 +509,23 @@ class ONNXParserThresh:
         elif inputName in self.constantMap:
             self.constantMap[nodeName] = np.transpose(self.constantMap[inputName], perm)
 
+    def slice(self, node):
+        nodeName = node.output[0]
+        inputName = node.input[0]
+        starts = self.constantMap[node.input[1]]
+        ends = self.constantMap[node.input[2]]
+        axes = self.constantMap[node.input[3]]
+        steps = self.constantMap[node.input[4]]
+
+        if inputName in self.varMap:
+            output_data = Slice_10.eval(self.varMap[inputName], starts=starts, ends=ends, axes=axes, steps=steps)
+            self.shapeMap[nodeName] = output_data.shape
+            self.varMap[nodeName] = output_data
+        else:
+            output_data = Slice_10.eval(self.varMap[inputName], starts=starts, ends=ends, axes=axes, steps=steps)
+            self.shapeMap[nodeName] = output_data.shape
+            self.constantMap[nodeName] = output_data
+
     def unsqueeze(self, node):
         """Function representing unsqueeze
 
@@ -676,6 +701,98 @@ class ONNXParserThresh:
             outVarsReshaped = np.transpose(outVars, perm).reshape(-1, inputShape[axis])
             for i in range(inVarsReshaped.shape[0]):
                 self.query.addSoftmaxConstraint(inVarsReshaped[i], outVarsReshaped[i])
+
+    def convTransposeEquations(self, node, makeEquations):
+        """Function to generate equations for a 2D convolution
+
+        Args:
+            node (node): ONNX node representing the 2D Convolution operation
+            makeEquations (bool): True if we need to create new variables and write Marabou equations
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+
+        # Extract information about convolution
+        for attr in node.attribute:
+            auto_pad = None
+            if attr.name == 'strides':
+                strides = get_attribute_value(attr)
+            elif attr.name == "auto_pad":
+                auto_pad = get_attribute_value(attr)
+            elif attr.name == "kernel_shape":
+                filter_width, filter_height = get_attribute_value(attr)
+            elif attr.name == 'pads':
+                pad_left, pad_bottom, pad_right, pad_top = get_attribute_value(attr)
+
+        assert(auto_pad is None or auto_pad == b'NOTSET')
+        #assert(pad_left == 0 and pad_bottom == 0 and pad_right == 0 and pad_top == 0)
+
+        # Get input shape information
+        # First input should be variable tensor, the second a weight matrix defining filters
+        shape0 = self.shapeMap[node.input[0]]
+        shape1 = self.shapeMap[node.input[1]]
+        input_channels = shape0[1]
+        input_width = shape0[2]
+        input_height = shape0[3]
+        num_filters = shape1[1]
+        filter_channels = shape1[0]
+
+        # The number of channels should match between input variable and filters
+        assert input_channels == filter_channels
+
+        # Compute output shape
+        out_width = (input_width - 1) * strides[0] + filter_width #- pad_left - pad_right
+        out_height = (input_height - 1) * strides[1] + filter_height #- pad_bottom - pad_top
+        out_channels = num_filters
+        self.shapeMap[nodeName] = [shape0[0], out_channels, out_width, out_height]
+        if not makeEquations:
+            return
+
+        inVars = self.varMap[node.input[0]]
+        weights = self.constantMap[node.input[1]]
+
+        # The third input is optional and specifies a bias for each filter
+        # Bias is 0 if third input is not given
+        biases = np.zeros(num_filters)
+        if len(node.input) == 3:
+            biases = self.constantMap[node.input[2]]
+
+        outVars = self.makeNewVariables(nodeName)
+
+        for k in range(out_channels): # Out_channel corresponds to filter number
+            indexToAddends = dict()
+            for i in range(out_width):
+                for j in range(out_height):
+                    indexToAddends[(i,j)] = []
+
+            for i in range(input_width):
+                for j in range(input_height):
+                    for di in range(filter_width):
+                        for dj in range(filter_height):
+                            w_ind = int(strides[0] * i+di)
+                            h_ind = int(strides[1] * j+dj)
+                            for dk in range(filter_channels):
+                                var = inVars[0][dk][i][j]
+                                c = weights[dk][k][di][dj]
+                                indexToAddends[(w_ind, h_ind)].append((c, var))
+
+            for i in range(out_width):
+                for j in range(out_height):
+                    e = MarabouUtils.Equation()
+                    for c, v in indexToAddends[(i,j)]:
+                        e.addAddend(c, v)
+                    e.addAddend(-1, outVars[0][k][i][j])
+                    e.setScalar(-biases[k])
+                    self.query.addEquation(e)
+
+        if pad_left > 0 and pad_top > 0:
+            out_width -= (pad_left + pad_right)
+            out_height -= (pad_bottom + pad_top)
+            self.shapeMap[nodeName] = [shape0[0], out_channels, out_width, out_height]
+            outVars = outVars[:,:,pad_left:-pad_right,pad_top:-pad_bottom]
+            self.varMap[nodeName] = outVars
+
 
     def convEquations(self, node, makeEquations):
         """Function to generate equations for a 2D convolution

@@ -938,7 +938,7 @@ bool Engine::calculateBounds( InputQuery &inputQuery )
         initializeNetworkLevelReasoning();
 
         performSymbolicBoundTightening( &( *_preprocessedQuery ) );
-        performSimulation();
+        //performSimulation();
         performMILPSolverBoundedTightening( &( *_preprocessedQuery ) );
         performAdditionalBackwardAnalysisIfNeeded();
 
@@ -1442,7 +1442,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         if ( preprocess )
         {
             performSymbolicBoundTightening( &( *_preprocessedQuery ) );
-            performSimulation();
+            //performSimulation();
             performMILPSolverBoundedTightening( &( *_preprocessedQuery ) );
             performAdditionalBackwardAnalysisIfNeeded();
         }
