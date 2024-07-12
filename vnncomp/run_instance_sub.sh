@@ -50,8 +50,6 @@ done
 pids=()
 python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_2 2 10000000000 &
 pids+=($!)
-python3 -u $SCRIPT_DIR/../resources/runSample.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_2 2 10000000000 &
-pids+=($!)
 # big step
 python3 -u $SCRIPT_DIR/../resources/runPGDAttack.py $ONNX_FILE_POSTDNNV $VNNLIB_FILE_PICKLED "$RESULTS_FILE"_3 3 0.1 10000000 &
 pids+=($!)
