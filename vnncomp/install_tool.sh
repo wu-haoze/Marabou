@@ -11,7 +11,7 @@ echo Project path $project_path
 pip3 install -r "$script_path"/requirements.txt
 pip3 install "$script_path"/onnx2pytorch 
 
-home=$project_path"/opt"
+home="/opt"
 mkdir $home
 export INSTALL_DIR="$home"
 export GUROBI_HOME="$home/gurobi951/linux64"
