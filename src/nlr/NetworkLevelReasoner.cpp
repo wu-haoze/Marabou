@@ -226,9 +226,6 @@ void NetworkLevelReasoner::deepPolyPropagation()
 
 void NetworkLevelReasoner::lpRelaxationPropagation()
 {
-    if ( _maxLayerSize > 1000 )
-        return;
-
     std::cout << "Performing LP-based bound tightening..." << std::endl;
     LPFormulator lpFormulator( this );
     lpFormulator.setCutoff( 0 );
@@ -371,9 +368,9 @@ void NetworkLevelReasoner::dumpTopology( bool dumpLayerDetails ) const
             printf( " %u", sourceLayer.first );
         printf( "\n" );
     }
-    if ( dumpLayerDetails )
-        for ( const auto &layer : _layerIndexToLayer )
-            layer.second->dump();
+    if ( dumpLayerDetails ) {}
+    //for ( const auto &layer : _layerIndexToLayer )
+    //      layer.second->dump();
 }
 
 unsigned NetworkLevelReasoner::getNumberOfLayers() const

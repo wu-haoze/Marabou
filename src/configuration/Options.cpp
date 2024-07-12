@@ -67,7 +67,7 @@ void Options::initializeDefaultValues()
     _intOptions[TIMEOUT] = 0;
     _intOptions[CONSTRAINT_VIOLATION_THRESHOLD] = 20;
     _intOptions[DEEP_SOI_REJECTION_THRESHOLD] = 2;
-    _intOptions[NUMBER_OF_SIMULATIONS] = 100;
+    _intOptions[NUMBER_OF_SIMULATIONS] = 50;
     _intOptions[SEED] = 1;
     _intOptions[NUM_BLAS_THREADS] = 1;
     _intOptions[NUM_CONSTRAINTS_TO_REFINE_INC_LIN] = 30;

@@ -452,11 +452,13 @@ solve( InputQuery &inputQuery, int mode=-1, std::string redirect = "" )
     int output=-1;
     if(redirect.length()>0)
         output=redirectOutputToFile(redirect);
+    std::cout << "Solving with mode " << mode << std::endl;
     try{
       if ( mode == 1 )
         {
           // MILP
             //Options::get()->setBool( Options::DO_NOT_MERGE_CONSECUTIVE_WEIGHTED_SUM_LAYERS, true );
+            //Options::get()->setString( Options::MILP_SOLVER_BOUND_TIGHTENING_TYPE, "lp" );
           Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
           Options::get()->setInt( Options::VERBOSITY, 0 );
           Options::get()->setInt( Options::NUM_WORKERS, 48 );
@@ -549,6 +551,18 @@ solve( InputQuery &inputQuery, int mode=-1, std::string redirect = "" )
           retStats = *(engine->getStatistics());
 
           return std::make_tuple(resultString, ret, retStats);
+      }
+      else if ( mode == 6)
+      {
+          // SNC
+          Options::get()->setBool( Options::SOLVE_WITH_MILP, true );
+          Options::get()->setInt( Options::VERBOSITY, 0 );
+          Options::get()->setBool( Options::DNC_MODE, true );
+          Options::get()->setInt( Options::NUM_WORKERS, 64 );
+          Options::get()->setInt( Options::NUM_BLAS_THREADS, 1 );
+          Options::get()->setInt( Options::INITIAL_TIMEOUT, 20 );
+          Options::get()->setInt( Options::NUM_INITIAL_DIVIDES, 6 );
+          Options::get()->setInt( Options::NUM_ONLINE_DIVIDES, 2 );
       }
       else {
         std::cout << "UNKNOWN option!!!" << std::endl;

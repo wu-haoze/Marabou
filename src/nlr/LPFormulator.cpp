@@ -125,6 +125,7 @@ void LPFormulator::optimizeBoundsWithIncrementalLpRelaxation( const Map<unsigned
         */
         ASSERT( layers.exists( i ) );
         Layer *layer = layers[i];
+
         addLayerToModel( gurobi, layer, false );
 
         for ( unsigned j = 0; j < layer->getSize(); ++j )
@@ -251,7 +252,7 @@ void LPFormulator::optimizeBoundsWithLpRelaxation( const Map<unsigned, Layer *> 
                                                    bool backward )
 {
     unsigned numberOfWorkers = Options::get()->getInt( Options::NUM_WORKERS );
-
+    std::cout << "Number of workers:" << numberOfWorkers << std::endl;
     Map<GurobiWrapper *, unsigned> solverToIndex;
     // Create a queue of free workers
     // When a worker is working, it is popped off the queue, when it is done, it
@@ -286,7 +287,10 @@ void LPFormulator::optimizeBoundsWithLpRelaxation( const Map<unsigned, Layer *> 
     {
         LPFormulator_LOG( Stringf( "Tightening bound for layer %u...", layerIndex ).ascii() );
         Layer *layer = layers[layerIndex];
+        if ( layerIndex < 2 || layer->getSize() > 250 || (!backward && layerIndex >= 15) || ( layer->getSize() > 200 && !backward && (layerIndex > 10 || layerIndex < 4 ) ) )
+            continue;
 
+        std::cout << "Processing layer " << layerIndex << std::endl;
         ThreadArgument argument( layer,
                                  &layers,
                                  std::ref( freeSolvers ),
@@ -406,7 +410,7 @@ void LPFormulator::optimizeBoundsOfNeuronsWithLpRlaxation( ThreadArgument &args,
     unsigned numberOfWorkers = Options::get()->getInt( Options::NUM_WORKERS );
 
     // Time to wait if no idle worker is availble
-    boost::chrono::milliseconds waitTime( numberOfWorkers - 1 );
+    boost::chrono::milliseconds waitTime( 10 );
 
     Layer *layer = args._layer;
     const Map<unsigned, Layer *> layers = *args._layers;
@@ -631,10 +635,13 @@ void LPFormulator::createLPRelaxation( const Map<unsigned, Layer *> &layers,
 {
     for ( const auto &layer : layers )
     {
-        if ( layer.second->getLayerIndex() > lastLayer )
+        if ( layer.second->getLayerIndex() > lastLayer ||
+             ( layers[lastLayer]->getSize() > 200 && layer.second->getLayerIndex() + 2 < lastLayer ) )
             continue;
-
-        addLayerToModel( gurobi, layer.second, false );
+        if ( layers[lastLayer]->getSize() > 200 && layer.second->getLayerIndex() + 2 == lastLayer )
+            addLayerToModel( gurobi, layer.second, true );
+        else
+            addLayerToModel( gurobi, layer.second, false );
     }
 }
 

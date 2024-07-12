@@ -116,8 +116,8 @@ void DnCWorker::popOneSubQueryAndSolve( bool restoreTreeStates )
             result = IEngine::UNSAT;
         }
 
-        if ( _verbosity > 0 )
-            printProgress( queryId, result );
+        //if ( _verbosity > 0 )
+        printProgress( queryId, result );
         // Switch on the result
         if ( result == IEngine::UNSAT )
         {

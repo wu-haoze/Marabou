@@ -53,6 +53,7 @@ MODE_SNC = 2
 MODE_PORTFOLIO = 3
 MODE_MILP_LP = 4
 MODE_CEGAR = 5
+MODE_SNC_NO_LP = 6
 
 if max_query_id > 1 and len(outputVarsMap) == 0:
     print("Input disjunction detected!")
@@ -60,7 +61,7 @@ if max_query_id > 1 and len(outputVarsMap) == 0:
         inputVars = inputVarsMap[query_id]
         queryName = queriesMap[query_id]
         ipq = Marabou.loadQuery(queryName)
-        if ipq.getNumberOfVariables() < 5000 and ipq.getNumInputVariables() <= 10:
+        if ipq.getNumberOfVariables() < 2000 and ipq.getNumInputVariables() <= 10:
             if mode == "default":
                 mode = MODE_SNC
             else:
@@ -112,6 +113,16 @@ elif max_query_id == 1:
             mode = MODE_SNC
         else:
             mode = MODE_PORTFOLIO
+    elif ipq.getNumInputVariables() < 10:
+        if mode == "default":
+            mode = MODE_SNC_NO_LP
+        else:
+            mode = MODE_PORTFOLIO
+    elif ipq.getNumberOfVariables() < 10000:
+        if mode == "default":
+            mode = MODE_MILP_LP
+        else:
+            exit(0)
     elif mode == "default":
         mode = MODE_MILP
     else:

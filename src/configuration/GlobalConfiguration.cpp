@@ -60,7 +60,7 @@ const bool GlobalConfiguration::USE_COLUMN_MERGING_EQUATIONS = false;
 const double GlobalConfiguration::GAUSSIAN_ELIMINATION_PIVOT_SCALE_THRESHOLD = 0.1;
 const unsigned GlobalConfiguration::MAX_SIMPLEX_PIVOT_SEARCH_ITERATIONS = 5;
 const DivideStrategy GlobalConfiguration::SPLITTING_HEURISTICS = DivideStrategy::ReLUViolation;
-const unsigned GlobalConfiguration::INTERVAL_SPLITTING_FREQUENCY = 1;
+const unsigned GlobalConfiguration::INTERVAL_SPLITTING_FREQUENCY = 10;
 const unsigned GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD = 10;
 const unsigned GlobalConfiguration::BOUND_TIGHTING_ON_CONSTRAINT_MATRIX_FREQUENCY = 100;
 const unsigned GlobalConfiguration::ROW_BOUND_TIGHTENER_SATURATION_ITERATIONS = 20;
@@ -78,7 +78,7 @@ const bool GlobalConfiguration::PREPROCESS_INPUT_QUERY = true;
 const bool GlobalConfiguration::PREPROCESSOR_ELIMINATE_VARIABLES = true;
 const bool GlobalConfiguration::PL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING = true;
 const bool GlobalConfiguration::NL_CONSTRAINTS_ADD_AUX_EQUATIONS_AFTER_PREPROCESSING = true;
-const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 1e-9;
+const double GlobalConfiguration::PREPROCESSOR_ALMOST_FIXED_THRESHOLD = 0.00001;
 
 const unsigned GlobalConfiguration::PREPROCESSSING_MAX_TIGHTEING_ROUND = 1000;
 
@@ -90,7 +90,7 @@ const unsigned GlobalConfiguration::PSE_ITERATIONS_BEFORE_RESET = 1000;
 const double GlobalConfiguration::PSE_GAMMA_ERROR_THRESHOLD = 0.001;
 const double GlobalConfiguration::PSE_GAMMA_UPDATE_TOLERANCE = 0.000000001;
 
-const double GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE = 1e-7;
+const double GlobalConfiguration::CONSTRAINT_COMPARISON_TOLERANCE = 0.00001;
 
 const double GlobalConfiguration::SOFTMAX_LSE2_THRESHOLD = 0.6;
 

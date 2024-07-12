@@ -1442,7 +1442,7 @@ bool Engine::processInputQuery( InputQuery &inputQuery, bool preprocess )
         if ( preprocess )
         {
             performSymbolicBoundTightening( &( *_preprocessedQuery ) );
-            //performSimulation();
+            performSimulation();
             performMILPSolverBoundedTightening( &( *_preprocessedQuery ) );
             performAdditionalBackwardAnalysisIfNeeded();
         }
@@ -1593,6 +1593,7 @@ void Engine::performMILPSolverBoundedTightening( InputQuery *inputQuery )
 {
     if ( _networkLevelReasoner && Options::get()->gurobiEnabled() )
     {
+        _networkLevelReasoner->dumpTopology();
         // Obtain from and store bounds into inputquery if it is not null.
         if ( inputQuery )
             _networkLevelReasoner->obtainCurrentBounds( *inputQuery );
@@ -2415,6 +2416,8 @@ void Engine::performSimulation()
         return;
     }
 
+    std::cout << "Performing simulation..." << std::endl;
+
     // outer vector is for neuron
     // inner vector is for simulation value
     Vector<Vector<double>> simulations;
@@ -2433,6 +2436,7 @@ void Engine::performSimulation()
         simulations.append( simulationInput );
     }
     _networkLevelReasoner->simulate( &simulations );
+    std::cout << "Performing simulation - done" << std::endl;
 }
 
 unsigned Engine::performSymbolicBoundTightening( InputQuery *inputQuery )

@@ -16,7 +16,7 @@ echo "Property name: $PROP_NAME"
 
 ####### Creating working directories #######
 
-list="acasxu cgan collins_rul_cnn cora dist_shift linearizeNN nn4sys tllverifybench traffic_signs_recognition"
+list="acasxu_2023 cgan_2023 collins_rul_cnn_2023 cora dist_shift_2023 linearizenn metaroom_2023 nn4sys_2023 safenlp test tllverifybench_2023 cifar100 tinyimagenet"
 
 if [[ $list =~ (^|[[:space:]])$BENCHMARK($|[[:space:]]) ]]; then
     echo "Supported benchmark"
@@ -47,11 +47,13 @@ pkill -9 python
 pkill -9 python3
 pkill -9 run_instance.sh
 pkill -9 pt_main_thread
+pkill -9 sd-resolve
 sleep 1
 pkill -9 python
 pkill -9 python3
 pkill -9 run_instance.sh
 pkill -9 pt_main_thread
+pkill -9 sd-resolve
 sleep 1
 
 ############################### NETWORK PROCESSING #################################
@@ -73,8 +75,9 @@ if [[ -f $ONNX_FILE_SIMP ]]
 then
    echo "Simplified ONNX file: $ONNX_FILE_SIMP"
 else
-    echo "Simplified ONNX file NOT FOUND!"
-    exit 1
+    echo "Simplification failed"
+    cp $ONNX_FILE $ONNX_FILE_SIMP
+
 fi
 
 ###### Remove Softmax ######
