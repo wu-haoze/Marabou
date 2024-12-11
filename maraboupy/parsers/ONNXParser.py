@@ -47,6 +47,7 @@ class ONNXParser:
         """
         parser = ONNXParser(query, graph, inputNames, outputNames)
         parser.parseGraph()
+        return parser.varMap
 
 
     def __init__(self, query:InputQueryBuilder, graph, inputNames, outputNames):

@@ -71,7 +71,7 @@ class MarabouNetworkONNX(MarabouNetwork):
             initNames = [node.name for node in self.graph.initializer]
             self.outputNames = [out.name for out in self.graph.output if out.name not in initNames]
 
-        ONNXParser.parse(self, self.graph, self.inputNames, self.outputNames)
+        self.layerNameToVariables = ONNXParser.parse(self, self.graph, self.inputNames, self.outputNames)
 
     def getNode(self, nodeName):
         """Find the node in the graph corresponding to the given name
