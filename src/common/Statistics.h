@@ -28,7 +28,7 @@ public:
     enum StatisticsUnsignedAttribute {
         // Number of piecewise linear constraints (active, total, and
         // reason for split)
-        NUM_PL_CONSTRAINTS,
+        NUM_PL_CONSTRAINTS = 0,
         NUM_ACTIVE_PL_CONSTRAINTS,
         NUM_PL_VALID_SPLITS,
         NUM_PL_SMT_ORIGINATED_SPLITS,
@@ -74,7 +74,7 @@ public:
 
     enum StatisticsLongAttribute {
         // Preprocessing time
-        PREPROCESSING_TIME_MICRO,
+        PREPROCESSING_TIME_MICRO = 0,
 
         // Calculate output bounds time
         CALCULATE_BOUNDS_TIME_MICRO,
@@ -218,7 +218,7 @@ public:
 
     enum StatisticsDoubleAttribute {
         // Degradation and restorations
-        CURRENT_DEGRADATION,
+        CURRENT_DEGRADATION = 0,
         MAX_DEGRADATION,
 
         // How close we are to the minimum of the SoI (0).
@@ -297,6 +297,25 @@ public:
         return _doubleAttributes[attr];
     }
 
+    /*
+      Getters for unsigned, unsigned long long, and double attributes
+    */
+    inline unsigned getUnsignedAttributeI( unsigned attr ) const
+    {
+      return _unsignedAttributes[StatisticsUnsignedAttribute(attr)];
+    }
+
+    inline unsigned long long getLongAttributeI( unsigned attr ) const
+    {
+      return _longAttributes[StatisticsLongAttribute(attr)];
+    }
+
+    inline double getDoubleAttributeI( unsigned attr ) const
+    {
+      return _doubleAttributes[StatisticsDoubleAttribute(attr)];
+    }
+
+  
     unsigned long long getTotalTimeInMicro() const;
 
     unsigned getAveragePivotTimeInMicro() const;

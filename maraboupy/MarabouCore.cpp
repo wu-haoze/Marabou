@@ -41,6 +41,7 @@
 #include "SnCDivideStrategy.h"
 #include "SoftmaxConstraint.h"
 #include "VnnLibParser.h"
+#include "GlobalConfiguration.h"
 
 #include <fcntl.h>
 #include <map>
@@ -450,10 +451,15 @@ solve( InputQuery &inputQuery, MarabouOptions &options, std::string redirect = "
     {
         options.setOptions();
 
+	if ( Options::get()->getBool( Options::PRODUCE_PROOFS ) )
+        {
+            GlobalConfiguration::USE_DEEPSOI_LOCAL_SEARCH = false;
+        }
+
         bool dnc = Options::get()->getBool( Options::DNC_MODE );
 
         Engine engine;
-
+	std::cout << "SHould produce proof:" << engine.shouldProduceProofs() << std::endl;
         if ( !engine.processInputQuery( inputQuery ) )
             return std::make_tuple(
                 exitCodeToString( engine.getExitCode() ), ret, *( engine.getStatistics() ) );
@@ -495,6 +501,10 @@ solve( InputQuery &inputQuery, MarabouOptions &options, std::string redirect = "
                 for ( unsigned int i = 0; i < inputQuery.getNumberOfVariables(); ++i )
                     ret[i] = inputQuery.getSolutionValue( i );
             }
+	    else if ( engine.shouldProduceProofs() && engine.getExitCode() == Engine::UNSAT )
+	    {
+	      engine.certifyUNSATCertificate();
+	    }
 
             retStats = *( engine.getStatistics() );
         }
@@ -986,6 +996,9 @@ PYBIND11_MODULE( MarabouCore, m )
         .def( "getUnsignedAttribute", &Statistics::getUnsignedAttribute )
         .def( "getLongAttribute", &Statistics::getLongAttribute )
         .def( "getDoubleAttribute", &Statistics::getDoubleAttribute )
+        .def( "getUnsignedAttributeI", &Statistics::getUnsignedAttributeI )
+        .def( "getLongAttributeI", &Statistics::getLongAttributeI )
+        .def( "getDoubleAttributeI", &Statistics::getDoubleAttributeI )
         .def( "getTotalTimeInMicro", &Statistics::getTotalTimeInMicro )
         .def( "hasTimedOut", &Statistics::hasTimedOut );
 }
