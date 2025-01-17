@@ -28,8 +28,10 @@ void QueryDivider::bisectInputRegion( const InputRegion &inputRegion,
 
     inputRegion1 = inputRegion;
     inputRegion1._upperBounds[dimensionToBisect] = mid;
+    inputRegion1._cubeId = inputRegion._cubeId + Stringf("-%u ", dimensionToBisect + 1);
     inputRegion2 = inputRegion;
     inputRegion2._lowerBounds[dimensionToBisect] = mid;
+    inputRegion2._cubeId = inputRegion._cubeId + Stringf("%u ", dimensionToBisect + 1);
 
     inputRegions.append( inputRegion1 );
     inputRegions.append( inputRegion2 );

@@ -27,6 +27,7 @@ public:
     {
         Map<unsigned, double> _lowerBounds;
         Map<unsigned, double> _upperBounds;
+        String _cubeId;
     };
 
     virtual ~QueryDivider(){};

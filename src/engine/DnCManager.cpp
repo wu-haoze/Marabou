@@ -159,8 +159,18 @@ void DnCManager::solve()
         throw MarabouError( MarabouError::ALLOCATION_FAILED, "DnCManager::workload" );
 
     SubQueries subQueries;
-    if ( !_runParallelDeepSoI )
+    if ( !_runParallelDeepSoI ) 
+    {
         initialDivide( subQueries );
+        if  ( Options::get()->getBool( Options::CUBE_MODE ) )
+        {
+            std::cout << "Generated " << subQueries.size() << " cubes:" << std::endl;
+            for ( const auto &subQuery : subQueries ){
+                std::cout << "Cube " << subQuery->_queryId.ascii() << std::endl;
+            }
+            exit(0);
+        }
+    }
     else
     {
         for ( unsigned i = 0; i < numWorkers; ++i )

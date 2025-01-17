@@ -83,6 +83,8 @@ public:
         // logically-consecutive weighted sum layers into a single
         // weighted sum layer, to reduce the number of variables
         DO_NOT_MERGE_CONSECUTIVE_WEIGHTED_SUM_LAYERS,
+
+        CUBE_MODE,
     };
 
     enum IntOptions {
@@ -115,6 +117,8 @@ public:
 
         // Maximal number of constraints to refine in incremental linearization
         NUM_CONSTRAINTS_TO_REFINE_INC_LIN,
+
+        INTERVAL_SPLIT_FREQUENCY,
     };
 
     enum FloatOptions {

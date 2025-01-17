@@ -51,6 +51,8 @@ void LargestIntervalDivider::createSubQueries( unsigned numNewSubqueries,
             region._upperBounds[bound._variable] = bound._value;
         }
     }
+    region._cubeId = "";
+
     inputRegions.append( region );
 
     // Repeatedly bisect the dimension with the largest interval
@@ -65,17 +67,9 @@ void LargestIntervalDivider::createSubQueries( unsigned numNewSubqueries,
         inputRegions = newInputRegions;
     }
 
-    unsigned queryIdSuffix = 1; // For query id
     // Create a new subquery for each newly created input region
     for ( const auto &inputRegion : inputRegions )
     {
-        // Create a new query id
-        String queryId;
-        if ( queryIdPrefix == "" )
-            queryId = queryIdPrefix + Stringf( "%u", queryIdSuffix++ );
-        else
-            queryId = queryIdPrefix + Stringf( "-%u", queryIdSuffix++ );
-
         // Create a new case split
         auto split = std::unique_ptr<PiecewiseLinearCaseSplit>( new PiecewiseLinearCaseSplit() );
         // Add bound as equations for each input variable
@@ -89,7 +83,7 @@ void LargestIntervalDivider::createSubQueries( unsigned numNewSubqueries,
 
         // Construct the new subquery and add it to subqueries
         SubQuery *subQuery = new SubQuery;
-        subQuery->_queryId = queryId;
+        subQuery->_queryId = queryIdPrefix + inputRegion._cubeId;
         subQuery->_split = std::move( split );
         subQuery->_timeoutInSeconds = timeoutInSeconds;
         subQuery->_depth = previousDepth + 1;

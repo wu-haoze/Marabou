@@ -122,7 +122,8 @@ int marabouMain( int argc, char **argv )
             printf( "Cannot set both --poi and --milp to true, turning --milp off.\n" );
         }
 
-        if ( options->getBool( Options::DNC_MODE ) ||
+        if ( options->getBool( Options::CUBE_MODE ) ||
+	     options->getBool( Options::DNC_MODE ) ||
              ( options->getBool( Options::PARALLEL_DEEPSOI ) &&
                options->getInt( Options::NUM_WORKERS ) > 1 ) )
             DnCMarabou().run();

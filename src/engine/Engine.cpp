@@ -2871,8 +2871,16 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint( DivideStrategy strateg
     ENGINE_LOG( Stringf( "Picking a split PLConstraint..." ).ascii() );
 
     PiecewiseLinearConstraint *candidatePLConstraint = NULL;
-    if ( strategy == DivideStrategy::PseudoImpact )
+    if ( ( ( _smtCore.getStackDepth() + 1 ) %
+	    Options::get()->getInt( Options::INTERVAL_SPLIT_FREQUENCY ) !=
+	   0 ) )
     {
+        // Conduct interval splitting periodically.
+      candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
+    }
+    else if ( strategy == DivideStrategy::PseudoImpact )
+    {
+
         if ( _smtCore.getStackDepth() > 3 )
             candidatePLConstraint = _smtCore.getConstraintsWithHighestScore();
         else if ( !_preprocessedQuery->getInputVariables().empty() &&
@@ -2887,19 +2895,15 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint( DivideStrategy strateg
         }
     }
     else if ( strategy == DivideStrategy::BaBsrHeuristic )
+    {
         candidatePLConstraint = pickSplitPLConstraintBasedOnBaBsrHeuristic();
+    }
     else if ( strategy == DivideStrategy::Polarity )
+    {
         candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
+    }
     else if ( strategy == DivideStrategy::EarliestReLU )
         candidatePLConstraint = pickSplitPLConstraintBasedOnTopology();
-    else if ( strategy == DivideStrategy::LargestInterval &&
-              ( ( _smtCore.getStackDepth() + 1 ) %
-                    GlobalConfiguration::INTERVAL_SPLITTING_FREQUENCY !=
-                0 ) )
-    {
-        // Conduct interval splitting periodically.
-        candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
-    }
     ENGINE_LOG(
         Stringf( ( candidatePLConstraint ? "Picked..."
                                          : "Unable to pick using the current strategy..." ) )

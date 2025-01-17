@@ -90,6 +90,14 @@ void OptionParser::initialize()
             ->default_value( ( *_intOptions )[Options::VERBOSITY] ),
         "Verbosity of engine::solve(). 0: does not print anything, 1: print"
         "out statistics in the beginning and end, 2: print out statistics during solving." )(
+        "cube",
+        boost::program_options::bool_switch( &( ( *_boolOptions )[Options::CUBE_MODE] ) )
+            ->default_value( ( *_boolOptions )[Options::CUBE_MODE] ),
+        "Generate a number of cubes and quit." )(
+        "interval-split-frequency",
+        boost::program_options::value<int>( &( ( *_intOptions )[Options::INTERVAL_SPLIT_FREQUENCY] ) )
+            ->default_value( ( *_intOptions )[Options::INTERVAL_SPLIT_FREQUENCY] ),
+        "The random seed." )(
         "snc",
         boost::program_options::bool_switch( &( ( *_boolOptions )[Options::DNC_MODE] ) )
             ->default_value( ( *_boolOptions )[Options::DNC_MODE] ),
