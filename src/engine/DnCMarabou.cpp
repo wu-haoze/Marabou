@@ -95,6 +95,13 @@ void DnCMarabou::run()
         }
         else
             printf( "Property: None\n" );
+	
+	if ( Options::get()->getString( Options::CUBE ) != "" )
+	    {
+		std::cout << "Handling cube " << Options::get()->getString( Options::CUBE ).ascii() << std::endl;
+		_inputQuery.setCube( Options::get()->getString( Options::CUBE ) );
+	    }
+
     }
     printf( "\n" );
 

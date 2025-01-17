@@ -70,6 +70,30 @@ unsigned InputQuery::getNewVariable()
     return _numberOfVariables - 1;
 }
 
+void InputQuery::setCube( const String &cube )
+{
+    List<String> tokens = cube.tokenize( "," );
+    // Iterate through the tokens and convert it into an integer
+    for ( const auto &tok : tokens )
+    {   
+        int tok_int = atoi( tok.ascii() );
+        if (tok_int == 0)
+            break;
+        
+        // Get the absolute value of tok_int and subtract 1 to get the actual index
+        unsigned input_index = abs(tok_int) - 1;
+        bool isLeftInterval = tok_int < 0;
+
+        // get the mid point of the interval of the actual_index'th input variable
+        unsigned variable = _inputIndexToVariable[input_index];
+        double midPoint = 0.5 * (getLowerBound( variable ) + getUpperBound( variable ));
+        if ( isLeftInterval )
+            setUpperBound( variable, midPoint );
+        else
+            setLowerBound( variable, midPoint );
+    }
+}
+
 void InputQuery::setLowerBound( unsigned variable, double bound )
 {
     if ( variable >= _numberOfVariables )

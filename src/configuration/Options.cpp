@@ -73,6 +73,7 @@ void Options::initializeDefaultValues()
     _intOptions[SEED] = 1;
     _intOptions[NUM_BLAS_THREADS] = 1;
     _intOptions[NUM_CONSTRAINTS_TO_REFINE_INC_LIN] = 30;
+    _intOptions[DECISIONS] = 0;
 
     /*
       Float options
@@ -87,6 +88,7 @@ void Options::initializeDefaultValues()
     /*
       String options
     */
+    _stringOptions[CUBE] = "";
     _stringOptions[INPUT_FILE_PATH] = "";
     _stringOptions[PROPERTY_FILE_PATH] = "";
     _stringOptions[INPUT_QUERY_FILE_PATH] = "";

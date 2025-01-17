@@ -44,11 +44,11 @@ public:
     virtual ~IEngine(){};
 
     enum ExitCode {
-        UNSAT = 0,
-        SAT = 1,
+        UNSAT = 20,
+        SAT = 10,
         ERROR = 2,
         UNKNOWN = 3,
-        TIMEOUT = 4,
+        TIMEOUT = 0,
         QUIT_REQUESTED = 5,
 
         NOT_DONE = 999,

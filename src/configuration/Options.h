@@ -119,6 +119,8 @@ public:
         NUM_CONSTRAINTS_TO_REFINE_INC_LIN,
 
         INTERVAL_SPLIT_FREQUENCY,
+
+        DECISIONS,
     };
 
     enum FloatOptions {
@@ -159,7 +161,10 @@ public:
         SOI_INITIALIZATION_STRATEGY,
 
         // The procedure/solver for solving the LP
-        LP_SOLVER
+        LP_SOLVER,
+
+        CUBE
+
     };
 
     /*

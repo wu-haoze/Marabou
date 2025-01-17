@@ -72,6 +72,8 @@ public:
     void setNumberOfVariables( unsigned numberOfVariables );
     unsigned getNumberOfVariables() const;
     unsigned getNewVariable();
+    void setCube( const String &cube );
+
 
     /*
       The set*Bound methods will overwrite the currently stored bound of the variable.
