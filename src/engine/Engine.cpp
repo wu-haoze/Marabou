@@ -2719,6 +2719,7 @@ void Engine::decideBranchingHeuristics()
 
 void Engine::branchWithLookahead()
 {
+    // Early exit if no network level reasoner
     if ( !_networkLevelReasoner )
         return;
 
@@ -2732,12 +2733,63 @@ void Engine::branchWithLookahead()
     List<PiecewiseLinearConstraint *> constraints =
         _networkLevelReasoner->getConstraintsInTopologicalOrder();
 
+    // Exit if no constraints
+    if ( constraints.empty() )
+        return;
+
+    // Preselect ReLUs based on bound uncertainty
+    List<PiecewiseLinearConstraint *> preselectedConstraints;
+    Map<double, PiecewiseLinearConstraint *> uncertaintyScores;
+
+    // Calculate uncertainty scores for each constraint
+    for ( auto &plConstraint : constraints )
+    {
+        // Skip invalid, inactive or fixed constraints
+        if ( !plConstraint || !plConstraint->isActive() || plConstraint->phaseFixed() )
+            continue;
+
+        // Check if it's a ReLU constraint
+        ReluConstraint *reluConstraint = dynamic_cast<ReluConstraint *>( plConstraint );
+        if ( !reluConstraint )
+            continue;
+
+        // Get the variables
+        unsigned b = reluConstraint->getB();
+
+        // Calculate bound uncertainty for the B variable
+        double lowerB = _tableau->getLowerBound( b );
+        double upperB = _tableau->getUpperBound( b );
+
+        // Skip if already phase-fixed by bounds
+        if ( !FloatUtils::isNegative( lowerB ) || !FloatUtils::isPositive( upperB ) )
+            continue;
+
+        // Calculate uncertainty as the range size
+        double uncertainty = upperB - lowerB;
+
+        // Add to map (using negative so higher uncertainty comes first)
+        uncertaintyScores[-uncertainty] = plConstraint;
+    }
+
+    // Select top candidates
+    unsigned numToSelect = std::min( (unsigned)20, (unsigned)uncertaintyScores.size() );
+    for ( const auto &pair : uncertaintyScores )
+    {
+        if ( preselectedConstraints.size() >= numToSelect )
+            break;
+
+        preselectedConstraints.append( pair.second );
+    }
+
+    if ( preselectedConstraints.empty() )
+        return;
+
     // Track best candidate
     PiecewiseLinearConstraint *bestCandidate = nullptr;
     double maxScore = 0.0;
 
-    // Try each candidate constraint
-    for ( auto &plConstraint : constraints )
+    // Try each preselected candidate constraint
+    for ( auto &plConstraint : preselectedConstraints )
     {
         if ( plConstraint->isActive() && !plConstraint->phaseFixed() )
         {
