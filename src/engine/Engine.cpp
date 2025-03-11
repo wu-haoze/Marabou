@@ -2764,11 +2764,29 @@ void Engine::branchWithLookahead()
         if ( !FloatUtils::isNegative( lowerB ) || !FloatUtils::isPositive( upperB ) )
             continue;
 
-        // Calculate uncertainty as the range size
-        double uncertainty = upperB - lowerB;
+        // Calculate uncertainty score
+        double uncertainty;
 
-        // Add to map (using negative so higher uncertainty comes first)
-        uncertaintyScores[-uncertainty] = plConstraint;
+        // Handle special cases to avoid division by zero or negative numbers
+        if ( FloatUtils::isZero( lowerB ) )
+        {
+            // When lowerB is zero, we're maximally uncertain (use a large value)
+            uncertainty = FloatUtils::infinity();
+        }
+        else if ( FloatUtils::isZero( upperB ) )
+        {
+            // When upperB is zero, we're maximally uncertain (use a large value)
+            uncertainty = FloatUtils::infinity();
+            ;
+        }
+        else
+        {
+            // Normal case: both bounds have same sign
+            uncertainty = FloatUtils::max( upperB / lowerB, lowerB / upperB );
+        }
+
+        // Add to map (lower abs(uncertainty) comes first)
+        uncertaintyScores[uncertainty] = plConstraint;
     }
 
     // Select top candidates
