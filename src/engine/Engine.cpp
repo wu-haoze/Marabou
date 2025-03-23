@@ -302,7 +302,13 @@ bool Engine::solve( double timeoutInSeconds )
             if ( !_completedLookahead &&
                  Options::get()->getBool( Options::USE_LOOKAHEAD_BRANCHING ) )
             {
-                branchWithLookahead();
+                for ( int i = 0; i < Options::get()->getInt( Options::NUM_LOOKAHEAD_BRANCHES );
+                      ++i )
+                {
+                    printf( "Engine::solve: performing lookahead branching. Iteration %d\n", i );
+                    branchWithLookahead();
+                }
+
                 _completedLookahead = true;
                 continue;
             }
