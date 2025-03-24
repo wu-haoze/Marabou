@@ -923,9 +923,14 @@ private:
     unsigned countPhaseFixed() const;
 
     /*
-      Has completed lookahead
+      Has completed lookahead branching
     */
     bool _completedLookahead;
+
+    /*
+      Previous stack depths for lookahead branching
+    */
+    Set<unsigned> _lookaheadCompletedAtDepths;
 };
 
 #endif // __Engine_h__

@@ -298,19 +298,22 @@ bool Engine::solve( double timeoutInSeconds )
                 splitJustPerformed = false;
             }
 
-            // Do lookahead if needed
-            if ( !_completedLookahead &&
-                 Options::get()->getBool( Options::USE_LOOKAHEAD_BRANCHING ) )
+            // Do lookahead if needed - but only at new stack depths
+            if ( Options::get()->getBool( Options::USE_LOOKAHEAD_BRANCHING ) )
             {
-                for ( int i = 0; i < Options::get()->getInt( Options::NUM_LOOKAHEAD_BRANCHES );
-                      ++i )
+                unsigned currentDepth = _smtCore.getStackDepth();
+                if ( !_lookaheadCompletedAtDepths.exists( currentDepth ) &&
+                     _lookaheadCompletedAtDepths.size() <
+                         static_cast<unsigned>(
+                             Options::get()->getInt( Options::NUM_LOOKAHEAD_BRANCHES ) ) )
                 {
-                    printf( "Engine::solve: performing lookahead branching. Iteration %d\n", i );
+                    if ( _verbosity > 0 )
+                        printf( "Engine::solve: performing lookahead branching at depth %u\n",
+                                currentDepth );
                     branchWithLookahead();
+                    _lookaheadCompletedAtDepths.insert( currentDepth );
+                    continue;
                 }
-
-                _completedLookahead = true;
-                continue;
             }
 
             // Perform any SmtCore-initiated case splits
