@@ -937,6 +937,7 @@ bool Engine::calculateBounds( const IQuery &inputQuery )
         initializeNetworkLevelReasoning();
 
         performSymbolicBoundTightening( &( *_preprocessedQuery ) );
+
         performSimulation();
         performMILPSolverBoundedTightening( &( *_preprocessedQuery ) );
         performAdditionalBackwardAnalysisIfNeeded();
@@ -997,13 +998,14 @@ void Engine::invokePreprocessor( const IQuery &inputQuery, bool preprocess )
                 _preprocessedQuery->getNumberOfEquations(),
                 _preprocessedQuery->getNumberOfVariables() );
 
-    unsigned infiniteBounds = _preprocessedQuery->countInfiniteBounds();
-    if ( infiniteBounds != 0 )
-    {
-        _exitCode = Engine::ERROR;
-        throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
-                            Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii() );
-    }
+    // unsigned infiniteBounds = _preprocessedQuery->countInfiniteBounds();
+    // if ( infiniteBounds != 0 )
+    //{
+    //     _exitCode = Engine::ERROR;
+    //     throw MarabouError( MarabouError::UNBOUNDED_VARIABLES_NOT_YET_SUPPORTED,
+    //                         Stringf( "Error! Have %u infinite bounds", infiniteBounds ).ascii()
+    //                         );
+    // }
 }
 
 void Engine::printInputBounds( const IQuery &inputQuery ) const

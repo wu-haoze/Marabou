@@ -140,14 +140,17 @@ std::unique_ptr<Query> Preprocessor::preprocess( const IQuery &query,
       Then, eliminate fixed variables.
     */
     unsigned tighteningRound = 0;
-    bool continueTightening = true;
+    bool continueTightening = false;
     while ( continueTightening &&
             tighteningRound++ < GlobalConfiguration::PREPROCESSSING_MAX_TIGHTEING_ROUND )
     {
         DEBUG( {
             for ( const auto &equation : _preprocessed->getEquations() )
+            {
                 ASSERT( !equation.containsRedundantAddends() );
+            }
         } );
+        std::cout << tighteningRound << std::endl;
         continueTightening = processEquations();
         continueTightening = processConstraints() || continueTightening;
         if ( attemptVariableElimination )
@@ -446,7 +449,8 @@ bool Preprocessor::processEquations()
                 delete[] ciTimesLb;
                 delete[] ciTimesUb;
                 delete[] ciSign;
-
+                std::cout << xi << " " << getLowerBound( xi ) << " " << getUpperBound( xi )
+                          << std::endl;
                 throw InfeasibleQueryException();
             }
         }

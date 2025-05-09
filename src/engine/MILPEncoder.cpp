@@ -166,6 +166,7 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
       When a = 0, the constriants become:
           f - b <= - lb_b, f <= 0
     */
+
     gurobi.addVariable( Stringf( "a%u", _binVarIndex ),
                         0,
                         1,
@@ -175,17 +176,35 @@ void MILPEncoder::encodeReLUConstraint( GurobiWrapper &gurobi, ReluConstraint *r
     unsigned targetVariable = relu->getF();
     double sourceLb = _tableau.getLowerBound( sourceVariable );
     double targetUb = _tableau.getUpperBound( targetVariable );
+    if ( sourceLb < -100000000 || targetUb > 100000000 )
+    {
+        double xPoints[3];
+        double yPoints[3];
+        xPoints[0] = -100000000;
+        yPoints[0] = 0;
+        xPoints[1] = 0;
+        yPoints[1] = 0;
+        xPoints[2] = 100000000;
+        yPoints[2] = 100000000;
+        gurobi.addPiecewiseLinearConstraint( Stringf( "x%u", sourceVariable ),
+                                             Stringf( "x%u", targetVariable ),
+                                             3,
+                                             xPoints,
+                                             yPoints );
+    }
+    else
+    {
+        List<GurobiWrapper::Term> terms;
+        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
+        terms.append( GurobiWrapper::Term( -sourceLb, Stringf( "a%u", _binVarIndex ) ) );
+        gurobi.addLeqConstraint( terms, -sourceLb );
 
-    List<GurobiWrapper::Term> terms;
-    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-    terms.append( GurobiWrapper::Term( -1, Stringf( "x%u", sourceVariable ) ) );
-    terms.append( GurobiWrapper::Term( -sourceLb, Stringf( "a%u", _binVarIndex ) ) );
-    gurobi.addLeqConstraint( terms, -sourceLb );
-
-    terms.clear();
-    terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
-    terms.append( GurobiWrapper::Term( -targetUb, Stringf( "a%u", _binVarIndex++ ) ) );
-    gurobi.addLeqConstraint( terms, 0 );
+        terms.clear();
+        terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", targetVariable ) ) );
+        terms.append( GurobiWrapper::Term( -targetUb, Stringf( "a%u", _binVarIndex++ ) ) );
+        gurobi.addLeqConstraint( terms, 0 );
+    }
 }
 
 void MILPEncoder::encodeLeakyReLUConstraint( GurobiWrapper &gurobi,
@@ -305,6 +324,8 @@ void MILPEncoder::encodeMaxConstraint( GurobiWrapper &gurobi, MaxConstraint *max
             } );
             unsigned aux = split.getBoundTightenings().begin()->_variable;
             double auxUb = _tableau.getUpperBound( aux );
+            if ( auxUb > 10000000 )
+                auxUb = 100000000;
             terms.append( GurobiWrapper::Term( 1, Stringf( "x%u", aux ) ) );
             terms.append( GurobiWrapper::Term( auxUb, binVarName ) );
             gurobi.addLeqConstraint( terms, auxUb );
