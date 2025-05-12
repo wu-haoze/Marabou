@@ -2831,9 +2831,14 @@ PiecewiseLinearConstraint *Engine::branchWithLookahead()
             alreadyFixes++;
         }
     }
-    std::cout << "Already fixed: " << alreadyFixes << std::endl;
-    std::cout << "Fixed by lookahead: " << fixes << std::endl;
-    applyAllBoundTightenings();
+    std::cout << "Fixed before lookahead: " << countPhaseFixed( commonFixes ) << std::endl;
+    do
+    {
+        _boundManager.propagateTightenings();
+        applyAllBoundTightenings();
+    }
+    while ( applyAllValidConstraintCaseSplits() );
+    std::cout << "Fixed after lookahead: " << countPhaseFixed( commonFixes ) << std::endl;
 
     return bestCandidate;
 }
