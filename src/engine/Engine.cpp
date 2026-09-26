@@ -249,6 +249,16 @@ bool Engine::solve( double timeoutInSeconds )
             return false;
         }
 
+        if ( Options::get()->getInt( Options::DECISIONS ) &&
+             (int)_statistics.getUnsignedAttribute( Statistics::NUM_VISITED_TREE_STATES ) >=
+                 Options::get()->getInt( Options::DECISIONS ) )
+        {
+            printf( "\n\nEngine: tree-state limit reached...\n\n" );
+            printf( "Final statistics:\n" );
+            _statistics.print();
+            exit( 0 );
+        }
+
         if ( _quitRequested )
         {
             if ( _verbosity > 0 )
