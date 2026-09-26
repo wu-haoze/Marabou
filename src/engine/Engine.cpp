@@ -2890,10 +2890,13 @@ PiecewiseLinearConstraint *Engine::pickSplitPLConstraint( DivideStrategy strateg
     }
     else if ( strategy == DivideStrategy::PseudoImpact )
     {
-        // A ReLU split: input splitting is left to --interval-split-frequency alone, so that a frequency of 1 means
-        // ReLU splitting only, for every branching heuristic.
+
         if ( _smtCore.getStackDepth() > 3 )
             candidatePLConstraint = _smtCore.getConstraintsWithHighestScore();
+        else if ( !_preprocessedQuery->getInputVariables().empty() &&
+                  _preprocessedQuery->getInputVariables().size() <
+                      GlobalConfiguration::INTERVAL_SPLITTING_THRESHOLD )
+            candidatePLConstraint = pickSplitPLConstraintBasedOnIntervalWidth();
         else
         {
             candidatePLConstraint = pickSplitPLConstraintBasedOnPolarity();
