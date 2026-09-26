@@ -23,7 +23,7 @@
 
 // The exponential moving average is calculated as
 //     ema = current * alpha + previous * (1 - alpha)
-const double GlobalConfiguration::EXPONENTIAL_MOVING_AVERAGE_ALPHA = 0.5;
+double GlobalConfiguration::EXPONENTIAL_MOVING_AVERAGE_ALPHA = 0.5;
 
 // Whether to use SoI instead of Reluplex for local search for satisfying assignments
 // to non-linear constraint.

@@ -154,16 +154,6 @@ void SmtCore::performSplit()
     {
         _statistics->incUnsignedAttribute( Statistics::NUM_SPLITS );
         _statistics->incUnsignedAttribute( Statistics::NUM_VISITED_TREE_STATES );
-
-	if ( Options::get()->getInt( Options::DECISIONS ) && 
-	     (int) _statistics->getUnsignedAttribute( Statistics::NUM_SPLITS ) >=
-	     Options::get()->getInt( Options::DECISIONS ) )
-        {
-                printf( "\n\nEngine: conflict limit reached...\n\n" );
-                printf( "Final statistics:\n" );
-                _statistics->print();
-		exit(0);
-        }
     }
 
     // Before storing the state of the engine, we:

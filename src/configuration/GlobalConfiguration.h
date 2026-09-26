@@ -25,7 +25,7 @@ public:
 
     // The exponential moving average is calculated as
     //     ema = current * alpha + previous * (1 - alpha)
-    static const double EXPONENTIAL_MOVING_AVERAGE_ALPHA;
+    static double EXPONENTIAL_MOVING_AVERAGE_ALPHA;
 
     // Whether to use SoI instead of Reluplex for local search for satisfying assignments
     // to non-linear constraint.

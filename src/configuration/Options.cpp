@@ -84,6 +84,7 @@ void Options::initializeDefaultValues()
         GlobalConfiguration::DEFAULT_EPSILON_FOR_COMPARISONS;
     _floatOptions[PROBABILITY_DENSITY_PARAMETER] = 10;
     _floatOptions[REFINEMENT_SCALING_FACTOR_INC_LIN] = 2;
+    _floatOptions[EMA_ALPHA] = 0.5;
 
     /*
       String options

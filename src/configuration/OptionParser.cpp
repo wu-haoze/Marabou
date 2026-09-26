@@ -194,6 +194,11 @@ void OptionParser::initialize()
             &( ( *_floatOptions )[Options::PROBABILITY_DENSITY_PARAMETER] ) )
             ->default_value( ( *_floatOptions )[Options::PROBABILITY_DENSITY_PARAMETER] ),
         "(DeepSoI) The beta parameter in MCMC search.\n" )(
+        "ema-alpha",
+        boost::program_options::value<float>(
+            &( ( *_floatOptions )[Options::EMA_ALPHA] ) )
+	->default_value( ( *_floatOptions )[Options::EMA_ALPHA] ),
+        "EMA_ALPHA.\n" )(
         "split-strategy",
         boost::program_options::value<std::string>(
             &( ( *_stringOptions )[Options::SNC_SPLITTING_STRATEGY] ) )

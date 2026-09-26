@@ -14,6 +14,7 @@
 **/
 
 #include "PseudoImpactTracker.h"
+#include "Options.h"
 
 #include "GlobalConfiguration.h"
 
@@ -25,7 +26,7 @@ void PseudoImpactTracker::updateScore( PiecewiseLinearConstraint *constraint, do
 {
     ASSERT( _plConstraintToScore.exists( constraint ) );
 
-    double alpha = GlobalConfiguration::EXPONENTIAL_MOVING_AVERAGE_ALPHA;
+    double alpha = Options::get()->getFloat( Options::EMA_ALPHA );
     double oldScore = _plConstraintToScore[constraint];
     double newScore = ( 1 - alpha ) * oldScore + alpha * score;
 
