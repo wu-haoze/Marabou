@@ -3208,6 +3208,13 @@ void Engine::minimizeHeuristicCost( const LinearExpression &heuristicCost )
 
         _heuristicCost = heuristicCost;
 
+        // The main loop's progress check does not run inside this loop, and the simplex can descend here in steps
+        // too small to matter without ever reaching a local optimum (on a cube of AltLoop REI_id540_ep57610, by
+        // about 1e-10 per pivot, for millions of pivots). Every MAX_ITERATIONS_WITHOUT_PROGRESS pivots, stop if the
+        // cost has decreased by less than a relative 1e-4 since the last check, and take the current point.
+        unsigned pivotsSinceCheck = 0;
+        double costAtCheck = computeHeuristicCost( heuristicCost );
+
         bool localOptimumReached = false;
         while ( !localOptimumReached )
         {
@@ -3229,6 +3236,24 @@ void Engine::minimizeHeuristicCost( const LinearExpression &heuristicCost )
             ASSERT( allVarsWithinBounds() );
 
             localOptimumReached = performSimplexStep();
+
+            if ( !localOptimumReached &&
+                 ++pivotsSinceCheck >= GlobalConfiguration::MAX_ITERATIONS_WITHOUT_PROGRESS )
+            {
+                double cost = computeHeuristicCost( heuristicCost );
+                if ( costAtCheck - cost < 1e-4 * FloatUtils::max( 1.0, FloatUtils::abs( costAtCheck ) ) )
+                {
+                    if ( _verbosity > 0 )
+                        printf( "Engine::minimizeHeuristicCost: cost %.10f after %u more pivots (was %.10f): "
+                                "no significant progress, taking the current point as the local optimum\n",
+                                cost,
+                                GlobalConfiguration::MAX_ITERATIONS_WITHOUT_PROGRESS,
+                                costAtCheck );
+                    localOptimumReached = true;
+                }
+                costAtCheck = cost;
+                pivotsSinceCheck = 0;
+            }
         }
         _tableau->toggleOptimization( false );
         ENGINE_LOG( Stringf( "Current heuristic cost: %f", computeHeuristicCost( heuristicCost ) )
